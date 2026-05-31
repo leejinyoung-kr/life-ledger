@@ -1,0 +1,23 @@
+{
+  "name": "doc-nexus",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "workspaces": [
+    "packages/*",
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "pnpm run db && concurrently -n \"backend,frontend\" -c \"blue,green\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
+    "dev:backend": "pnpm --filter backend start:dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "db": "docker compose up db -d",
+    "db:stop": "docker compose stop db",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:build": "docker compose build --no-cache"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
