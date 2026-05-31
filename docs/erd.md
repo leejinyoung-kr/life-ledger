@@ -37,4 +37,4 @@ User 1 ─── N Menu
 
 ## 스키마 (Prisma)
 
-> `backend/prisma/schema.prisma` 참고
+> Prisma 미구현 — `backend/prisma/schema.prisma` 파일 없음

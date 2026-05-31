@@ -6,15 +6,15 @@
 
 ## Stack
 
-| Layer | Tech |
-|-------|------|
-| Frontend | Next.js (App Router), TypeScript, Tailwind CSS |
-| Backend | NestJS, TypeScript |
-| ORM | Prisma |
-| DB | MariaDB 11 |
-| Auth | Google OAuth 2.0 + JWT |
-| Storage | Cloudflare R2 |
-| AI | Claude API (claude-sonnet-4-6) |
+| Layer | Tech | 상태 |
+| --- | --- | --- |
+| Frontend | Next.js (App Router), TypeScript, Tailwind CSS | 초기 구조 |
+| Backend | NestJS, TypeScript | 초기 구조 |
+| ORM | Prisma | 미구현 |
+| DB | MariaDB 11 | 미구현 |
+| Auth | Google OAuth 2.0 + JWT | 미구현 |
+| Storage | Cloudflare R2 | 미구현 |
+| AI | Claude API (claude-sonnet-4-6) | 미구현 |
 
 ## Ports
 

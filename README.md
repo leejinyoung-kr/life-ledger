@@ -34,7 +34,7 @@ pnpm run dev
 
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000/api
-- Swagger: http://localhost:8000/api/docs
+- Swagger: http://localhost:8000/api-docs
 - Prisma Studio: http://localhost:5555
 
 ## 기술 스택

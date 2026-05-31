@@ -21,30 +21,30 @@ pnpm start:dev
 ## 주요 명령어
 
 ```bash
-pnpm start:dev        # watch 모드 실행
-pnpm build            # 빌드
-pnpm test             # 테스트
-pnpm prisma:migrate   # DB 마이그레이션
-pnpm prisma:studio    # Prisma Studio (포트 5555)
-pnpm prisma:seed      # 시드 데이터 삽입
+pnpm start:dev   # watch 모드 실행
+pnpm build       # 빌드
+pnpm test        # 테스트
 ```
 
 ## 환경 변수
 
+`.env.example` 참고:
+
 ```env
-DATABASE_URL=mysql://root:123456789@localhost:3306/doc_nexus
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=docnexus
+PORT=8000
+DATABASE_URL="mysql://root:password@localhost:3306/docnexus"
+
+# google OAuth2
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-JWT_SECRET=
-JWT_REFRESH_SECRET=
-CREDENTIAL_SECRET=
-CLOUDFLARE_R2_BUCKET=
-CLOUDFLARE_R2_ENDPOINT=
-CLOUDFLARE_R2_ACCESS_KEY=
-CLOUDFLARE_R2_SECRET_KEY=
-CLAUDE_API_KEY=
+GOOGLE_CALLBACK_URL=http://localhost:8000/api/v1/auth/google/callback
 ```
 
 ## API 문서
 
-개발 서버 실행 후 <http://localhost:8000/api/docs> (Swagger)
+개발 서버 실행 후 <http://localhost:8000/api-docs> (Swagger)
