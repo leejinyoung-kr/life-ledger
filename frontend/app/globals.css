@@ -1,26 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Colors */
+  --bg-base:        #FFFFFF;
+  --bg-surface:     #F8F9FB;
+  --bg-elevated:    #F0F2F5;
+  --border:         #E4E7EC;
+  --border-subtle:  #EEF0F3;
+  --accent:         #00C07F;
+  --accent-dark:    #00A86D;
+  --accent-dim:     rgba(0, 192, 127, 0.10);
+  --accent-hover:   rgba(0, 192, 127, 0.16);
+  --accent-glow:    rgba(0, 192, 127, 0.09);
+  --text-primary:   #0F1923;
+  --text-secondary: #4B5768;
+  --text-muted:     #9AA5B4;
+  --danger:         #F04438;
+  --danger-dim:     rgba(240, 68, 56, 0.08);
+  --warning:        #F79009;
+  --warning-dim:    rgba(247, 144, 9, 0.10);
+  --success:        #00C07F;
+  --success-dim:    rgba(0, 192, 127, 0.10);
+
+  /* Typography */
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+
+  /* Layout */
+  --sidebar-w:   248px;
+  --header-h:    60px;
+  --radius:      8px;
+  --radius-lg:   14px;
+  --radius-full: 999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04);
+  --shadow-md: 0 4px 16px rgba(16,24,40,0.08);
+  --shadow-lg: 0 8px 32px rgba(16,24,40,0.12);
+
+  /* Transitions */
+  --ease: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
+
+a { color: inherit; text-decoration: none; }
+ul, ol { list-style: none; }
+button { cursor: pointer; border: none; background: none; font: inherit; }
+input, select, textarea { font: inherit; }

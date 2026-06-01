@@ -2,17 +2,16 @@
 
 Base URL: `http://localhost:8000/api/v1`
 
-> 상세 문서: Swagger UI → http://localhost:8000/api-docs  
-> 아래 엔드포인트는 설계 명세이며, 현재 미구현 상태입니다.
+> 상세 문서: Swagger UI → http://localhost:8000/api-docs
 
-## 인증
+## 인증 (구현 완료)
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
 | GET | /auth/google | Google OAuth 로그인 리다이렉트 |
-| GET | /auth/google/callback | OAuth 콜백, JWT 발급 |
-| POST | /auth/refresh | Access Token 갱신 |
-| POST | /auth/logout | 로그아웃 |
+| GET | /auth/google/callback | OAuth 콜백, JWT 발급 후 프론트엔드로 리다이렉트 |
+| POST | /auth/refresh | Access Token 갱신 (미구현) |
+| POST | /auth/logout | 로그아웃 (미구현) |
 
 ## 대시보드 (미구현)
 

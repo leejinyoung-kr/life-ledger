@@ -37,4 +37,22 @@ User 1 ─── N Menu
 
 ## 스키마 (Prisma)
 
-> Prisma 미구현 — `backend/prisma/schema.prisma` 파일 없음
+`backend/prisma/schema.prisma` 참고.
+
+### User
+
+```prisma
+model User {
+  id         Int      @id @default(autoincrement())
+  google_id  String   @unique @db.VarChar(100)
+  email      String   @unique @db.VarChar(200)
+  name       String   @db.VarChar(100)
+  picture    String?  @db.VarChar(500)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("user")
+}
+```
+
+> 나머지 테이블은 미구현 — 위 목록은 설계 예정 항목임

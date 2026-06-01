@@ -8,11 +8,11 @@
 
 | Layer | Tech | 상태 |
 | --- | --- | --- |
-| Frontend | Next.js (App Router), TypeScript, Tailwind CSS | 초기 구조 |
-| Backend | NestJS, TypeScript | 초기 구조 |
-| ORM | Prisma | 미구현 |
-| DB | MariaDB 11 | 미구현 |
-| Auth | Google OAuth 2.0 + JWT | 미구현 |
+| Frontend | Next.js (App Router), TypeScript, Tailwind CSS | 로그인 구현 완료 |
+| Backend | NestJS, TypeScript | 인증 구현 완료 |
+| ORM | Prisma | 구현 완료 |
+| DB | MariaDB 11 | 구현 완료 |
+| Auth | Google OAuth 2.0 + JWT | 구현 완료 |
 | Storage | Cloudflare R2 | 미구현 |
 | AI | Claude API (claude-sonnet-4-6) | 미구현 |
 
