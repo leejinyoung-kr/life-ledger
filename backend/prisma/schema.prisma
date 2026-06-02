@@ -23,6 +23,8 @@ model User {
   nwSnapshots   NetWorthSnapshot[]
   settings      UserSettings?
   notifications Notification[]
+  tasks         Task[]
+  goals         Goal[]
 
   @@map("user")
 }
@@ -269,4 +271,62 @@ model Notification {
 
   @@index([user_id, created_at])
   @@map("notification")
+}
+
+/// 할일 우선순위: low(낮음) | normal(보통) | high(높음)
+enum TaskPriority {
+  low
+  normal
+  high
+
+  @@map("task_priority")
+}
+
+/// 할일 (할일/목표 페이지 - 할 일)
+model Task {
+  id         Int          @id @default(autoincrement())
+  user_id    Int /// user.id FK
+  text       String       @db.VarChar(300)
+  due_date   DateTime?    @db.Date
+  priority   TaskPriority @default(normal)
+  memo       String?      @db.VarChar(300)
+  done       Boolean      @default(false)
+  done_at    DateTime?
+  deleted_at DateTime?
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("task")
+}
+
+/// 목표 진행바 색: green(정상) | warning(주의) | danger(위험)
+enum GoalTone {
+  green
+  warning
+  danger
+
+  @@map("goal_tone")
+}
+
+/// 목표 (할일/목표 페이지 - 목표). 진행률(pct)·색(tone)은 표시값으로 직접 보관
+model Goal {
+  id           Int      @id @default(autoincrement())
+  user_id      Int /// user.id FK
+  name         String   @db.VarChar(200)
+  unit         String   @db.VarChar(10) /// won|percent
+  current_val  Decimal  @db.Decimal(15, 2)
+  target_val   Decimal  @db.Decimal(15, 2)
+  pct          Int /// 진행률(%)
+  tone         GoalTone @default(green)
+  deleted_at   DateTime?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("goal")
 }

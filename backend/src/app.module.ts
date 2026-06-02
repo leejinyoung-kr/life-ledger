@@ -10,6 +10,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { SavingModule } from './saving/saving.module';
 import { SettingsModule } from './settings/settings.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { TaskModule } from './task/task.module';
 import { TransactionModule } from './transaction/transaction.module';
 
 @Module({
@@ -24,6 +25,7 @@ import { TransactionModule } from './transaction/transaction.module';
     AssetModule,
     SettingsModule,
     NotificationModule,
+    TaskModule,
   ],
   controllers: [AppController],
   providers: [AppService],
