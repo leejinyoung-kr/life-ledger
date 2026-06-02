@@ -10,6 +10,7 @@ import { NoteModule } from './note/note.module';
 import { NotificationModule } from './notification/notification.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SavingModule } from './saving/saving.module';
+import { SecurityModule } from './security/security.module';
 import { SettingsModule } from './settings/settings.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { TaskModule } from './task/task.module';
@@ -32,6 +33,7 @@ import { TransactionModule } from './transaction/transaction.module';
     NoteModule,
     CalendarModule,
     TrashModule,
+    SecurityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -27,6 +27,8 @@ model User {
   goals         Goal[]
   notes         Note[]
   calendarEvents CalendarEvent[]
+  securityRisks SecurityRisk[]
+  loginSessions LoginSession[]
 
   @@map("user")
 }
@@ -376,4 +378,80 @@ model CalendarEvent {
 
   @@index([user_id, date])
   @@map("calendar_event")
+}
+
+/// 위험 종류: reuse(재사용) | weak(취약) | no2fa(2FA 미설정) | breach(유출 의심)
+enum SecurityRiskCategory {
+  reuse
+  weak
+  no2fa
+  breach
+
+  @@map("security_risk_category")
+}
+
+/// 위험 심각도: critical(심각) | danger(위험) | warning(주의) | info(권장)
+enum SecurityRiskSeverity {
+  critical
+  danger
+  warning
+  info
+
+  @@map("security_risk_severity")
+}
+
+/// 보안 위험 요소 (보안 센터 - 위험 요소)
+model SecurityRisk {
+  id           Int                  @id @default(autoincrement())
+  user_id      Int /// user.id FK
+  category     SecurityRiskCategory
+  severity     SecurityRiskSeverity
+  title        String               @db.VarChar(200)
+  description  String               @db.VarChar(300)
+  action_label String               @db.VarChar(20) /// 처리 버튼 라벨(변경/분리/강화/설정)
+  resolved     Boolean              @default(false)
+  resolved_at  DateTime?
+  created_at   DateTime             @default(now())
+  updated_at   DateTime             @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("security_risk")
+}
+
+/// 기기 종류: desktop | mobile | unknown
+enum SessionDeviceType {
+  desktop
+  mobile
+  unknown
+
+  @@map("session_device_type")
+}
+
+/// 세션 상태: active(정상) | unverified(미확인)
+enum SessionStatus {
+  active
+  unverified
+
+  @@map("session_status")
+}
+
+/// 로그인 세션 (보안 센터 - 로그인 기기/세션)
+model LoginSession {
+  id             Int               @id @default(autoincrement())
+  user_id        Int /// user.id FK
+  device         String            @db.VarChar(100)
+  device_type    SessionDeviceType @default(unknown)
+  location       String            @db.VarChar(100)
+  is_current     Boolean           @default(false)
+  status         SessionStatus     @default(active)
+  last_active_at DateTime          @default(now())
+  revoked_at     DateTime? /// 로그아웃/차단 시각, null=활성
+  created_at     DateTime          @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("login_session")
 }
