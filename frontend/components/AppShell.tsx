@@ -22,6 +22,8 @@ interface AppShellProps {
   topbarRight?: ReactNode;
   /** 로그아웃 핸들러 */
   onLogout?: () => void;
+  /** page-body 패딩 래퍼 없이 children 직접 렌더 (전체 높이 레이아웃용) */
+  bare?: boolean;
   /** 페이지 콘텐츠 */
   children: ReactNode;
 }
@@ -33,6 +35,7 @@ export default function AppShell({
   onAction,
   topbarRight,
   onLogout,
+  bare,
   children,
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -56,7 +59,7 @@ export default function AppShell({
             onAction={onAction}
             rightSlot={topbarRight}
           />
-          <div className="page-body">{children}</div>
+          {bare ? children : <div className="page-body">{children}</div>}
         </div>
       </div>
     </>

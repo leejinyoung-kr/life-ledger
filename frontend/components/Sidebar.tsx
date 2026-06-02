@@ -54,7 +54,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: '도구',
     icon: <IconDoc className="nav-ic" />,
     children: [
-      { label: '메모', href: '#', icon: <IconDoc /> },
+      { label: '메모', href: '/notes', icon: <IconDoc /> },
       { label: '할일/목표', href: '/tasks', icon: <IconCheckSquare /> },
       { label: '캘린더', href: '/calendar', icon: <IconCalendar /> },
     ],
