@@ -267,6 +267,13 @@ export const IconTrendUp = (p: IconProps) => (
   </Stroke>
 );
 
+// 체크(완료) 아이콘
+export const IconCheck = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...p}>
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
 // 복사 아이콘
 export const IconCopy = (p: IconProps) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...p}>
