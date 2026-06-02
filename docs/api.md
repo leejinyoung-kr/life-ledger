@@ -21,16 +21,41 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /dashboard/budget-status | 카테고리별 예산 현황 |
 | GET | /dashboard/activity | 최근 활동 목록 |
 
-## 가계부 (미구현)
+## 가계부 — 수입/지출 (구현 완료)
+
+> 모든 가계부 API 는 Bearer JWT 필요. user_id 는 토큰에서 추출.
 
 | Method | Endpoint | 설명 |
 |--------|----------|------|
-| GET | /transactions | 내역 목록 |
+| GET | /transactions?month=&type=&category=&q= | 내역 목록 (월/유형/카테고리/검색 필터) |
+| GET | /transactions/summary?month= | 월 요약 (수입/지출/저축이동/실소비/잔액) |
+| GET | /transactions/monthly-trend?month= | 월별 지출 추이 (최근 5개월) |
+| GET | /transactions/recurring | 반복 거래 목록 |
 | POST | /transactions | 내역 추가 |
 | PUT | /transactions/:id | 내역 수정 |
-| DELETE | /transactions/:id | 내역 삭제 |
-| GET | /transactions/export | 엑셀 내보내기 |
-| POST | /transactions/import | 엑셀 가져오기 |
+| DELETE | /transactions/:id | 내역 삭제 (soft delete) |
+| GET | /transactions/export | 엑셀 내보내기 (미구현, Phase 4-5) |
+| POST | /transactions/import | 엑셀 가져오기 (미구현, Phase 4-5) |
+
+## 가계부 — 예적금 (구현 완료)
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | /savings | 예적금 목록 |
+| GET | /savings/summary | 요약 (총 잔액/이번 달 납입/평균 금리/만기 임박) |
+| POST | /savings | 예적금 추가 |
+| PUT | /savings/:id | 예적금 수정 |
+| DELETE | /savings/:id | 예적금 삭제 (soft delete) |
+
+## 가계부 — 투자 (구현 완료)
+
+| Method | Endpoint | 설명 |
+|--------|----------|------|
+| GET | /investments | 투자 목록 (수익/수익률 파생값 포함) |
+| GET | /investments/summary | 요약 (총 평가금액/원금/수익/수익률) |
+| POST | /investments | 투자 추가 |
+| PUT | /investments/:id | 투자 수정 |
+| DELETE | /investments/:id | 투자 삭제 (soft delete) |
 
 ## 계정 보관함 (미구현)
 

@@ -55,4 +55,12 @@ model User {
 }
 ```
 
-> 나머지 테이블은 미구현 — 위 목록은 설계 예정 항목임
+### Transaction / Saving / Investment (구현 완료 — 가계부)
+
+- `Transaction` — 수입/지출 내역. `type`(income/expense/transfer), `category`(코드), `amount`, `pay_method`, `is_recurring`, `recurring_rule`(JSON), soft delete(`deleted_at`)
+- `Saving` — 예적금. `type`(savings/deposit/subscription/etc), `interest_rate`, `monthly_amount`, `maturity_date`, `balance`
+- `Investment` — 투자. `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `current_value`, `purchase_date`
+
+모두 `user_id` FK + KST 트리거 포함. 상세는 `backend/prisma/schema.prisma` 및 `migrations/20260602093000_finance/`.
+
+> 나머지 테이블(Budget/Credential/File/Folder/Note/Notification/Report/WidgetSetting/Menu)은 미구현 — 설계 예정 항목임

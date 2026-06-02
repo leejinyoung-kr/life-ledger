@@ -453,6 +453,9 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 .recur-sub { font-size: .72rem; color: var(--text-muted); }
 .ledger-note { margin-top: 12px; font-size: .78rem; color: var(--text-muted); }
 .ledger-note strong { color: var(--blue); }
+/* API 오류 안내 — 가계부 목록/모달 공통 */
+.ledger-note.is-error { color: var(--danger); }
+.input-error { margin: 0 0 12px; font-size: .8rem; color: var(--danger); }
 
 /* 예적금 탭 */
 .savings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
