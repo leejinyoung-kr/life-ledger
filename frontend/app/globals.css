@@ -924,6 +924,29 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 .badge-inline { margin-left: 6px; }
 
 /* ════════════════════════════════════════
+   알림 (notifications) 전용
+   ════════════════════════════════════════ */
+.notif-tabs { display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap; }
+.notif-tabs .btn { font-size: .8rem; padding: 6px 14px; }
+
+.notif-item { display: flex; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--border-subtle); transition: background var(--ease); cursor: pointer; }
+.notif-item:last-child { border-bottom: none; }
+.notif-item:hover { background: var(--bg-surface); }
+.notif-item.unread { background: rgba(0,192,127,.04); }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+.notif-dot.unread { background: var(--accent); }
+.notif-dot.read { background: transparent; border: 1.5px solid var(--border); }
+.notif-type-icon { width: 36px; height: 36px; border-radius: var(--radius); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.notif-type-icon.warning { background: var(--warning-dim); color: var(--warning); }
+.notif-type-icon.success { background: var(--success-dim); color: var(--accent); }
+.notif-type-icon.muted   { background: var(--bg-elevated); color: var(--text-muted); }
+.notif-main { flex: 1; }
+.notif-title { font-size: 0.875rem; font-weight: 500; color: var(--text-primary); }
+.notif-item:not(.unread) .notif-title { color: var(--text-secondary); }
+.notif-desc { font-size: 0.82rem; color: var(--text-secondary); margin-top: 3px; line-height: 1.5; }
+.notif-time { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+
+/* ════════════════════════════════════════
    RESPONSIVE (반응형)
    ════════════════════════════════════════ */
 @media (max-width: 1100px) {
