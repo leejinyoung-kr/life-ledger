@@ -285,6 +285,14 @@ export const IconImage = (p: IconProps) => (
   </svg>
 );
 
+// 전송(종이비행기) 아이콘
+export const IconSend = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...p}>
+    <line x1="22" y1="2" x2="11" y2="13" />
+    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+  </svg>
+);
+
 // 막대 차트 아이콘
 export const IconBars = (p: IconProps) => (
   <Stroke {...p}>

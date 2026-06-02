@@ -64,7 +64,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <IconCube className="nav-ic" />,
     children: [
       { label: 'AI 리포트', href: '/ai-report', icon: <IconCube /> },
-      { label: 'AI 챗', href: '#', icon: <IconChat /> },
+      { label: 'AI 챗', href: '/assistant', icon: <IconChat /> },
     ],
   },
   {
