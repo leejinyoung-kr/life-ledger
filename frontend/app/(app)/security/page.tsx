@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import AppShell from '@/components/AppShell';
+import { useConfirm } from '@/components/ConfirmModal';
 import StatCard from '@/components/StatCard';
 import { api } from '@/lib/api';
 import { relativeTime } from '@/lib/notification';
@@ -20,6 +21,7 @@ export default function SecurityPage() {
   const [risks, setRisks] = useState<SecurityRisk[]>([]);
   const [sessions, setSessions] = useState<LoginSession[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmElement } = useConfirm();
 
   // 요약/위험/세션 조회
   const load = useCallback(async () => {
@@ -51,7 +53,7 @@ export default function SecurityPage() {
 
   // 전체 세션 로그아웃 (현재 기기 제외)
   async function revokeAll() {
-    if (!window.confirm('현재 기기를 제외한 모든 세션을 로그아웃할까요?')) return;
+    if (!await confirm('현재 기기를 제외한 모든 세션을 로그아웃할까요?', 'danger')) return;
     try { await api.post('/security/sessions/revoke-all', {}); load(); }
     catch (e) { setError((e as Error).message); }
   }
@@ -154,6 +156,7 @@ export default function SecurityPage() {
           })}
         </div>
       </div>
+      {confirmElement}
     </AppShell>
   );
 }

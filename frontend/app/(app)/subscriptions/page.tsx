@@ -6,10 +6,13 @@
  * 데이터는 백엔드 API(/subscriptions)와 실시간 연동한다.
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
+import { useConfirm } from '@/components/ConfirmModal';
+import Pagination, { LimitSelect } from '@/components/Pagination';
 import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
-import { IconRepeat, IconAlertTriangle } from '@/components/icons';
+import { IconRepeat, IconAlertTriangle, IconPlus } from '@/components/icons';
 import { api } from '@/lib/api';
 import { won, dotDate, daysUntil } from '@/lib/finance';
 import {
@@ -30,6 +33,9 @@ export default function SubscriptionsPage() {
   const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
   const [unused, setUnused] = useState<UnusedSubscription[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const { confirm, confirmElement } = useConfirm();
 
   // 목록/요약/미사용 조회
   const load = useCallback(async () => {
@@ -49,9 +55,14 @@ export default function SubscriptionsPage() {
 
   // 구독 해지 (soft delete)
   async function cancel(id: number) {
-    if (!window.confirm('이 구독을 해지할까요?')) return;
-    await api.del(`/subscriptions/${id}`);
-    bump();
+    if (!await confirm('이 구독을 해지할까요?', 'danger')) return;
+    try {
+      await api.del(`/subscriptions/${id}`);
+      toast.success('구독이 해지됐습니다.');
+      bump();
+    } catch {
+      toast.error('해지에 실패했습니다.');
+    }
   }
 
   // 체험 종료 임박 — 첫 체험 구독 (배너 노출용)
@@ -67,15 +78,18 @@ export default function SubscriptionsPage() {
     : [];
 
   return (
-    <AppShell
-      activePath="/subscriptions"
-      topbarLabel="구독 관리"
-      actionLabel="구독 추가"
-      onAction={() => setModal({ open: true, mode: 'add' })}
-    >
+    <AppShell activePath="/subscriptions" topbarLabel="구독 관리">
       <div className="page-header">
-        <h1 className="page-title">구독 관리</h1>
-        <p className="page-subtitle">정기 결제를 한눈에 — 결제 예정일·연 환산·미사용 구독을 추적합니다.</p>
+        <div>
+          <h1 className="page-title">구독 관리</h1>
+          <p className="page-subtitle">정기 결제를 한눈에 — 결제 예정일·연 환산·미사용 구독을 추적합니다.</p>
+        </div>
+        <div className="flex-center gap-2">
+          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+          <button type="button" className="btn btn-primary" onClick={() => setModal({ open: true, mode: 'add' })}>
+            <IconPlus width={13} height={13} />구독 추가
+          </button>
+        </div>
       </div>
 
       {error && <p className="ledger-note is-error">⚠️ {error}</p>}
@@ -103,9 +117,14 @@ export default function SubscriptionsPage() {
       )}
 
       {/* 구독 카드 그리드 */}
-      <div className="sub-grid">
-        {subs.length === 0 && <p className="muted-note">등록된 구독이 없습니다.</p>}
-        {subs.map((sub) => {
+      {(() => {
+        const totalPages = Math.ceil(subs.length / limit);
+        const paged = subs.slice((page - 1) * limit, page * limit);
+        return (
+          <>
+            <div className="sub-grid">
+              {paged.length === 0 && <p className="muted-note">등록된 구독이 없습니다.</p>}
+              {paged.map((sub) => {
           const dd = daysUntil(sub.nextPaymentDate);
           return (
             <div className="sub-card" key={sub.id}>
@@ -132,7 +151,11 @@ export default function SubscriptionsPage() {
             </div>
           );
         })}
-      </div>
+            </div>
+            <Pagination page={page} totalPages={totalPages} totalItems={subs.length} onPageChange={setPage} />
+          </>
+        );
+      })()}
 
       {/* 미사용 의심 구독 */}
       <div className="card">
@@ -167,6 +190,7 @@ export default function SubscriptionsPage() {
         </div>
       </div>
 
+      {confirmElement}
       {/* 구독 추가/수정 모달 */}
       <SubscriptionModal
         state={modal}
@@ -190,12 +214,11 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
   const [lastUsedAt, setLastUsedAt] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 모달 열릴 때 폼 초기화 (편집 시 기존 값, 추가 시 기본값)
   useEffect(() => {
     if (!state.open) return;
-    setErr(null);
+    setErrors({});
     setName(e?.name ?? '');
     setCategory(e?.category ?? 'ott');
     setAmount(e ? String(e.amount) : '');
@@ -207,8 +230,20 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
     setMemo(e?.memo ?? '');
   }, [state.open, e]);
 
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!name.trim()) err.name = '서비스명을 입력하세요.';
+    if (!amount || Number(amount) <= 0) err.amount = '금액을 입력하세요.';
+    if (!nextPaymentDate) err.nextPaymentDate = '다음 결제일을 선택하세요.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
+
   async function save() {
-    setSaving(true); setErr(null);
+    if (!validate()) return;
+    setSaving(true);
     try {
       const payload = {
         name, category, amount: Number(amount), cycle, status,
@@ -217,9 +252,10 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
       };
       if (state.mode === 'edit' && e) await api.put(`/subscriptions/${e.id}`, payload);
       else await api.post('/subscriptions', payload);
+      toast.success(state.mode === 'edit' ? '구독이 수정됐습니다.' : '구독이 추가됐습니다.');
       onSaved();
-    } catch (x) {
-      setErr((x as Error).message);
+    } catch {
+      toast.error('저장에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -237,30 +273,35 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
         </>
       }
     >
-      {err && <p className="input-error">⚠️ {err}</p>}
-      <Field label="서비스명"><input type="text" className="input" placeholder="예: 넷플릭스" value={name} onChange={(ev) => setName(ev.target.value)} /></Field>
-      <Field label="카테고리">
+      <Field label="서비스명" required error={errors.name}>
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 넷플릭스" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />
+      </Field>
+      <Field label="카테고리" required>
         <select className="input" aria-label="카테고리" value={category} onChange={(ev) => setCategory(ev.target.value)}>
           {SUB_CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
       </Field>
       <div className="form-grid-2">
-        <Field label="금액 (원)"><input type="number" className="input" placeholder="0" value={amount} onChange={(ev) => setAmount(ev.target.value)} /></Field>
-        <Field label="결제 주기">
+        <Field label="금액 (원)" required error={errors.amount}>
+          <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }} />
+        </Field>
+        <Field label="결제 주기" required>
           <select className="input" aria-label="결제 주기" value={cycle} onChange={(ev) => setCycle(ev.target.value as SubscriptionCycle)}>
             <option value="monthly">매월</option><option value="yearly">매년</option><option value="weekly">매주</option>
           </select>
         </Field>
       </div>
       <div className="form-grid-2">
-        <Field label="다음 결제일"><input type="date" className="input" aria-label="다음 결제일" value={nextPaymentDate} onChange={(ev) => setNextPaymentDate(ev.target.value)} /></Field>
-        <Field label="상태">
+        <Field label="다음 결제일" required error={errors.nextPaymentDate}>
+          <input type="date" className={`input${errors.nextPaymentDate ? ' is-invalid' : ''}`} aria-label="다음 결제일" value={nextPaymentDate} onChange={(ev) => { setNextPaymentDate(ev.target.value); clearErr('nextPaymentDate'); }} />
+        </Field>
+        <Field label="상태" required>
           <select className="input" aria-label="상태" value={status} onChange={(ev) => setStatus(ev.target.value as SubscriptionStatus)}>
             <option value="active">활성</option><option value="trial">체험</option><option value="paused">일시정지</option>
           </select>
         </Field>
       </div>
-      <Field label="결제수단">
+      <Field label="결제수단" required>
         <select className="input" aria-label="결제수단" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
           {SUB_PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
@@ -272,11 +313,12 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
 }
 
 // 입력 그룹 (라벨 + 입력요소). label 로 감싸 입력요소에 접근성 이름을 연결한다.
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
   return (
     <label className="input-group">
-      <span className="input-label">{label}</span>
+      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
       {children}
+      {error && <span className="field-error">{error}</span>}
     </label>
   );
 }

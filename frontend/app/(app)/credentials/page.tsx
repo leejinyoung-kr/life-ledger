@@ -6,11 +6,13 @@
  * 공통 레이아웃(AppShell)·모달(Modal)을 재사용하고 데이터는 더미로 채운다.
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
+import Pagination, { LimitSelect } from '@/components/Pagination';
 import Modal from '@/components/Modal';
 import {
   IconDownload, IconFileBlank, IconUpload, IconSearch, IconEdit, IconTrash,
-  IconClose, IconCopy, IconEye,
+  IconClose, IconCopy, IconEye, IconPlus,
 } from '@/components/icons';
 
 interface Credential {
@@ -31,8 +33,10 @@ const CATEGORIES = ['전체 카테고리', '개발', '금융', '소셜', '쇼핑
 export default function CredentialsPage() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('전체 카테고리');
-  const [detail, setDetail] = useState<Credential | null>(null); // 상세 모달 대상
+  const [detail, setDetail] = useState<Credential | null>(null);
   const [edit, setEdit] = useState<{ open: boolean; mode: 'add' | 'edit' }>({ open: false, mode: 'add' });
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   // 검색어 + 카테고리로 더미 데이터 필터
   const rows = CREDENTIALS.filter((c) => {
@@ -42,16 +46,19 @@ export default function CredentialsPage() {
     return matchCat && matchQuery;
   });
 
+  const totalPages = Math.ceil(rows.length / limit);
+  const paged = rows.slice((page - 1) * limit, page * limit);
+
   return (
-    <AppShell
-      activePath="/credentials"
-      topbarLabel="계정 보관함"
-      actionLabel="계정 추가"
-      onAction={() => setEdit({ open: true, mode: 'add' })}
-    >
+    <AppShell activePath="/credentials" topbarLabel="계정 보관함">
       <div className="page-header">
-        <h1 className="page-title">계정 보관함</h1>
-        <p className="page-subtitle">행을 클릭하면 상세 정보를 확인할 수 있습니다. (AES-256-GCM 암호화)</p>
+        <div>
+          <h1 className="page-title">계정 보관함</h1>
+          <p className="page-subtitle">행을 클릭하면 상세 정보를 확인할 수 있습니다. (AES-256-GCM 암호화)</p>
+        </div>
+        <button type="button" className="btn btn-primary" onClick={() => setEdit({ open: true, mode: 'add' })}>
+          <IconPlus width={13} height={13} />계정 추가
+        </button>
       </div>
 
       {/* 보안 경고 배너 */}
@@ -89,12 +96,13 @@ export default function CredentialsPage() {
         <select
           className="input filter-select"
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={(e) => { setCategory(e.target.value); setPage(1); }}
           aria-label="카테고리 필터"
         >
           {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
         <span className="text-muted ml-auto toolbar-count">총 {rows.length}개</span>
+        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
       {/* 테이블 */}
@@ -107,7 +115,7 @@ export default function CredentialsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((c) => (
+              {paged.map((c) => (
                 <tr key={c.name} className="cred-row" onClick={() => setDetail(c)}>
                   <td>
                     <div className="service-cell">
@@ -137,6 +145,7 @@ export default function CredentialsPage() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
       </div>
 
       {/* 상세 모달 */}
@@ -250,6 +259,34 @@ function DetailModal({ cred, onClose, onEdit }: { cred: Credential | null; onClo
 
 // 계정 추가·수정 모달
 function EditModal({ state, onClose }: { state: { open: boolean; mode: 'add' | 'edit' }; onClose: () => void }) {
+  const [serviceName, setServiceName] = useState('');
+  const [url, setUrl] = useState('');
+  const [userId, setUserId] = useState('');
+  const [pw, setPw] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!state.open) return;
+    setErrors({}); setServiceName(''); setUrl(''); setUserId(''); setPw('');
+  }, [state.open]);
+
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!serviceName.trim()) err.serviceName = '서비스명을 입력하세요.';
+    if (!userId.trim()) err.userId = '아이디를 입력하세요.';
+    if (!pw) err.pw = '비밀번호를 입력하세요.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
+
+  function handleSave() {
+    if (!validate()) return;
+    toast.success(state.mode === 'edit' ? '계정이 수정됐습니다.' : '계정이 추가됐습니다.');
+    onClose();
+  }
+
   return (
     <Modal
       open={state.open}
@@ -258,27 +295,28 @@ function EditModal({ state, onClose }: { state: { open: boolean; mode: 'add' | '
       footer={
         <>
           <button type="button" className="btn btn-ghost" onClick={onClose}>취소</button>
-          {/* TODO: API 연동 — 저장 시 서버에서 AES-256-GCM 암호화 후 저장 */}
-          <button type="button" className="btn btn-primary">저장 (암호화)</button>
+          <button type="button" className="btn btn-primary" onClick={handleSave}>저장 (암호화)</button>
         </>
       }
     >
-      <Field label="서비스명"><input type="text" className="input" placeholder="예: GitHub" /></Field>
-      <Field label="URL"><input type="url" className="input" placeholder="https://github.com" /></Field>
-      <Field label="카테고리">
+      <Field label="서비스명" required error={errors.serviceName}>
+        <input type="text" className={`input${errors.serviceName ? ' is-invalid' : ''}`} placeholder="예: GitHub" value={serviceName} onChange={(e) => { setServiceName(e.target.value); clearErr('serviceName'); }} />
+      </Field>
+      <Field label="URL"><input type="url" className="input" placeholder="https://github.com" value={url} onChange={(e) => setUrl(e.target.value)} /></Field>
+      <Field label="카테고리" required>
         <select className="input" aria-label="카테고리">
           <option>개발</option><option>금융</option><option>소셜</option>
           <option>쇼핑</option><option>구독</option><option>기타</option>
         </select>
       </Field>
-      <Field label="아이디"><input type="text" className="input" placeholder="아이디 또는 이메일" /></Field>
-      <Field label="비밀번호">
+      <Field label="아이디" required error={errors.userId}>
+        <input type="text" className={`input${errors.userId ? ' is-invalid' : ''}`} placeholder="아이디 또는 이메일" value={userId} onChange={(e) => { setUserId(e.target.value); clearErr('userId'); }} />
+      </Field>
+      <Field label="비밀번호" required error={errors.pw}>
         <div className="pw-row">
-          <input type="password" className="input" placeholder="비밀번호" />
-          {/* TODO: 안전한 랜덤 비밀번호 생성 로직 연결 */}
+          <input type="password" className={`input${errors.pw ? ' is-invalid' : ''}`} placeholder="비밀번호" value={pw} onChange={(e) => { setPw(e.target.value); clearErr('pw'); }} />
           <button type="button" className="btn btn-ghost pw-gen">🎲 생성</button>
         </div>
-        {/* TODO: 입력값 기반 실시간 강도 계산 */}
         <div className="track"><div className="fill warning pw-strength-fill" /></div>
         <span className="pw-strength-text">강도: 보통 — 12자 이상 + 특수문자 권장</span>
       </Field>
@@ -291,11 +329,12 @@ function EditModal({ state, onClose }: { state: { open: boolean; mode: 'add' | '
 }
 
 // 입력 그룹 (라벨 + 입력요소). label 로 감싸 입력요소에 접근성 이름을 연결한다.
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
   return (
     <label className="input-group">
-      <span className="input-label">{label}</span>
+      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
       {children}
+      {error && <span className="field-error">{error}</span>}
     </label>
   );
 }

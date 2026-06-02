@@ -12,6 +12,10 @@ import {
   IconWon, IconBank, IconTrendUp, IconDownload, IconFileBlank, IconUpload,
   IconSearch, IconEdit, IconTrash, IconPlus,
 } from '@/components/icons';
+
+import { toast } from 'sonner';
+import { useConfirm } from '@/components/ConfirmModal';
+import Pagination, { LimitSelect } from '@/components/Pagination';
 import { api } from '@/lib/api';
 import {
   CATEGORY_LABEL, CATEGORY_OPTIONS, PAY_METHODS, SAVING_TYPE_LABEL, INVEST_TYPE_LABEL,
@@ -48,10 +52,15 @@ export default function TransactionsPage() {
   }
 
   return (
-    <AppShell activePath="/transactions" topbarLabel="가계부" actionLabel={ADD_LABELS[tab]} onAction={openAddModal}>
+    <AppShell activePath="/transactions" topbarLabel="가계부">
       <div className="page-header">
-        <h1 className="page-title">가계부</h1>
-        <p className="page-subtitle">수입/지출, 예적금, 투자를 한 곳에서 관리하세요.</p>
+        <div>
+          <h1 className="page-title">가계부</h1>
+          <p className="page-subtitle">수입/지출, 예적금, 투자를 한 곳에서 관리하세요.</p>
+        </div>
+        <button type="button" className="btn btn-primary" onClick={openAddModal}>
+          <IconPlus width={13} height={13} />{ADD_LABELS[tab]}
+        </button>
       </div>
 
       <div className="page-tabs">
@@ -117,6 +126,9 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
   const [typeFilter, setTypeFilter] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const { confirm, confirmElement } = useConfirm();
 
   const [rows, setRows] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
@@ -157,12 +169,19 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
 
   // 내역 삭제
   async function remove(id: number) {
-    if (!window.confirm('이 내역을 삭제할까요?')) return;
-    await api.del(`/transactions/${id}`);
-    onDeleted();
+    if (!await confirm('이 내역을 삭제할까요?', 'danger')) return;
+    try {
+      await api.del(`/transactions/${id}`);
+      toast.success('내역이 삭제됐습니다.');
+      onDeleted();
+    } catch {
+      toast.error('삭제에 실패했습니다.');
+    }
   }
 
   const maxTrend = Math.max(1, ...trend.map((b) => b.total));
+  const totalPages = Math.ceil(rows.length / limit);
+  const pagedRows = rows.slice((page - 1) * limit, page * limit);
   const strip = summary
     ? [
         { label: '수입', value: signedWon('income', summary.income), tone: 'income' },
@@ -223,7 +242,7 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
       </div>
 
       <div className="filter-row">
-        <input type="month" className="input" value={month} onChange={(ev) => setMonth(ev.target.value)} aria-label="조회 월" />
+        <input type="month" className="input" value={month} onChange={(ev) => { setMonth(ev.target.value); setPage(1); }} aria-label="조회 월" />
         <select className="input" value={typeFilter} onChange={(ev) => setTypeFilter(ev.target.value)} aria-label="유형 필터">
           <option value="">전체 유형</option>
           <option value="income">수입</option><option value="expense">지출</option><option value="transfer">저축이동</option>
@@ -234,8 +253,9 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
         </select>
         <div className="search-wrap filter-search">
           <IconSearch className="search-icon" />
-          <input className="input" type="text" placeholder="내역 검색..." value={q} onChange={(ev) => setQ(ev.target.value)} aria-label="내역 검색" />
+          <input className="input" type="text" placeholder="내역 검색..." value={q} onChange={(ev) => { setQ(ev.target.value); setPage(1); }} aria-label="내역 검색" />
         </div>
+        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
       <div className="card flush">
@@ -248,10 +268,10 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 && (
+              {pagedRows.length === 0 && (
                 <tr><td colSpan={7} className="td-center td-muted">내역이 없습니다.</td></tr>
               )}
-              {rows.map((row) => (
+              {pagedRows.map((row) => (
                 <tr key={row.id}>
                   <td className="td-muted">{dotDate(row.date)}</td>
                   <td className="td-name">{row.title}</td>
@@ -267,9 +287,13 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
         </div>
       </div>
 
+      <div className="card flush">
+        <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
+      </div>
       <p className="ledger-note">
         💡 <strong>저축이동</strong>은 실소비가 아닌 자산 이동으로 잔액 계산에서 제외됩니다.
       </p>
+      {confirmElement}
     </>
   );
 }
@@ -278,6 +302,9 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
 function SavingsTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number; onAdd: () => void; onEdit: (s: Saving) => void; onDeleted: () => void }) {
   const [rows, setRows] = useState<Saving[]>([]);
   const [summary, setSummary] = useState<SavingSummary | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const { confirm, confirmElement } = useConfirm();
 
   useEffect(() => {
     (async () => {
@@ -290,9 +317,14 @@ function SavingsTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number
   }, [reloadKey]);
 
   async function remove(id: number) {
-    if (!window.confirm('이 예적금을 삭제할까요?')) return;
-    await api.del(`/savings/${id}`);
-    onDeleted();
+    if (!await confirm('이 예적금을 삭제할까요?', 'danger')) return;
+    try {
+      await api.del(`/savings/${id}`);
+      toast.success('예적금이 삭제됐습니다.');
+      onDeleted();
+    } catch {
+      toast.error('삭제에 실패했습니다.');
+    }
   }
 
   const strip = summary
@@ -310,8 +342,16 @@ function SavingsTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number
         {strip.map((s, i) => <StripItem key={s.label} item={s} last={i === strip.length - 1} />)}
       </div>
 
-      <div className="savings-grid">
-        {rows.map((c) => {
+      {(() => {
+        const totalPages = Math.ceil(rows.length / limit);
+        const paged = rows.slice((page - 1) * limit, page * limit);
+        return (
+          <>
+            <div className="flex-end mb-4">
+              <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+            </div>
+            <div className="savings-grid">
+              {paged.map((c) => {
           const dleft = daysUntil(c.maturityDate);
           const near = dleft !== null && dleft >= 0 && dleft <= 30;
           return (
@@ -338,11 +378,16 @@ function SavingsTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number
           );
         })}
 
-        <div className="savings-card add" onClick={onAdd}>
-          <IconPlus width={28} height={28} />
-          <span>예적금 추가</span>
-        </div>
-      </div>
+              <div className="savings-card add" onClick={onAdd}>
+                <IconPlus width={28} height={28} />
+                <span>예적금 추가</span>
+              </div>
+            </div>
+            <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
+          </>
+        );
+      })()}
+      {confirmElement}
     </>
   );
 }
@@ -360,6 +405,9 @@ function MetaRow({ label, value, accent, warning }: { label: string; value: stri
 function InvestTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number; onAdd: () => void; onEdit: (v: Investment) => void; onDeleted: () => void }) {
   const [rows, setRows] = useState<Investment[]>([]);
   const [summary, setSummary] = useState<InvestmentSummary | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const { confirm, confirmElement } = useConfirm();
 
   useEffect(() => {
     (async () => {
@@ -372,9 +420,14 @@ function InvestTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number;
   }, [reloadKey]);
 
   async function remove(id: number) {
-    if (!window.confirm('이 투자 항목을 삭제할까요?')) return;
-    await api.del(`/investments/${id}`);
-    onDeleted();
+    if (!await confirm('이 투자 항목을 삭제할까요?', 'danger')) return;
+    try {
+      await api.del(`/investments/${id}`);
+      toast.success('투자 항목이 삭제됐습니다.');
+      onDeleted();
+    } catch {
+      toast.error('삭제에 실패했습니다.');
+    }
   }
 
   const profitUp = (summary?.totalProfit ?? 0) >= 0;
@@ -398,6 +451,9 @@ function InvestTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number;
         ))}
       </div>
 
+      <div className="flex-end mb-4">
+        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+      </div>
       <div className="card flush mb-6">
         <div className="table-wrap">
           <table>
@@ -410,10 +466,12 @@ function InvestTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number;
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 && (
-                <tr><td colSpan={8} className="td-center td-muted">투자 항목이 없습니다.</td></tr>
-              )}
-              {rows.map((row) => {
+              {(() => { const paged = rows.slice((page-1)*limit, page*limit); return (
+                <>
+                  {paged.length === 0 && (
+                    <tr><td colSpan={8} className="td-center td-muted">투자 항목이 없습니다.</td></tr>
+                  )}
+                  {paged.map((row) => {
                 const up = row.profit >= 0;
                 return (
                   <tr key={row.id}>
@@ -428,16 +486,20 @@ function InvestTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number;
                   </tr>
                 );
               })}
+                </>
+              ); })()}
             </tbody>
           </table>
         </div>
       </div>
+      <Pagination page={page} totalPages={Math.ceil(rows.length / limit)} totalItems={rows.length} onPageChange={setPage} />
 
       <div className="flex-end">
         <button type="button" className="btn btn-primary" onClick={onAdd}>
           <IconPlus width={13} height={13} />투자 항목 추가
         </button>
       </div>
+      {confirmElement}
     </>
   );
 }
@@ -474,12 +536,11 @@ function LedgerModal({ state, onClose, onSaved }: { state: { open: boolean; mode
   const [payMethod, setPayMethod] = useState(PAY_METHODS[0]);
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 모달 열릴 때 폼 초기화 (편집 시 기존 값, 추가 시 기본값)
   useEffect(() => {
     if (!state.open) return;
-    setErr(null);
+    setErrors({});
     setType(e?.type ?? 'expense');
     setDate(e?.date ?? new Date().toISOString().slice(0, 10));
     setTitle(e?.title ?? '');
@@ -489,15 +550,28 @@ function LedgerModal({ state, onClose, onSaved }: { state: { open: boolean; mode
     setMemo(e?.memo ?? '');
   }, [state.open, e]);
 
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!title.trim()) err.title = '내역을 입력하세요.';
+    if (!amount || Number(amount) <= 0) err.amount = '금액을 입력하세요.';
+    if (!date) err.date = '날짜를 선택하세요.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
+
   async function save() {
-    setSaving(true); setErr(null);
+    if (!validate()) return;
+    setSaving(true);
     try {
       const payload = { type, date, title, category, amount: Number(amount), payMethod, memo: memo || undefined };
       if (state.mode === 'edit' && e) await api.put(`/transactions/${e.id}`, payload);
       else await api.post('/transactions', payload);
+      toast.success(state.mode === 'edit' ? '항목이 수정됐습니다.' : '항목이 추가됐습니다.');
       onSaved();
     } catch (x) {
-      setErr((x as Error).message);
+      toast.error('저장에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -505,23 +579,28 @@ function LedgerModal({ state, onClose, onSaved }: { state: { open: boolean; mode
 
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '항목 수정' : '항목 추가'} footer={<SaveFooter onClose={onClose} onSave={save} saving={saving} />}>
-      {err && <p className="input-error">⚠️ {err}</p>}
-      <Field label="유형">
+      <Field label="유형" required>
         <select className="input" value={type} onChange={(ev) => setType(ev.target.value as TransactionType)}>
           <option value="expense">지출</option><option value="income">수입</option><option value="transfer">저축이동</option>
         </select>
       </Field>
-      <Field label="날짜"><input type="date" className="input" aria-label="날짜" value={date} onChange={(ev) => setDate(ev.target.value)} /></Field>
-      <Field label="내역"><input type="text" className="input" placeholder="예: 스타벅스" value={title} onChange={(ev) => setTitle(ev.target.value)} /></Field>
+      <Field label="날짜" required error={errors.date}>
+        <input type="date" className={`input${errors.date ? ' is-invalid' : ''}`} aria-label="날짜" value={date} onChange={(ev) => { setDate(ev.target.value); clearErr('date'); }} />
+      </Field>
+      <Field label="내역" required error={errors.title}>
+        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 스타벅스" value={title} onChange={(ev) => { setTitle(ev.target.value); clearErr('title'); }} />
+      </Field>
       <div className="form-grid-2">
-        <Field label="카테고리">
+        <Field label="카테고리" required>
           <select className="input" value={category} onChange={(ev) => setCategory(ev.target.value)}>
             {CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </Field>
-        <Field label="금액 (원)"><input type="number" className="input" placeholder="0" value={amount} onChange={(ev) => setAmount(ev.target.value)} /></Field>
+        <Field label="금액 (원)" required error={errors.amount}>
+          <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }} />
+        </Field>
       </div>
-      <Field label="결제수단">
+      <Field label="결제수단" required>
         <select className="input" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
           {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
@@ -544,11 +623,11 @@ function SavingsModal({ state, onClose, onSaved }: { state: { open: boolean; mod
   const [balance, setBalance] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!state.open) return;
-    setErr(null);
+    setErrors({});
     setBank(e?.bank ?? '');
     setName(e?.name ?? '');
     setType(e?.type ?? 'savings');
@@ -560,8 +639,21 @@ function SavingsModal({ state, onClose, onSaved }: { state: { open: boolean; mod
     setMemo(e?.memo ?? '');
   }, [state.open, e]);
 
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!bank.trim()) err.bank = '은행/기관을 입력하세요.';
+    if (!name.trim()) err.name = '상품명을 입력하세요.';
+    if (!interestRate) err.interestRate = '금리를 입력하세요.';
+    if (!startDate) err.startDate = '가입일을 선택하세요.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
+
   async function save() {
-    setSaving(true); setErr(null);
+    if (!validate()) return;
+    setSaving(true);
     try {
       const payload = {
         bank, name, type,
@@ -571,9 +663,10 @@ function SavingsModal({ state, onClose, onSaved }: { state: { open: boolean; mod
       };
       if (state.mode === 'edit' && e) await api.put(`/savings/${e.id}`, payload);
       else await api.post('/savings', payload);
+      toast.success(state.mode === 'edit' ? '예적금이 수정됐습니다.' : '예적금이 추가됐습니다.');
       onSaved();
-    } catch (x) {
-      setErr((x as Error).message);
+    } catch {
+      toast.error('저장에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -581,20 +674,27 @@ function SavingsModal({ state, onClose, onSaved }: { state: { open: boolean; mod
 
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '예적금 수정' : '예적금 추가'} footer={<SaveFooter onClose={onClose} onSave={save} saving={saving} />}>
-      {err && <p className="input-error">⚠️ {err}</p>}
-      <Field label="은행/기관"><input type="text" className="input" placeholder="예: 카카오뱅크" value={bank} onChange={(ev) => setBank(ev.target.value)} /></Field>
-      <Field label="상품명"><input type="text" className="input" placeholder="예: 26주 적금" value={name} onChange={(ev) => setName(ev.target.value)} /></Field>
-      <Field label="유형">
+      <Field label="은행/기관" required error={errors.bank}>
+        <input type="text" className={`input${errors.bank ? ' is-invalid' : ''}`} placeholder="예: 카카오뱅크" value={bank} onChange={(ev) => { setBank(ev.target.value); clearErr('bank'); }} />
+      </Field>
+      <Field label="상품명" required error={errors.name}>
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 26주 적금" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />
+      </Field>
+      <Field label="유형" required>
         <select className="input" value={type} onChange={(ev) => setType(ev.target.value as SavingType)}>
           <option value="savings">적금</option><option value="deposit">예금</option><option value="subscription">청약</option><option value="etc">기타</option>
         </select>
       </Field>
       <div className="form-grid-2">
-        <Field label="금리 (%)"><input type="number" className="input" placeholder="3.5" step="0.1" value={interestRate} onChange={(ev) => setInterestRate(ev.target.value)} /></Field>
+        <Field label="금리 (%)" required error={errors.interestRate}>
+          <input type="number" className={`input${errors.interestRate ? ' is-invalid' : ''}`} placeholder="3.5" step="0.1" value={interestRate} onChange={(ev) => { setInterestRate(ev.target.value); clearErr('interestRate'); }} />
+        </Field>
         <Field label="월 납입액 (원)"><input type="number" className="input" placeholder="200000" value={monthlyAmount} onChange={(ev) => setMonthlyAmount(ev.target.value)} /></Field>
       </div>
       <div className="form-grid-2">
-        <Field label="가입일"><input type="date" className="input" aria-label="가입일" value={startDate} onChange={(ev) => setStartDate(ev.target.value)} /></Field>
+        <Field label="가입일" required error={errors.startDate}>
+          <input type="date" className={`input${errors.startDate ? ' is-invalid' : ''}`} aria-label="가입일" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearErr('startDate'); }} />
+        </Field>
         <Field label="만기일"><input type="date" className="input" aria-label="만기일" value={maturityDate} onChange={(ev) => setMaturityDate(ev.target.value)} /></Field>
       </div>
       <Field label="현재 잔액 (원)"><input type="number" className="input" placeholder="0" value={balance} onChange={(ev) => setBalance(ev.target.value)} /></Field>
@@ -613,11 +713,11 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
   const [purchaseDate, setPurchaseDate] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!state.open) return;
-    setErr(null);
+    setErrors({});
     setName(e?.name ?? '');
     setType(e?.type ?? 'domestic_stock');
     setPrincipal(e ? String(e.principal) : '');
@@ -626,15 +726,27 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
     setMemo(e?.memo ?? '');
   }, [state.open, e]);
 
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!name.trim()) err.name = '종목명을 입력하세요.';
+    if (!principal || Number(principal) <= 0) err.principal = '투자원금을 입력하세요.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
+
   async function save() {
-    setSaving(true); setErr(null);
+    if (!validate()) return;
+    setSaving(true);
     try {
       const payload = { name, type, principal: Number(principal || 0), currentValue: Number(currentValue || 0), purchaseDate, memo: memo || undefined };
       if (state.mode === 'edit' && e) await api.put(`/investments/${e.id}`, payload);
       else await api.post('/investments', payload);
+      toast.success(state.mode === 'edit' ? '투자 항목이 수정됐습니다.' : '투자 항목이 추가됐습니다.');
       onSaved();
-    } catch (x) {
-      setErr((x as Error).message);
+    } catch {
+      toast.error('저장에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -642,16 +754,19 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
 
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '투자 항목 수정' : '투자 항목 추가'} footer={<SaveFooter onClose={onClose} onSave={save} saving={saving} />}>
-      {err && <p className="input-error">⚠️ {err}</p>}
-      <Field label="종목명"><input type="text" className="input" placeholder="예: 삼성전자" value={name} onChange={(ev) => setName(ev.target.value)} /></Field>
-      <Field label="유형">
+      <Field label="종목명" required error={errors.name}>
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 삼성전자" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />
+      </Field>
+      <Field label="유형" required>
         <select className="input" value={type} onChange={(ev) => setType(ev.target.value as InvestmentType)}>
           <option value="domestic_stock">국내주식</option><option value="foreign_stock">해외주식</option><option value="foreign_etf">해외ETF</option>
           <option value="domestic_etf">국내ETF</option><option value="crypto">가상자산</option><option value="etc">기타</option>
         </select>
       </Field>
       <div className="form-grid-2">
-        <Field label="투자원금 (원)"><input type="number" className="input" placeholder="0" value={principal} onChange={(ev) => setPrincipal(ev.target.value)} /></Field>
+        <Field label="투자원금 (원)" required error={errors.principal}>
+          <input type="number" className={`input${errors.principal ? ' is-invalid' : ''}`} placeholder="0" value={principal} onChange={(ev) => { setPrincipal(ev.target.value); clearErr('principal'); }} />
+        </Field>
         <Field label="현재 평가금액 (원)"><input type="number" className="input" placeholder="0" value={currentValue} onChange={(ev) => setCurrentValue(ev.target.value)} /></Field>
       </div>
       <Field label="최초 매수일"><input type="date" className="input" aria-label="최초 매수일" value={purchaseDate} onChange={(ev) => setPurchaseDate(ev.target.value)} /></Field>
@@ -671,11 +786,12 @@ function SaveFooter({ onClose, onSave, saving }: { onClose: () => void; onSave: 
 }
 
 // 입력 그룹 (라벨 + 입력요소)
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
   return (
     <label className="input-group">
-      <span className="input-label">{label}</span>
+      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
       {children}
+      {error && <span className="field-error">{error}</span>}
     </label>
   );
 }

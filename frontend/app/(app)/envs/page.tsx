@@ -6,6 +6,7 @@
  * 값 마스킹·복사·.env 일괄 복사/다운로드·붙여넣기 파싱을 지원하며, 데이터는 더미로 채운다.
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import {
@@ -188,15 +189,15 @@ export default function EnvsPage() {
   }, []);
 
   return (
-    <AppShell
-      activePath="/envs"
-      topbarLabel="ENV 보관함"
-      actionLabel="프로젝트 추가"
-      onAction={() => setProjectModal({ open: true, mode: 'add' })}
-    >
+    <AppShell activePath="/envs" topbarLabel="ENV 보관함">
       <div className="page-header">
-        <h1 className="page-title">ENV 보관함</h1>
-        <p className="page-subtitle">프로젝트별 환경변수를 암호화하여 관리합니다. (AES-256-GCM)</p>
+        <div>
+          <h1 className="page-title">ENV 보관함</h1>
+          <p className="page-subtitle">프로젝트별 환경변수를 암호화하여 관리합니다. (AES-256-GCM)</p>
+        </div>
+        <button type="button" className="btn btn-primary" onClick={() => setProjectModal({ open: true, mode: 'add' })}>
+          <IconPlus width={14} height={14} />프로젝트 추가
+        </button>
       </div>
 
       <div className="env-layout">
@@ -391,6 +392,23 @@ function EnvFlags() {
 
 // 프로젝트 추가·수정 모달
 function ProjectModal({ state, onClose }: { state: { open: boolean; mode: 'add' | 'edit' }; onClose: () => void }) {
+  const [projectName, setProjectName] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!state.open) return;
+    setErrors({}); setProjectName('');
+  }, [state.open]);
+
+  function handleSave() {
+    const err: Record<string, string> = {};
+    if (!projectName.trim()) err.projectName = '프로젝트명을 입력하세요.';
+    setErrors(err);
+    if (Object.keys(err).length) return;
+    toast.success(state.mode === 'edit' ? '프로젝트가 수정됐습니다.' : '프로젝트가 추가됐습니다.');
+    onClose();
+  }
+
   return (
     <Modal
       open={state.open}
@@ -399,16 +417,17 @@ function ProjectModal({ state, onClose }: { state: { open: boolean; mode: 'add' 
       footer={
         <>
           <button type="button" className="btn btn-ghost" onClick={onClose}>취소</button>
-          {/* TODO: API 연동 — 저장(POST/PUT) 처리 */}
-          <button type="button" className="btn btn-primary">저장</button>
+          <button type="button" className="btn btn-primary" onClick={handleSave}>저장</button>
         </>
       }
     >
       <Field label="이모지"><input type="text" className="input w-emoji" placeholder="🚀" /></Field>
-      <Field label="프로젝트명"><input type="text" className="input" placeholder="예: my-project" /></Field>
+      <Field label="프로젝트명" required error={errors.projectName}>
+        <input type="text" className={`input${errors.projectName ? ' is-invalid' : ''}`} placeholder="예: my-project" value={projectName} onChange={(e) => { setProjectName(e.target.value); setErrors((p) => { const n = { ...p }; delete n.projectName; return n; }); }} />
+      </Field>
       <Field label="설명 (선택)"><input type="text" className="input" placeholder="프로젝트 간단 설명" /></Field>
       <div className="input-group">
-        <span className="input-label">환경</span>
+        <span className="input-label">환경<span className="required-mark">*</span></span>
         <div className="env-flags">
           <label className="env-flag"><input type="checkbox" defaultChecked className="chk-dev" /> development</label>
           <label className="env-flag"><input type="checkbox" className="chk-staging" /> staging</label>
@@ -421,6 +440,25 @@ function ProjectModal({ state, onClose }: { state: { open: boolean; mode: 'add' 
 
 // 변수 추가·수정 모달
 function EnvModal({ state, onClose }: { state: { open: boolean; mode: 'add' | 'edit' }; onClose: () => void }) {
+  const [envKey, setEnvKey] = useState('');
+  const [envValue, setEnvValue] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!state.open) return;
+    setErrors({}); setEnvKey(''); setEnvValue('');
+  }, [state.open]);
+
+  function handleSave() {
+    const err: Record<string, string> = {};
+    if (!envKey.trim()) err.envKey = 'KEY를 입력하세요.';
+    if (!envValue.trim()) err.envValue = 'VALUE를 입력하세요.';
+    setErrors(err);
+    if (Object.keys(err).length) return;
+    toast.success(state.mode === 'edit' ? '변수가 수정됐습니다.' : '변수가 추가됐습니다.');
+    onClose();
+  }
+
   return (
     <Modal
       open={state.open}
@@ -429,8 +467,7 @@ function EnvModal({ state, onClose }: { state: { open: boolean; mode: 'add' | 'e
       footer={
         <>
           <button type="button" className="btn btn-ghost" onClick={onClose}>취소</button>
-          {/* TODO: API 연동 — 저장 시 서버에서 AES-256-GCM 암호화 후 저장 */}
-          <button type="button" className="btn btn-primary">저장 (암호화)</button>
+          <button type="button" className="btn btn-primary" onClick={handleSave}>저장 (암호화)</button>
         </>
       }
     >
@@ -441,8 +478,12 @@ function EnvModal({ state, onClose }: { state: { open: boolean; mode: 'add' | 'e
           <option>API Keys</option><option>App</option>
         </select>
       </Field>
-      <Field label="KEY"><input type="text" className="input input-mono" placeholder="예: DATABASE_URL" /></Field>
-      <Field label="VALUE"><input type="text" className="input input-mono" placeholder="값 입력" /></Field>
+      <Field label="KEY" required error={errors.envKey}>
+        <input type="text" className={`input input-mono${errors.envKey ? ' is-invalid' : ''}`} placeholder="예: DATABASE_URL" value={envKey} onChange={(e) => { setEnvKey(e.target.value); setErrors((p) => { const n = { ...p }; delete n.envKey; return n; }); }} />
+      </Field>
+      <Field label="VALUE" required error={errors.envValue}>
+        <input type="text" className={`input input-mono${errors.envValue ? ' is-invalid' : ''}`} placeholder="값 입력" value={envValue} onChange={(e) => { setEnvValue(e.target.value); setErrors((p) => { const n = { ...p }; delete n.envValue; return n; }); }} />
+      </Field>
       <div className="input-group">
         <span className="input-label">적용 환경</span>
         <EnvFlags />
@@ -453,11 +494,12 @@ function EnvModal({ state, onClose }: { state: { open: boolean; mode: 'add' | 'e
 }
 
 // 입력 그룹 (라벨 + 입력요소). label 로 감싸 입력요소에 접근성 이름을 연결한다.
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
   return (
     <label className="input-group">
-      <span className="input-label">{label}</span>
+      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
       {children}
+      {error && <span className="field-error">{error}</span>}
     </label>
   );
 }

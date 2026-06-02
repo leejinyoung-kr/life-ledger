@@ -6,9 +6,11 @@
  * 월 그리드는 Date 계산으로 직접 생성(라이브러리 미사용), 데이터는 API(/calendar)와 연동한다.
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import { api } from '@/lib/api';
+import { IconPlus } from '@/components/icons';
 import {
   EV_TYPE_LABEL, EV_TYPE_OPTIONS, EV_LEGEND, ddLabel,
   type CalEvent, type UpcomingEvent, type EvType,
@@ -94,15 +96,15 @@ export default function CalendarPage() {
   const cells = view ? buildMonth(view.year, view.month) : [];
 
   return (
-    <AppShell
-      activePath="/calendar"
-      topbarLabel="캘린더"
-      actionLabel="일정 추가"
-      onAction={() => setAddModal(true)}
-    >
+    <AppShell activePath="/calendar" topbarLabel="캘린더">
       <div className="page-header">
-        <h1 className="page-title">캘린더</h1>
-        <p className="page-subtitle">구독 결제·예적금 만기·서류 만료·할일을 한 곳에서 봅니다.</p>
+        <div>
+          <h1 className="page-title">캘린더</h1>
+          <p className="page-subtitle">구독 결제·예적금 만기·서류 만료·할일을 한 곳에서 봅니다.</p>
+        </div>
+        <button type="button" className="btn btn-primary" onClick={() => setAddModal(true)}>
+          <IconPlus width={13} height={13} />일정 추가
+        </button>
       </div>
 
       {error && <p className="ledger-note is-error">⚠️ {error}</p>}
@@ -185,23 +187,33 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
   const [type, setType] = useState<EvType>('pay');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 모달 열릴 때 폼 초기화 (날짜 기본 오늘)
   useEffect(() => {
     if (!open) return;
-    setErr(''); setTitle(''); setType('pay'); setMemo('');
+    setErrors({}); setTitle(''); setType('pay'); setMemo('');
     setDate(new Date().toISOString().slice(0, 10));
   }, [open]);
 
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!title.trim()) err.title = '제목을 입력하세요.';
+    if (!date) err.date = '날짜를 선택하세요.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
+
   async function save() {
-    if (!title.trim()) { setErr('제목을 입력하세요.'); return; }
-    setSaving(true); setErr(null);
+    if (!validate()) return;
+    setSaving(true);
     try {
       await api.post('/calendar', { title: title.trim(), date, type, memo: memo || undefined });
+      toast.success('일정이 추가됐습니다.');
       onSaved();
-    } catch (x) {
-      setErr((x as Error).message);
+    } catch {
+      toast.error('저장에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -219,11 +231,14 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
         </>
       }
     >
-      {err && <p className="input-error">⚠️ {err}</p>}
-      <Field label="제목"><input type="text" className="input" placeholder="예: 보험 갱신" value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
+      <Field label="제목" required error={errors.title}>
+        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 보험 갱신" value={title} onChange={(e) => { setTitle(e.target.value); clearErr('title'); }} />
+      </Field>
       <div className="form-grid-2">
-        <Field label="날짜"><input type="date" className="input" aria-label="날짜" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
-        <Field label="유형">
+        <Field label="날짜" required error={errors.date}>
+          <input type="date" className={`input${errors.date ? ' is-invalid' : ''}`} aria-label="날짜" value={date} onChange={(e) => { setDate(e.target.value); clearErr('date'); }} />
+        </Field>
+        <Field label="유형" required>
           <select className="input" aria-label="유형" value={type} onChange={(e) => setType(e.target.value as EvType)}>
             {EV_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
@@ -235,11 +250,12 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
 }
 
 // 입력 그룹 (라벨 + 입력요소). label 로 감싸 입력요소에 접근성 이름을 연결한다.
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
   return (
     <label className="input-group">
-      <span className="input-label">{label}</span>
+      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
       {children}
+      {error && <span className="field-error">{error}</span>}
     </label>
   );
 }

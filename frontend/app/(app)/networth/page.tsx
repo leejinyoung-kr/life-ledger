@@ -6,11 +6,14 @@
  * 데이터는 백엔드 API(/assets)와 실시간 연동한다.
  */
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
+import { useConfirm } from '@/components/ConfirmModal';
 import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import { api } from '@/lib/api';
 import { won } from '@/lib/finance';
+import { IconPlus } from '@/components/icons';
 import {
   ASSET_TYPE_LABEL, ASSET_TYPE_COLOR, ASSET_TYPE_OPTIONS, BY_TYPE_CARD,
   wonM, millionsLabel,
@@ -39,6 +42,7 @@ export default function NetworthPage() {
   const [trend, setTrend] = useState<TrendPoint[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { confirm, confirmElement } = useConfirm();
 
   // 요약/추이/목록 조회
   const load = useCallback(async () => {
@@ -58,9 +62,14 @@ export default function NetworthPage() {
 
   // 자산/부채 삭제
   async function remove(id: number) {
-    if (!window.confirm('이 항목을 삭제할까요?')) return;
-    await api.del(`/assets/${id}`);
-    bump();
+    if (!await confirm('이 항목을 삭제할까요?', 'danger')) return;
+    try {
+      await api.del(`/assets/${id}`);
+      toast.success('항목이 삭제됐습니다.');
+      bump();
+    } catch {
+      toast.error('삭제에 실패했습니다.');
+    }
   }
 
   const debts = assets.filter((a) => a.type === 'debt');
@@ -79,15 +88,15 @@ export default function NetworthPage() {
   });
 
   return (
-    <AppShell
-      activePath="/networth"
-      topbarLabel="자산 종합"
-      actionLabel="자산 추가"
-      onAction={() => setModal({ open: true, mode: 'add' })}
-    >
+    <AppShell activePath="/networth" topbarLabel="자산 종합">
       <div className="page-header">
-        <h1 className="page-title">자산 종합</h1>
-        <p className="page-subtitle">순자산 = 자산 − 부채. 현금·예적금·투자·부동산을 합산해 추적합니다.</p>
+        <div>
+          <h1 className="page-title">자산 종합</h1>
+          <p className="page-subtitle">순자산 = 자산 − 부채. 현금·예적금·투자·부동산을 합산해 추적합니다.</p>
+        </div>
+        <button type="button" className="btn btn-primary" onClick={() => setModal({ open: true, mode: 'add' })}>
+          <IconPlus width={13} height={13} />자산 추가
+        </button>
       </div>
 
       {error && <p className="ledger-note is-error">⚠️ {error}</p>}
@@ -186,6 +195,7 @@ export default function NetworthPage() {
         </div>
       </div>
 
+      {confirmElement}
       {/* 자산 추가/수정 모달 */}
       <AssetModal
         state={modal}
@@ -205,12 +215,11 @@ function AssetModal({ state, onClose, onSaved }: { state: { open: boolean; mode:
   const [interestRate, setInterestRate] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 모달 열릴 때 폼 초기화 (편집 시 기존 값, 추가 시 기본값)
   useEffect(() => {
     if (!state.open) return;
-    setErr(null);
+    setErrors({});
     setType(e?.type ?? 'cash');
     setName(e?.name ?? '');
     setAmount(e ? String(e.amount) : '');
@@ -218,8 +227,19 @@ function AssetModal({ state, onClose, onSaved }: { state: { open: boolean; mode:
     setMemo(e?.memo ?? '');
   }, [state.open, e]);
 
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!name.trim()) err.name = '자산명을 입력하세요.';
+    if (!amount || Number(amount) < 0) err.amount = '금액을 입력하세요.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
+
   async function save() {
-    setSaving(true); setErr(null);
+    if (!validate()) return;
+    setSaving(true);
     try {
       const payload = {
         type, name, amount: Number(amount),
@@ -228,9 +248,10 @@ function AssetModal({ state, onClose, onSaved }: { state: { open: boolean; mode:
       };
       if (state.mode === 'edit' && e) await api.put(`/assets/${e.id}`, payload);
       else await api.post('/assets', payload);
+      toast.success(state.mode === 'edit' ? '자산이 수정됐습니다.' : '자산이 추가됐습니다.');
       onSaved();
-    } catch (x) {
-      setErr((x as Error).message);
+    } catch {
+      toast.error('저장에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -248,15 +269,18 @@ function AssetModal({ state, onClose, onSaved }: { state: { open: boolean; mode:
         </>
       }
     >
-      {err && <p className="input-error">⚠️ {err}</p>}
-      <Field label="자산 유형">
+      <Field label="자산 유형" required>
         <select className="input" aria-label="자산 유형" value={type} onChange={(ev) => setType(ev.target.value as AssetType)}>
           {ASSET_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </Field>
-      <Field label="자산명"><input type="text" className="input" placeholder="예: 신한 입출금 계좌" value={name} onChange={(ev) => setName(ev.target.value)} /></Field>
+      <Field label="자산명" required error={errors.name}>
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 신한 입출금 계좌" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />
+      </Field>
       <div className="form-grid-2">
-        <Field label="금액 (원)"><input type="number" className="input" placeholder="0" value={amount} onChange={(ev) => setAmount(ev.target.value)} /></Field>
+        <Field label="금액 (원)" required error={errors.amount}>
+          <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }} />
+        </Field>
         <Field label="금리 (%, 선택)"><input type="number" className="input" placeholder="3.8" step="0.1" value={interestRate} onChange={(ev) => setInterestRate(ev.target.value)} /></Field>
       </div>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="기관/계좌 등" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
@@ -265,11 +289,12 @@ function AssetModal({ state, onClose, onSaved }: { state: { open: boolean; mode:
 }
 
 // 입력 그룹 (라벨 + 입력요소). label 로 감싸 입력요소에 접근성 이름을 연결한다.
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
   return (
     <label className="input-group">
-      <span className="input-label">{label}</span>
+      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
       {children}
+      {error && <span className="field-error">{error}</span>}
     </label>
   );
 }

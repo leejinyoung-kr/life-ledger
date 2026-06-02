@@ -6,6 +6,7 @@
  * 토글·위젯 드래그 정렬을 지원한다. 데이터는 백엔드 API(/settings)와 연동한다.
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import { IconWon, IconBars, IconClock, IconZap, IconLock, IconCube, IconDrag } from '@/components/icons';
 import { api } from '@/lib/api';
@@ -14,11 +15,10 @@ import {
   type Settings, type Category, type WidgetPref,
 } from '@/lib/settings';
 
-type TabId = 'profile' | 'budget' | 'categories' | 'security' | 'api' | 'widgets' | 'data';
+type TabId = 'profile' | 'budget' | 'security' | 'api' | 'widgets' | 'data';
 const TABS: { id: TabId; label: string }[] = [
   { id: 'profile', label: '프로필' },
   { id: 'budget', label: '예산 설정' },
-  { id: 'categories', label: '카테고리' },
   { id: 'security', label: '보안' },
   { id: 'api', label: 'API 키' },
   { id: 'widgets', label: '위젯 설정' },
@@ -142,8 +142,10 @@ export default function SettingsPage() {
   return (
     <AppShell activePath="/settings" topbarLabel="설정">
       <div className="page-header">
-        <h1 className="page-title">설정</h1>
-        <p className="page-subtitle">계정, 보안, 예산, 대시보드 위젯 등을 관리합니다.</p>
+        <div>
+          <h1 className="page-title">설정</h1>
+          <p className="page-subtitle">계정, 보안, 예산, 대시보드 위젯 등을 관리합니다.</p>
+        </div>
       </div>
 
       {error && <p className="ledger-note is-error">⚠️ {error}</p>}
@@ -208,21 +210,6 @@ export default function SettingsPage() {
             </Group>
           )}
 
-          {/* ── 카테고리 ── */}
-          {tab === 'categories' && (
-            <Group title="카테고리 관리">
-              {s.categories.map((c, idx) => (
-                <Row key={`${c.name}-${idx}`} label={`${c.emoji} ${c.name}`}>
-                  <button type="button" className="btn btn-danger" onClick={() => removeCategory(idx)}>삭제</button>
-                </Row>
-              ))}
-              <div className="settings-row add">
-                <input type="text" className="input w-180" placeholder="새 카테고리명" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} aria-label="새 카테고리명" />
-                <input type="text" className="input w-70" placeholder="이모지" value={newCatEmoji} onChange={(e) => setNewCatEmoji(e.target.value)} aria-label="이모지" />
-                <button type="button" className="btn btn-primary" onClick={addCategory}>추가</button>
-              </div>
-            </Group>
-          )}
 
           {/* ── 보안 ── */}
           {tab === 'security' && (
@@ -363,3 +350,4 @@ function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
     <button type="button" className={`toggle${on ? ' on' : ''}`} onClick={onToggle} aria-pressed={on ? 'true' : 'false'} aria-label="토글" />
   );
 }
+

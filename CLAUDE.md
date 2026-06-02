@@ -36,6 +36,7 @@ doc-nexus/
 │       ├── task/          # 할 일 + 목표
 │       ├── security/      # 보안 감사 로그
 │       ├── settings/      # 사용자 설정
+│       ├── category/      # 카테고리 관리
 │       ├── trash/         # 휴지통
 │       └── prisma/        # PrismaService / PrismaModule
 ├── docs/              # 설계 문서
@@ -78,6 +79,7 @@ doc-nexus/
 | CalendarEvent | user_id, title, start_at, end_at, type | 구현 완료 |
 | SecurityRisk | user_id, type, description, resolved_at | 구현 완료 |
 | LoginSession | user_id, device, ip, created_at, revoked_at | 구현 완료 |
+| Category | user_id, domain, code, label, sort_order, is_active | 구현 완료 |
 
 > DB: MariaDB, 문자셋: utf8mb4_uca1400_ai_ci  
 > 상세 스키마: [docs/erd.md](docs/erd.md)
@@ -106,7 +108,7 @@ doc-nexus/
 | Backend — 가계부 API (transaction/saving/investment) | 구현 완료 |
 | Backend — 구독/자산/메모/캘린더/할 일/목표 | 구현 완료 |
 | Backend — 알림/보안/설정/휴지통 | 구현 완료 |
-| DB | 15개 테이블 구현 완료 |
+| DB | 16개 테이블 구현 완료 |
 
 ---
 
@@ -136,7 +138,7 @@ cd backend && npx prisma generate
 
 | 커맨드 | 동작 |
 | --- | --- |
-| `/deploy` | develop 브랜치에 커밋 + 푸시 |
+| `/push` | develop 브랜치에 커밋 + 푸시 |
 | `/migrate` | prisma migrate dev 실행 |
 
 ---

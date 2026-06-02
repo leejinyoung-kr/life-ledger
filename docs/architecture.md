@@ -9,9 +9,9 @@
 | Layer | Tech | 상태 |
 | --- | --- | --- |
 | Frontend | Next.js 16.2 (App Router), React 19, TypeScript, Tailwind CSS v4 | 주요 페이지 구현 완료 |
-| Backend | NestJS 11, TypeScript | 14개 모듈 구현 완료 |
+| Backend | NestJS 11, TypeScript | 15개 모듈 구현 완료 |
 | ORM | Prisma | 구현 완료 |
-| DB | MariaDB 11 | 15개 테이블 구현 완료 |
+| DB | MariaDB 11 | 16개 테이블 구현 완료 |
 | Auth | Google OAuth 2.0 + JWT | 구현 완료 |
 | Storage | Cloudflare R2 | 미구현 |
 | AI | Claude API (claude-sonnet-4-6) | 미구현 |
@@ -43,6 +43,7 @@
 | security | /security | 구현 완료 |
 | settings | /settings | 구현 완료 |
 | trash | /trash | 구현 완료 |
+| category | /categories | 구현 완료 |
 
 ## 프론트엔드 페이지
 
@@ -60,6 +61,7 @@
 | /security | 구현 완료 |
 | /settings | 구현 완료 |
 | /trash | 구현 완료 |
+| /codes | 구현 완료 |
 | /credentials | UI 완료 (백엔드 미구현) |
 | /envs | UI 완료 (백엔드 미구현) |
 | /files | UI 완료 (백엔드 미구현) |

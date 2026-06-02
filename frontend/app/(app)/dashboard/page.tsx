@@ -55,11 +55,13 @@ const QUICK_ACTIONS = [
 
 export default function DashboardPage() {
   return (
-    <AppShell activePath="/dashboard" topbarLabel="2025년 5월" actionLabel="지출 추가">
+    <AppShell activePath="/dashboard" topbarLabel="2025년 5월">
       {/* 페이지 헤더 */}
       <div className="page-header">
-        <h1 className="page-title">안녕하세요, 김관리자님 👋</h1>
-        <p className="page-subtitle">이번 달 지출 현황과 최근 활동을 확인하세요.</p>
+        <div>
+          <h1 className="page-title">안녕하세요, 김관리자님 👋</h1>
+          <p className="page-subtitle">이번 달 지출 현황과 최근 활동을 확인하세요.</p>
+        </div>
       </div>
 
       {/* 상단 요약 통계 4칸 */}

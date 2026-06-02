@@ -29,6 +29,7 @@ model User {
   calendarEvents CalendarEvent[]
   securityRisks SecurityRisk[]
   loginSessions LoginSession[]
+  categories    Category[]
 
   @@map("user")
 }
@@ -435,6 +436,40 @@ enum SessionStatus {
   unverified
 
   @@map("session_status")
+}
+
+/// 카테고리 도메인: transaction(가계부) | subscription(구독) | asset(자산) | investment(투자) | saving(예적금) | pay_method(결제수단) | credential_cat(계정 카테고리) | id_type(신원지갑 종류) | env_group(ENV 그룹)
+enum CategoryDomain {
+  transaction
+  subscription
+  asset
+  investment
+  saving
+  pay_method
+  credential_cat
+  id_type
+  env_group
+
+  @@map("category_domain")
+}
+
+/// 카테고리 (설정 > 카테고리 관리) — 도메인별 사용자 정의 카테고리
+model Category {
+  id         Int            @id @default(autoincrement())
+  user_id    Int            /// user.id FK
+  domain     CategoryDomain
+  code       String         @db.VarChar(50)
+  label      String         @db.VarChar(100)
+  sort_order Int            @default(1) @map("sort_order")
+  is_active  Boolean        @default(true) @map("is_active")
+  created_at DateTime       @default(now()) @map("created_at")
+  updated_at DateTime       @updatedAt @map("updated_at")
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, domain, code])
+  @@index([user_id, domain])
+  @@map("category")
 }
 
 /// 로그인 세션 (보안 센터 - 로그인 기기/세션)

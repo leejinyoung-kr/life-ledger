@@ -19,6 +19,7 @@
 | CalendarEvent | 캘린더 이벤트 | 구현 완료 |
 | SecurityRisk | 보안 위험 항목 | 구현 완료 |
 | LoginSession | 로그인 세션 | 구현 완료 |
+| Category | 카테고리 관리 | 구현 완료 |
 
 ## 주요 관계
 
@@ -37,6 +38,7 @@ User 1 ─── N Note
 User 1 ─── N CalendarEvent
 User 1 ─── N SecurityRisk
 User 1 ─── N LoginSession
+User 1 ─── N Category
 ```
 
 ## 스키마 (Prisma)

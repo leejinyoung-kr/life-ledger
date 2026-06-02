@@ -16,12 +16,6 @@ interface AppShellProps {
   activePath?: string;
   /** 상단바 좌측 라벨 */
   topbarLabel?: string;
-  /** 상단바 우측 액션 버튼 라벨 */
-  actionLabel?: string;
-  /** 상단바 액션 클릭 */
-  onAction?: () => void;
-  /** 상단바 우측 커스텀 영역 (기본 액션 버튼 대체) */
-  topbarRight?: ReactNode;
   /** 로그아웃 핸들러 (미지정 시 기본 동작: 토큰 제거 후 /login 이동) */
   onLogout?: () => void;
   /** page-body 패딩 래퍼 없이 children 직접 렌더 (전체 높이 레이아웃용) */
@@ -33,9 +27,6 @@ interface AppShellProps {
 export default function AppShell({
   activePath,
   topbarLabel,
-  actionLabel,
-  onAction,
-  topbarRight,
   onLogout,
   bare,
   children,
@@ -61,13 +52,7 @@ export default function AppShell({
       <div className="app-shell">
         <Sidebar activePath={activePath} open={sidebarOpen} onLogout={handleLogout} />
         <div className="main-content">
-          <TopBar
-            label={topbarLabel}
-            actionLabel={actionLabel}
-            onToggleSidebar={toggleSidebar}
-            onAction={onAction}
-            rightSlot={topbarRight}
-          />
+          <TopBar label={topbarLabel} onToggleSidebar={toggleSidebar} />
           {bare ? children : <div className="page-body">{children}</div>}
         </div>
       </div>

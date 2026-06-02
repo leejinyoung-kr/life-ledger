@@ -50,25 +50,22 @@ export default function FilesPage() {
     setFolderName('');
   }
 
-  // 상단바 우측: 폴더 생성 + 파일 업로드 버튼
-  const topbarRight = (
-    <>
-      <button type="button" className="btn btn-ghost" onClick={() => setFolderModal(true)}>
-        <IconFolderPlus width={14} height={14} />폴더 생성
-      </button>
-      <label className="btn btn-primary">
-        <IconUpload width={13} height={13} />파일 업로드
-        {/* TODO: R2 업로드 API 연동 */}
-        <input ref={fileInputRef} type="file" multiple hidden />
-      </label>
-    </>
-  );
-
   return (
-    <AppShell activePath="/files" topbarLabel="파일 보관함" topbarRight={topbarRight}>
+    <AppShell activePath="/files" topbarLabel="파일 보관함">
       <div className="page-header">
-        <h1 className="page-title">파일 보관함</h1>
-        <p className="page-subtitle">폴더를 생성하여 파일을 정리하거나, 바로 업로드할 수 있습니다. (Cloudflare R2)</p>
+        <div>
+          <h1 className="page-title">파일 보관함</h1>
+          <p className="page-subtitle">폴더를 생성하여 파일을 정리하거나, 바로 업로드할 수 있습니다. (Cloudflare R2)</p>
+        </div>
+        <div className="flex-center gap-2">
+          <button type="button" className="btn btn-ghost" onClick={() => setFolderModal(true)}>
+            <IconFolderPlus width={14} height={14} />폴더 생성
+          </button>
+          <label className="btn btn-primary">
+            <IconUpload width={13} height={13} />파일 업로드
+            <input ref={fileInputRef} type="file" multiple hidden />
+          </label>
+        </div>
       </div>
 
       {/* 스토리지 사용량 — TODO: GET /api/v1/files/storage */}

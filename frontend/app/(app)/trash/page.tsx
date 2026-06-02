@@ -7,6 +7,9 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AppShell from '@/components/AppShell';
+import { useConfirm } from '@/components/ConfirmModal';
+import Pagination, { LimitSelect } from '@/components/Pagination';
+import { toast } from 'sonner';
 import { IconAlertCircle, IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
 import { trashDate, type TrashItem } from '@/lib/trash';
@@ -16,6 +19,9 @@ export default function TrashPage() {
   const [query, setQuery] = useState('');
   const [type, setType] = useState('전체 유형');
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const { confirm, confirmElement } = useConfirm();
 
   // 삭제 항목 통합 목록 조회
   const load = useCallback(async () => {
@@ -39,27 +45,32 @@ export default function TrashPage() {
 
   // 단일 영구 삭제
   async function purge(it: TrashItem) {
-    if (!window.confirm(`'${it.name}'을(를) 영구 삭제할까요? 되돌릴 수 없습니다.`)) return;
+    if (!await confirm(`'${it.name}'을(를) 영구 삭제할까요? 되돌릴 수 없습니다.`, 'danger')) return;
     try {
       await api.post('/trash/purge', { kind: it.kind, id: it.id });
+      toast.success('영구 삭제됐습니다.');
       load();
     } catch (e) { setError((e as Error).message); }
   }
 
   // 전체 복구
   async function restoreAll() {
-    if (items.length === 0 || !window.confirm('모든 삭제 항목을 복구할까요?')) return;
+    if (items.length === 0) return;
+    if (!await confirm('모든 삭제 항목을 복구할까요?', 'primary')) return;
     try {
       await api.post('/trash/restore-all', {});
+      toast.success('전체 복구됐습니다.');
       load();
     } catch (e) { setError((e as Error).message); }
   }
 
   // 휴지통 비우기 (전체 영구 삭제)
   async function emptyTrash() {
-    if (items.length === 0 || !window.confirm('휴지통을 비울까요? 모든 항목이 영구 삭제됩니다.')) return;
+    if (items.length === 0) return;
+    if (!await confirm('휴지통을 비울까요? 모든 항목이 영구 삭제됩니다.', 'danger')) return;
     try {
       await api.post('/trash/empty', {});
+      toast.success('휴지통을 비웠습니다.');
       load();
     } catch (e) { setError((e as Error).message); }
   }
@@ -73,6 +84,9 @@ export default function TrashPage() {
     const matchQuery = !query.trim() || it.name.toLowerCase().includes(query.toLowerCase());
     return matchType && matchQuery;
   });
+
+  const totalPages = Math.ceil(filtered.length / limit);
+  const paged = filtered.slice((page - 1) * limit, page * limit);
 
   return (
     <AppShell activePath="/trash" topbarLabel="휴지통">
@@ -94,12 +108,13 @@ export default function TrashPage() {
           <IconSearch className="search-icon" />
           <input className="input" type="text" placeholder="삭제 항목 검색..." value={query} onChange={(e) => setQuery(e.target.value)} aria-label="삭제 항목 검색" />
         </div>
-        <select className="input filter-select" value={type} onChange={(e) => setType(e.target.value)} aria-label="유형 필터">
+        <select className="input filter-select" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }} aria-label="유형 필터">
           {types.map((t) => <option key={t}>{t}</option>)}
         </select>
         <div className="toolbar-right">
           <button type="button" className="btn btn-ghost" onClick={restoreAll}>전체 복구</button>
           <button type="button" className="btn btn-danger" onClick={emptyTrash}>휴지통 비우기</button>
+          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
         </div>
       </div>
 
@@ -113,10 +128,10 @@ export default function TrashPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && (
+              {paged.length === 0 && (
                 <tr><td colSpan={5} className="td-center td-muted">휴지통이 비어 있습니다.</td></tr>
               )}
-              {filtered.map((it) => (
+              {paged.map((it) => (
                 <tr key={`${it.kind}-${it.id}`}>
                   <td className="td-strong">{it.name}</td>
                   <td><span className="type-chip">{it.chip}</span></td>
@@ -133,7 +148,9 @@ export default function TrashPage() {
             </tbody>
           </table>
         </div>
+        <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
       </div>
+      {confirmElement}
     </AppShell>
   );
 }

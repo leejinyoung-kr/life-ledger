@@ -6,6 +6,8 @@
  * 미리보기는 react-markdown + remark-gfm(표·체크리스트)으로 렌더하며 데이터는 API(/notes)와 연동한다.
  */
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { toast } from 'sonner';
+import { useConfirm } from '@/components/ConfirmModal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AppShell from '@/components/AppShell';
@@ -23,6 +25,7 @@ export default function NotesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
+  const { confirm, confirmElement } = useConfirm();
 
   // 메모 목록 조회 (선택 항목 유지, 없으면 첫 항목 선택)
   const load = useCallback(async () => {
@@ -53,8 +56,10 @@ export default function NotesPage() {
       setNotes((prev) => [created, ...prev]);
       setSelectedId(created.id);
       setTab('edit');
+      toast.success('새 메모가 생성됐습니다.');
     } catch (e) {
       setError((e as Error).message);
+      toast.error('메모 생성에 실패했습니다.');
     }
   }
 
@@ -65,8 +70,10 @@ export default function NotesPage() {
     try {
       const updated = await api.put<Note>(`/notes/${note.id}`, { title: note.title, body: note.body, tag: note.tag ?? '' });
       setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+      toast.success('메모가 저장됐습니다.');
     } catch (e) {
       setError((e as Error).message);
+      toast.error('저장에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -74,7 +81,8 @@ export default function NotesPage() {
 
   // 현재 메모 삭제 (DELETE)
   async function deleteNote() {
-    if (!note || !window.confirm('이 메모를 삭제할까요?')) return;
+    if (!note) return;
+    if (!await confirm('이 메모를 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/notes/${note.id}`);
       setNotes((prev) => {
@@ -82,8 +90,10 @@ export default function NotesPage() {
         setSelectedId(next[0]?.id ?? null);
         return next;
       });
+      toast.success('메모가 삭제됐습니다.');
     } catch (e) {
       setError((e as Error).message);
+      toast.error('삭제에 실패했습니다.');
     }
   }
 
@@ -134,19 +144,18 @@ export default function NotesPage() {
   const charCount = note?.body.length ?? 0;
   const lineCount = note ? note.body.split('\n').length : 0;
 
-  const topbarRight = (
-    <button type="button" className="btn btn-primary" onClick={newNote}>
-      <IconPlus width={13} height={13} />새 메모
-    </button>
-  );
-
   return (
-    <AppShell activePath="/notes" topbarLabel="메모" topbarRight={topbarRight} bare>
+    <AppShell activePath="/notes" topbarLabel="메모" bare>
       <div className="notes-layout">
         {/* 목록 패널 */}
         <div className="notes-list-panel">
           <div className="notes-list-header">
-            <span className="notes-list-title">메모 <span className="count">{notes.length}개</span></span>
+            <div className="flex-center" style={{ justifyContent: 'space-between' }}>
+              <span className="notes-list-title">메모 <span className="count">{notes.length}개</span></span>
+              <button type="button" className="btn btn-primary btn-sm" onClick={newNote}>
+                <IconPlus width={12} height={12} />새 메모
+              </button>
+            </div>
             <div className="search-wrap">
               <IconSearch className="search-icon" />
               <input className="input" type="text" placeholder="메모 검색..." value={search} onChange={(e) => setSearch(e.target.value)} aria-label="메모 검색" />
@@ -253,6 +262,7 @@ export default function NotesPage() {
           </div>
         )}
       </div>
+      {confirmElement}
     </AppShell>
   );
 }

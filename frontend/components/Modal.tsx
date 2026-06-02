@@ -2,7 +2,8 @@
 
 /**
  * 공통 모달.
- * 오버레이 클릭 / 닫기 버튼 / Esc 로 닫힌다. 본문·푸터는 children/footer 로 주입.
+ * 닫기 버튼 / Esc 로만 닫힌다. 오버레이 클릭은 의도치 않은 닫힘 방지를 위해 비활성화.
+ * 본문·푸터는 children/footer 로 주입.
  */
 import { useEffect, type ReactNode } from 'react';
 import { IconClose } from './icons';
@@ -32,8 +33,8 @@ export default function Modal({ open, title, onClose, children, footer, header, 
   }, [open, onClose]);
 
   return (
-    // 오버레이 클릭(자기 자신) 시에만 닫기
-    <div className={`modal-overlay${open ? ' open' : ''}`} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    // 오버레이 클릭으로 닫히지 않음 — 폼 입력 중 실수 방지
+    <div className={`modal-overlay${open ? ' open' : ''}`}>
       <div className={`modal${className ? ` ${className}` : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         {header ?? (
           <div className="modal-header">

@@ -140,6 +140,16 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /trash/purge | 선택 항목 영구 삭제 |
 | POST | /trash/empty | 휴지통 비우기 |
 
+## 카테고리 관리
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| GET | /categories?domain= | 카테고리 목록 (도메인 필터 선택) |
+| POST | /categories | 카테고리 추가 |
+| POST | /categories/seed?domain= | 기본 카테고리 시드 (도메인 미지정 시 전체) |
+| PATCH | /categories/:id | 카테고리 수정 |
+| DELETE | /categories/:id | 카테고리 삭제 |
+
 ## 미구현
 
 | 영역 | 설명 |

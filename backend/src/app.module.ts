@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AssetModule } from './asset/asset.module';
+import { CategoryModule } from './category/category.module';
 import { AuthModule } from './auth/auth.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { InvestmentModule } from './investment/investment.module';
@@ -34,6 +35,7 @@ import { TransactionModule } from './transaction/transaction.module';
     CalendarModule,
     TrashModule,
     SecurityModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
