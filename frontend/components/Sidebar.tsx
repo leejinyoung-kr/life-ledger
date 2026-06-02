@@ -36,7 +36,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <IconChart className="nav-ic" />,
     children: [
       { label: '가계부', href: '/transactions', icon: <IconWon /> },
-      { label: '구독 관리', href: '#', icon: <IconRepeat /> },
+      { label: '구독 관리', href: '/subscriptions', icon: <IconRepeat /> },
       { label: '자산 종합', href: '#', icon: <IconPie /> },
     ],
   },
