@@ -3,142 +3,91 @@
 /**
  * 메모 페이지.
  * 좌측 노트 목록 + 우측 마크다운 에디터(편집/미리보기 탭)로 구성된다.
- * 미리보기는 react-markdown + remark-gfm(표·체크리스트)으로 렌더하며 데이터는 더미.
+ * 미리보기는 react-markdown + remark-gfm(표·체크리스트)으로 렌더하며 데이터는 API(/notes)와 연동한다.
  */
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AppShell from '@/components/AppShell';
 import { IconSearch, IconPlus } from '@/components/icons';
-
-interface Note { title: string; date: string; tag: string; body: string; }
-
-// ── 더미 데이터 (TODO: GET /api/v1/notes) ───────────────────────
-const INITIAL_NOTES: Note[] = [
-  {
-    title: '월간 지출 분석 메모', date: '2025년 5월 31일', tag: '가계부',
-    body: `## 이번 달 지출 요약
-
-- **총 지출**: ₩842,300
-- **총 수입**: ₩3,200,000
-- **잔액**: ₩2,357,700
-
-## 구독 서비스 정리 필요
-
-| 서비스 | 금액 | 상태 |
-|--------|------|------|
-| 넷플릭스 | ₩17,000 | 유지 |
-| ChatGPT Plus | ₩27,000 | 유지 |
-| Spotify | ₩10,900 | **해지 검토** |
-| Adobe | ₩77,000 | **해지 검토** |
-
-## 다음 달 목표
-
-- [ ] 구독 서비스 2개 이상 해지
-- [ ] 식비 ₩300,000 이하로 줄이기
-- [ ] 교통비 대중교통 위주 유지
-
-> 구독 과다 소비가 전체 지출의 25%를 차지하고 있어 정리가 시급함.
-
----
-
-*마지막 수정: 2025.05.31*`,
-  },
-  {
-    title: '개발 환경 세팅 체크리스트', date: '2025년 5월 28일', tag: '개발',
-    body: `# doc-nexus 개발 환경 세팅
-
-## 필수 설치
-
-- [x] Node.js 20 LTS
-- [x] Docker Desktop
-- [ ] NestJS CLI \`npm i -g @nestjs/cli\`
-- [ ] pnpm \`npm i -g pnpm\`
-
-## 로컬 DB 세팅
-
-\`\`\`bash
-docker run -d --name doc-nexus-mysql -e MYSQL_ROOT_PASSWORD=root -p 3306:3306 mysql:8.0
-\`\`\`
-
-## 환경 변수
-
-\`\`\`
-DATABASE_URL=mysql://root:root@localhost:3306/doc_nexus
-CLAUDE_API_KEY=sk-ant-...
-\`\`\``,
-  },
-  {
-    title: '보험 갱신 일정', date: '2025년 5월 20일', tag: '기타',
-    body: `# 보험 갱신 일정
-
-| 보험 종류 | 만료일 | 갱신 방법 |
-|----------|--------|----------|
-| 자동차보험 | 2025.09.01 | 온라인 갱신 |
-| 실손보험 | 2025.11.15 | 보험사 방문 |
-| 화재보험 | 2026.03.01 | 자동 갱신 |
-
-> 자동차보험은 8월 중 비교 견적 필수`,
-  },
-  {
-    title: 'doc-nexus 기능 아이디어', date: '2025년 5월 15일', tag: '개발',
-    body: `# doc-nexus 기능 아이디어
-
-## 단기 (1~2주)
-- [x] 파일 뷰어 (PDF.js)
-- [x] 메모/노트 에디터
-- [ ] 통합 검색 (top-bar)
-- [ ] 대시보드 위젯 커스텀
-
-## 장기
-- [ ] 문서 에디터 (Word 대용)
-- [ ] PDF 내보내기`,
-  },
-  {
-    title: '자주 쓰는 계정 정리', date: '2025년 5월 10일', tag: '기타',
-    body: `# 자주 접속하는 계정
-
-## 개발
-- GitHub: 코드 저장소
-- Vercel: 배포
-
-## 금융
-- 카카오뱅크: 주 계좌
-
-> 상세 ID/PW는 계정 보관함 참조`,
-  },
-];
+import { api } from '@/lib/api';
+import { formatNoteDate, type Note } from '@/lib/note';
 
 type EditTab = 'edit' | 'preview';
 
 export default function NotesPage() {
-  const [notes, setNotes] = useState<Note[]>(INITIAL_NOTES);
-  const [idx, setIdx] = useState(0);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [tab, setTab] = useState<EditTab>('edit');
   const [search, setSearch] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const editorRef = useRef<HTMLTextAreaElement>(null);
 
-  const note = notes[idx];
+  // 메모 목록 조회 (선택 항목 유지, 없으면 첫 항목 선택)
+  const load = useCallback(async () => {
+    try {
+      const list = await api.get<Note[]>('/notes');
+      setNotes(list);
+      setSelectedId((prev) => (prev && list.some((n) => n.id === prev) ? prev : list[0]?.id ?? null));
+      setError(null);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
 
-  // 현재 노트의 필드 갱신 (제목/본문/태그)
+  useEffect(() => { load(); }, [load]);
+
+  const note = notes.find((n) => n.id === selectedId) ?? null;
+
+  // 선택 노트의 필드를 로컬 갱신 (저장 버튼으로 서버 반영)
   function patchNote(patch: Partial<Note>) {
-    setNotes((prev) => prev.map((n, i) => (i === idx ? { ...n, ...patch } : n)));
+    if (selectedId === null) return;
+    setNotes((prev) => prev.map((n) => (n.id === selectedId ? { ...n, ...patch } : n)));
   }
 
-  // 새 메모 추가 후 선택. TODO: POST /api/v1/notes
-  function newNote() {
-    setNotes((prev) => [{ title: '새 메모', date: '방금 전', tag: '기타', body: '' }, ...prev]);
-    setIdx(0);
-    setTab('edit');
+  // 새 메모 추가 (POST 후 선택)
+  async function newNote() {
+    try {
+      const created = await api.post<Note>('/notes', { title: '새 메모', body: '', tag: '기타' });
+      setNotes((prev) => [created, ...prev]);
+      setSelectedId(created.id);
+      setTab('edit');
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
 
-  // 현재 메모 삭제. TODO: DELETE /api/v1/notes/:id
-  function deleteNote() {
-    setNotes((prev) => prev.filter((_, i) => i !== idx));
-    setIdx(0);
+  // 현재 메모 저장 (PUT)
+  async function saveNote() {
+    if (!note) return;
+    setSaving(true); setError(null);
+    try {
+      const updated = await api.put<Note>(`/notes/${note.id}`, { title: note.title, body: note.body, tag: note.tag ?? '' });
+      setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  // 선택 영역을 prefix/suffix 로 감싸는 마크다운 삽입 (굵게·코드 등)
+  // 현재 메모 삭제 (DELETE)
+  async function deleteNote() {
+    if (!note || !window.confirm('이 메모를 삭제할까요?')) return;
+    try {
+      await api.del(`/notes/${note.id}`);
+      setNotes((prev) => {
+        const next = prev.filter((n) => n.id !== note.id);
+        setSelectedId(next[0]?.id ?? null);
+        return next;
+      });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  // 선택 영역을 prefix/suffix 로 감싸는 마크다운 삽입
   function wrap(prefix: string, suffix: string) {
     const ta = editorRef.current;
     if (!ta) return;
@@ -152,7 +101,7 @@ export default function NotesPage() {
     });
   }
 
-  // 현재 줄 맨 앞에 prefix 삽입 (제목·목록·체크리스트 등)
+  // 현재 줄 맨 앞에 prefix 삽입
   function linePrefix(prefix: string) {
     const ta = editorRef.current;
     if (!ta) return;
@@ -172,7 +121,7 @@ export default function NotesPage() {
   }
 
   // 태그 입력 후 Enter 로 추가
-  function addTag(e: React.KeyboardEvent<HTMLInputElement>) {
+  function addTag(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key !== 'Enter') return;
     const v = e.currentTarget.value.trim();
     if (v) patchNote({ tag: v });
@@ -180,8 +129,7 @@ export default function NotesPage() {
   }
 
   const filtered = notes
-    .map((n, i) => ({ n, i }))
-    .filter(({ n }) => !search.trim() || n.title.toLowerCase().includes(search.toLowerCase()) || n.body.toLowerCase().includes(search.toLowerCase()));
+    .filter((n) => !search.trim() || n.title.toLowerCase().includes(search.toLowerCase()) || n.body.toLowerCase().includes(search.toLowerCase()));
 
   const charCount = note?.body.length ?? 0;
   const lineCount = note ? note.body.split('\n').length : 0;
@@ -205,12 +153,14 @@ export default function NotesPage() {
             </div>
           </div>
           <div className="notes-list-scroll">
-            {filtered.map(({ n, i }) => (
-              <div key={i} className={`note-item${i === idx ? ' active' : ''}`} onClick={() => setIdx(i)}>
+            {error && <p className="ledger-note is-error">⚠️ {error}</p>}
+            {filtered.length === 0 && <p className="muted-note notif-empty">메모가 없습니다.</p>}
+            {filtered.map((n) => (
+              <div key={n.id} className={`note-item${n.id === selectedId ? ' active' : ''}`} onClick={() => setSelectedId(n.id)}>
                 <div className="note-item-title">{n.title}</div>
                 <div className="note-item-preview">{n.body.replace(/[#>*`\-|]/g, '').trim().slice(0, 40) || '내용 없음'}</div>
                 <div className="note-item-meta">
-                  <span className="note-item-date">{n.date}</span>
+                  <span className="note-item-date">{formatNoteDate(n.updatedAt)}</span>
                   {n.tag && <span className="note-tag">{n.tag}</span>}
                 </div>
               </div>
@@ -248,8 +198,7 @@ export default function NotesPage() {
                 <button type="button" className="tb-btn" onClick={() => wrap('\n---\n', '')} title="구분선">―</button>
               </div>
               <div className="tb-spacer">
-                {/* TODO: 저장 API 연동 */}
-                <button type="button" className="btn btn-ghost" title="저장">저장</button>
+                <button type="button" className="btn btn-ghost" title="저장" onClick={saveNote} disabled={saving}>{saving ? '저장 중...' : '저장'}</button>
                 <button type="button" className="btn btn-danger" onClick={deleteNote} title="삭제">삭제</button>
               </div>
             </div>
@@ -261,7 +210,7 @@ export default function NotesPage() {
 
             {/* 메타: 날짜 + 태그 */}
             <div className="editor-meta-row">
-              <span className="editor-date">{note.date}</span>
+              <span className="editor-date">{formatNoteDate(note.updatedAt)}</span>
               <div className="tag-input-wrap">
                 {note.tag && <span className="tag-pill">{note.tag} <button type="button" onClick={removeTag} aria-label="태그 삭제">✕</button></span>}
                 <input type="text" className="tag-add-input" placeholder="+ 태그" onKeyDown={addTag} aria-label="태그 추가" />

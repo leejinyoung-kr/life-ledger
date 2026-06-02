@@ -25,6 +25,7 @@ model User {
   notifications Notification[]
   tasks         Task[]
   goals         Goal[]
+  notes         Note[]
 
   @@map("user")
 }
@@ -329,4 +330,21 @@ model Goal {
 
   @@index([user_id])
   @@map("goal")
+}
+
+/// 메모 (메모 페이지) — 마크다운 본문
+model Note {
+  id         Int       @id @default(autoincrement())
+  user_id    Int /// user.id FK
+  title      String    @db.VarChar(200)
+  body       String    @db.Text
+  tag        String?   @db.VarChar(50)
+  deleted_at DateTime?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("note")
 }
