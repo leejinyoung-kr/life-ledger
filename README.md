@@ -32,15 +32,15 @@ pnpm run dev
 
 ### 접속
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000/api
-- Swagger: http://localhost:8000/api-docs
-- Prisma Studio: http://localhost:5555
+- Frontend: <http://localhost:3000>
+- Backend API: <http://localhost:8000/api/v1>
+- Swagger: <http://localhost:8000/api-docs>
+- Prisma Studio: <http://localhost:5555>
 
 ## 기술 스택
 
-- **Frontend**: Next.js, TypeScript, Tailwind CSS
-- **Backend**: NestJS, Prisma, MariaDB
+- **Frontend**: Next.js 16.2, React 19, TypeScript, Tailwind CSS v4
+- **Backend**: NestJS 11, Prisma, MariaDB
 - **인증**: Google OAuth 2.0 + JWT
-- **스토리지**: Cloudflare R2
-- **AI**: Claude API
+- **스토리지**: Cloudflare R2 (미구현)
+- **AI**: Claude API (미구현)

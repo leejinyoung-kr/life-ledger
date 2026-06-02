@@ -2,37 +2,41 @@
 
 ## 테이블 목록
 
-| 테이블 | 설명 |
-|--------|------|
-| User | 사용자 |
-| Menu | 사용자별 메뉴 설정 |
-| Transaction | 수입/지출 내역 |
-| Budget | 카테고리별 예산 |
-| Credential | 계정 보관함 (암호화) |
-| File | 파일 메타데이터 |
-| Folder | 폴더 구조 |
-| Note | 메모/노트 |
-| Saving | 예적금 |
-| Investment | 투자 |
-| Notification | 알림 |
-| Report | AI 리포트 |
-| WidgetSetting | 대시보드 위젯 설정 |
+| 테이블 | 설명 | 상태 |
+| --- | --- | --- |
+| User | 사용자 | 구현 완료 |
+| Transaction | 수입/지출 내역 | 구현 완료 |
+| Saving | 예적금 | 구현 완료 |
+| Investment | 투자 | 구현 완료 |
+| Subscription | 구독 서비스 | 구현 완료 |
+| Asset | 자산 항목 | 구현 완료 |
+| NetWorthSnapshot | 순자산 스냅샷 | 구현 완료 |
+| UserSettings | 사용자 설정 | 구현 완료 |
+| Notification | 알림 | 구현 완료 |
+| Task | 할 일 | 구현 완료 |
+| Goal | 목표 | 구현 완료 |
+| Note | 메모/노트 | 구현 완료 |
+| CalendarEvent | 캘린더 이벤트 | 구현 완료 |
+| SecurityRisk | 보안 위험 항목 | 구현 완료 |
+| LoginSession | 로그인 세션 | 구현 완료 |
 
 ## 주요 관계
 
-```
+```text
 User 1 ─── N Transaction
-User 1 ─── N Budget
-User 1 ─── N Credential
-User 1 ─── N Folder
-Folder 1 ─── N File
-User 1 ─── N Note
 User 1 ─── N Saving
 User 1 ─── N Investment
+User 1 ─── N Subscription
+User 1 ─── N Asset
+User 1 ─── N NetWorthSnapshot
+User 1 ─── 1 UserSettings
 User 1 ─── N Notification
-User 1 ─── N Report
-User 1 ─── 1 WidgetSetting
-User 1 ─── N Menu
+User 1 ─── N Task
+User 1 ─── N Goal
+User 1 ─── N Note
+User 1 ─── N CalendarEvent
+User 1 ─── N SecurityRisk
+User 1 ─── N LoginSession
 ```
 
 ## 스키마 (Prisma)
@@ -55,12 +59,56 @@ model User {
 }
 ```
 
-### Transaction / Saving / Investment (구현 완료 — 가계부)
+### Transaction / Saving / Investment (가계부)
 
 - `Transaction` — 수입/지출 내역. `type`(income/expense/transfer), `category`(코드), `amount`, `pay_method`, `is_recurring`, `recurring_rule`(JSON), soft delete(`deleted_at`)
 - `Saving` — 예적금. `type`(savings/deposit/subscription/etc), `interest_rate`, `monthly_amount`, `maturity_date`, `balance`
 - `Investment` — 투자. `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `current_value`, `purchase_date`
 
-모두 `user_id` FK + KST 트리거 포함. 상세는 `backend/prisma/schema.prisma` 및 `migrations/20260602093000_finance/`.
+마이그레이션: `migrations/20260602093000_finance/`
 
-> 나머지 테이블(Budget/Credential/File/Folder/Note/Notification/Report/WidgetSetting/Menu)은 미구현 — 설계 예정 항목임
+### Subscription / Asset / NetWorthSnapshot (순자산)
+
+- `Subscription` — 구독 서비스. `name`, `amount`, `billing_cycle`(monthly/yearly/weekly), `next_billing_date`, soft delete(`deleted_at`)
+- `Asset` — 자산 항목. `name`, `type`(cash/stock/real_estate/crypto/etc), `value`
+- `NetWorthSnapshot` — 순자산 스냅샷. `total_assets`, `total_liabilities`, `net_worth`, `recorded_at`
+
+마이그레이션: `migrations/20260602160000_asset/`
+
+### UserSettings
+
+- 사용자별 설정. `currency`, `language`, `timezone`, `notification_enabled` 등
+
+마이그레이션: `migrations/20260602170000_user_settings/`
+
+### Notification
+
+- `type`, `title`, `message`, `is_read`, `read_at`
+
+마이그레이션: `migrations/20260602180000_notification/`
+
+### Task / Goal (할 일 + 목표)
+
+- `Task` — `title`, `due_date`, `is_done`, `priority`(low/medium/high), soft delete
+- `Goal` — `title`, `target_amount`, `current_amount`, `deadline`, soft delete
+
+마이그레이션: `migrations/20260602190000_task_goal/`
+
+### Note
+
+- `title`, `content`(TEXT), `tags`(JSON), `is_pinned`, soft delete
+
+마이그레이션: `migrations/20260602200000_note/`
+
+### CalendarEvent
+
+- `title`, `start_at`, `end_at`, `all_day`, `type`, `color`, soft delete
+
+마이그레이션: `migrations/20260602210000_calendar_event/`
+
+### SecurityRisk / LoginSession (보안)
+
+- `SecurityRisk` — `type`, `description`, `severity`, `resolved_at`
+- `LoginSession` — `device`, `browser`, `ip`, `location`, `revoked_at`
+
+마이그레이션: `migrations/20260602220000_security/`

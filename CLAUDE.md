@@ -24,10 +24,20 @@ doc-nexus/
 ├── backend/           # NestJS (API 서버, 포트 8000)
 │   ├── prisma/        # schema.prisma, migrations/
 │   └── src/
-│       ├── auth/      # Google OAuth + JWT 인증
-│       └── prisma/    # PrismaService / PrismaModule
-├── packages/
-│   └── shared/        # @doc-nexus/shared 공통 타입
+│       ├── auth/          # Google OAuth + JWT 인증
+│       ├── transaction/   # 수입/지출 내역
+│       ├── saving/        # 예적금
+│       ├── investment/    # 투자
+│       ├── subscription/  # 구독 서비스
+│       ├── asset/         # 자산 (순자산)
+│       ├── note/          # 메모
+│       ├── calendar/      # 캘린더 이벤트
+│       ├── notification/  # 알림
+│       ├── task/          # 할 일 + 목표
+│       ├── security/      # 보안 감사 로그
+│       ├── settings/      # 사용자 설정
+│       ├── trash/         # 휴지통
+│       └── prisma/        # PrismaService / PrismaModule
 ├── docs/              # 설계 문서
 └── docker-compose.yml
 ```
@@ -38,7 +48,7 @@ doc-nexus/
 
 | 영역 | 기술 |
 | --- | --- |
-| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS v4 |
+| Frontend | Next.js 16.2, React 19, TypeScript, Tailwind CSS v4 |
 | Backend | NestJS 11, TypeScript |
 | ORM | Prisma |
 | DB | MariaDB (docker-compose, 포트 3308) |
@@ -53,7 +63,21 @@ doc-nexus/
 
 | 엔티티 | 주요 필드 | 상태 |
 | --- | --- | --- |
-| user | id, google_id, email, name, picture, created_at, updated_at | 구현 완료 |
+| User | id, google_id, email, name, picture | 구현 완료 |
+| Transaction | user_id, type, category, amount, date, is_recurring | 구현 완료 |
+| Saving | user_id, type, interest_rate, balance, maturity_date | 구현 완료 |
+| Investment | user_id, type, principal, current_value, purchase_date | 구현 완료 |
+| Subscription | user_id, name, amount, billing_cycle, next_billing_date | 구현 완료 |
+| Asset | user_id, name, type, value | 구현 완료 |
+| NetWorthSnapshot | user_id, total_assets, total_liabilities, recorded_at | 구현 완료 |
+| UserSettings | user_id, currency, language, theme 등 | 구현 완료 |
+| Notification | user_id, type, title, message, is_read | 구현 완료 |
+| Task | user_id, title, due_date, is_done, priority | 구현 완료 |
+| Goal | user_id, title, target_amount, current_amount, deadline | 구현 완료 |
+| Note | user_id, title, content, tags | 구현 완료 |
+| CalendarEvent | user_id, title, start_at, end_at, type | 구현 완료 |
+| SecurityRisk | user_id, type, description, resolved_at | 구현 완료 |
+| LoginSession | user_id, device, ip, created_at, revoked_at | 구현 완료 |
 
 > DB: MariaDB, 문자셋: utf8mb4_uca1400_ai_ci  
 > 상세 스키마: [docs/erd.md](docs/erd.md)
@@ -64,9 +88,25 @@ doc-nexus/
 
 | 영역 | 상태 |
 | --- | --- |
-| Frontend | 로그인 페이지 구현 완료 |
-| Backend | Google OAuth + JWT 인증 구현 완료 |
-| DB | user 테이블 구현 완료 |
+| Frontend — 로그인 | 구현 완료 |
+| Frontend — 대시보드 | 구현 완료 |
+| Frontend — 가계부 (수입/지출/예적금/투자) | 구현 완료 |
+| Frontend — 순자산 | 구현 완료 |
+| Frontend — 구독 관리 | 구현 완료 |
+| Frontend — 할 일 / 목표 | 구현 완료 |
+| Frontend — 메모 | 구현 완료 |
+| Frontend — 캘린더 | 구현 완료 |
+| Frontend — 알림 | 구현 완료 |
+| Frontend — 보안 | 구현 완료 |
+| Frontend — 설정 | 구현 완료 |
+| Frontend — 휴지통 | 구현 완료 |
+| Frontend — 자격증명 / ENV / 파일 / 신원지갑 | UI 완료 (백엔드 미구현) |
+| Frontend — AI 리포트 / 어시스턴트 | UI 완료 (백엔드 미구현) |
+| Backend — Google OAuth + JWT | 구현 완료 |
+| Backend — 가계부 API (transaction/saving/investment) | 구현 완료 |
+| Backend — 구독/자산/메모/캘린더/할 일/목표 | 구현 완료 |
+| Backend — 알림/보안/설정/휴지통 | 구현 완료 |
+| DB | 15개 테이블 구현 완료 |
 
 ---
 
@@ -154,4 +194,4 @@ CREATE TRIGGER `tr_xxx_bi` BEFORE INSERT ON `xxx` FOR EACH ROW SET NEW.created_a
 ## 참고 문서
 
 - [docs/erd.md](docs/erd.md) — DB 엔티티 정의
-- [docs/api-spec.md](docs/api-spec.md) — API 명세
+- [docs/api.md](docs/api.md) — API 명세
