@@ -37,7 +37,7 @@ const NAV_GROUPS: NavGroup[] = [
     children: [
       { label: '가계부', href: '/transactions', icon: <IconWon /> },
       { label: '구독 관리', href: '/subscriptions', icon: <IconRepeat /> },
-      { label: '자산 종합', href: '#', icon: <IconPie /> },
+      { label: '자산 종합', href: '/networth', icon: <IconPie /> },
     ],
   },
   {

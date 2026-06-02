@@ -197,6 +197,7 @@ input, select, textarea { font: inherit; }
 .card-title { font-family: var(--font-display); font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
 .card-body { padding: 20px; }
 .card-body.compact { padding-top: 8px; }
+.card-body.flush { padding: 0; }
 .btn-sm { font-size: .78rem; padding: 5px 10px; }
 
 /* ── Stat Card ── */
@@ -523,6 +524,37 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 .alert-title { font-weight: 600; font-size: .875rem; color: var(--text-primary); }
 .alert-desc { font-size: .8rem; color: var(--text-secondary); }
 .muted-note { font-size: .82rem; color: var(--text-secondary); margin-bottom: 12px; }
+
+/* ════════════════════════════════════════
+   자산 종합 (networth) 전용
+   ════════════════════════════════════════ */
+.nw-hero {
+  display: flex; gap: 28px; flex-wrap: wrap; align-items: center; padding: 28px;
+  background: linear-gradient(135deg, var(--accent-dim), transparent);
+  border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 24px;
+}
+.nw-hero-main { flex: 1; min-width: 200px; }
+.nw-hero-label { font-size: .8rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.nw-hero-value { font-family: var(--font-display); font-size: 2.6rem; font-weight: 800; letter-spacing: -.04em; color: var(--text-primary); line-height: 1; }
+.nw-hero-change { margin-top: 10px; font-size: .875rem; color: var(--accent); font-weight: 600; }
+
+.donut { width: 160px; height: 160px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; position: relative; }
+.donut::after { content: ''; width: 96px; height: 96px; border-radius: 50%; background: var(--bg-base); }
+.donut-label { position: absolute; text-align: center; }
+.donut-label .t { font-size: .7rem; color: var(--text-muted); }
+.donut-label .v { font-family: var(--font-display); font-weight: 700; font-size: 1rem; }
+
+.legend { display: flex; flex-direction: column; gap: 8px; }
+.legend-row { display: flex; align-items: center; gap: 8px; font-size: .82rem; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+.bars { display: flex; align-items: flex-end; gap: 10px; height: 160px; padding: 16px 0; }
+.bars .bar { flex: 1; background: var(--accent-dim); border: 1px solid rgba(0,192,127,.3); border-bottom: none; border-radius: 4px 4px 0 0; position: relative; transition: all var(--ease); }
+.bars .bar:hover { background: var(--accent-hover); }
+.bars .bar.current { background: var(--accent); }
+.bars .bar span { position: absolute; top: -18px; left: 0; right: 0; text-align: center; font-size: .65rem; color: var(--text-muted); }
+.bars .bar.current span { color: var(--text-primary); font-weight: 700; }
+.bars .bar small { position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: .65rem; color: var(--text-muted); }
 
 /* ════════════════════════════════════════
    RESPONSIVE (반응형)
