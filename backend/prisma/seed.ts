@@ -23,6 +23,7 @@ import { seedNotifications } from './seeds/notifications.seed';
 import { seedTasks } from './seeds/tasks.seed';
 import { seedNotes } from './seeds/notes.seed';
 import { seedCalendar } from './seeds/calendar.seed';
+import { seedTrash } from './seeds/trash.seed';
 
 const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
@@ -39,6 +40,8 @@ const SEEDS: { name: string; run: SeedFn }[] = [
   { name: '할일/목표', run: seedTasks },
   { name: '메모', run: seedNotes },
   { name: '캘린더', run: seedCalendar },
+  // 휴지통: 도메인 시드(전체 wipe) 이후 삭제 더미를 심어야 하므로 반드시 마지막
+  { name: '휴지통', run: seedTrash },
 ];
 
 // user 가 한 명도 없으면 데모 계정 생성 (로그인 전에도 시드 가능하도록)

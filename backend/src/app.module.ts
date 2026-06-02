@@ -13,6 +13,7 @@ import { SavingModule } from './saving/saving.module';
 import { SettingsModule } from './settings/settings.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { TaskModule } from './task/task.module';
+import { TrashModule } from './trash/trash.module';
 import { TransactionModule } from './transaction/transaction.module';
 
 @Module({
@@ -30,6 +31,7 @@ import { TransactionModule } from './transaction/transaction.module';
     TaskModule,
     NoteModule,
     CalendarModule,
+    TrashModule,
   ],
   controllers: [AppController],
   providers: [AppService],

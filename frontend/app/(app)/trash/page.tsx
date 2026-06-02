@@ -2,45 +2,70 @@
 
 /**
  * 휴지통 페이지.
- * 모든 보관함의 삭제 항목을 모아 복구/영구삭제한다. (30일 경과 시 자동 영구 삭제)
- * 공통 레이아웃(AppShell)을 재사용하고 데이터는 더미로 채운다.
+ * 모든 도메인의 삭제(soft-delete) 항목을 모아 복구/영구삭제한다. (30일 경과 시 자동 영구 삭제)
+ * 데이터는 백엔드 API(/trash)와 연동한다.
  */
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import { IconAlertCircle, IconSearch } from '@/components/icons';
-
-interface TrashItem { id: number; name: string; chip: string; type: string; deleted: string; daysLeft: number; }
-
-// ── 더미 데이터 (TODO: GET /api/v1/trash) ───────────────────────
-const INITIAL: TrashItem[] = [
-  { id: 1, name: '스타벅스 -₩6,500', chip: '💰 가계부', type: '가계부', deleted: '2025.05.31', daysLeft: 29 },
-  { id: 2, name: '트위터 계정', chip: '🔑 계정', type: '계정', deleted: '2025.05.28', daysLeft: 26 },
-  { id: 3, name: 'old-project (.env 12개)', chip: '⌥ ENV', type: 'ENV', deleted: '2025.05.20', daysLeft: 18 },
-  { id: 4, name: '계약서_2023.pdf', chip: '📄 파일', type: '파일', deleted: '2025.05.10', daysLeft: 8 },
-  { id: 5, name: '회의 메모 (4월)', chip: '📝 메모', type: '메모', deleted: '2025.05.04', daysLeft: 2 },
-  { id: 6, name: '구 운전면허증', chip: '🪪 신원지갑', type: '신원지갑', deleted: '2025.05.03', daysLeft: 1 },
-];
-
-const TYPES = ['전체 유형', '가계부', '계정', 'ENV', '파일', '메모'];
+import { api } from '@/lib/api';
+import { trashDate, type TrashItem } from '@/lib/trash';
 
 export default function TrashPage() {
-  const [items, setItems] = useState<TrashItem[]>(INITIAL);
+  const [items, setItems] = useState<TrashItem[]>([]);
   const [query, setQuery] = useState('');
   const [type, setType] = useState('전체 유형');
+  const [error, setError] = useState<string | null>(null);
 
-  // 단일 항목 복구. TODO: POST /api/v1/trash/:id/restore
-  function restore(id: number) {
-    setItems((prev) => prev.filter((it) => it.id !== id));
+  // 삭제 항목 통합 목록 조회
+  const load = useCallback(async () => {
+    try {
+      setItems(await api.get<TrashItem[]>('/trash'));
+      setError(null);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // 단일 복구
+  async function restore(it: TrashItem) {
+    try {
+      await api.post('/trash/restore', { kind: it.kind, id: it.id });
+      load();
+    } catch (e) { setError((e as Error).message); }
   }
 
-  // 단일 항목 영구 삭제. TODO: DELETE /api/v1/trash/:id
-  function purge(id: number) {
-    setItems((prev) => prev.filter((it) => it.id !== id));
+  // 단일 영구 삭제
+  async function purge(it: TrashItem) {
+    if (!window.confirm(`'${it.name}'을(를) 영구 삭제할까요? 되돌릴 수 없습니다.`)) return;
+    try {
+      await api.post('/trash/purge', { kind: it.kind, id: it.id });
+      load();
+    } catch (e) { setError((e as Error).message); }
   }
 
-  // 전체 복구 / 휴지통 비우기. TODO: API 연동
-  function restoreAll() { setItems([]); }
-  function emptyTrash() { setItems([]); }
+  // 전체 복구
+  async function restoreAll() {
+    if (items.length === 0 || !window.confirm('모든 삭제 항목을 복구할까요?')) return;
+    try {
+      await api.post('/trash/restore-all', {});
+      load();
+    } catch (e) { setError((e as Error).message); }
+  }
+
+  // 휴지통 비우기 (전체 영구 삭제)
+  async function emptyTrash() {
+    if (items.length === 0 || !window.confirm('휴지통을 비울까요? 모든 항목이 영구 삭제됩니다.')) return;
+    try {
+      await api.post('/trash/empty', {});
+      load();
+    } catch (e) { setError((e as Error).message); }
+  }
+
+  // 유형 필터 옵션 — 현재 항목의 종류에서 동적 구성
+  const types = useMemo(() => ['전체 유형', ...Array.from(new Set(items.map((it) => it.type)))], [items]);
 
   // 검색어 + 유형으로 필터
   const filtered = items.filter((it) => {
@@ -58,8 +83,10 @@ export default function TrashPage() {
 
       <div className="info-bar">
         <IconAlertCircle width={16} height={16} />
-        모든 보관함(가계부·계정·ENV·파일·메모·신원지갑)의 삭제 항목이 모입니다. 30일 경과 시 복구 불가.
+        모든 보관함(가계부·예적금·투자·구독·자산·할일·목표·메모·일정)의 삭제 항목이 모입니다. 30일 경과 시 복구 불가.
       </div>
+
+      {error && <p className="ledger-note is-error">⚠️ {error}</p>}
 
       {/* 검색 / 유형 필터 / 일괄 액션 */}
       <div className="toolbar">
@@ -68,7 +95,7 @@ export default function TrashPage() {
           <input className="input" type="text" placeholder="삭제 항목 검색..." value={query} onChange={(e) => setQuery(e.target.value)} aria-label="삭제 항목 검색" />
         </div>
         <select className="input filter-select" value={type} onChange={(e) => setType(e.target.value)} aria-label="유형 필터">
-          {TYPES.map((t) => <option key={t}>{t}</option>)}
+          {types.map((t) => <option key={t}>{t}</option>)}
         </select>
         <div className="toolbar-right">
           <button type="button" className="btn btn-ghost" onClick={restoreAll}>전체 복구</button>
@@ -86,16 +113,19 @@ export default function TrashPage() {
               </tr>
             </thead>
             <tbody>
+              {filtered.length === 0 && (
+                <tr><td colSpan={5} className="td-center td-muted">휴지통이 비어 있습니다.</td></tr>
+              )}
               {filtered.map((it) => (
-                <tr key={it.id}>
+                <tr key={`${it.kind}-${it.id}`}>
                   <td className="td-strong">{it.name}</td>
                   <td><span className="type-chip">{it.chip}</span></td>
-                  <td className="td-muted">{it.deleted}</td>
+                  <td className="td-muted">{trashDate(it.deletedAt)}</td>
                   <td className={`trash-left${it.daysLeft <= 2 ? ' soon' : ''}`}>{it.daysLeft}일</td>
                   <td className="td-center">
                     <div className="trash-actions">
-                      <button type="button" className="btn btn-ghost" onClick={() => restore(it.id)}>복구</button>
-                      <button type="button" className="btn btn-danger" onClick={() => purge(it.id)}>영구삭제</button>
+                      <button type="button" className="btn btn-ghost" onClick={() => restore(it)}>복구</button>
+                      <button type="button" className="btn btn-danger" onClick={() => purge(it)}>영구삭제</button>
                     </div>
                   </td>
                 </tr>
