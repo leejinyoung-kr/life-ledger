@@ -19,6 +19,8 @@ model User {
   savings       Saving[]
   investments   Investment[]
   subscriptions Subscription[]
+  assets        Asset[]
+  nwSnapshots   NetWorthSnapshot[]
 
   @@map("user")
 }
@@ -159,4 +161,51 @@ model Subscription {
 
   @@index([user_id])
   @@map("subscription")
+}
+
+/// 자산 유형: cash(현금성) | savings(예적금) | investment(투자) | realestate(부동산) | debt(부채) | etc(기타)
+enum AssetType {
+  cash
+  savings
+  investment
+  realestate
+  debt
+  etc
+
+  @@map("asset_type")
+}
+
+/// 자산/부채 (자산 종합 페이지) — debt 는 부채로 순자산에서 차감
+model Asset {
+  id            Int       @id @default(autoincrement())
+  user_id       Int /// user.id FK
+  type          AssetType
+  name          String    @db.VarChar(100)
+  amount        Decimal   @db.Decimal(15, 2)
+  interest_rate Decimal?  @db.Decimal(5, 2)
+  memo          String?   @db.VarChar(300)
+  deleted_at    DateTime?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("asset")
+}
+
+/// 순자산 월별 스냅샷 (자산 종합 - 추이 차트용)
+model NetWorthSnapshot {
+  id           Int      @id @default(autoincrement())
+  user_id      Int /// user.id FK
+  month        String   @db.VarChar(7) /// YYYY-MM
+  total_assets Decimal  @db.Decimal(15, 2)
+  total_debt   Decimal  @db.Decimal(15, 2)
+  created_at   DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, month])
+  @@index([user_id])
+  @@map("net_worth_snapshot")
 }

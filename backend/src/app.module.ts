@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AssetModule } from './asset/asset.module';
 import { AuthModule } from './auth/auth.module';
 import { InvestmentModule } from './investment/investment.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -18,6 +19,7 @@ import { TransactionModule } from './transaction/transaction.module';
     SavingModule,
     InvestmentModule,
     SubscriptionModule,
+    AssetModule,
   ],
   controllers: [AppController],
   providers: [AppService],
