@@ -1,0 +1,60 @@
+'use client';
+
+/**
+ * 공통 앱 레이아웃 셸.
+ * 사이드바 + 상단바 + 페이지 콘텐츠를 묶고, 모바일 사이드바 열림 상태/오버레이를 관리한다.
+ * 모든 인증 페이지(대시보드 등)가 이 셸로 콘텐츠를 감싼다.
+ */
+import { useState, type ReactNode } from 'react';
+import Sidebar from './Sidebar';
+import TopBar from './TopBar';
+
+interface AppShellProps {
+  /** 현재 경로 (사이드바 active 표시) */
+  activePath?: string;
+  /** 상단바 좌측 라벨 */
+  topbarLabel?: string;
+  /** 상단바 우측 액션 버튼 라벨 */
+  actionLabel?: string;
+  /** 상단바 액션 클릭 */
+  onAction?: () => void;
+  /** 로그아웃 핸들러 */
+  onLogout?: () => void;
+  /** 페이지 콘텐츠 */
+  children: ReactNode;
+}
+
+export default function AppShell({
+  activePath,
+  topbarLabel,
+  actionLabel,
+  onAction,
+  onLogout,
+  children,
+}: AppShellProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // 모바일 사이드바 토글
+  const toggleSidebar = () => setSidebarOpen((v) => !v);
+  // 오버레이 클릭/링크 이동 시 사이드바 닫기
+  const closeSidebar = () => setSidebarOpen(false);
+
+  return (
+    <>
+      {/* 모바일 dim 오버레이 */}
+      <div className={`sidebar-overlay${sidebarOpen ? ' open' : ''}`} onClick={closeSidebar} />
+      <div className="app-shell">
+        <Sidebar activePath={activePath} open={sidebarOpen} onLogout={onLogout} />
+        <div className="main-content">
+          <TopBar
+            label={topbarLabel}
+            actionLabel={actionLabel}
+            onToggleSidebar={toggleSidebar}
+            onAction={onAction}
+          />
+          <div className="page-body">{children}</div>
+        </div>
+      </div>
+    </>
+  );
+}
