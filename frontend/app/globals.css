@@ -802,6 +802,44 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 @media (max-width: 900px) { .tg-layout { grid-template-columns: 1fr; } }
 
 /* ════════════════════════════════════════
+   캘린더 (calendar) 전용
+   ════════════════════════════════════════ */
+.cal-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+.cal-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cal-month-label { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; }
+.cal-nav-btn { font-size: 1.1rem; line-height: 1; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--border); gap: 1px; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.cal-dow { background: var(--bg-surface); padding: 8px; text-align: center; font-size: .7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+.cal-cell { background: var(--bg-base); min-height: 92px; padding: 6px 8px; display: flex; flex-direction: column; gap: 3px; }
+.cal-cell.dim { background: var(--bg-surface); color: var(--text-muted); }
+.cal-date { font-size: .78rem; font-weight: 600; color: var(--text-secondary); }
+.cal-cell.today .cal-date { background: var(--accent); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.cal-ev { font-size: .65rem; padding: 1px 5px; border-radius: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-ev.pay  { background: var(--danger-dim);  color: var(--danger); }
+.cal-ev.due  { background: var(--blue-dim);    color: var(--blue); }
+.cal-ev.exp  { background: var(--warning-dim); color: var(--warning); }
+.cal-ev.task { background: var(--success-dim); color: var(--accent); }
+
+.cal-side { display: flex; flex-direction: column; gap: 16px; }
+.up-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border-subtle); }
+.up-item:last-child { border-bottom: none; }
+.up-date { font-family: var(--font-display); font-weight: 700; font-size: .78rem; color: var(--text-primary); width: 42px; flex-shrink: 0; text-align: center; }
+.up-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.up-name { font-size: .84rem; font-weight: 500; }
+.up-sub { font-size: .72rem; color: var(--text-muted); }
+.legend-row { display: flex; align-items: center; gap: 8px; font-size: .78rem; margin-bottom: 6px; }
+.legend-row:last-child { margin-bottom: 0; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+/* 이벤트 타입 색 (dot 공용) */
+.dot-pay, .legend-dot.pay, .up-dot.pay   { background: var(--danger); }
+.dot-due, .legend-dot.due, .up-dot.due   { background: var(--blue); }
+.dot-exp, .legend-dot.exp, .up-dot.exp   { background: var(--warning); }
+.dot-task, .legend-dot.task, .up-dot.task { background: var(--accent); }
+
+@media (max-width: 900px) { .cal-layout { grid-template-columns: 1fr; } }
+
+/* ════════════════════════════════════════
    RESPONSIVE (반응형)
    ════════════════════════════════════════ */
 @media (max-width: 1100px) {
