@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AssetModule } from './asset/asset.module';
 import { AuthModule } from './auth/auth.module';
+import { CalendarModule } from './calendar/calendar.module';
 import { InvestmentModule } from './investment/investment.module';
 import { NoteModule } from './note/note.module';
 import { NotificationModule } from './notification/notification.module';
@@ -28,6 +29,7 @@ import { TransactionModule } from './transaction/transaction.module';
     NotificationModule,
     TaskModule,
     NoteModule,
+    CalendarModule,
   ],
   controllers: [AppController],
   providers: [AppService],

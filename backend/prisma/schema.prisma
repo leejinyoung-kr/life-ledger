@@ -26,6 +26,7 @@ model User {
   tasks         Task[]
   goals         Goal[]
   notes         Note[]
+  calendarEvents CalendarEvent[]
 
   @@map("user")
 }
@@ -347,4 +348,32 @@ model Note {
 
   @@index([user_id])
   @@map("note")
+}
+
+/// 일정 유형: pay(구독 결제) | due(입금/만기) | exp(서류 만료) | task(할일)
+enum CalEventType {
+  pay
+  due
+  exp
+  task
+
+  @@map("cal_event_type")
+}
+
+/// 캘린더 일정 (캘린더 페이지)
+model CalendarEvent {
+  id         Int          @id @default(autoincrement())
+  user_id    Int /// user.id FK
+  date       DateTime     @db.Date
+  type       CalEventType
+  title      String       @db.VarChar(200)
+  memo       String?      @db.VarChar(300)
+  deleted_at DateTime?
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, date])
+  @@map("calendar_event")
 }
