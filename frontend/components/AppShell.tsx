@@ -18,6 +18,8 @@ interface AppShellProps {
   actionLabel?: string;
   /** 상단바 액션 클릭 */
   onAction?: () => void;
+  /** 상단바 우측 커스텀 영역 (기본 액션 버튼 대체) */
+  topbarRight?: ReactNode;
   /** 로그아웃 핸들러 */
   onLogout?: () => void;
   /** 페이지 콘텐츠 */
@@ -29,6 +31,7 @@ export default function AppShell({
   topbarLabel,
   actionLabel,
   onAction,
+  topbarRight,
   onLogout,
   children,
 }: AppShellProps) {
@@ -51,6 +54,7 @@ export default function AppShell({
             actionLabel={actionLabel}
             onToggleSidebar={toggleSidebar}
             onAction={onAction}
+            rightSlot={topbarRight}
           />
           <div className="page-body">{children}</div>
         </div>

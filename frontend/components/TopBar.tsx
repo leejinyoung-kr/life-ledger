@@ -35,23 +35,20 @@ export default function TopBar({ label, actionLabel, onToggleSidebar, onAction, 
       <GlobalSearch />
 
       <div className="flex-center gap-2">
-        {rightSlot ?? (
-          <>
-            {/* TODO: 다크모드 토글 기능 연동 — 현재는 표시만 */}
-            <span className="dark-toggle">🌙</span>
-            {/* TODO: API 연동 — 미읽음 알림 수 GET /api/v1/notifications/unread-count */}
-            <a href="#" className="bell-btn" aria-label="알림">
-              <IconBell width={18} height={18} />
-              <span className="bell-count">3</span>
-            </a>
-            {actionLabel && (
-              <button type="button" className="btn btn-primary" onClick={onAction}>
-                <IconPlus width={13} height={13} />
-                {actionLabel}
-              </button>
-            )}
-          </>
-        )}
+        {/* TODO: 다크모드 토글 기능 연동 — 현재는 표시만 */}
+        <span className="dark-toggle">🌙</span>
+        {/* TODO: API 연동 — 미읽음 알림 수 GET /api/v1/notifications/unread-count */}
+        <a href="#" className="bell-btn" aria-label="알림">
+          <IconBell width={18} height={18} />
+          <span className="bell-count">3</span>
+        </a>
+        {/* rightSlot 지정 시 기본 액션 버튼 대신 커스텀 영역 렌더 */}
+        {rightSlot ?? (actionLabel && (
+          <button type="button" className="btn btn-primary" onClick={onAction}>
+            <IconPlus width={13} height={13} />
+            {actionLabel}
+          </button>
+        ))}
       </div>
     </div>
   );
