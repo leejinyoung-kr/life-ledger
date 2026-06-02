@@ -44,7 +44,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: '보관함',
     icon: <IconFolder className="nav-ic" />,
     children: [
-      { label: '계정 보관함', href: '#', icon: <IconLock /> },
+      { label: '계정 보관함', href: '/credentials', icon: <IconLock /> },
       { label: 'ENV 보관함', href: '#', icon: <IconCode /> },
       { label: '파일 보관함', href: '#', icon: <IconFolder /> },
       { label: '신원 지갑', href: '#', icon: <IconIdCard /> },
