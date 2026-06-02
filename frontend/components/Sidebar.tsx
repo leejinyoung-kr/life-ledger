@@ -73,7 +73,7 @@ const NAV_GROUPS: NavGroup[] = [
     children: [
       { label: '보안 센터', href: '/security', icon: <IconShield /> },
       { label: '알림', href: '/notifications', icon: <IconBell />, badge: 3 },
-      { label: '휴지통', href: '#', icon: <IconTrash /> },
+      { label: '휴지통', href: '/trash', icon: <IconTrash /> },
       { label: '설정', href: '#', icon: <IconSettings /> },
     ],
   },

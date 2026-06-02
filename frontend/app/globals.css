@@ -287,6 +287,8 @@ input, select, textarea { font: inherit; }
 .toolbar .search-wrap { flex: 1; max-width: 360px; }
 .toolbar .filter-select { width: auto; min-width: 130px; }
 .toolbar-count { font-size: .82rem; align-self: center; }
+.toolbar-right { margin-left: auto; display: flex; gap: 8px; }
+.toolbar-right .btn { font-size: .8rem; }
 
 /* ════════════════════════════════════════
    GLOBAL SEARCH (공통 검색바)
@@ -945,6 +947,17 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 .notif-item:not(.unread) .notif-title { color: var(--text-secondary); }
 .notif-desc { font-size: 0.82rem; color: var(--text-secondary); margin-top: 3px; line-height: 1.5; }
 .notif-time { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+
+/* ════════════════════════════════════════
+   휴지통 (trash) 전용
+   ════════════════════════════════════════ */
+.info-bar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 20px; font-size: .82rem; color: var(--text-secondary); }
+.info-bar > svg { color: var(--text-muted); flex-shrink: 0; }
+.type-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: var(--radius-full); font-size: .72rem; font-weight: 500; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-secondary); }
+.trash-left { color: var(--text-muted); }
+.trash-left.soon { color: var(--danger); font-weight: 600; }
+.trash-actions { display: flex; justify-content: center; gap: 6px; }
+.trash-actions .btn { font-size: .78rem; }
 
 /* ════════════════════════════════════════
    RESPONSIVE (반응형)
