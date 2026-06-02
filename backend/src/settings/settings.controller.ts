@@ -1,0 +1,27 @@
+import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { SettingsService } from './settings.service';
+
+@ApiTags('설정')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
+@Controller('settings')
+export class SettingsController {
+  constructor(private readonly service: SettingsService) {}
+
+  // 설정 조회 (계정 정보 + 선호값)
+  @Get()
+  get(@CurrentUser() user: AuthUser) {
+    return this.service.get(user);
+  }
+
+  // 설정 부분 수정
+  @Put()
+  update(@CurrentUser() user: AuthUser, @Body() dto: UpdateSettingsDto) {
+    return this.service.update(user, dto);
+  }
+}

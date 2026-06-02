@@ -21,6 +21,7 @@ model User {
   subscriptions Subscription[]
   assets        Asset[]
   nwSnapshots   NetWorthSnapshot[]
+  settings      UserSettings?
 
   @@map("user")
 }
@@ -208,4 +209,27 @@ model NetWorthSnapshot {
   @@unique([user_id, month])
   @@index([user_id])
   @@map("net_worth_snapshot")
+}
+
+/// 사용자 설정 (설정 페이지) — 1:1. 알림/보안/API/예산/카테고리/위젯 선호값
+model UserSettings {
+  id             Int      @id @default(autoincrement())
+  user_id        Int      @unique /// user.id FK
+  display_name   String?  @db.VarChar(100)
+  notif_budget   Boolean  @default(true)
+  notif_monthly  Boolean  @default(true)
+  notif_upload   Boolean  @default(false)
+  session_expiry String   @default("7d") @db.VarChar(10) /// 7d|1d|12h|none
+  pw_auto_hide   String   @default("10s") @db.VarChar(10) /// 10s|30s|1m|none
+  claude_api_key String?  @db.VarChar(200)
+  claude_model   String   @default("claude-sonnet-4-6") @db.VarChar(50)
+  budgets        Json /// {카테고리코드: 금액}
+  categories     Json /// [{emoji, name}]
+  widgets        Json /// [{id, on}] (배열 순서 = 표시 순서)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@map("user_settings")
 }
