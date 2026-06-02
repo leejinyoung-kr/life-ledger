@@ -308,6 +308,15 @@ export const IconEye = (p: IconProps) => (
   </svg>
 );
 
+// 경고(원형 느낌표) 아이콘
+export const IconAlertCircle = (p: IconProps) => (
+  <Stroke {...p}>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </Stroke>
+);
+
 // 경고(삼각형 느낌표) 아이콘
 export const IconAlertTriangle = (p: IconProps) => (
   <Stroke {...p}>

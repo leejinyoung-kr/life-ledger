@@ -47,7 +47,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: '계정 보관함', href: '/credentials', icon: <IconLock /> },
       { label: 'ENV 보관함', href: '/envs', icon: <IconCode /> },
       { label: '파일 보관함', href: '/files', icon: <IconFolder /> },
-      { label: '신원 지갑', href: '#', icon: <IconIdCard /> },
+      { label: '신원 지갑', href: '/id-wallet', icon: <IconIdCard /> },
     ],
   },
   {
