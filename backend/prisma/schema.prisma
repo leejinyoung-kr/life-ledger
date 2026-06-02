@@ -15,9 +15,10 @@ model User {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  transactions Transaction[]
-  savings      Saving[]
-  investments  Investment[]
+  transactions  Transaction[]
+  savings       Saving[]
+  investments   Investment[]
+  subscriptions Subscription[]
 
   @@map("user")
 }
@@ -117,4 +118,45 @@ model Investment {
 
   @@index([user_id])
   @@map("investment")
+}
+
+/// 결제 주기: monthly(매월) | yearly(매년) | weekly(매주)
+enum SubscriptionCycle {
+  monthly
+  yearly
+  weekly
+
+  @@map("subscription_cycle")
+}
+
+/// 구독 상태: active(활성) | trial(체험) | paused(일시정지)
+enum SubscriptionStatus {
+  active
+  trial
+  paused
+
+  @@map("subscription_status")
+}
+
+/// 구독 (구독 관리 페이지) — 정기 결제 서비스
+model Subscription {
+  id                Int                @id @default(autoincrement())
+  user_id           Int /// user.id FK
+  name              String             @db.VarChar(100)
+  category          String             @db.VarChar(50)
+  amount            Decimal            @db.Decimal(15, 2)
+  cycle             SubscriptionCycle  @default(monthly)
+  status            SubscriptionStatus @default(active)
+  next_payment_date DateTime           @db.Date
+  pay_method        String             @db.VarChar(50)
+  last_used_at      DateTime?          @db.Date
+  memo              String?            @db.VarChar(300)
+  deleted_at        DateTime?
+  created_at        DateTime           @default(now())
+  updated_at        DateTime           @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("subscription")
 }

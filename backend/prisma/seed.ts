@@ -16,6 +16,7 @@ import type { SeedFn } from './seeds/helpers';
 import { seedTransactions } from './seeds/transactions.seed';
 import { seedSavings } from './seeds/savings.seed';
 import { seedInvestments } from './seeds/investments.seed';
+import { seedSubscriptions } from './seeds/subscriptions.seed';
 
 const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
@@ -25,6 +26,7 @@ const SEEDS: { name: string; run: SeedFn }[] = [
   { name: '수입/지출', run: seedTransactions },
   { name: '예적금', run: seedSavings },
   { name: '투자', run: seedInvestments },
+  { name: '구독', run: seedSubscriptions },
 ];
 
 // user 가 한 명도 없으면 데모 계정 생성 (로그인 전에도 시드 가능하도록)

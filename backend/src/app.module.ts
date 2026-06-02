@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { InvestmentModule } from './investment/investment.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SavingModule } from './saving/saving.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 import { TransactionModule } from './transaction/transaction.module';
 
 @Module({
@@ -16,6 +17,7 @@ import { TransactionModule } from './transaction/transaction.module';
     TransactionModule,
     SavingModule,
     InvestmentModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
