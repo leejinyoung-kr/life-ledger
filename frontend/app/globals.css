@@ -896,6 +896,34 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ════════════════════════════════════════
+   보안 센터 (security) 전용
+   ════════════════════════════════════════ */
+.sec-hero { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; padding: 24px 28px; background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 24px; }
+.gauge { width: 130px; height: 130px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; position: relative; }
+.gauge::after { content: ''; width: 96px; height: 96px; border-radius: 50%; background: var(--bg-base); position: absolute; }
+.gauge-val { position: relative; text-align: center; }
+.gauge-score { font-family: var(--font-display); font-size: 2rem; font-weight: 800; color: var(--warning); }
+.gauge-max { font-size: .68rem; color: var(--text-muted); }
+.sec-hero-main { flex: 1; min-width: 200px; }
+.sec-hero-title { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
+.sec-hero-desc { font-size: .855rem; color: var(--text-secondary); line-height: 1.6; }
+.sec-hero-desc .hi { color: var(--accent); }
+
+.risk-row, .sess-row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid var(--border-subtle); }
+.risk-row:last-child, .sess-row:last-child { border-bottom: none; }
+.risk-icon { width: 36px; height: 36px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1rem; }
+.risk-icon.danger  { background: var(--danger-dim); }
+.risk-icon.warning { background: var(--warning-dim); }
+.risk-icon.blue    { background: var(--blue-dim); }
+.risk-icon.green   { background: var(--success-dim); }
+.risk-icon.muted   { background: var(--bg-elevated); }
+.risk-main { flex: 1; }
+.risk-title { font-weight: 600; font-size: .875rem; }
+.risk-sub { font-size: .78rem; color: var(--text-muted); }
+.risk-row .btn, .sess-row .btn { font-size: .78rem; }
+.badge-inline { margin-left: 6px; }
+
+/* ════════════════════════════════════════
    RESPONSIVE (반응형)
    ════════════════════════════════════════ */
 @media (max-width: 1100px) {
