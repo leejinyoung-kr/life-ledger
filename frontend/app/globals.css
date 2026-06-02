@@ -840,6 +840,62 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 @media (max-width: 900px) { .cal-layout { grid-template-columns: 1fr; } }
 
 /* ════════════════════════════════════════
+   토글 스위치 (공통)
+   ════════════════════════════════════════ */
+.toggle { width: 44px; height: 24px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-full); position: relative; cursor: pointer; transition: background var(--ease), border-color var(--ease); flex-shrink: 0; }
+.toggle.on { background: var(--accent); border-color: var(--accent); }
+.toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--text-muted); transition: transform var(--ease), background var(--ease); }
+.toggle.on::after { transform: translateX(20px); background: #fff; }
+
+/* ════════════════════════════════════════
+   AI 리포트 (ai-report) 전용
+   ════════════════════════════════════════ */
+.ai-ask-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 20px; }
+.ai-ask-main { flex: 1; min-width: 160px; }
+.ai-ask-title { font-size: .875rem; font-weight: 600; color: var(--text-primary); }
+.ai-ask-sub { font-size: .78rem; color: var(--text-muted); }
+.ai-ask-schedule { display: flex; align-items: center; gap: 8px; }
+.ai-ask-schedule span { font-size: .82rem; color: var(--text-secondary); }
+
+.generate-box { border: 1px dashed var(--border); border-radius: var(--radius-lg); padding: 48px 24px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; margin-bottom: 28px; transition: border-color var(--ease), background var(--ease); }
+.generate-box:hover { border-color: var(--accent); background: var(--accent-dim); }
+.generate-box > svg { color: var(--accent); }
+.generate-title { font-family: var(--font-display); font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.generate-desc { font-size: .855rem; color: var(--text-secondary); }
+.generate-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.generate-controls .input { width: auto; }
+
+.saved-head { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+.saved-head-title { font-size: .875rem; font-weight: 600; color: var(--text-primary); }
+
+.report-card { margin-bottom: 16px; }
+.report-card-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+.report-icon { width: 38px; height: 38px; border-radius: var(--radius); background: var(--accent-dim); border: 1px solid rgba(0,192,127,.2); display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
+.report-head { flex: 1; }
+.report-title { font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
+.report-date { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+.report-body { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.8; }
+.report-body strong { color: var(--text-primary); font-weight: 600; }
+.report-body .hi { color: var(--accent); font-weight: 600; }
+.report-body .warn { color: var(--warning); font-weight: 600; }
+
+.insight-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.insight-item { display: flex; gap: 12px; padding: 12px 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.ins-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 7px; }
+.ins-dot.green { background: var(--accent); }
+.ins-dot.warning { background: var(--warning); }
+.ins-dot.danger { background: var(--danger); }
+.insight-text { font-size: 0.845rem; color: var(--text-secondary); line-height: 1.6; }
+.insight-text strong { color: var(--text-primary); }
+.insight-text .warn { color: var(--warning); font-weight: 600; }
+
+.tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.tag { padding: 3px 10px; border-radius: var(--radius-full); font-size: 0.75rem; background: var(--bg-surface); color: var(--text-secondary); border: 1px solid var(--border); }
+
+.spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ════════════════════════════════════════
    RESPONSIVE (반응형)
    ════════════════════════════════════════ */
 @media (max-width: 1100px) {
