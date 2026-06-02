@@ -285,6 +285,38 @@ export const IconImage = (p: IconProps) => (
   </svg>
 );
 
+// 막대 차트 아이콘
+export const IconBars = (p: IconProps) => (
+  <Stroke {...p}>
+    <line x1="18" y1="20" x2="18" y2="10" />
+    <line x1="12" y1="20" x2="12" y2="4" />
+    <line x1="6" y1="20" x2="6" y2="14" />
+  </Stroke>
+);
+
+// 시계(최근 활동) 아이콘
+export const IconClock = (p: IconProps) => (
+  <Stroke {...p}>
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </Stroke>
+);
+
+// 번개(빠른 실행) 아이콘
+export const IconZap = (p: IconProps) => (
+  <Stroke {...p}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </Stroke>
+);
+
+// 드래그 핸들(6점) 아이콘
+export const IconDrag = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...p}>
+    <circle cx="9" cy="5" r="1.2" /><circle cx="9" cy="12" r="1.2" /><circle cx="9" cy="19" r="1.2" />
+    <circle cx="15" cy="5" r="1.2" /><circle cx="15" cy="12" r="1.2" /><circle cx="15" cy="19" r="1.2" />
+  </svg>
+);
+
 // 체크(완료) 아이콘
 export const IconCheck = (p: IconProps) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...p}>
