@@ -9,6 +9,7 @@ import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import BottomNav from './BottomNav';
 
 interface AppShellProps {
   /** 현재 경로 (사이드바 active 표시) */
@@ -70,6 +71,8 @@ export default function AppShell({
           {bare ? children : <div className="page-body">{children}</div>}
         </div>
       </div>
+      {/* 모바일 하단 내비게이션 */}
+      <BottomNav activePath={activePath} onMore={toggleSidebar} />
     </>
   );
 }

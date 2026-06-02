@@ -125,13 +125,22 @@ export class TransactionService {
     return buckets;
   }
 
-  // 반복 거래 목록 (is_recurring=true)
+  // 반복 거래 목록 — 동일한 규칙(제목·카테고리·유형·금액)은 한 번만 표시
   async recurring(userId: number) {
     const rows = await this.prisma.transaction.findMany({
       where: { user_id: userId, deleted_at: null, is_recurring: true },
       orderBy: { date: 'desc' },
     });
-    return rows.map((r) => this.toDto(r));
+
+    const seen = new Set<string>();
+    const unique = rows.filter((r) => {
+      const key = `${r.title}|${r.category}|${r.type}|${r.amount}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    return unique.map((r) => this.toDto(r));
   }
 
   // 내역 추가

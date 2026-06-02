@@ -4,7 +4,7 @@
  * 공통 상단 헤더 바.
  * 좌측: 햄버거(모바일 사이드바 토글) + 기간 라벨, 중앙: 통합 검색, 우측: 다크토글/알림/주요 액션 버튼.
  */
-import type { ReactNode } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import GlobalSearch from './GlobalSearch';
 import { IconMenu, IconBell, IconPlus } from './icons';
 
@@ -22,6 +22,28 @@ interface TopBarProps {
 }
 
 export default function TopBar({ label, actionLabel, onToggleSidebar, onAction, rightSlot }: TopBarProps) {
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark') {
+      setDark(true);
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  }, []);
+
+  const toggleDark = () => {
+    const next = !dark;
+    setDark(next);
+    if (next) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
   return (
     <div className="top-bar">
       <div className="top-bar-left">
@@ -35,8 +57,9 @@ export default function TopBar({ label, actionLabel, onToggleSidebar, onAction, 
       <GlobalSearch />
 
       <div className="flex-center gap-2">
-        {/* TODO: 다크모드 토글 기능 연동 — 현재는 표시만 */}
-        <span className="dark-toggle">🌙</span>
+        <button type="button" className="dark-toggle" onClick={toggleDark} aria-label={dark ? '라이트 모드로 전환' : '다크 모드로 전환'}>
+          {dark ? '☀️' : '🌙'}
+        </button>
         {/* TODO: API 연동 — 미읽음 알림 수 GET /api/v1/notifications/unread-count */}
         <a href="#" className="bell-btn" aria-label="알림">
           <IconBell width={18} height={18} />
