@@ -218,6 +218,55 @@ export const IconUpload = (p: IconProps) => (
   </Stroke>
 );
 
+// 수정(연필) 아이콘
+export const IconEdit = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...p}>
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+
+// 닫기(X) 아이콘
+export const IconClose = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...p}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+// 다운로드(트레이로 내려받기) 아이콘
+export const IconDownload = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </Stroke>
+);
+
+// 양식(문서) 다운로드 아이콘
+export const IconFileBlank = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+  </Stroke>
+);
+
+// 예적금(통장/카드) 아이콘
+export const IconBank = (p: IconProps) => (
+  <Stroke {...p}>
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <line x1="2" y1="10" x2="22" y2="10" />
+  </Stroke>
+);
+
+// 투자(상승 차트) 아이콘
+export const IconTrendUp = (p: IconProps) => (
+  <Stroke {...p}>
+    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+    <polyline points="16 7 22 7 22 13" />
+  </Stroke>
+);
+
 // DocNexus 로고(2x2 사각형) 아이콘
 export const IconLogo = (p: IconProps) => (
   <svg viewBox="0 0 22 22" fill="none" {...p}>

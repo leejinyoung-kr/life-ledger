@@ -35,7 +35,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: '금융',
     icon: <IconChart className="nav-ic" />,
     children: [
-      { label: '가계부', href: '#', icon: <IconWon /> },
+      { label: '가계부', href: '/transactions', icon: <IconWon /> },
       { label: '구독 관리', href: '#', icon: <IconRepeat /> },
       { label: '자산 종합', href: '#', icon: <IconPie /> },
     ],
@@ -104,7 +104,7 @@ export default function Sidebar({ activePath = '/dashboard', open = false, onLog
           {TOP_LINK.label}
         </a>
         {NAV_GROUPS.map((group) => (
-          <NavGroupItem key={group.label} group={group} />
+          <NavGroupItem key={group.label} group={group} activePath={activePath} />
         ))}
       </nav>
 
@@ -126,19 +126,29 @@ export default function Sidebar({ activePath = '/dashboard', open = false, onLog
   );
 }
 
-// 접이식 2차 메뉴 그룹 — 클릭 시 펼침/접힘 토글
-function NavGroupItem({ group }: { group: NavGroup }) {
-  const [openGroup, setOpenGroup] = useState(false);
+// 접이식 2차 메뉴 그룹 — 클릭 시 펼침/접힘 토글.
+// 현재 경로가 그룹 내 자식과 일치하면 처음부터 펼쳐지고 부모를 강조한다.
+function NavGroupItem({ group, activePath }: { group: NavGroup; activePath: string }) {
+  const hasActive = group.children.some((leaf) => leaf.href === activePath);
+  const [openGroup, setOpenGroup] = useState(hasActive);
   return (
     <div className={`nav-group${openGroup ? ' open' : ''}`}>
-      <button type="button" className="nav-parent" onClick={() => setOpenGroup((v) => !v)}>
+      <button
+        type="button"
+        className={`nav-parent${hasActive ? ' has-active' : ''}`}
+        onClick={() => setOpenGroup((v) => !v)}
+      >
         {group.icon}
         <span>{group.label}</span>
         <IconCaret className="nav-caret" />
       </button>
       <div className="nav-sub">
         {group.children.map((leaf) => (
-          <a key={leaf.label} href={leaf.href} className="nav-link">
+          <a
+            key={leaf.label}
+            href={leaf.href}
+            className={`nav-link${leaf.href === activePath ? ' active' : ''}`}
+          >
             {leaf.icon}
             {leaf.label}
             {leaf.badge != null && <span className="nav-badge">{leaf.badge}</span>}
