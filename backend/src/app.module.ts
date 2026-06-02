@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { AssetModule } from './asset/asset.module';
 import { AuthModule } from './auth/auth.module';
 import { InvestmentModule } from './investment/investment.module';
+import { NotificationModule } from './notification/notification.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SavingModule } from './saving/saving.module';
 import { SettingsModule } from './settings/settings.module';
@@ -22,6 +23,7 @@ import { TransactionModule } from './transaction/transaction.module';
     SubscriptionModule,
     AssetModule,
     SettingsModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

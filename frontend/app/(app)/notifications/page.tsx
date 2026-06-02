@@ -3,56 +3,73 @@
 /**
  * 알림 페이지.
  * 알림을 필터 탭(전체/읽지않음/가계부/시스템)으로 보고, 클릭 또는 "모두 읽음"으로 읽음 처리한다.
- * 공통 레이아웃(AppShell)을 재사용하고 데이터는 더미로 채운다.
+ * 데이터는 백엔드 API(/notifications)와 연동한다.
  */
-import { useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import AppShell from '@/components/AppShell';
 import { IconAlertTriangle, IconCube, IconLock, IconFolder } from '@/components/icons';
+import { api } from '@/lib/api';
+import { TONE_CLASS, NOTI_TABS, relativeTime, type Noti } from '@/lib/notification';
 
-type NotiTone = 'warning' | 'success' | 'muted';
-type NotiGroup = '가계부' | '시스템';
-
-interface Noti {
-  id: number; tone: NotiTone; icon: ReactNode; group: NotiGroup;
-  title: string; desc: string; time: string; read: boolean;
+// 발생처/톤으로 아이콘 결정 (계정·파일은 전용, 그 외 톤 기준)
+function iconFor(n: Noti): ReactNode {
+  if (n.source.includes('계정')) return <IconLock width={17} height={17} />;
+  if (n.source.includes('파일')) return <IconFolder width={17} height={17} />;
+  if (n.tone === 'warning') return <IconAlertTriangle width={17} height={17} />;
+  return <IconCube width={17} height={17} />;
 }
 
-// ── 더미 데이터 (TODO: GET /api/v1/notifications) ───────────────
-const INITIAL: Noti[] = [
-  { id: 1, tone: 'warning', icon: <IconAlertTriangle width={17} height={17} />, group: '가계부', title: '구독 예산 90% 초과', desc: '이번 달 구독 지출이 예산(₩200,000)의 94%에 달했습니다. 미사용 구독 서비스 정리를 권장합니다.', time: '1시간 전 · 가계부', read: false },
-  { id: 2, tone: 'success', icon: <IconCube width={17} height={17} />, group: '시스템', title: '4월 AI 리포트 생성 완료', desc: '2025년 4월 소비 분석 리포트가 준비됐습니다. 이번 달 식비가 27% 감소했습니다.', time: '3일 전 · AI 리포트', read: false },
-  { id: 3, tone: 'warning', icon: <IconAlertTriangle width={17} height={17} />, group: '가계부', title: '식비 예산 78% 도달', desc: '이번 달 식비가 예산(₩400,000)의 78%에 도달했습니다.', time: '5일 전 · 가계부', read: false },
-  { id: 4, tone: 'muted', icon: <IconLock width={17} height={17} />, group: '시스템', title: '계정 추가됨 — GitHub', desc: '새 계정이 계정 보관함에 암호화되어 저장됐습니다.', time: '1주일 전 · 계정 보관함', read: true },
-  { id: 5, tone: 'muted', icon: <IconFolder width={17} height={17} />, group: '시스템', title: '파일 업로드 완료 — 보험증권_2025.pdf', desc: '파일이 Cloudflare R2에 안전하게 저장됐습니다.', time: '1주일 전 · 파일 보관함', read: true },
-];
-
-const TABS = ['전체', '읽지 않음', '가계부', '시스템'] as const;
-type Tab = typeof TABS[number];
-
 export default function NotificationsPage() {
-  const [items, setItems] = useState<Noti[]>(INITIAL);
-  const [tab, setTab] = useState<Tab>('전체');
+  const [items, setItems] = useState<Noti[]>([]);
+  const [tab, setTab] = useState<typeof NOTI_TABS[number]['kind']>('all');
+  const [error, setError] = useState<string | null>(null);
 
-  // 단일 알림 읽음 처리. TODO: PATCH /api/v1/notifications/:id/read
-  function markRead(id: number) {
+  // 알림 목록 조회
+  const load = useCallback(async () => {
+    try {
+      setItems(await api.get<Noti[]>('/notifications'));
+      setError(null);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // 단일 알림 읽음 처리 (낙관적 갱신 후 PATCH)
+  async function markRead(id: number) {
+    const target = items.find((n) => n.id === id);
+    if (!target || target.read) return;
     setItems((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    try {
+      await api.put(`/notifications/${id}/read`, {});
+    } catch (e) {
+      setError((e as Error).message);
+      load();
+    }
   }
 
-  // 전체 읽음 처리. TODO: PATCH /api/v1/notifications/read-all
-  function markAllRead() {
+  // 전체 읽음 처리
+  async function markAllRead() {
     setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+    try {
+      await api.put('/notifications/read-all', {});
+    } catch (e) {
+      setError((e as Error).message);
+      load();
+    }
   }
 
   const unreadCount = items.filter((n) => !n.read).length;
 
   // 탭 기준 필터링
   const filtered = items.filter((n) => {
-    if (tab === '전체') return true;
-    if (tab === '읽지 않음') return !n.read;
+    if (tab === 'all') return true;
+    if (tab === 'unread') return !n.read;
     return n.group === tab;
   });
 
-  // 상단바 우측: 모두 읽음 버튼 (dark/bell 은 유지)
+  // 상단바 우측: 모두 읽음 버튼
   const topbarRight = (
     <button type="button" className="btn btn-ghost" onClick={markAllRead}>모두 읽음</button>
   );
@@ -66,23 +83,26 @@ export default function NotificationsPage() {
         </p>
       </div>
 
+      {error && <p className="ledger-note is-error">⚠️ {error}</p>}
+
       {/* 필터 탭 */}
       <div className="notif-tabs">
-        {TABS.map((t) => (
-          <button key={t} type="button" className={`btn ${tab === t ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab(t)}>{t}</button>
+        {NOTI_TABS.map((t) => (
+          <button key={t.kind} type="button" className={`btn ${tab === t.kind ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setTab(t.kind)}>{t.label}</button>
         ))}
       </div>
 
       {/* 알림 리스트 */}
       <div className="card flush">
+        {filtered.length === 0 && <p className="muted-note notif-empty">알림이 없습니다.</p>}
         {filtered.map((n) => (
           <div key={n.id} className={`notif-item${n.read ? '' : ' unread'}`} onClick={() => markRead(n.id)}>
             <div className={`notif-dot ${n.read ? 'read' : 'unread'}`} />
-            <div className={`notif-type-icon ${n.tone}`}>{n.icon}</div>
+            <div className={`notif-type-icon ${TONE_CLASS[n.tone]}`}>{iconFor(n)}</div>
             <div className="notif-main">
               <div className="notif-title">{n.title}</div>
               <div className="notif-desc">{n.desc}</div>
-              <div className="notif-time">{n.time}</div>
+              <div className="notif-time">{relativeTime(n.occurredAt)} · {n.source}</div>
             </div>
           </div>
         ))}
