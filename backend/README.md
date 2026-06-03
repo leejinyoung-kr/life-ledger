@@ -68,6 +68,7 @@ src/
 ├── task/          # 할 일 + 목표
 ├── security/      # 보안 감사 로그
 ├── settings/      # 사용자 설정
+├── category/      # 카테고리 관리
 ├── trash/         # 휴지통
 └── prisma/        # PrismaService / PrismaModule
 ```

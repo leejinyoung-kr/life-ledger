@@ -101,8 +101,10 @@ export default function CredentialsPage() {
         >
           {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
-        <span className="text-muted ml-auto toolbar-count">총 {rows.length}개</span>
-        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+        <div className="ml-auto flex-center gap-2">
+          <span className="text-muted toolbar-count">총 {rows.length}개</span>
+          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+        </div>
       </div>
 
       {/* 테이블 */}

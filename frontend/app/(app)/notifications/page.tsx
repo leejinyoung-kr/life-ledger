@@ -100,8 +100,8 @@ export default function NotificationsPage() {
       {error && <p className="ledger-note is-error">⚠️ {error}</p>}
 
       {/* 필터 탭 + 페이지당 항목 수 */}
-      <div className="flex-center" style={{ justifyContent: 'space-between' }}>
-        <div className="notif-tabs">
+      <div className="flex-center" style={{ justifyContent: 'space-between', gap: '10px', marginBottom: '20px' }}>
+        <div className="notif-tabs" style={{ marginBottom: 0 }}>
           {NOTI_TABS.map((t) => (
             <button key={t.kind} type="button" className={`btn ${tab === t.kind ? 'btn-primary' : 'btn-ghost'}`} onClick={() => changeTab(t.kind)}>
               {t.label}
