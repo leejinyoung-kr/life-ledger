@@ -34,6 +34,7 @@ export class TransactionService {
       payMethod: t.pay_method,
       memo: t.memo,
       isRecurring: t.is_recurring,
+      recurringRule: t.recurring_rule ?? null,
     };
   }
 
@@ -47,13 +48,18 @@ export class TransactionService {
     return latest ? toDateStr(latest.date).slice(0, 7) : null;
   }
 
-  // 내역 목록 — 월/유형/카테고리/검색어 필터
+  // 내역 목록 — 날짜범위/유형/카테고리/검색어 필터
   async findAll(userId: number, query: QueryTransactionDto) {
     const where: Prisma.TransactionWhereInput = {
       user_id: userId,
       deleted_at: null,
     };
-    if (query.month) where.date = monthRange(query.month);
+    if (query.from || query.to) {
+      where.date = {
+        ...(query.from ? { gte: new Date(query.from) } : {}),
+        ...(query.to   ? { lte: new Date(query.to)   } : {}),
+      };
+    }
     if (query.type) where.type = query.type;
     if (query.category) where.category = query.category;
     if (query.q) where.title = { contains: query.q };
@@ -156,6 +162,7 @@ export class TransactionService {
         pay_method: dto.payMethod,
         memo: dto.memo,
         is_recurring: dto.isRecurring ?? false,
+        recurring_rule: dto.isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
       },
     });
     return this.toDto(created);
@@ -184,6 +191,9 @@ export class TransactionService {
         pay_method: dto.payMethod,
         memo: dto.memo,
         is_recurring: dto.isRecurring,
+        recurring_rule: dto.isRecurring !== undefined
+          ? (dto.isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull)
+          : undefined,
       },
     });
     return this.toDto(updated);

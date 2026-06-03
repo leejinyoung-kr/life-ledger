@@ -41,4 +41,8 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsBoolean()
   isRecurring?: boolean;
+
+  // 반복 규칙 — cycle(주기)/day(기준일)/weekendAdjust(주말 처리)
+  @IsOptional()
+  recurringRule?: Record<string, unknown>;
 }

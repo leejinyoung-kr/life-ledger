@@ -4,7 +4,27 @@
  */
 
 // ── 타입 ────────────────────────────────────────────────────────
+
+// /categories API 응답 DTO
+export interface Category {
+  id: number;
+  domain: string;
+  code: string;
+  label: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export type TransactionType = 'income' | 'expense' | 'transfer';
+export type RecurringCycle = 'monthly' | 'weekly' | 'yearly';
+export type WeekendAdjust = 'none' | 'before' | 'after';
+
+export interface RecurringRule {
+  cycle: RecurringCycle;
+  /** 매월: 1-31일, 매주: 0(일)~6(토), 매년: 1-365 */
+  day: number;
+  weekendAdjust: WeekendAdjust;
+}
 
 export interface Transaction {
   id: number;
@@ -16,6 +36,7 @@ export interface Transaction {
   payMethod: string;
   memo: string | null;
   isRecurring: boolean;
+  recurringRule: RecurringRule | null;
 }
 
 export interface TransactionSummary {
@@ -86,7 +107,19 @@ export interface InvestmentSummary {
 export const TX_TYPE_LABEL: Record<TransactionType, string> = {
   income: '수입',
   expense: '지출',
-  transfer: '저축이동',
+  transfer: '자산이동',
+};
+
+export const CYCLE_LABEL: Record<RecurringCycle, string> = {
+  monthly: '매월',
+  weekly: '매주',
+  yearly: '매년',
+};
+
+export const WEEKEND_ADJUST_LABEL: Record<WeekendAdjust, string> = {
+  none: '조정 안 함',
+  before: '전 금요일',
+  after: '다음 월요일',
 };
 
 // 카테고리 코드 → 이모지+한글 칩 라벨
@@ -96,7 +129,7 @@ export const CATEGORY_LABEL: Record<string, string> = {
   subscription: '📺 구독',
   shopping: '🛍️ 쇼핑',
   salary: '💰 급여',
-  transfer: '💳 저축이동',
+  transfer: '💳 자산이동',
   etc: '📦 기타',
 };
 
@@ -107,7 +140,7 @@ export const CATEGORY_OPTIONS: { value: string; label: string }[] = [
   { value: 'subscription', label: '구독' },
   { value: 'shopping', label: '쇼핑' },
   { value: 'salary', label: '급여' },
-  { value: 'transfer', label: '저축이동' },
+  { value: 'transfer', label: '자산이동' },
   { value: 'etc', label: '기타' },
 ];
 

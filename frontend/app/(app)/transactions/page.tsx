@@ -8,9 +8,10 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
+import StatCard from '@/components/StatCard';
 import {
   IconWon, IconBank, IconTrendUp, IconDownload, IconFileBlank, IconUpload,
-  IconSearch, IconEdit, IconTrash, IconPlus,
+  IconSearch, IconEdit, IconTrash, IconPlus, IconChart, IconAlertTriangle,
 } from '@/components/icons';
 
 import { toast } from 'sonner';
@@ -18,11 +19,12 @@ import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import { api } from '@/lib/api';
 import {
-  CATEGORY_LABEL, CATEGORY_OPTIONS, PAY_METHODS, SAVING_TYPE_LABEL, INVEST_TYPE_LABEL,
-  TX_TYPE_LABEL, won, signedWon, dotDate, daysUntil, currentMonth,
-  type Transaction, type TransactionSummary, type TrendBucket,
+  CATEGORY_LABEL, PAY_METHODS, SAVING_TYPE_LABEL, INVEST_TYPE_LABEL,
+  TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL, won, signedWon, dotDate, daysUntil,
+  type Category, type Transaction, type TransactionSummary, type TrendBucket,
   type Saving, type SavingSummary, type SavingType,
   type Investment, type InvestmentSummary, type InvestmentType, type TransactionType,
+  type RecurringCycle, type WeekendAdjust,
 } from '@/lib/finance';
 
 type TabId = 'ledger' | 'savings' | 'invest';
@@ -35,16 +37,30 @@ const ADD_LABELS: Record<TabId, string> = {
 
 export default function TransactionsPage() {
   const [tab, setTab] = useState<TabId>('ledger');
-  // 각 탭의 reloadKey — mutation 후 증가시켜 해당 탭 데이터 재조회
   const [reload, setReload] = useState({ ledger: 0, savings: 0, invest: 0 });
   const bump = (k: TabId) => setReload((s) => ({ ...s, [k]: s[k] + 1 }));
 
-  // 모달 상태 (open + mode + 편집 대상)
   const [ledgerModal, setLedgerModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Transaction }>({ open: false, mode: 'add' });
   const [savingsModal, setSavingsModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Saving }>({ open: false, mode: 'add' });
   const [investModal, setInvestModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Investment }>({ open: false, mode: 'add' });
 
-  // 상단바 추가 버튼 — 현재 탭에 맞는 추가 모달 열기
+  // 도메인별 카테고리 — 마운트 시 한 번만 조회
+  const [txCats, setTxCats] = useState<Category[]>([]);
+  const [savingCats, setSavingCats] = useState<Category[]>([]);
+  const [investCats, setInvestCats] = useState<Category[]>([]);
+
+  useEffect(() => {
+    Promise.all([
+      api.get<Category[]>('/categories?domain=transaction'),
+      api.get<Category[]>('/categories?domain=saving'),
+      api.get<Category[]>('/categories?domain=investment'),
+    ]).then(([tx, sav, inv]) => {
+      setTxCats(tx.filter((c) => c.isActive));
+      setSavingCats(sav.filter((c) => c.isActive));
+      setInvestCats(inv.filter((c) => c.isActive));
+    });
+  }, []);
+
   function openAddModal() {
     if (tab === 'ledger') setLedgerModal({ open: true, mode: 'add' });
     if (tab === 'savings') setSavingsModal({ open: true, mode: 'add' });
@@ -58,20 +74,22 @@ export default function TransactionsPage() {
           <h1 className="page-title">가계부</h1>
           <p className="page-subtitle">수입/지출, 예적금, 투자를 한 곳에서 관리하세요.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={openAddModal}>
-          <IconPlus width={13} height={13} />{ADD_LABELS[tab]}
-        </button>
       </div>
 
       <div className="page-tabs">
         <Tab active={tab === 'ledger'} onClick={() => setTab('ledger')} icon={<IconWon />}>수입 / 지출</Tab>
         <Tab active={tab === 'savings'} onClick={() => setTab('savings')} icon={<IconBank />}>예적금</Tab>
         <Tab active={tab === 'invest'} onClick={() => setTab('invest')} icon={<IconTrendUp />}>투자</Tab>
+        <div style={{ flex: 1 }} />
+        <button type="button" className="btn btn-primary tabs-add-btn" onClick={openAddModal}>
+          <IconPlus width={13} height={13} />{ADD_LABELS[tab]}
+        </button>
       </div>
 
       {tab === 'ledger' && (
         <LedgerTab
           reloadKey={reload.ledger}
+          categories={txCats}
           onEdit={(tx) => setLedgerModal({ open: true, mode: 'edit', editing: tx })}
           onDeleted={() => bump('ledger')}
         />
@@ -79,6 +97,7 @@ export default function TransactionsPage() {
       {tab === 'savings' && (
         <SavingsTab
           reloadKey={reload.savings}
+          savingCats={savingCats}
           onAdd={() => setSavingsModal({ open: true, mode: 'add' })}
           onEdit={(s) => setSavingsModal({ open: true, mode: 'edit', editing: s })}
           onDeleted={() => bump('savings')}
@@ -87,6 +106,7 @@ export default function TransactionsPage() {
       {tab === 'invest' && (
         <InvestTab
           reloadKey={reload.invest}
+          investCats={investCats}
           onAdd={() => setInvestModal({ open: true, mode: 'add' })}
           onEdit={(v) => setInvestModal({ open: true, mode: 'edit', editing: v })}
           onDeleted={() => bump('invest')}
@@ -95,6 +115,7 @@ export default function TransactionsPage() {
 
       <LedgerModal
         state={ledgerModal}
+        categories={txCats}
         onClose={() => setLedgerModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setLedgerModal((s) => ({ ...s, open: false })); bump('ledger'); }}
       />
@@ -120,12 +141,27 @@ function Tab({ active, onClick, icon, children }: { active: boolean; onClick: ()
   );
 }
 
+// 오늘 날짜 YYYY-MM-DD
+function toDay(): string { return new Date().toISOString().slice(0, 10); }
+// N달 전 날짜 YYYY-MM-DD
+function monthsAgo(n: number): string {
+  const d = new Date(); d.setMonth(d.getMonth() - n); return d.toISOString().slice(0, 10);
+}
+
 // ── 탭 1: 수입 / 지출 ───────────────────────────────────────────
-function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit: (tx: Transaction) => void; onDeleted: () => void }) {
-  const [month, setMonth] = useState(currentMonth());
-  const [typeFilter, setTypeFilter] = useState('');
-  const [catFilter, setCatFilter] = useState('');
-  const [q, setQ] = useState('');
+function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: number; categories: Category[]; onEdit: (tx: Transaction) => void; onDeleted: () => void }) {
+  // 입력 중인 (미적용) 필터
+  const [pendingFrom, setPendingFrom] = useState(() => monthsAgo(1));
+  const [pendingTo, setPendingTo] = useState(toDay);
+  const [pendingType, setPendingType] = useState('');
+  const [pendingCat, setPendingCat] = useState('');
+  const [pendingQ, setPendingQ] = useState('');
+
+  // 조회 버튼 클릭 시 적용되는 필터
+  const [applied, setApplied] = useState(() => ({
+    from: monthsAgo(1), to: toDay(), type: '', cat: '', q: '',
+  }));
+
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const { confirm, confirmElement } = useConfirm();
@@ -135,23 +171,50 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
   const [trend, setTrend] = useState<TrendBucket[]>([]);
   const [recurring, setRecurring] = useState<Transaction[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [activePreset, setActivePreset] = useState<number | null>(1); // 초기: 1개월 활성
 
-  // 내역 목록 조회 (필터 반영)
+  // categories 배열 → code:label 룩업맵
+  const catMap = Object.fromEntries(categories.map((c) => [c.code, c.label]));
+
+  // pending → applied
+  function search() { setApplied({ from: pendingFrom, to: pendingTo, type: pendingType, cat: pendingCat, q: pendingQ }); setPage(1); }
+
+  // 필터 초기화 + 즉시 적용
+  function reset() {
+    const from = monthsAgo(1); const to = toDay();
+    setPendingFrom(from); setPendingTo(to);
+    setPendingType(''); setPendingCat(''); setPendingQ('');
+    setApplied({ from, to, type: '', cat: '', q: '' });
+    setActivePreset(1);
+    setPage(1);
+  }
+
+  // 프리셋 버튼: 입력값만 변경 + 해당 버튼 활성화
+  function applyPreset(months: number) {
+    const from = monthsAgo(months); const to = toDay();
+    setPendingFrom(from); setPendingTo(to);
+    setActivePreset(months);
+  }
+
+  // 내역 목록 조회 (applied 필터 기준)
   const loadRows = useCallback(async () => {
-    const params = new URLSearchParams({ month });
-    if (typeFilter) params.set('type', typeFilter);
-    if (catFilter) params.set('category', catFilter);
-    if (q) params.set('q', q);
+    const params = new URLSearchParams();
+    if (applied.from) params.set('from', applied.from);
+    if (applied.to) params.set('to', applied.to);
+    if (applied.type) params.set('type', applied.type);
+    if (applied.cat) params.set('category', applied.cat);
+    if (applied.q) params.set('q', applied.q);
     try {
       setRows(await api.get<Transaction[]>(`/transactions?${params.toString()}`));
       setError(null);
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [month, typeFilter, catFilter, q]);
+  }, [applied]);
 
-  // 요약/추이/반복거래 조회 (월 기준)
+  // 요약/추이/반복거래 조회 (applied.to 기준 월)
   const loadAside = useCallback(async () => {
+    const month = applied.to.slice(0, 7);
     try {
       const [s, t, r] = await Promise.all([
         api.get<TransactionSummary>(`/transactions/summary?month=${month}`),
@@ -162,7 +225,7 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [month]);
+  }, [applied.to]);
 
   useEffect(() => { loadRows(); }, [loadRows, reloadKey]);
   useEffect(() => { loadAside(); }, [loadAside, reloadKey]);
@@ -182,30 +245,35 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
   const maxTrend = Math.max(1, ...trend.map((b) => b.total));
   const totalPages = Math.ceil(rows.length / limit);
   const pagedRows = rows.slice((page - 1) * limit, page * limit);
-  const strip = summary
-    ? [
-        { label: '수입', value: signedWon('income', summary.income), tone: 'income' },
-        { label: '지출', value: signedWon('expense', summary.expense), tone: 'expense' },
-        { label: '저축이동', value: signedWon('transfer', summary.transfer), tone: 'transfer' },
-        { label: '실소비', value: won(summary.realSpend), tone: '' },
-        { label: '잔액', value: won(summary.balance), tone: '' },
-      ]
-    : [];
 
   return (
     <>
       {error && <p className="ledger-note is-error">⚠️ {error}</p>}
 
+      {summary && (
+        <div className="grid-4 mb-6">
+          <StatCard icon={<IconWon />} tone="green" value={won(summary.income)} label="수입" change="이번 달 합계" changeDir="up" />
+          <StatCard icon={<IconWon />} tone="red" value={won(summary.expense)} label="지출" change="이번 달 합계" changeDir="down" />
+          <StatCard icon={<IconBank />} tone="amber" value={won(summary.realSpend)} label="실소비" change={`저축이동 ${won(summary.transfer)}`} changeDir="neutral" />
+          <StatCard icon={<IconChart />} tone="blue" value={won(summary.balance)} label="잔액" change="수입 − 실소비" changeDir="neutral" />
+        </div>
+      )}
+
       <div className="grid-2 mb-6">
         <div className="card">
           <div className="card-header"><span className="card-title">월별 지출 추이</span></div>
           <div className="card-body">
-            <div className="bar-chart">
-              {trend.map((b) => (
-                <div key={b.month} className={`bar${b.month === month ? ' current' : ''}`} style={{ height: `${Math.round((b.total / maxTrend) * 100)}%` }} />
-              ))}
+            <div className="bars">
+              {trend.map((b) => {
+                const isCurrent = b.month === applied.to.slice(0, 7);
+                return (
+                  <div key={b.month} className={`bar${isCurrent ? ' current' : ''}`} style={{ height: `${Math.round((b.total / maxTrend) * 100)}%` }}>
+                    <span>{isCurrent ? won(b.total) : ''}</span>
+                    <small>{b.label}</small>
+                  </div>
+                );
+              })}
             </div>
-            <div className="bar-axis">{trend.map((b) => <span key={b.month}>{b.label}</span>)}</div>
           </div>
         </div>
         <div className="card">
@@ -214,19 +282,24 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
             <span className="badge badge-neutral">자동 등록</span>
           </div>
           <div className="card-body compact">
-            {recurring.length === 0 && <div className="recur-sub">반복 거래가 없습니다.</div>}
-            {recurring.map((r) => (
-              <div className="recur-item" key={r.id}>
-                <div className="recur-title">{r.title} — {won(r.amount)}</div>
-                <div className="recur-sub">{CATEGORY_LABEL[r.category] ?? r.category} · {TX_TYPE_LABEL[r.type]}</div>
-              </div>
-            ))}
+            <div className="recur-list">
+              {recurring.length === 0 && <div className="recur-sub">반복 거래가 없습니다.</div>}
+              {recurring.map((r) => (
+                <div className="recur-item" key={r.id}>
+                  <div className="recur-title">{r.title} — {won(r.amount)}</div>
+                  <div className="recur-sub">
+                    {CATEGORY_LABEL[r.category] ?? r.category} · {TX_TYPE_LABEL[r.type]}
+                    {r.recurringRule && (
+                      <> · {CYCLE_LABEL[r.recurringRule.cycle]} {r.recurringRule.day}일
+                      {r.recurringRule.weekendAdjust !== 'none' && ` · 주말→${WEEKEND_ADJUST_LABEL[r.recurringRule.weekendAdjust]}`}
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="summary-strip">
-        {strip.map((s, i) => <StripItem key={s.label} item={s} last={i === strip.length - 1} />)}
       </div>
 
       {/* 엑셀 툴바 — TODO: 다운로드/업로드 API 연동 (Phase 4-5) */}
@@ -241,44 +314,75 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
         </label>
       </div>
 
-      <div className="filter-row">
-        <input type="month" className="input" value={month} onChange={(ev) => { setMonth(ev.target.value); setPage(1); }} aria-label="조회 월" />
-        <select className="input" value={typeFilter} onChange={(ev) => setTypeFilter(ev.target.value)} aria-label="유형 필터">
-          <option value="">전체 유형</option>
-          <option value="income">수입</option><option value="expense">지출</option><option value="transfer">저축이동</option>
-        </select>
-        <select className="input" value={catFilter} onChange={(ev) => setCatFilter(ev.target.value)} aria-label="카테고리 필터">
-          <option value="">전체 카테고리</option>
-          {CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-        </select>
-        <div className="search-wrap filter-search">
-          <IconSearch className="search-icon" />
-          <input className="input" type="text" placeholder="내역 검색..." value={q} onChange={(ev) => { setQ(ev.target.value); setPage(1); }} aria-label="내역 검색" />
+      <div className="search-panel">
+        <div className="search-panel-row">
+          <input type="date" className="input filter-date" value={pendingFrom} onChange={(ev) => { setPendingFrom(ev.target.value); setActivePreset(null); }} aria-label="조회 시작일" />
+          <span className="filter-date-sep">~</span>
+          <input type="date" className="input filter-date" value={pendingTo} onChange={(ev) => { setPendingTo(ev.target.value); setActivePreset(null); }} aria-label="조회 종료일" />
+          <div className="preset-btns">
+            <button type="button" className={`btn btn-sm ${activePreset === 1 ? 'btn-primary' : 'btn-ghost'}`} onClick={() => applyPreset(1)}>1개월</button>
+            <button type="button" className={`btn btn-sm ${activePreset === 2 ? 'btn-primary' : 'btn-ghost'}`} onClick={() => applyPreset(2)}>2개월</button>
+            <button type="button" className={`btn btn-sm ${activePreset === 3 ? 'btn-primary' : 'btn-ghost'}`} onClick={() => applyPreset(3)}>3개월</button>
+          </div>
         </div>
+        <div className="search-panel-row">
+          <select className="input filter-select" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+            <option value="">전체 유형</option>
+            <option value="income">수입</option><option value="expense">지출</option><option value="transfer">자산이동</option>
+          </select>
+          <select className="input filter-select" value={pendingCat} onChange={(ev) => setPendingCat(ev.target.value)} aria-label="카테고리 필터">
+            <option value="">전체 카테고리</option>
+            {categories.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+          </select>
+          <div className="search-wrap filter-search">
+            <IconSearch className="search-icon" />
+            <input className="input" type="text" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} aria-label="내역 검색" />
+          </div>
+          <button type="button" className="btn btn-primary" onClick={search}>조회</button>
+          <button type="button" className="btn btn-ghost" onClick={reset}>초기화</button>
+        </div>
+      </div>
+
+      <div className="table-bar">
+        <span className="table-count">총 {rows.length}건</span>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
       <div className="card flush">
         <div className="table-wrap">
           <table>
+            <colgroup>
+              <col style={{ width: '64px' }} />
+              <col style={{ width: '88px' }} />
+              <col style={{ width: '100px' }} />
+              <col />
+              <col style={{ width: '112px' }} />
+              <col style={{ width: '132px' }} />
+              <col style={{ width: '200px' }} />
+              <col style={{ width: '96px' }} />
+              <col style={{ width: '72px' }} />
+            </colgroup>
             <thead>
               <tr>
-                <th>날짜</th><th>내역</th><th>카테고리</th><th>결제수단</th>
-                <th className="td-right">금액</th><th className="td-center">메모</th><th className="td-center">액션</th>
+                <th>번호</th><th>유형</th><th>카테고리</th><th>내역</th>
+                <th>결제수단</th><th>금액</th><th>메모</th>
+                <th>날짜</th><th>관리</th>
               </tr>
             </thead>
             <tbody>
               {pagedRows.length === 0 && (
-                <tr><td colSpan={7} className="td-center td-muted">내역이 없습니다.</td></tr>
+                <tr><td colSpan={9} className="td-center td-muted">내역이 없습니다.</td></tr>
               )}
-              {pagedRows.map((row) => (
+              {pagedRows.map((row, i) => (
                 <tr key={row.id}>
-                  <td className="td-muted">{dotDate(row.date)}</td>
+                  <td className="td-center td-muted">{rows.length - (page - 1) * limit - i}</td>
+                  <td className="td-center"><span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span></td>
+                  <td className="td-center"><span className="cat-chip">{catMap[row.category] ?? row.category}</span></td>
                   <td className="td-name">{row.title}</td>
-                  <td><span className={`cat-chip${row.type === 'transfer' ? ' transfer' : ''}`}>{CATEGORY_LABEL[row.category] ?? row.category}</span></td>
-                  <td className="td-muted">{row.payMethod}</td>
+                  <td className="td-center td-muted">{row.payMethod}</td>
                   <td className={`td-right amount-${row.type}`}>{signedWon(row.type, row.amount)}</td>
                   <td className="td-center td-muted">{row.memo ?? '-'}</td>
+                  <td className="td-center td-muted">{dotDate(row.date)}</td>
                   <td className="td-center"><RowActions onEdit={() => onEdit(row)} onDelete={() => remove(row.id)} /></td>
                 </tr>
               ))}
@@ -291,7 +395,7 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
         <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
       </div>
       <p className="ledger-note">
-        💡 <strong>저축이동</strong>은 실소비가 아닌 자산 이동으로 잔액 계산에서 제외됩니다.
+        💡 <strong>자산이동</strong>은 실소비가 아닌 자산 이동으로 잔액 계산에서 제외됩니다.
       </p>
       {confirmElement}
     </>
@@ -299,12 +403,20 @@ function LedgerTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit
 }
 
 // ── 탭 2: 예적금 ───────────────────────────────────────────────
-function SavingsTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number; onAdd: () => void; onEdit: (s: Saving) => void; onDeleted: () => void }) {
+function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloadKey: number; savingCats: Category[]; onAdd: () => void; onEdit: (s: Saving) => void; onDeleted: () => void }) {
   const [rows, setRows] = useState<Saving[]>([]);
   const [summary, setSummary] = useState<SavingSummary | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const { confirm, confirmElement } = useConfirm();
+
+  // 필터 입력 (pending) + 적용 (applied) — 은행 검색 제거
+  const [pendingType, setPendingType] = useState('');
+  const [pendingName, setPendingName] = useState('');
+  const [applied, setApplied] = useState({ type: '', name: '' });
+
+  function search() { setApplied({ type: pendingType, name: pendingName }); setPage(1); }
+  function reset() { setPendingType(''); setPendingName(''); setApplied({ type: '', name: '' }); setPage(1); }
 
   useEffect(() => {
     (async () => {
@@ -327,86 +439,103 @@ function SavingsTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number
     }
   }
 
-  const strip = summary
-    ? [
-        { label: '총 예적금', value: won(summary.totalBalance), tone: 'transfer' },
-        { label: '이번 달 납입', value: won(summary.monthlyDeposit), tone: '' },
-        { label: '평균 금리', value: `${summary.avgRate}%`, tone: 'accent' },
-        { label: '만기 임박', value: `${summary.maturityNear}건`, tone: summary.maturityNear > 0 ? 'warning' : '' },
-      ]
-    : [];
 
   return (
     <>
-      <div className="summary-strip">
-        {strip.map((s, i) => <StripItem key={s.label} item={s} last={i === strip.length - 1} />)}
+      {summary && (
+        <div className="grid-4 mb-6">
+          <StatCard icon={<IconBank />} tone="green" value={won(summary.totalBalance)} label="총 예적금" change="전체 잔액 합계" changeDir="neutral" />
+          <StatCard icon={<IconWon />} tone="blue" value={won(summary.monthlyDeposit)} label="이번 달 납입" change="월 납입액 합계" changeDir="neutral" />
+          <StatCard icon={<IconTrendUp />} tone="amber" value={`${summary.avgRate}%`} label="평균 금리" change="보유 상품 평균" changeDir="up" />
+          <StatCard icon={<IconAlertTriangle />} tone={summary.maturityNear > 0 ? 'red' : 'green'} value={`${summary.maturityNear}건`} label="만기 임박" change={summary.maturityNear > 0 ? '30일 이내 만기' : '이상 없음'} changeDir={summary.maturityNear > 0 ? 'down' : 'neutral'} />
+        </div>
+      )}
+
+      <div className="filter-row mb-4">
+        <select className="input filter-select" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+          <option value="">전체 유형</option>
+          {savingCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+        </select>
+        <div className="search-wrap filter-search">
+          <IconSearch className="search-icon" />
+          <input className="input" type="text" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="상품명 검색" />
+        </div>
+        <button type="button" className="btn btn-ghost" onClick={reset}>초기화</button>
+        <button type="button" className="btn btn-primary" onClick={search}>조회</button>
       </div>
 
       {(() => {
-        const totalPages = Math.ceil(rows.length / limit);
-        const paged = rows.slice((page - 1) * limit, page * limit);
-        return (
-          <>
-            <div className="flex-end mb-4">
-              <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
-            </div>
-            <div className="savings-grid">
-              {paged.map((c) => {
-          const dleft = daysUntil(c.maturityDate);
-          const near = dleft !== null && dleft >= 0 && dleft <= 30;
-          return (
-            <div className="savings-card" key={c.id}>
-              <div className="savings-card-header">
-                <div>
-                  <div className="savings-bank">{c.bank}</div>
-                  <div className="savings-name">{c.name}</div>
-                </div>
-                <span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span>
-              </div>
-              <div className="savings-amount">{won(c.balance)}</div>
-              <div className="savings-meta">
-                <MetaRow label="월 납입액" value={c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-'} />
-                <MetaRow label="금리" value={`${c.interestRate}%`} accent />
-                <MetaRow label="가입일" value={dotDate(c.startDate)} />
-                <MetaRow label="만기일" value={c.maturityDate ? `${dotDate(c.maturityDate)}${near ? ` ⚠️ D-${dleft}` : ''}` : '-'} warning={near} />
-              </div>
-              <div className="savings-actions">
-                <button type="button" className="btn btn-ghost grow" onClick={() => onEdit(c)}>수정</button>
-                <button type="button" className="btn btn-danger" onClick={() => remove(c.id)}>삭제</button>
-              </div>
-            </div>
-          );
-        })}
-
-              <div className="savings-card add" onClick={onAdd}>
-                <IconPlus width={28} height={28} />
-                <span>예적금 추가</span>
-              </div>
-            </div>
-            <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
-          </>
-        );
+        const filtered = rows
+          .filter((c) => !applied.type || c.type === applied.type)
+          .filter((c) => !applied.name || c.name.includes(applied.name));
+        const totalPages = Math.ceil(filtered.length / limit);
+        const paged = filtered.slice((page - 1) * limit, page * limit);
+        return (<>
+      <div className="table-bar">
+        <span className="table-count">총 {filtered.length}건</span>
+        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+      </div>
+      <div className="card flush mb-4">
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>번호</th><th>유형</th><th>은행/기관</th><th>상품명</th>
+                <th>잔액</th><th>월 납입</th>
+                <th>금리</th><th>가입일</th><th>만기일</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paged.length === 0 && (
+                <tr><td colSpan={10} className="td-center td-muted">예적금 내역이 없습니다.</td></tr>
+              )}
+              {paged.map((c, i) => {
+                const dleft = daysUntil(c.maturityDate);
+                const near = dleft !== null && dleft >= 0 && dleft <= 30;
+                return (
+                  <tr key={c.id}>
+                    <td className="td-center td-muted">{filtered.length - (page - 1) * limit - i}</td>
+                    <td className="td-center"><span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span></td>
+                    <td className="td-center td-muted">{c.bank}</td>
+                    <td className="td-name">{c.name}</td>
+                    <td className="td-mono td-right">{won(c.balance)}</td>
+                    <td className="td-mono td-right">{c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-'}</td>
+                    <td className="td-right"><span className="savings-meta-value accent">{c.interestRate}%</span></td>
+                    <td className="td-center td-muted">{dotDate(c.startDate)}</td>
+                    <td className={`td-center ${near ? 'savings-meta-value warning' : 'td-muted'}`}>
+                      {c.maturityDate ? `${dotDate(c.maturityDate)}${near ? ` ⚠️ D-${dleft}` : ''}` : '-'}
+                    </td>
+                    <td className="td-center"><RowActions onEdit={() => onEdit(c)} onDelete={() => remove(c.id)} /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
+        </>);
       })()}
       {confirmElement}
     </>
   );
 }
 
-function MetaRow({ label, value, accent, warning }: { label: string; value: string; accent?: boolean; warning?: boolean }) {
-  return (
-    <div className="savings-meta-row">
-      <span className="savings-meta-label">{label}</span>
-      <span className={`savings-meta-value${accent ? ' accent' : ''}${warning ? ' warning' : ''}`}>{value}</span>
-    </div>
-  );
-}
-
 // ── 탭 3: 투자 ─────────────────────────────────────────────────
-function InvestTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number; onAdd: () => void; onEdit: (v: Investment) => void; onDeleted: () => void }) {
+function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reloadKey: number; investCats: Category[]; onAdd: () => void; onEdit: (v: Investment) => void; onDeleted: () => void }) {
   const [rows, setRows] = useState<Investment[]>([]);
   const [summary, setSummary] = useState<InvestmentSummary | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+
+  // 필터 입력 (pending) + 적용 (applied) — 메모 검색 제거
+  const [pendingName, setPendingName] = useState('');
+  const [pendingType, setPendingType] = useState('');
+  const [applied, setApplied] = useState({ name: '', type: '' });
+
+  function search() { setApplied({ name: pendingName, type: pendingType }); setPage(1); }
+  function reset() { setPendingName(''); setPendingType(''); setApplied({ name: '', type: '' }); setPage(1); }
   const { confirm, confirmElement } = useConfirm();
 
   useEffect(() => {
@@ -431,27 +560,39 @@ function InvestTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number;
   }
 
   const profitUp = (summary?.totalProfit ?? 0) >= 0;
-  const stats = summary
-    ? [
-        { label: '총 평가금액', value: won(summary.totalValue), valueClass: '', change: `${profitUp ? '▲' : '▼'} ${won(summary.totalProfit)} (${summary.profitRate}%)`, changeClass: profitUp ? 'up' : 'down' },
-        { label: '총 투자원금', value: won(summary.totalPrincipal), valueClass: '', change: '', changeClass: '' },
-        { label: '총 수익', value: `${profitUp ? '+' : '-'}${won(summary.totalProfit)}`, valueClass: profitUp ? 'up' : 'down', change: `수익률 ${profitUp ? '+' : ''}${summary.profitRate}%`, changeClass: profitUp ? 'up' : 'down' },
-      ]
-    : [];
 
   return (
     <>
-      <div className="invest-summary">
-        {stats.map((s) => (
-          <div className="invest-stat" key={s.label}>
-            <div className="invest-stat-label">{s.label}</div>
-            <div className={`invest-stat-value ${s.valueClass}`}>{s.value}</div>
-            {s.change && <div className={`invest-stat-change ${s.changeClass}`}>{s.change}</div>}
-          </div>
-        ))}
+      {summary && (
+        <div className="grid-3 mb-6">
+          <StatCard icon={<IconTrendUp />} tone="blue" value={won(summary.totalValue)} label="총 평가금액" change={`원금 대비 ${profitUp ? '+' : ''}${summary.profitRate}%`} changeDir={profitUp ? 'up' : 'down'} />
+          <StatCard icon={<IconWon />} tone="amber" value={won(summary.totalPrincipal)} label="총 투자원금" change="투자 원금 합계" changeDir="neutral" />
+          <StatCard icon={<IconChart />} tone={profitUp ? 'green' : 'red'} value={`${profitUp ? '+' : '-'}${won(summary.totalProfit)}`} label="총 수익" change={`수익률 ${profitUp ? '+' : ''}${summary.profitRate}%`} changeDir={profitUp ? 'up' : 'down'} />
+        </div>
+      )}
+
+      <div className="filter-row mb-4">
+        <select className="input filter-select" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+          <option value="">전체 유형</option>
+          {investCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+        </select>
+        <div className="search-wrap filter-search">
+          <IconSearch className="search-icon" />
+          <input className="input" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="종목명 검색" />
+        </div>
+        <button type="button" className="btn btn-ghost" onClick={reset}>초기화</button>
+        <button type="button" className="btn btn-primary" onClick={search}>조회</button>
       </div>
 
-      <div className="flex-end mb-4">
+      {(() => {
+        const filtered = rows
+          .filter((r) => !applied.type || r.type === applied.type)
+          .filter((r) => !applied.name || r.name.includes(applied.name));
+        const totalPages = Math.ceil(filtered.length / limit);
+        const paged = filtered.slice((page - 1) * limit, page * limit);
+        return (<>
+      <div className="table-bar">
+        <span className="table-count">총 {filtered.length}건</span>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
       <div className="card flush mb-6">
@@ -459,59 +600,40 @@ function InvestTab({ reloadKey, onAdd, onEdit, onDeleted }: { reloadKey: number;
           <table>
             <thead>
               <tr>
-                <th>종목</th><th>유형</th>
-                <th className="td-right">투자원금</th><th className="td-right">평가금액</th>
-                <th className="td-right">수익</th><th className="td-center">수익률</th>
-                <th>메모</th><th className="td-center">액션</th>
+                <th>번호</th><th>유형</th><th>종목</th>
+                <th>투자원금</th><th>평가금액</th>
+                <th>수익</th><th>수익률</th>
+                <th>메모</th><th>관리</th>
               </tr>
             </thead>
             <tbody>
-              {(() => { const paged = rows.slice((page-1)*limit, page*limit); return (
-                <>
-                  {paged.length === 0 && (
-                    <tr><td colSpan={8} className="td-center td-muted">투자 항목이 없습니다.</td></tr>
-                  )}
-                  {paged.map((row) => {
-                const up = row.profit >= 0;
-                return (
-                  <tr key={row.id}>
-                    <td className="td-strong">{row.name}</td>
-                    <td><span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span></td>
-                    <td className="td-mono td-right">{won(row.principal)}</td>
-                    <td className="td-mono td-right">{won(row.currentValue)}</td>
-                    <td className={`td-right amount-${up ? 'income' : 'expense'}`}>{up ? '+' : '-'}{won(row.profit)}</td>
-                    <td className="td-center"><span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span></td>
-                    <td className="td-muted">{row.memo ?? '-'}</td>
-                    <td className="td-center"><RowActions onEdit={() => onEdit(row)} onDelete={() => remove(row.id)} /></td>
-                  </tr>
-                );
-              })}
-                </>
-              ); })()}
+              {paged.length === 0 && (
+                <tr><td colSpan={9} className="td-center td-muted">투자 항목이 없습니다.</td></tr>
+              )}
+              {paged.map((row, i) => {
+                    const up = row.profit >= 0;
+                    return (
+                      <tr key={row.id}>
+                        <td className="td-center td-muted">{filtered.length - (page - 1) * limit - i}</td>
+                        <td className="td-center"><span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span></td>
+                        <td className="td-strong">{row.name}</td>
+                        <td className="td-mono td-right">{won(row.principal)}</td>
+                        <td className="td-mono td-right">{won(row.currentValue)}</td>
+                        <td className={`td-right amount-${up ? 'income' : 'expense'}`}>{up ? '+' : '-'}{won(row.profit)}</td>
+                        <td className="td-center"><span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span></td>
+                        <td className="td-center td-muted">{row.memo ?? '-'}</td>
+                        <td className="td-center"><RowActions onEdit={() => onEdit(row)} onDelete={() => remove(row.id)} /></td>
+                      </tr>
+                    );
+                  })}
             </tbody>
           </table>
         </div>
       </div>
-      <Pagination page={page} totalPages={Math.ceil(rows.length / limit)} totalItems={rows.length} onPageChange={setPage} />
-
-      <div className="flex-end">
-        <button type="button" className="btn btn-primary" onClick={onAdd}>
-          <IconPlus width={13} height={13} />투자 항목 추가
-        </button>
-      </div>
+      <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
+        </>);
+      })()}
       {confirmElement}
-    </>
-  );
-}
-
-function StripItem({ item, last }: { item: { label: string; value: string; tone: string }; last: boolean }) {
-  return (
-    <>
-      <div className="strip-item">
-        <span className="strip-label">{item.label}</span>
-        <span className={`strip-value ${item.tone}`}>{item.value}</span>
-      </div>
-      {!last && <div className="strip-divider" />}
     </>
   );
 }
@@ -526,7 +648,7 @@ function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => 
 }
 
 // ── 모달: 수입/지출 ─────────────────────────────────────────────
-function LedgerModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing?: Transaction }; onClose: () => void; onSaved: () => void }) {
+function LedgerModal({ state, categories, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing?: Transaction }; categories: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
   const [type, setType] = useState<TransactionType>('expense');
   const [date, setDate] = useState('');
@@ -535,6 +657,10 @@ function LedgerModal({ state, onClose, onSaved }: { state: { open: boolean; mode
   const [amount, setAmount] = useState('');
   const [payMethod, setPayMethod] = useState(PAY_METHODS[0]);
   const [memo, setMemo] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringCycle, setRecurringCycle] = useState<RecurringCycle>('monthly');
+  const [recurringDay, setRecurringDay] = useState(1);
+  const [weekendAdjust, setWeekendAdjust] = useState<WeekendAdjust>('none');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -544,10 +670,14 @@ function LedgerModal({ state, onClose, onSaved }: { state: { open: boolean; mode
     setType(e?.type ?? 'expense');
     setDate(e?.date ?? new Date().toISOString().slice(0, 10));
     setTitle(e?.title ?? '');
-    setCategory(e?.category ?? 'food');
+    setCategory(e?.category ?? categories[0]?.code ?? 'food');
     setAmount(e ? String(e.amount) : '');
     setPayMethod(e?.payMethod ?? PAY_METHODS[0]);
     setMemo(e?.memo ?? '');
+    setIsRecurring(e?.isRecurring ?? false);
+    setRecurringCycle((e?.recurringRule?.cycle as RecurringCycle) ?? 'monthly');
+    setRecurringDay(e?.recurringRule?.day ?? 1);
+    setWeekendAdjust((e?.recurringRule?.weekendAdjust as WeekendAdjust) ?? 'none');
   }, [state.open, e]);
 
   function validate() {
@@ -565,7 +695,11 @@ function LedgerModal({ state, onClose, onSaved }: { state: { open: boolean; mode
     if (!validate()) return;
     setSaving(true);
     try {
-      const payload = { type, date, title, category, amount: Number(amount), payMethod, memo: memo || undefined };
+      const payload = {
+        type, date, title, category, amount: Number(amount), payMethod, memo: memo || undefined,
+        isRecurring,
+        recurringRule: isRecurring ? { cycle: recurringCycle, day: recurringDay, weekendAdjust } : undefined,
+      };
       if (state.mode === 'edit' && e) await api.put(`/transactions/${e.id}`, payload);
       else await api.post('/transactions', payload);
       toast.success(state.mode === 'edit' ? '항목이 수정됐습니다.' : '항목이 추가됐습니다.');
@@ -581,7 +715,7 @@ function LedgerModal({ state, onClose, onSaved }: { state: { open: boolean; mode
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '항목 수정' : '항목 추가'} footer={<SaveFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="유형" required>
         <select className="input" value={type} onChange={(ev) => setType(ev.target.value as TransactionType)}>
-          <option value="expense">지출</option><option value="income">수입</option><option value="transfer">저축이동</option>
+          <option value="expense">지출</option><option value="income">수입</option><option value="transfer">자산이동</option>
         </select>
       </Field>
       <Field label="날짜" required error={errors.date}>
@@ -593,7 +727,7 @@ function LedgerModal({ state, onClose, onSaved }: { state: { open: boolean; mode
       <div className="form-grid-2">
         <Field label="카테고리" required>
           <select className="input" value={category} onChange={(ev) => setCategory(ev.target.value)}>
-            {CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            {categories.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
           </select>
         </Field>
         <Field label="금액 (원)" required error={errors.amount}>
@@ -606,6 +740,40 @@ function LedgerModal({ state, onClose, onSaved }: { state: { open: boolean; mode
         </select>
       </Field>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
+
+      <div className="recur-block">
+        <label className="recur-toggle">
+          <input type="checkbox" checked={isRecurring} onChange={(ev) => setIsRecurring(ev.target.checked)} />
+          반복 거래로 등록
+        </label>
+        {isRecurring && (
+          <>
+            <div className="form-grid-2">
+              <Field label="반복 주기" required>
+                <select className="input" value={recurringCycle} onChange={(ev) => setRecurringCycle(ev.target.value as RecurringCycle)}>
+                  <option value="monthly">매월</option>
+                  <option value="weekly">매주</option>
+                  <option value="yearly">매년</option>
+                </select>
+              </Field>
+              <Field label="기준일" required>
+                <select className="input" value={recurringDay} onChange={(ev) => setRecurringDay(Number(ev.target.value))}>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    <option key={d} value={d}>{d}일</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <Field label="주말인 경우">
+              <div className="weekend-opts">
+                <label><input type="radio" name="weekendAdjust" value="none" checked={weekendAdjust === 'none'} onChange={() => setWeekendAdjust('none')} />조정 안 함</label>
+                <label><input type="radio" name="weekendAdjust" value="before" checked={weekendAdjust === 'before'} onChange={() => setWeekendAdjust('before')} />전 금요일</label>
+                <label><input type="radio" name="weekendAdjust" value="after" checked={weekendAdjust === 'after'} onChange={() => setWeekendAdjust('after')} />다음 월요일</label>
+              </div>
+            </Field>
+          </>
+        )}
+      </div>
     </Modal>
   );
 }
@@ -730,6 +898,7 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
     const err: Record<string, string> = {};
     if (!name.trim()) err.name = '종목명을 입력하세요.';
     if (!principal || Number(principal) <= 0) err.principal = '투자원금을 입력하세요.';
+    if (!currentValue || Number(currentValue) < 0) err.currentValue = '현재 평가금액을 입력하세요.';
     setErrors(err);
     return !Object.keys(err).length;
   }
@@ -767,7 +936,9 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
         <Field label="투자원금 (원)" required error={errors.principal}>
           <input type="number" className={`input${errors.principal ? ' is-invalid' : ''}`} placeholder="0" value={principal} onChange={(ev) => { setPrincipal(ev.target.value); clearErr('principal'); }} />
         </Field>
-        <Field label="현재 평가금액 (원)"><input type="number" className="input" placeholder="0" value={currentValue} onChange={(ev) => setCurrentValue(ev.target.value)} /></Field>
+        <Field label="현재 평가금액 (원)" required error={errors.currentValue}>
+          <input type="number" className={`input${errors.currentValue ? ' is-invalid' : ''}`} placeholder="매수 당일엔 투자원금과 동일" value={currentValue} onChange={(ev) => { setCurrentValue(ev.target.value); clearErr('currentValue'); }} />
+        </Field>
       </div>
       <Field label="최초 매수일"><input type="date" className="input" aria-label="최초 매수일" value={purchaseDate} onChange={(ev) => setPurchaseDate(ev.target.value)} /></Field>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="투자 전략, 목표가 등" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>

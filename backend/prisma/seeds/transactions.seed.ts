@@ -5,6 +5,8 @@
 import type { TransactionType } from '@prisma/client';
 import { d, type SeedFn } from './helpers';
 
+type WeekendAdjust = 'none' | 'before' | 'after';
+
 type TxSeed = {
   type: TransactionType;
   date: string;
@@ -14,6 +16,7 @@ type TxSeed = {
   payMethod: string;
   memo?: string;
   recurring?: boolean;
+  weekendAdjust?: WeekendAdjust;
 };
 
 // 2026-01 ~ 2026-06 매월 반복되는 고정 거래 (급여/저축이동/구독)
@@ -22,9 +25,9 @@ function fixedRows(): TxSeed[] {
   const rows: TxSeed[] = [];
   for (const ym of months) {
     const mnum = Number(ym.slice(5));
-    rows.push({ type: 'income', date: `${ym}-25`, title: '월급', category: 'salary', amount: 3200000, payMethod: '계좌이체', memo: `${mnum}월 급여`, recurring: true });
-    rows.push({ type: 'transfer', date: `${ym}-30`, title: '청약저축 납입', category: 'transfer', amount: 200000, payMethod: '계좌이체', memo: '잔액에서 제외', recurring: true });
-    rows.push({ type: 'expense', date: `${ym}-29`, title: '넷플릭스', category: 'subscription', amount: 17000, payMethod: '신한카드', memo: '월정액', recurring: true });
+    rows.push({ type: 'income',   date: `${ym}-25`, title: '월급',         category: 'salary',       amount: 3200000, payMethod: '계좌이체', memo: `${mnum}월 급여`, recurring: true, weekendAdjust: 'before' });
+    rows.push({ type: 'transfer', date: `${ym}-30`, title: '청약저축 납입', category: 'transfer',     amount:  200000, payMethod: '계좌이체', memo: '잔액에서 제외',  recurring: true, weekendAdjust: 'none' });
+    rows.push({ type: 'expense',  date: `${ym}-29`, title: '넷플릭스',      category: 'subscription', amount:   17000, payMethod: '신한카드', memo: '월정액',        recurring: true, weekendAdjust: 'none' });
   }
   return rows;
 }
@@ -77,7 +80,9 @@ export const seedTransactions: SeedFn = async (prisma, userId) => {
         pay_method: t.payMethod,
         memo: t.memo ?? null,
         is_recurring: t.recurring ?? false,
-        recurring_rule: t.recurring ? { freq: 'monthly', day: Number(t.date.slice(8)) } : undefined,
+        recurring_rule: t.recurring
+          ? { cycle: 'monthly', day: Number(t.date.slice(8)), weekendAdjust: t.weekendAdjust ?? 'none' }
+          : undefined,
       },
     });
   }

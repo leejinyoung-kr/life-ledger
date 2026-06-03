@@ -1,11 +1,16 @@
 import { TransactionType } from '@prisma/client';
-import { IsEnum, IsOptional, IsString, Matches } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class QueryTransactionDto {
-  // 조회 월 (YYYY-MM). 미지정 시 전체
+  // 조회 시작일 (YYYY-MM-DD)
   @IsOptional()
-  @Matches(/^\d{4}-\d{2}$/, { message: 'month 은 YYYY-MM 형식이어야 합니다.' })
-  month?: string;
+  @IsDateString()
+  from?: string;
+
+  // 조회 종료일 (YYYY-MM-DD)
+  @IsOptional()
+  @IsDateString()
+  to?: string;
 
   @IsOptional()
   @IsEnum(TransactionType)

@@ -374,7 +374,7 @@ select.input option { background: var(--bg-base); }
 .table-wrap { width: 100%; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
 thead th {
-  text-align: left; padding: 10px 16px; font-size: 0.72rem; font-weight: 600;
+  text-align: center; padding: 10px 16px; font-size: 0.72rem; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
   border-bottom: 1px solid var(--border); background: var(--bg-surface); white-space: nowrap;
 }
@@ -458,7 +458,8 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 /* ════════════════════════════════════════
    가계부 (transactions) 전용
    ════════════════════════════════════════ */
-.page-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.page-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; align-items: center; }
+.tabs-add-btn { margin-left: auto; margin-bottom: 10px; }
 .page-tab {
   padding: 10px 20px; font-size: 0.875rem; font-weight: 500; color: var(--text-muted);
   cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
@@ -479,20 +480,6 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 }
 .cat-chip.transfer { background: var(--blue-dim); color: var(--blue); border-color: rgba(59,130,246,.2); }
 
-.summary-strip {
-  display: flex; gap: 24px; flex-wrap: wrap; padding: 14px 20px;
-  background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius);
-  box-shadow: var(--shadow-sm); margin-bottom: 20px;
-}
-.strip-item { display: flex; flex-direction: column; gap: 2px; }
-.strip-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); font-weight: 600; }
-.strip-value { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; }
-.strip-value.income { color: var(--accent); }
-.strip-value.expense { color: var(--danger); }
-.strip-value.transfer { color: var(--blue); }
-.strip-value.warning { color: var(--warning); }
-.strip-value.accent { color: var(--accent); }
-.strip-divider { width: 1px; background: var(--border); flex-shrink: 0; }
 
 .excel-toolbar {
   display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 20px;
@@ -501,20 +488,47 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 .excel-toolbar-label { font-size: .75rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; margin-right: 4px; }
 .divider-v { width: 1px; background: var(--border); align-self: stretch; margin: 0 4px; flex-shrink: 0; }
 
-.filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-.filter-row select.input, .filter-row input[type=month] { width: auto; min-width: 130px; }
-.filter-search { flex: 1; min-width: 180px; }
+/* 2줄 검색 패널 */
+.search-panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+.search-panel-row { display: flex; gap: 8px; align-items: center; }
+/* date input 너비 고정 — .input의 width:100% 를 flex 컨텍스트에서 재정의 */
+.search-panel-row .filter-date { flex: 0 0 140px; width: 140px; }
 
-/* 월별 추이 막대 + 반복거래 */
-.bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; }
-.bar-chart .bar { flex: 1; background: var(--accent-dim); border-radius: 4px 4px 0 0; }
-.bar-chart .bar.current { background: var(--accent); }
-.bar-axis { display: flex; gap: 8px; margin-top: 6px; font-size: .65rem; color: var(--text-muted); }
-.bar-axis span { flex: 1; text-align: center; }
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.filter-date { width: 140px; flex-shrink: 0; }
+.filter-date-sep { color: var(--text-muted); font-size: .82rem; flex-shrink: 0; }
+.filter-select { width: auto; min-width: 120px; flex-shrink: 0; }
+.filter-search { flex: 1; min-width: 160px; }
+.preset-btns { display: flex; gap: 4px; flex-shrink: 0; }
+.preset-btns .btn { padding: 6px 10px; font-size: .78rem; }
+
+/* 테이블 상단 바 — 총 건수(좌) + 페이지사이즈(우) */
+.table-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.table-count { font-size: .78rem; color: var(--text-secondary); }
+
+/* 유형 배지 */
+.type-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-full); font-size: .72rem; font-weight: 600; white-space: nowrap; }
+.type-badge.income  { background: var(--success-dim); color: var(--accent); }
+.type-badge.expense { background: var(--danger-dim);  color: var(--danger); }
+.type-badge.transfer { background: var(--blue-dim);   color: var(--blue); }
+
+/* 로딩 셀 */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+.loading-cell { animation: pulse 1.4s ease-in-out infinite; font-size: .855rem; padding: 32px 0 !important; }
+
 .recur-item { padding: 10px 0; border-bottom: 1px solid var(--border-subtle); }
 .recur-item:last-child { border-bottom: none; }
+.recur-list { max-height: 264px; overflow-y: auto; }
 .recur-title { font-size: .84rem; font-weight: 500; }
 .recur-sub { font-size: .72rem; color: var(--text-muted); }
+
+/* 반복거래 등록 블록 (모달 내) */
+.recur-block { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.recur-toggle { display: flex; align-items: center; gap: 8px; font-size: .875rem; font-weight: 500; color: var(--text-primary); cursor: pointer; user-select: none; }
+.recur-toggle input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.weekend-opts { display: flex; gap: 20px; flex-wrap: wrap; }
+.weekend-opts label { display: flex; align-items: center; gap: 5px; font-size: .82rem; color: var(--text-secondary); cursor: pointer; }
+.weekend-opts input[type=radio] { accent-color: var(--accent); cursor: pointer; }
 .ledger-note { margin-top: 12px; font-size: .78rem; color: var(--text-muted); }
 .ledger-note strong { color: var(--blue); }
 /* API 오류 안내 — 가계부 목록/모달 공통 */
@@ -549,15 +563,6 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 .savings-card.add span { font-size: .875rem; font-weight: 500; }
 
 /* 투자 탭 */
-.invest-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
-.invest-stat { background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; box-shadow: var(--shadow-sm); }
-.invest-stat-label { font-size: .75rem; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em; }
-.invest-stat-value { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; letter-spacing: -0.03em; color: var(--text-primary); }
-.invest-stat-value.up { color: var(--accent); }
-.invest-stat-value.down { color: var(--danger); }
-.invest-stat-change { font-size: .75rem; margin-top: 4px; font-weight: 600; }
-.invest-stat-change.up { color: var(--accent); }
-.invest-stat-change.down { color: var(--danger); }
 .return-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-full); font-size: .75rem; font-weight: 700; font-family: var(--font-mono); }
 .return-pill.up { background: var(--success-dim); color: var(--accent); }
 .return-pill.down { background: var(--danger-dim); color: var(--danger); }
@@ -565,7 +570,6 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 .flex-end { display: flex; justify-content: flex-end; }
 
 @media (max-width: 768px) {
-  .invest-summary { grid-template-columns: 1fr; }
   .page-tab { padding: 8px 12px; font-size: .82rem; }
   .form-grid-2 { grid-template-columns: 1fr; }
 }
@@ -624,6 +628,7 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 .legend-row { display: flex; align-items: center; gap: 8px; font-size: .82rem; }
 .legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 
+/* .bars — 자산종합 + 가계부 월별추이 공용 막대차트 */
 .bars { display: flex; align-items: flex-end; gap: 10px; height: 160px; padding: 16px 0; }
 .bars .bar { flex: 1; background: var(--accent-dim); border: 1px solid rgba(0,192,127,.3); border-bottom: none; border-radius: 4px 4px 0 0; position: relative; transition: all var(--ease); }
 .bars .bar:hover { background: var(--accent-hover); }

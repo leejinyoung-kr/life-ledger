@@ -17,7 +17,7 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /transactions?month=&type=&category=&q= | 내역 목록 (월/유형/카테고리/검색 필터) |
+| GET | /transactions?from=&to=&type=&category=&q= | 내역 목록 (날짜범위/유형/카테고리/검색 필터) |
 | GET | /transactions/summary?month= | 월 요약 (수입/지출/저축이동/실소비/잔액) |
 | GET | /transactions/monthly-trend?month= | 월별 지출 추이 (최근 5개월) |
 | GET | /transactions/recurring | 반복 거래 목록 (동일 규칙 중복 제거) |
