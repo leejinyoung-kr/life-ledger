@@ -4,23 +4,33 @@
  * 구독 관리 페이지.
  * 정기 결제를 카드로 모아 결제 예정일·연 환산·미사용 의심 구독을 추적한다.
  * 데이터는 백엔드 API(/subscriptions)와 실시간 연동한다.
+ * 스타일: Tailwind + 공통 컴포넌트(StatCard/Button/Badge/Card/Modal/Field). 메인 목록은 카드형 유지.
  */
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
-import { IconRepeat, IconAlertTriangle, IconPlus } from '@/components/icons';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
+import { Field, ModalFooter } from '@/components/ui/Field';
+import { IconRepeat, IconAlertTriangle } from '@/components/icons';
 import { api } from '@/lib/api';
 import { won, dotDate, daysUntil } from '@/lib/finance';
 import {
   SUB_CATEGORY_LABEL, SUB_CATEGORY_EMOJI, SUB_CATEGORY_OPTIONS,
-  CYCLE_LABEL, STATUS_LABEL, STATUS_BADGE, SUB_PAY_METHODS,
+  CYCLE_LABEL, STATUS_LABEL, SUB_PAY_METHODS,
   type Subscription, type SubscriptionSummary, type UnusedSubscription,
   type SubscriptionCycle, type SubscriptionStatus,
 } from '@/lib/subscription';
+
+// 상태 → Badge tone
+const STATUS_TONE: Record<SubscriptionStatus, 'success' | 'warning' | 'neutral'> = {
+  active: 'success', trial: 'warning', paused: 'neutral',
+};
 
 export default function SubscriptionsPage() {
   // 구독 추가/수정 모달 상태 (편집 대상 포함)
@@ -77,25 +87,26 @@ export default function SubscriptionsPage() {
       ]
     : [];
 
+  const totalPages = Math.ceil(subs.length / limit);
+  const paged = subs.slice((page - 1) * limit, page * limit);
+
   return (
     <AppShell activePath="/subscriptions" topbarLabel="구독 관리">
-      <div className="page-header">
+      <div className="mb-7 flex items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">구독 관리</h1>
-          <p className="page-subtitle">정기 결제를 한눈에 — 결제 예정일·연 환산·미사용 구독을 추적합니다.</p>
+          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">구독 관리</h1>
+          <p className="text-sm text-secondary mt-1.5">정기 결제를 한눈에 — 결제 예정일·연 환산·미사용 구독을 추적합니다.</p>
         </div>
-        <div className="flex-center gap-2">
+        <div className="flex items-center gap-2">
           <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
-          <button type="button" className="btn btn-primary" onClick={() => setModal({ open: true, mode: 'add' })}>
-            <IconPlus width={13} height={13} />구독 추가
-          </button>
+          <Button onClick={() => setModal({ open: true, mode: 'add' })}>구독 추가</Button>
         </div>
       </div>
 
-      {error && <p className="ledger-note is-error">⚠️ {error}</p>}
+      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
 
       {/* 상단 요약 통계 */}
-      <div className="grid-4 mb-8">
+      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-8">
         {stats.map((s) => (
           <StatCard key={s.label} icon={s.icon} tone={s.tone} value={s.value} label={s.label} change={s.change} changeDir={s.changeDir} />
         ))}
@@ -103,69 +114,65 @@ export default function SubscriptionsPage() {
 
       {/* 체험 종료 임박 경고 배너 */}
       {trial && (
-        <div className="alert-banner">
-          <IconAlertTriangle width={20} height={20} />
-          <div className="alert-body">
-            <div className="alert-title">무료 체험 종료 임박 — {trial.name}</div>
-            <div className="alert-desc">
+        <div className="flex items-center gap-3 px-[18px] py-3.5 rounded-[var(--radius-lg)] bg-warning-dim border border-[rgba(247,144,9,0.2)] mb-6">
+          <IconAlertTriangle width={20} height={20} className="text-warning shrink-0" />
+          <div className="flex-1">
+            <div className="font-semibold text-[0.875rem] text-primary">무료 체험 종료 임박 — {trial.name}</div>
+            <div className="text-[0.8rem] text-secondary">
               {dotDate(trial.nextPaymentDate)} 부터 {CYCLE_LABEL[trial.cycle]} {won(trial.amount)} 자동 결제됩니다.
               {(() => { const dd = daysUntil(trial.nextPaymentDate); return dd !== null && dd >= 0 ? ` 해지하려면 ${dd}일 남았습니다.` : ''; })()}
             </div>
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => cancel(trial.id)}>지금 해지</button>
+          <Button variant="ghost" size="sm" onClick={() => cancel(trial.id)}>지금 해지</Button>
         </div>
       )}
 
-      {/* 구독 카드 그리드 */}
-      {(() => {
-        const totalPages = Math.ceil(subs.length / limit);
-        const paged = subs.slice((page - 1) * limit, page * limit);
-        return (
-          <>
-            <div className="sub-grid">
-              {paged.length === 0 && <p className="muted-note">등록된 구독이 없습니다.</p>}
-              {paged.map((sub) => {
+      {/* 구독 카드 그리드 (도메인 특성상 카드형 유지) */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4 mb-7">
+        {paged.length === 0 && <p className="text-[0.82rem] text-secondary mb-3">등록된 구독이 없습니다.</p>}
+        {paged.map((sub) => {
           const dd = daysUntil(sub.nextPaymentDate);
           return (
-            <div className="sub-card" key={sub.id}>
-              <div className="sub-top">
-                <div className="sub-logo">{SUB_CATEGORY_EMOJI[sub.category] ?? '🧩'}</div>
-                <div className="sub-head">
-                  <div className="sub-name">{sub.name}</div>
-                  <div className="sub-cat">{SUB_CATEGORY_LABEL[sub.category] ?? sub.category}</div>
+            <div className="bg-background border border-border rounded-[var(--radius-lg)] p-[18px] shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)] hover:-translate-y-px" key={sub.id}>
+              <div className="flex items-center gap-3 mb-3.5">
+                <div className="w-[42px] h-[42px] rounded-[var(--radius)] bg-surface border border-border flex items-center justify-center text-[1.3rem] shrink-0">{SUB_CATEGORY_EMOJI[sub.category] ?? '🧩'}</div>
+                <div className="flex-1">
+                  <div className="[font-family:var(--font-display)] font-bold text-[0.95rem] text-primary">{sub.name}</div>
+                  <div className="text-[0.72rem] text-muted">{SUB_CATEGORY_LABEL[sub.category] ?? sub.category}</div>
                 </div>
-                <span className={`badge ${STATUS_BADGE[sub.status]}`}>{STATUS_LABEL[sub.status]}</span>
+                <Badge tone={STATUS_TONE[sub.status]}>{STATUS_LABEL[sub.status]}</Badge>
               </div>
-              <div className="sub-price">{won(sub.amount)}<span className="sub-cycle">/{CYCLE_LABEL[sub.cycle]}</span></div>
-              <div className="sub-meta">
-                <div className="sub-meta-row">
-                  <span className="l">다음 결제</span>
-                  <span>{dotDate(sub.nextPaymentDate)} {dd !== null && dd >= 0 && <span className="sub-dday">D-{dd}</span>}</span>
+              <div className="[font-family:var(--font-display)] text-[1.4rem] font-bold text-primary tracking-[-0.03em]">
+                {won(sub.amount)}<span className="text-[0.75rem] text-muted ml-1 font-normal [font-family:var(--font-body)]">/{CYCLE_LABEL[sub.cycle]}</span>
+              </div>
+              <div className="flex flex-col gap-1.5 my-3 text-[0.78rem]">
+                <div className="flex justify-between">
+                  <span className="text-muted">다음 결제</span>
+                  <span>{dotDate(sub.nextPaymentDate)} {dd !== null && dd >= 0 && <span className="text-warning font-semibold">D-{dd}</span>}</span>
                 </div>
-                <div className="sub-meta-row"><span className="l">결제수단</span><span>{sub.payMethod}</span></div>
+                <div className="flex justify-between"><span className="text-muted">결제수단</span><span>{sub.payMethod}</span></div>
               </div>
-              <div className="sub-actions">
-                <button type="button" className="btn btn-ghost grow" onClick={() => setModal({ open: true, mode: 'edit', editing: sub })}>수정</button>
-                <button type="button" className="btn btn-danger" onClick={() => cancel(sub.id)}>해지</button>
+              <div className="flex gap-2 pt-3 border-t border-border-subtle">
+                <Button variant="ghost" className="flex-1" onClick={() => setModal({ open: true, mode: 'edit', editing: sub })}>수정</Button>
+                <Button variant="danger" onClick={() => cancel(sub.id)}>해지</Button>
               </div>
             </div>
           );
         })}
-            </div>
-            <Pagination page={page} totalPages={totalPages} totalItems={subs.length} onPageChange={setPage} />
-          </>
-        );
-      })()}
+      </div>
+      <Pagination page={page} totalPages={totalPages} totalItems={subs.length} onPageChange={setPage} />
 
       {/* 미사용 의심 구독 */}
-      <div className="card">
-        <div className="card-header">
-          <span className="card-title">⚠️ 미사용 의심 구독</span>
-          <span className="badge badge-warning">{unused.length}건</span>
-        </div>
-        <div className="card-body">
-          <p className="muted-note">최근 30일간 관련 활동(앱 실행/결제 외 사용)이 감지되지 않은 구독입니다.</p>
-          <div className="table-wrap">
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>⚠️ 미사용 의심 구독</CardTitle>
+          <Badge tone="warning">{unused.length}건</Badge>
+        </CardHeader>
+        <CardBody>
+          <p className="text-[0.82rem] text-secondary mb-3">최근 30일간 관련 활동(앱 실행/결제 외 사용)이 감지되지 않은 구독입니다.</p>
+
+          {/* 데스크톱 테이블 */}
+          <div className="table-wrap max-md:hidden">
             <table>
               <thead>
                 <tr><th>서비스</th><th>월 비용</th><th>마지막 사용 추정</th><th className="td-center">액션</th></tr>
@@ -180,15 +187,34 @@ export default function SubscriptionsPage() {
                     <td className="td-mono">{won(u.monthlyCost)}</td>
                     <td className="td-muted">{u.daysSince !== null ? `${u.daysSince}일 전` : `미사용${u.status === 'trial' ? ' (체험)' : ''}`}</td>
                     <td className="td-center">
-                      <button type="button" className="btn btn-danger btn-sm" onClick={() => cancel(u.id)}>해지 검토</button>
+                      <Button variant="danger" size="sm" onClick={() => cancel(u.id)}>해지 검토</Button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
+
+          {/* 모바일 카드 */}
+          <div className="hidden max-md:flex flex-col gap-2.5">
+            {unused.length === 0 && <div className="text-center text-muted py-7">미사용 의심 구독이 없습니다.</div>}
+            {unused.map((u) => (
+              <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={u.id}>
+                <div className="flex justify-between items-baseline gap-2.5">
+                  <span className="font-semibold text-[0.95rem] break-all">{SUB_CATEGORY_EMOJI[u.category] ?? '🧩'} {u.name}</span>
+                  <span className="font-bold text-base whitespace-nowrap [font-family:var(--font-mono)]">{won(u.monthlyCost)}</span>
+                </div>
+                <div className="mt-2 text-[0.78rem] text-secondary">
+                  {u.daysSince !== null ? `${u.daysSince}일 전` : `미사용${u.status === 'trial' ? ' (체험)' : ''}`}
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <Button variant="danger" className="flex-1" onClick={() => cancel(u.id)}>해지 검토</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardBody>
+      </Card>
 
       {confirmElement}
       {/* 구독 추가/수정 모달 */}
@@ -266,12 +292,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
       open={state.open}
       onClose={onClose}
       title={state.mode === 'edit' ? '구독 수정' : '구독 추가'}
-      footer={
-        <>
-          <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>취소</button>
-          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? '저장 중...' : '저장'}</button>
-        </>
-      }
+      footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}
     >
       <Field label="서비스명" required error={errors.name}>
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 넷플릭스" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />
@@ -281,7 +302,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
           {SUB_CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
       </Field>
-      <div className="form-grid-2">
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="금액 (원)" required error={errors.amount}>
           <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }} />
         </Field>
@@ -291,11 +312,11 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
           </select>
         </Field>
       </div>
-      <div className="form-grid-2">
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="다음 결제일" required error={errors.nextPaymentDate}>
           <input type="date" className={`input${errors.nextPaymentDate ? ' is-invalid' : ''}`} aria-label="다음 결제일" value={nextPaymentDate} onChange={(ev) => { setNextPaymentDate(ev.target.value); clearErr('nextPaymentDate'); }} />
         </Field>
-        <Field label="상태" required>
+        <Field label="상태">
           <select className="input" aria-label="상태" value={status} onChange={(ev) => setStatus(ev.target.value as SubscriptionStatus)}>
             <option value="active">활성</option><option value="trial">체험</option><option value="paused">일시정지</option>
           </select>
@@ -309,16 +330,5 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
       <Field label="마지막 사용일 (선택)"><input type="date" className="input" aria-label="마지막 사용일" value={lastUsedAt} onChange={(ev) => setLastUsedAt(ev.target.value)} /></Field>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
     </Modal>
-  );
-}
-
-// 입력 그룹 (라벨 + 입력요소). label 로 감싸 입력요소에 접근성 이름을 연결한다.
-function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
-  return (
-    <label className="input-group">
-      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
-      {children}
-      {error && <span className="field-error">{error}</span>}
-    </label>
   );
 }

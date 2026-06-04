@@ -22,6 +22,7 @@ import { downloadTransactionTemplate } from '@/lib/excel';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
+import { Field, ModalFooter } from '@/components/ui/Field';
 import {
   CATEGORY_LABEL, PAY_METHODS, SAVING_TYPE_LABEL, INVEST_TYPE_LABEL,
   TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL, won, signedWon, dotDate, daysUntil,
@@ -892,7 +893,7 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: { open: b
   }
 
   return (
-    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '항목 수정' : '항목 추가'} footer={<SaveFooter onClose={onClose} onSave={save} saving={saving} />}>
+    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '항목 수정' : '항목 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="유형" required>
         <select className="input" value={type} onChange={(ev) => setType(ev.target.value as TransactionType)}>
           <option value="expense">지출</option><option value="income">수입</option><option value="transfer">자산이동</option>
@@ -1026,7 +1027,7 @@ function SavingsModal({ state, onClose, onSaved }: { state: { open: boolean; mod
   }
 
   return (
-    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '예적금 수정' : '예적금 추가'} footer={<SaveFooter onClose={onClose} onSave={save} saving={saving} />}>
+    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '예적금 수정' : '예적금 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="은행/기관" required error={errors.bank}>
         <input type="text" className={`input${errors.bank ? ' is-invalid' : ''}`} placeholder="예: 카카오뱅크" value={bank} onChange={(ev) => { setBank(ev.target.value); clearErr('bank'); }} />
       </Field>
@@ -1107,7 +1108,7 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
   }
 
   return (
-    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '투자 항목 수정' : '투자 항목 추가'} footer={<SaveFooter onClose={onClose} onSave={save} saving={saving} />}>
+    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '투자 항목 수정' : '투자 항목 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="종목명" required error={errors.name}>
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 삼성전자" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />
       </Field>
@@ -1128,28 +1129,5 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
       <Field label="최초 매수일"><input type="date" className="input" aria-label="최초 매수일" value={purchaseDate} onChange={(ev) => setPurchaseDate(ev.target.value)} /></Field>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="투자 전략, 목표가 등" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
     </Modal>
-  );
-}
-
-// 모달 공통 푸터 (취소/저장) — 저장 중 비활성화
-function SaveFooter({ onClose, onSave, saving }: { onClose: () => void; onSave: () => void; saving: boolean }) {
-  return (
-    <>
-      <Button variant="ghost" onClick={onClose} disabled={saving}>취소</Button>
-      <Button onClick={onSave} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
-    </>
-  );
-}
-
-// 입력 그룹 (라벨 + 입력요소). .input 은 공통 폼 프리미티브라 globals 유지.
-function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-[0.8rem] font-medium text-secondary flex items-center gap-0.5">
-        {label}{required && <span className="text-danger font-bold text-[0.85rem] leading-none">*</span>}
-      </span>
-      {children}
-      {error && <span className="text-[0.7rem] text-danger mt-0.5 block leading-[1.4]">{error}</span>}
-    </label>
   );
 }
