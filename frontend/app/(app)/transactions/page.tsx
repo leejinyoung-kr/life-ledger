@@ -19,6 +19,9 @@ import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import { api } from '@/lib/api';
 import { downloadTransactionTemplate } from '@/lib/excel';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import {
   CATEGORY_LABEL, PAY_METHODS, SAVING_TYPE_LABEL, INVEST_TYPE_LABEL,
   TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL, won, signedWon, dotDate, daysUntil,
@@ -35,6 +38,18 @@ const ADD_LABELS: Record<TabId, string> = {
   savings: '예적금 추가',
   invest: '투자 항목 추가',
 };
+
+// 테이블/모바일 카드 공용 Tailwind 클래스 (3개 탭 공유)
+const TABLE_CARD = 'bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] overflow-hidden';
+const TXCARDS = 'hidden max-md:flex flex-col gap-2.5 p-3';
+const TXCARD = 'border border-border rounded-[var(--radius-lg)] p-3.5 bg-background';
+const TXCARD_TOP = 'flex justify-between items-baseline gap-2.5';
+const TXCARD_TITLE = 'font-semibold text-[0.95rem] break-all';
+const TXCARD_AMT = 'font-bold text-base whitespace-nowrap [font-family:var(--font-mono)]';
+const TXCARD_SUB = 'mt-2 text-[0.78rem] text-secondary flex flex-wrap items-center gap-1.5';
+const TXCARD_EMPTY = 'text-center text-muted py-7';
+// 거래 유형별 금액 색
+const AMT_COLOR: Record<TransactionType, string> = { income: 'text-accent', expense: 'text-danger', transfer: 'text-blue' };
 
 export default function TransactionsPage() {
   const [tab, setTab] = useState<TabId>('ledger');
@@ -70,21 +85,18 @@ export default function TransactionsPage() {
 
   return (
     <AppShell activePath="/transactions" topbarLabel="가계부">
-      <div className="page-header">
+      <div className="mb-7 flex items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">가계부</h1>
-          <p className="page-subtitle">수입/지출, 예적금, 투자를 한 곳에서 관리하세요.</p>
+          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">가계부</h1>
+          <p className="text-sm text-secondary mt-1.5">수입/지출, 예적금, 투자를 한 곳에서 관리하세요.</p>
         </div>
       </div>
 
-      <div className="page-tabs">
+      <div className="flex gap-0 border-b border-border mb-6 items-center">
         <Tab active={tab === 'ledger'} onClick={() => setTab('ledger')} icon={<IconWon />}>수입 / 지출</Tab>
         <Tab active={tab === 'savings'} onClick={() => setTab('savings')} icon={<IconBank />}>예적금</Tab>
         <Tab active={tab === 'invest'} onClick={() => setTab('invest')} icon={<IconTrendUp />}>투자</Tab>
-        <div style={{ flex: 1 }} />
-        <button type="button" className="btn btn-primary tabs-add-btn" onClick={openAddModal}>
-          {ADD_LABELS[tab]}
-        </button>
+        <Button className="ml-auto mb-2.5" onClick={openAddModal}>{ADD_LABELS[tab]}</Button>
       </div>
 
       {tab === 'ledger' && (
@@ -136,7 +148,11 @@ export default function TransactionsPage() {
 
 function Tab({ active, onClick, icon, children }: { active: boolean; onClick: () => void; icon: ReactNode; children: ReactNode }) {
   return (
-    <button type="button" className={`page-tab${active ? ' active' : ''}`} onClick={onClick}>
+    <button
+      type="button"
+      className={`px-5 py-2.5 text-[0.875rem] cursor-pointer border-b-2 -mb-px transition-all flex items-center gap-[7px] [&_svg]:w-[15px] [&_svg]:h-[15px] max-md:px-3 max-md:text-[0.82rem] ${active ? 'text-accent border-accent font-semibold' : 'text-muted border-transparent font-medium hover:text-primary'}`}
+      onClick={onClick}
+    >
       {icon}{children}
     </button>
   );
@@ -293,10 +309,10 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
 
   return (
     <>
-      {error && <p className="ledger-note is-error">⚠️ {error}</p>}
+      {error && <p className="mt-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
 
       {summary && (
-        <div className="grid-4 mb-6">
+        <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
           <StatCard icon={<IconWon />} tone="green" value={won(summary.income)} label="수입" change="이번 달 합계" changeDir="up" />
           <StatCard icon={<IconWon />} tone="red" value={won(summary.expense)} label="지출" change="이번 달 합계" changeDir="down" />
           <StatCard icon={<IconBank />} tone="amber" value={won(summary.realSpend)} label="실소비" change={`저축이동 ${won(summary.transfer)}`} changeDir="neutral" />
@@ -304,14 +320,14 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
         </div>
       )}
 
-      <p className="ledger-note mb-6">
+      <p className="text-[0.78rem] text-muted mb-6 [&_strong]:text-blue">
         💡 <strong>자산이동</strong>은 실소비가 아닌 자산 이동으로 잔액 계산에서 제외됩니다.
       </p>
 
-      <div className="grid-2 mb-6">
-        <div className="card">
-          <div className="card-header"><span className="card-title">월별 지출 추이</span></div>
-          <div className="card-body">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+        <Card>
+          <CardHeader><CardTitle>월별 지출 추이</CardTitle></CardHeader>
+          <CardBody>
             <div className="bars">
               {trend.map((b) => {
                 const isCurrent = b.month === applied.to.slice(0, 7);
@@ -323,20 +339,20 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
                 );
               })}
             </div>
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">🔁 반복 거래</span>
-            <span className="badge badge-neutral">자동 등록</span>
-          </div>
-          <div className="card-body compact">
-            <div className="recur-list">
-              {recurring.length === 0 && <div className="recur-sub">반복 거래가 없습니다.</div>}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>🔁 반복 거래</CardTitle>
+            <Badge tone="neutral">자동 등록</Badge>
+          </CardHeader>
+          <CardBody compact>
+            <div className="max-h-[264px] overflow-y-auto">
+              {recurring.length === 0 && <div className="text-[0.72rem] text-muted">반복 거래가 없습니다.</div>}
               {recurring.map((r) => (
-                <div className="recur-item" key={r.id}>
-                  <div className="recur-title">{r.title} — {won(r.amount)}</div>
-                  <div className="recur-sub">
+                <div className="py-2.5 border-b border-border-subtle last:border-b-0" key={r.id}>
+                  <div className="text-[0.84rem] font-medium">{r.title} — {won(r.amount)}</div>
+                  <div className="text-[0.72rem] text-muted">
                     {CATEGORY_LABEL[r.category] ?? r.category} · {TX_TYPE_LABEL[r.type]}
                     {r.recurringRule && (
                       <> · {CYCLE_LABEL[r.recurringRule.cycle]} {r.recurringRule.day}일
@@ -347,58 +363,58 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
       </div>
 
       {/* 엑셀 툴바 — TODO: 다운로드/업로드 API 연동 (Phase 4-5) */}
-      <div className="excel-toolbar">
-        <span className="excel-toolbar-label">엑셀</span>
+      <div className="flex gap-2 flex-wrap items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
+        <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">엑셀</span>
         <button type="button" className="excel-btn" onClick={downloadTemplate}><IconFileBlank />양식 다운로드</button>
         <label className="excel-btn upload">
           <IconUpload />엑셀 업로드
           <input type="file" accept=".xlsx,.xls,.csv" hidden aria-label="엑셀 업로드" onChange={handleUpload} />
         </label>
-        <div className="divider-v" />
+        <div className="w-px bg-border self-stretch mx-1 shrink-0" />
         <button type="button" className="excel-btn" onClick={downloadData}><IconDownload />데이터 다운로드</button>
       </div>
 
-      <div className="search-panel">
-        <div className="search-panel-row">
-          <input type="date" className="input filter-date" value={pendingFrom} onChange={(ev) => { setPendingFrom(ev.target.value); setActivePreset(null); }} aria-label="조회 시작일" />
-          <span className="filter-date-sep">~</span>
-          <input type="date" className="input filter-date" value={pendingTo} onChange={(ev) => { setPendingTo(ev.target.value); setActivePreset(null); }} aria-label="조회 종료일" />
-          <div className="preset-btns">
-            <button type="button" className={`btn btn-sm ${activePreset === 1 ? 'btn-primary' : 'btn-ghost'}`} onClick={() => applyPreset(1)}>1개월</button>
-            <button type="button" className={`btn btn-sm ${activePreset === 2 ? 'btn-primary' : 'btn-ghost'}`} onClick={() => applyPreset(2)}>2개월</button>
-            <button type="button" className={`btn btn-sm ${activePreset === 3 ? 'btn-primary' : 'btn-ghost'}`} onClick={() => applyPreset(3)}>3개월</button>
+      <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex flex-col gap-3 mb-4">
+        <div className="flex gap-2 items-center max-md:flex-wrap">
+          <input type="date" className="input flex-[0_0_140px] w-[140px]" value={pendingFrom} onChange={(ev) => { setPendingFrom(ev.target.value); setActivePreset(null); }} aria-label="조회 시작일" />
+          <span className="text-muted text-[0.82rem] shrink-0">~</span>
+          <input type="date" className="input flex-[0_0_140px] w-[140px]" value={pendingTo} onChange={(ev) => { setPendingTo(ev.target.value); setActivePreset(null); }} aria-label="조회 종료일" />
+          <div className="flex gap-1 shrink-0">
+            <Button size="sm" variant={activePreset === 1 ? 'primary' : 'ghost'} onClick={() => applyPreset(1)}>1개월</Button>
+            <Button size="sm" variant={activePreset === 2 ? 'primary' : 'ghost'} onClick={() => applyPreset(2)}>2개월</Button>
+            <Button size="sm" variant={activePreset === 3 ? 'primary' : 'ghost'} onClick={() => applyPreset(3)}>3개월</Button>
           </div>
         </div>
-        <div className="search-panel-row">
-          <select className="input filter-select" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+        <div className="flex gap-2 items-center max-md:flex-wrap">
+          <select className="input w-auto min-w-[120px] shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
             <option value="">전체 유형</option>
             <option value="income">수입</option><option value="expense">지출</option><option value="transfer">자산이동</option>
           </select>
-          <select className="input filter-select" value={pendingCat} onChange={(ev) => setPendingCat(ev.target.value)} aria-label="카테고리 필터">
+          <select className="input w-auto min-w-[120px] shrink-0" value={pendingCat} onChange={(ev) => setPendingCat(ev.target.value)} aria-label="카테고리 필터">
             <option value="">전체 카테고리</option>
             {categories.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
           </select>
-          <div className="search-wrap filter-search">
-            <IconSearch className="search-icon" />
-            <input className="input" type="text" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} aria-label="내역 검색" />
+          <div className="relative flex-1 min-w-[160px]">
+            <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
+            <input className="input pl-[34px]" type="text" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} aria-label="내역 검색" />
           </div>
-          <button type="button" className="btn btn-primary" onClick={search}>조회</button>
-          <button type="button" className="btn btn-ghost" onClick={reset}>초기화</button>
+          <Button onClick={search}>조회</Button>
+          <Button variant="ghost" onClick={reset}>초기화</Button>
         </div>
       </div>
 
-      <div className="table-bar">
-        <span className="table-count">총 {rows.length}건</span>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[0.78rem] text-secondary">총 {rows.length}건</span>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
-      <div className="card flush tx-table-card">
-        <div className="table-wrap">
+      <div className={TABLE_CARD}>
+        <div className="table-wrap max-md:hidden">
           <table>
             <colgroup>
               <col style={{ width: '64px' }} />
@@ -440,15 +456,15 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
         </div>
 
         {/* 모바일 카드 (강조형) */}
-        <div className="tx-cards">
-          {pagedRows.length === 0 && <div className="tx-card-empty">내역이 없습니다.</div>}
+        <div className={TXCARDS}>
+          {pagedRows.length === 0 && <div className={TXCARD_EMPTY}>내역이 없습니다.</div>}
           {pagedRows.map((row) => (
-            <div className="tx-card" key={row.id}>
-              <div className="tx-card-top">
-                <span className="tx-card-title">{row.title}</span>
-                <span className={`tx-card-amount amount-${row.type}`}>{signedWon(row.type, row.amount)}</span>
+            <div className={TXCARD} key={row.id}>
+              <div className={TXCARD_TOP}>
+                <span className={TXCARD_TITLE}>{row.title}</span>
+                <span className={`${TXCARD_AMT} ${AMT_COLOR[row.type]}`}>{signedWon(row.type, row.amount)}</span>
               </div>
-              <div className="tx-card-sub">
+              <div className={TXCARD_SUB}>
                 <span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span>
                 <span className="cat-chip">{catMap[row.category] ?? row.category}</span>
                 {row.type === 'expense' && <span>{row.payMethod}</span>}
@@ -508,7 +524,7 @@ function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloa
   return (
     <>
       {summary && (
-        <div className="grid-4 mb-6">
+        <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
           <StatCard icon={<IconBank />} tone="green" value={won(summary.totalBalance)} label="총 예적금" change="전체 잔액 합계" changeDir="neutral" />
           <StatCard icon={<IconWon />} tone="blue" value={won(summary.monthlyDeposit)} label="이번 달 납입" change="월 납입액 합계" changeDir="neutral" />
           <StatCard icon={<IconTrendUp />} tone="amber" value={`${summary.avgRate}%`} label="평균 금리" change="보유 상품 평균" changeDir="up" />
@@ -516,18 +532,18 @@ function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloa
         </div>
       )}
 
-      <div className="search-panel">
-        <div className="search-panel-row">
-          <select className="input filter-select" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+      <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex flex-col gap-3 mb-4">
+        <div className="flex gap-2 items-center max-md:flex-wrap">
+          <select className="input w-auto min-w-[120px] shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
             <option value="">전체 유형</option>
             {savingCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
           </select>
-          <div className="search-wrap filter-search">
-            <IconSearch className="search-icon" />
-            <input className="input" type="text" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="상품명 검색" />
+          <div className="relative flex-1 min-w-[160px]">
+            <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
+            <input className="input pl-[34px]" type="text" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="상품명 검색" />
           </div>
-          <button type="button" className="btn btn-primary" onClick={search}>조회</button>
-          <button type="button" className="btn btn-ghost" onClick={reset}>초기화</button>
+          <Button onClick={search}>조회</Button>
+          <Button variant="ghost" onClick={reset}>초기화</Button>
         </div>
       </div>
 
@@ -538,12 +554,12 @@ function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloa
         const totalPages = Math.ceil(filtered.length / limit);
         const paged = filtered.slice((page - 1) * limit, page * limit);
         return (<>
-      <div className="table-bar">
-        <span className="table-count">총 {filtered.length}건</span>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
-      <div className="card flush mb-4 tx-table-card">
-        <div className="table-wrap">
+      <div className={`${TABLE_CARD} mb-4`}>
+        <div className="table-wrap max-md:hidden">
           <table>
             <colgroup>
               <col style={{ width: '64px' }} />
@@ -594,18 +610,18 @@ function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloa
         </div>
 
         {/* 모바일 카드 (강조형) */}
-        <div className="tx-cards">
-          {paged.length === 0 && <div className="tx-card-empty">예적금 내역이 없습니다.</div>}
+        <div className={TXCARDS}>
+          {paged.length === 0 && <div className={TXCARD_EMPTY}>예적금 내역이 없습니다.</div>}
           {paged.map((c) => {
             const dleft = daysUntil(c.maturityDate);
             const near = dleft !== null && dleft >= 0 && dleft <= 30;
             return (
-              <div className="tx-card" key={c.id}>
-                <div className="tx-card-top">
-                  <span className="tx-card-title">{c.name}</span>
-                  <span className="tx-card-amount">{won(c.balance)}</span>
+              <div className={TXCARD} key={c.id}>
+                <div className={TXCARD_TOP}>
+                  <span className={TXCARD_TITLE}>{c.name}</span>
+                  <span className={TXCARD_AMT}>{won(c.balance)}</span>
                 </div>
-                <div className="tx-card-sub">
+                <div className={TXCARD_SUB}>
                   <span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span>
                   <span>{c.bank}</span>
                   <span className="savings-meta-value accent">{c.interestRate}%</span>
@@ -674,25 +690,25 @@ function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reload
   return (
     <>
       {summary && (
-        <div className="grid-3 mb-6">
+        <div className="grid grid-cols-1 min-[1100px]:grid-cols-3 gap-4 mb-6">
           <StatCard icon={<IconTrendUp />} tone="blue" value={won(summary.totalValue)} label="총 평가금액" change={`원금 대비 ${profitUp ? '+' : ''}${summary.profitRate}%`} changeDir={profitUp ? 'up' : 'down'} />
           <StatCard icon={<IconWon />} tone="amber" value={won(summary.totalPrincipal)} label="총 투자원금" change="투자 원금 합계" changeDir="neutral" />
           <StatCard icon={<IconChart />} tone={profitUp ? 'green' : 'red'} value={`${profitUp ? '+' : '-'}${won(summary.totalProfit)}`} label="총 수익" change={`수익률 ${profitUp ? '+' : ''}${summary.profitRate}%`} changeDir={profitUp ? 'up' : 'down'} />
         </div>
       )}
 
-      <div className="search-panel">
-        <div className="search-panel-row">
-          <select className="input filter-select" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+      <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex flex-col gap-3 mb-4">
+        <div className="flex gap-2 items-center max-md:flex-wrap">
+          <select className="input w-auto min-w-[120px] shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
             <option value="">전체 유형</option>
             {investCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
           </select>
-          <div className="search-wrap filter-search">
-            <IconSearch className="search-icon" />
-            <input className="input" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="종목명 검색" />
+          <div className="relative flex-1 min-w-[160px]">
+            <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
+            <input className="input pl-[34px]" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="종목명 검색" />
           </div>
-          <button type="button" className="btn btn-primary" onClick={search}>조회</button>
-          <button type="button" className="btn btn-ghost" onClick={reset}>초기화</button>
+          <Button onClick={search}>조회</Button>
+          <Button variant="ghost" onClick={reset}>초기화</Button>
         </div>
       </div>
 
@@ -703,12 +719,12 @@ function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reload
         const totalPages = Math.ceil(filtered.length / limit);
         const paged = filtered.slice((page - 1) * limit, page * limit);
         return (<>
-      <div className="table-bar">
-        <span className="table-count">총 {filtered.length}건</span>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
-      <div className="card flush mb-6 tx-table-card">
-        <div className="table-wrap">
+      <div className={`${TABLE_CARD} mb-6`}>
+        <div className="table-wrap max-md:hidden">
           <table>
             <colgroup>
               <col style={{ width: '64px' }} />
@@ -754,20 +770,20 @@ function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reload
         </div>
 
         {/* 모바일 카드 (강조형) */}
-        <div className="tx-cards">
-          {paged.length === 0 && <div className="tx-card-empty">투자 항목이 없습니다.</div>}
+        <div className={TXCARDS}>
+          {paged.length === 0 && <div className={TXCARD_EMPTY}>투자 항목이 없습니다.</div>}
           {paged.map((row) => {
             const up = row.profit >= 0;
             return (
-              <div className="tx-card" key={row.id}>
-                <div className="tx-card-top">
-                  <span className="tx-card-title">{row.name}</span>
-                  <span className="tx-card-amount">{won(row.currentValue)}</span>
+              <div className={TXCARD} key={row.id}>
+                <div className={TXCARD_TOP}>
+                  <span className={TXCARD_TITLE}>{row.name}</span>
+                  <span className={TXCARD_AMT}>{won(row.currentValue)}</span>
                 </div>
-                <div className="tx-card-sub">
+                <div className={TXCARD_SUB}>
                   <span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span>
                   <span>원금 {won(row.principal)}</span>
-                  <span className={`amount-${up ? 'income' : 'expense'}`}>{up ? '+' : '-'}{won(row.profit)}</span>
+                  <span className={up ? 'text-accent' : 'text-danger'}>{up ? '+' : '-'}{won(row.profit)}</span>
                   <span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span>
                   {row.memo && <span>· {row.memo}</span>}
                 </div>
@@ -786,11 +802,14 @@ function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reload
   );
 }
 
+// 데스크톱 테이블 행 아이콘 버튼 (수정/삭제)
+const ICON_BTN = 'w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] transition-all';
+
 function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
-    <div className="row-actions">
-      <button type="button" className="btn btn-ghost btn-icon" onClick={onEdit} aria-label="수정"><IconEdit width={14} height={14} /></button>
-      <button type="button" className="btn btn-danger btn-icon" onClick={onDelete} aria-label="삭제"><IconTrash width={14} height={14} /></button>
+    <div className="flex justify-center gap-1">
+      <button type="button" className={`${ICON_BTN} text-secondary border border-border hover:bg-surface hover:text-primary`} onClick={onEdit} aria-label="수정"><IconEdit width={14} height={14} /></button>
+      <button type="button" className={`${ICON_BTN} bg-danger-dim text-danger hover:bg-[rgba(240,68,56,0.15)]`} onClick={onDelete} aria-label="삭제"><IconTrash width={14} height={14} /></button>
     </div>
   );
 }
@@ -798,9 +817,9 @@ function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => 
 // 모바일 카드 하단 풀폭 수정/삭제 버튼
 function CardActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
-    <div className="tx-card-actions">
-      <button type="button" className="btn btn-ghost" onClick={onEdit}><IconEdit width={14} height={14} /> 수정</button>
-      <button type="button" className="btn btn-danger" onClick={onDelete}><IconTrash width={14} height={14} /> 삭제</button>
+    <div className="flex gap-2 mt-3">
+      <Button variant="ghost" className="flex-1" onClick={onEdit}><IconEdit width={14} height={14} /> 수정</Button>
+      <Button variant="danger" className="flex-1" onClick={onDelete}><IconTrash width={14} height={14} /> 삭제</Button>
     </div>
   );
 }
@@ -885,7 +904,7 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: { open: b
       <Field label="내역" required error={errors.title}>
         <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 스타벅스" value={title} onChange={(ev) => { setTitle(ev.target.value); clearErr('title'); }} />
       </Field>
-      <div className="form-grid-2">
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="카테고리" required>
           <select className="input" value={category} onChange={(ev) => setCategory(ev.target.value)}>
             {categories.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
@@ -905,14 +924,14 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: { open: b
       )}
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
 
-      <div className="recur-block">
-        <label className="recur-toggle">
+      <div className="flex flex-col gap-3 p-3.5 bg-surface border border-border rounded-[var(--radius)]">
+        <label className="flex items-center gap-2 text-[0.875rem] font-medium text-primary cursor-pointer select-none [&_input]:w-4 [&_input]:h-4 [&_input]:accent-accent [&_input]:cursor-pointer">
           <input type="checkbox" checked={isRecurring} onChange={(ev) => setIsRecurring(ev.target.checked)} />
           반복 거래로 등록
         </label>
         {isRecurring && (
           <>
-            <div className="form-grid-2">
+            <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
               <Field label="반복 주기" required>
                 <select className="input" value={recurringCycle} onChange={(ev) => setRecurringCycle(ev.target.value as RecurringCycle)}>
                   <option value="monthly">매월</option>
@@ -929,7 +948,7 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: { open: b
               </Field>
             </div>
             <Field label="주말인 경우">
-              <div className="weekend-opts">
+              <div className="flex gap-5 flex-wrap [&_label]:flex [&_label]:items-center [&_label]:gap-[5px] [&_label]:text-[0.82rem] [&_label]:text-secondary [&_label]:cursor-pointer [&_input]:accent-accent">
                 <label><input type="radio" name="weekendAdjust" value="none" checked={weekendAdjust === 'none'} onChange={() => setWeekendAdjust('none')} />조정 안 함</label>
                 <label><input type="radio" name="weekendAdjust" value="before" checked={weekendAdjust === 'before'} onChange={() => setWeekendAdjust('before')} />전 금요일</label>
                 <label><input type="radio" name="weekendAdjust" value="after" checked={weekendAdjust === 'after'} onChange={() => setWeekendAdjust('after')} />다음 월요일</label>
@@ -1019,13 +1038,13 @@ function SavingsModal({ state, onClose, onSaved }: { state: { open: boolean; mod
           <option value="savings">적금</option><option value="deposit">예금</option><option value="subscription">청약</option><option value="etc">기타</option>
         </select>
       </Field>
-      <div className="form-grid-2">
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="금리 (%)">
           <input type="number" className="input" placeholder="3.5" step="0.1" value={interestRate} onChange={(ev) => setInterestRate(ev.target.value)} />
         </Field>
         <Field label="월 납입액 (원)"><input type="number" className="input" placeholder="200000" value={monthlyAmount} onChange={(ev) => setMonthlyAmount(ev.target.value)} /></Field>
       </div>
-      <div className="form-grid-2">
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="가입일" required error={errors.startDate}>
           <input type="date" className={`input${errors.startDate ? ' is-invalid' : ''}`} aria-label="가입일" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearErr('startDate'); }} />
         </Field>
@@ -1098,7 +1117,7 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
           <option value="domestic_etf">국내ETF</option><option value="crypto">가상자산</option><option value="etc">기타</option>
         </select>
       </Field>
-      <div className="form-grid-2">
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="투자원금 (원)" required error={errors.principal}>
           <input type="number" className={`input${errors.principal ? ' is-invalid' : ''}`} placeholder="0" value={principal} onChange={(ev) => { setPrincipal(ev.target.value); clearErr('principal'); }} />
         </Field>
@@ -1116,19 +1135,21 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
 function SaveFooter({ onClose, onSave, saving }: { onClose: () => void; onSave: () => void; saving: boolean }) {
   return (
     <>
-      <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>취소</button>
-      <button type="button" className="btn btn-primary" onClick={onSave} disabled={saving}>{saving ? '저장 중...' : '저장'}</button>
+      <Button variant="ghost" onClick={onClose} disabled={saving}>취소</Button>
+      <Button onClick={onSave} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
     </>
   );
 }
 
-// 입력 그룹 (라벨 + 입력요소)
+// 입력 그룹 (라벨 + 입력요소). .input 은 공통 폼 프리미티브라 globals 유지.
 function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
   return (
-    <label className="input-group">
-      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[0.8rem] font-medium text-secondary flex items-center gap-0.5">
+        {label}{required && <span className="text-danger font-bold text-[0.85rem] leading-none">*</span>}
+      </span>
       {children}
-      {error && <span className="field-error">{error}</span>}
+      {error && <span className="text-[0.7rem] text-danger mt-0.5 block leading-[1.4]">{error}</span>}
     </label>
   );
 }

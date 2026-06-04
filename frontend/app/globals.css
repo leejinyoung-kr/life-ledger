@@ -75,6 +75,28 @@
 @theme inline {
   --font-sans: var(--font-body);
   --font-mono: var(--font-mono);
+
+  /* 기존 CSS 변수를 Tailwind 색 유틸로 노출 (다크모드는 var() 가 자동 전환) */
+  /* base 는 코어 text-base(폰트크기)와 충돌하므로 background 로 노출 */
+  --color-background: var(--bg-base);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-dim: var(--accent-dim);
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-danger: var(--danger);
+  --color-danger-dim: var(--danger-dim);
+  --color-warning: var(--warning);
+  --color-warning-dim: var(--warning-dim);
+  --color-blue: var(--blue);
+  --color-blue-dim: var(--blue-dim);
+  --color-amber: var(--amber);
+  --color-amber-dim: var(--amber-dim);
 }
 
 *, *::before, *::after { box-sizing: border-box; }

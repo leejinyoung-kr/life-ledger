@@ -3,10 +3,14 @@
 /**
  * 대시보드 페이지.
  * 이번 달 지출 현황·최근 활동·다가오는 일정·빠른 실행을 요약해 보여준다.
- * 공통 레이아웃(AppShell)과 공통 카드(StatCard)를 재사용한다.
+ * 스타일은 Tailwind 유틸 + 공통 컴포넌트(Card/Button/Badge/StatCard) 기반.
  */
+import type { ReactNode } from 'react';
 import AppShell from '@/components/AppShell';
 import StatCard from '@/components/StatCard';
+import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
 import { IconWon, IconLock, IconFolder, IconCube, IconUpload } from '@/components/icons';
 
 // ── 더미 데이터 (TODO: API 연동 시 교체) ─────────────────────────
@@ -53,19 +57,36 @@ const QUICK_ACTIONS = [
   { icon: <IconCube width={17} height={17} />,   title: 'AI 리포트',   desc: '소비 패턴 분석',    href: '#' },
 ];
 
+// 점/막대 색 매핑
+const DOT_COLOR = { green: 'bg-accent', warning: 'bg-warning', muted: 'bg-muted' } as const;
+const FILL_COLOR = { green: 'bg-accent', warning: 'bg-warning', danger: 'bg-danger' } as const;
+
+// 활동/일정 공통 행
+function ActivityRow({ dot, text, time }: { dot: 'green' | 'warning' | 'muted'; text: ReactNode; time: string }) {
+  return (
+    <div className="flex gap-3 py-2.5 border-b border-border-subtle last:border-b-0">
+      <div className={`w-2 h-2 rounded-full shrink-0 mt-[5px] ${DOT_COLOR[dot]}`} />
+      <div>
+        <div className="text-[0.838rem] text-secondary leading-normal [&_strong]:text-primary [&_strong]:font-semibold">{text}</div>
+        <div className="text-[0.72rem] text-muted mt-0.5">{time}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   return (
     <AppShell activePath="/dashboard" topbarLabel="2025년 5월">
       {/* 페이지 헤더 */}
-      <div className="page-header">
+      <div className="mb-7 flex items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">안녕하세요, 김관리자님 👋</h1>
-          <p className="page-subtitle">이번 달 지출 현황과 최근 활동을 확인하세요.</p>
+          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">안녕하세요, 김관리자님 👋</h1>
+          <p className="text-sm text-secondary mt-1.5">이번 달 지출 현황과 최근 활동을 확인하세요.</p>
         </div>
       </div>
 
       {/* 상단 요약 통계 4칸 */}
-      <div className="grid-4 mb-8">
+      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-8">
         {STATS.map((s) => (
           <StatCard
             key={s.label}
@@ -81,88 +102,68 @@ export default function DashboardPage() {
       </div>
 
       {/* 카테고리별 지출 + 최근 활동 (2단) */}
-      <div className="grid-2 mb-6">
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">카테고리별 지출</span>
-            <a href="#" className="btn btn-ghost btn-sm">
-              전체 보기
-            </a>
-          </div>
-          <div className="card-body">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>카테고리별 지출</CardTitle>
+            <Button href="#" variant="ghost" size="sm">전체 보기</Button>
+          </CardHeader>
+          <CardBody>
             {BUDGETS.map((b) => (
-              <div className="budget-row" key={b.label}>
-                <div className="budget-meta">
-                  <span className="budget-label">{b.label}</span>
-                  <span className="budget-amount">{b.amount}</span>
+              <div className="flex flex-col gap-1.5 mb-[14px] last:mb-0" key={b.label}>
+                <div className="flex justify-between text-[0.8rem]">
+                  <span className="text-secondary font-medium">{b.label}</span>
+                  <span className="text-muted">{b.amount}</span>
                 </div>
-                <div className="track">
-                  <div className={`fill ${b.tone}`} style={{ width: `${b.percent}%` }} />
+                <div className="h-1.5 bg-elevated rounded-[3px] overflow-hidden">
+                  <div className={`h-full rounded-[3px] transition-[width] duration-700 ${FILL_COLOR[b.tone]}`} style={{ width: `${b.percent}%` }} />
                 </div>
               </div>
             ))}
-          </div>
-        </div>
+          </CardBody>
+        </Card>
 
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">최근 활동</span>
-            <span className="badge badge-success">{ACTIVITIES.length}건</span>
-          </div>
-          <div className="card-body compact">
-            {ACTIVITIES.map((a, i) => (
-              <div className="activity-item" key={i}>
-                <div className={`dot ${a.dot}`} />
-                <div>
-                  <div className="activity-text">{a.text}</div>
-                  <div className="activity-time">{a.time}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>최근 활동</CardTitle>
+            <Badge tone="success">{ACTIVITIES.length}건</Badge>
+          </CardHeader>
+          <CardBody compact>
+            {ACTIVITIES.map((a, i) => <ActivityRow key={i} {...a} />)}
+          </CardBody>
+        </Card>
       </div>
 
       {/* 다가오는 일정 */}
-      <div className="card mb-6">
-        <div className="card-header">
-          <span className="card-title">📅 다가오는 일정</span>
-          <a href="#" className="btn btn-ghost btn-sm">
-            캘린더 전체
-          </a>
-        </div>
-        <div className="card-body compact">
-          {UPCOMING.map((u, i) => (
-            <div className="activity-item" key={i}>
-              <div className={`dot ${u.dot}`} />
-              <div>
-                <div className="activity-text">{u.text}</div>
-                <div className="activity-time">{u.time}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>📅 다가오는 일정</CardTitle>
+          <Button href="#" variant="ghost" size="sm">캘린더 전체</Button>
+        </CardHeader>
+        <CardBody compact>
+          {UPCOMING.map((u, i) => <ActivityRow key={i} {...u} />)}
+        </CardBody>
+      </Card>
 
       {/* 빠른 실행 */}
-      <div className="card">
-        <div className="card-header">
-          <span className="card-title">빠른 실행</span>
-        </div>
-        <div className="card-body">
-          <div className="grid-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>빠른 실행</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4">
             {QUICK_ACTIONS.map((q) => (
-              <a className="quick-card" key={q.title} href={q.href}>
-                <div className="quick-icon">{q.icon}</div>
+              <a className="flex items-center gap-3 px-4 py-3.5 border border-border rounded-[var(--radius)] bg-background transition-all hover:border-accent hover:bg-accent-dim hover:shadow-[var(--shadow-sm)]" key={q.title} href={q.href}>
+                <div className="w-9 h-9 rounded-[var(--radius)] bg-surface border border-border flex items-center justify-center text-accent shrink-0">{q.icon}</div>
                 <div>
-                  <div className="quick-title">{q.title}</div>
-                  <div className="quick-desc">{q.desc}</div>
+                  <div className="text-[0.82rem] font-semibold text-primary">{q.title}</div>
+                  <div className="text-[0.72rem] text-muted mt-px">{q.desc}</div>
                 </div>
               </a>
             ))}
           </div>
-        </div>
-      </div>
+        </CardBody>
+      </Card>
     </AppShell>
   );
 }

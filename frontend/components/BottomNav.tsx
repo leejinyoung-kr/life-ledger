@@ -1,5 +1,8 @@
 'use client';
 
+/**
+ * 모바일 전용 하단 내비게이션 (Tailwind). ≤768 에서만 노출.
+ */
 import { IconGrid, IconWon, IconFolder, IconChat, IconMenu } from './icons';
 
 interface BottomNavProps {
@@ -14,25 +17,23 @@ const NAV_ITEMS = [
   { label: 'AI챗', href: '/assistant', Icon: IconChat },
 ];
 
+const ITEM =
+  'flex-1 flex flex-col items-center justify-center gap-[3px] text-[0.63rem] font-medium transition-colors bg-transparent border-none cursor-pointer no-underline rounded-[var(--radius)] px-1 py-1.5 [&>svg]:shrink-0';
+
 export default function BottomNav({ activePath, onMore }: BottomNavProps) {
   return (
-    <nav className="bottom-nav">
+    <nav className="hidden max-md:flex fixed bottom-0 left-0 right-0 h-[60px] bg-background border-t border-border z-[100] px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
       {NAV_ITEMS.map(({ label, href, Icon }) => (
         <a
           key={href}
           href={href}
-          className={`bottom-nav-item${activePath === href ? ' active' : ''}`}
+          className={`${ITEM} ${activePath === href ? 'text-accent' : 'text-muted hover:text-secondary'}`}
         >
           <Icon width={22} height={22} />
           <span>{label}</span>
         </a>
       ))}
-      <button
-        type="button"
-        className="bottom-nav-item"
-        onClick={onMore}
-        aria-label="더보기"
-      >
+      <button type="button" className={`${ITEM} text-muted hover:text-secondary`} onClick={onMore} aria-label="더보기">
         <IconMenu width={22} height={22} />
         <span>더보기</span>
       </button>

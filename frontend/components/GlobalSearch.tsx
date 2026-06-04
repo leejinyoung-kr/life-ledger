@@ -47,7 +47,7 @@ function highlight(text: string, q: string) {
   const parts = text.split(re);
   return parts.map((part, i) =>
     i % 2 === 1 ? (
-      <mark key={i} className="search-mark">
+      <mark key={i} className="bg-accent-dim text-accent rounded-[2px]">
         {part}
       </mark>
     ) : (
@@ -96,11 +96,11 @@ export default function GlobalSearch() {
   const isEmpty = query.trim() !== '' && results.length === 0;
 
   return (
-    <div className="global-search-wrap">
+    <div className="relative flex items-center flex-1 max-w-[480px] max-[600px]:hidden">
       <IconSearchInline />
       <input
         ref={inputRef}
-        className="global-search-input"
+        className="w-full h-[34px] bg-surface border border-border rounded-[var(--radius)] pl-8 pr-[70px] text-[0.82rem] text-primary outline-none transition-[border-color,box-shadow] placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-dim)]"
         type="text"
         placeholder="통합 검색... (가계부, 계정, 파일, 메모)"
         value={query}
@@ -109,14 +109,14 @@ export default function GlobalSearch() {
         onBlur={() => setTimeout(() => setOpen(false), 200)}
         autoComplete="off"
       />
-      <span className="global-search-shortcut">⌘K</span>
+      <span className="absolute right-2.5 text-[0.68rem] text-muted bg-elevated border border-border rounded-[4px] px-[5px] py-px pointer-events-none [font-family:var(--font-mono)] max-[900px]:hidden">⌘K</span>
 
-      <div className={`search-dropdown${open ? ' open' : ''}`}>
+      <div className={`${open ? 'block' : 'hidden'} absolute top-[calc(100%+6px)] left-0 w-full min-w-[320px] bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] z-[300] overflow-hidden`}>
         {isEmpty ? (
-          <div className="search-empty">검색 결과가 없습니다.</div>
+          <div className="p-6 text-center text-[0.855rem] text-muted">검색 결과가 없습니다.</div>
         ) : !query.trim() ? (
           <>
-            <div className="search-section-label">최근 항목</div>
+            <div className="px-3.5 pt-2.5 pb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-muted bg-surface border-b border-border-subtle">최근 항목</div>
             {results.map((item, i) => (
               <SearchResultRow key={i} item={item} query="" />
             ))}
@@ -124,7 +124,7 @@ export default function GlobalSearch() {
         ) : (
           Object.entries(groups).map(([type, items]) => (
             <div key={type}>
-              <div className="search-section-label">{TYPE_LABEL[type as SearchType]}</div>
+              <div className="px-3.5 pt-2.5 pb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-muted bg-surface border-b border-border-subtle">{TYPE_LABEL[type as SearchType]}</div>
               {items.slice(0, 3).map((item, i) => (
                 <SearchResultRow key={i} item={item} query={query} />
               ))}
@@ -136,16 +136,20 @@ export default function GlobalSearch() {
   );
 }
 
+const ICON_BG: Record<SearchType, string> = {
+  tx: 'bg-accent-dim', cred: 'bg-blue-dim', file: 'bg-amber-dim', note: 'bg-elevated',
+};
+
 // 검색 결과 한 줄
 function SearchResultRow({ item, query }: { item: SearchEntry; query: string }) {
   return (
-    <a className="search-result-item" href={item.href}>
-      <div className={`search-result-icon ${item.type}`}>{item.icon}</div>
+    <a className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer transition-colors border-b border-border-subtle last:border-b-0 hover:bg-surface no-underline" href={item.href}>
+      <div className={`w-8 h-8 rounded-[var(--radius)] flex items-center justify-center text-[0.9rem] shrink-0 ${ICON_BG[item.type]}`}>{item.icon}</div>
       <div>
-        <div className="search-result-title">{query ? highlight(item.title, query) : item.title}</div>
-        <div className="search-result-sub">{item.sub}</div>
+        <div className="text-[0.855rem] font-medium text-primary">{query ? highlight(item.title, query) : item.title}</div>
+        <div className="text-[0.75rem] text-muted mt-px">{item.sub}</div>
       </div>
-      <span className="search-result-badge">{TYPE_LABEL[item.type]}</span>
+      <span className="ml-auto text-[0.68rem] px-[7px] py-px rounded-full bg-elevated text-muted shrink-0">{TYPE_LABEL[item.type]}</span>
     </a>
   );
 }
@@ -153,7 +157,7 @@ function SearchResultRow({ item, query }: { item: SearchEntry; query: string }) 
 // 검색바 좌측 돋보기 아이콘
 function IconSearchInline() {
   return (
-    <svg className="global-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className="absolute left-2.5 w-[15px] h-[15px] text-muted pointer-events-none shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
       <circle cx="11" cy="11" r="8" />
       <path d="m21 21-4.35-4.35" />
     </svg>

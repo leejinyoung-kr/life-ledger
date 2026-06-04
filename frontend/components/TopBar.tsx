@@ -38,22 +38,27 @@ export default function TopBar({ label }: TopBarProps) {
   };
 
   return (
-    <div className="top-bar">
-      <div className="top-bar-left">
-        {label && <span className="topbar-label">{label}</span>}
+    <div className="h-[60px] border-b border-border flex items-center justify-between px-8 bg-background sticky top-0 z-50 gap-3 max-md:px-4">
+      <div className="flex items-center gap-3">
+        {label && <span className="text-[0.78rem] text-muted">{label}</span>}
       </div>
 
       {/* 통합 검색 (공통 컴포넌트 재사용) */}
       <GlobalSearch />
 
-      <div className="flex-center gap-2">
-        <button type="button" className="dark-toggle" onClick={toggleDark} aria-label={dark ? '라이트 모드로 전환' : '다크 모드로 전환'}>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="text-[1.2rem] w-9 h-9 flex items-center justify-center rounded-[var(--radius)] cursor-pointer transition-[background] select-none hover:bg-surface"
+          onClick={toggleDark}
+          aria-label={dark ? '라이트 모드로 전환' : '다크 모드로 전환'}
+        >
           {dark ? '☀️' : '🌙'}
         </button>
         {/* TODO: API 연동 — 미읽음 알림 수 GET /api/v1/notifications/unread-count */}
-        <a href="#" className="bell-btn" aria-label="알림">
+        <a href="#" className="relative w-9 h-9 flex items-center justify-center rounded-[var(--radius)] text-secondary transition-colors shrink-0 hover:bg-surface hover:text-primary" aria-label="알림">
           <IconBell width={18} height={18} />
-          <span className="bell-count">3</span>
+          <span className="absolute top-1 right-1 min-w-4 h-4 bg-danger text-white text-[0.62rem] font-bold rounded-full flex items-center justify-center px-1 leading-none border-[1.5px] border-background">3</span>
         </a>
       </div>
     </div>

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 공통 앱 레이아웃 셸.
+ * 공통 앱 레이아웃 셸 (Tailwind).
  * 사이드바 + 상단바 + 페이지 콘텐츠를 묶고, 모바일 사이드바 열림 상태/오버레이를 관리한다.
  * 모든 인증 페이지(대시보드 등)가 이 셸로 콘텐츠를 감싼다.
  */
@@ -48,12 +48,15 @@ export default function AppShell({
   return (
     <>
       {/* 모바일 dim 오버레이 */}
-      <div className={`sidebar-overlay${sidebarOpen ? ' open' : ''}`} onClick={closeSidebar} />
-      <div className="app-shell">
+      <div
+        className={`${sidebarOpen ? 'block' : 'hidden'} fixed inset-0 bg-black/30 z-[99]`}
+        onClick={closeSidebar}
+      />
+      <div className="flex min-h-screen">
         <Sidebar activePath={activePath} open={sidebarOpen} onLogout={handleLogout} />
-        <div className="main-content">
+        <div className="ml-[var(--sidebar-w)] flex-1 min-h-screen flex flex-col max-md:ml-0 max-md:pb-[calc(60px+env(safe-area-inset-bottom))]">
           <TopBar label={topbarLabel} />
-          {bare ? children : <div className="page-body">{children}</div>}
+          {bare ? children : <div className="p-8 w-full max-md:p-4">{children}</div>}
         </div>
       </div>
       {/* 모바일 하단 내비게이션 */}

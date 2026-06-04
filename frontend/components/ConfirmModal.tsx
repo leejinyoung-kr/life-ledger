@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { IconAlertCircle, IconCheck } from './icons';
+import Button from './ui/Button';
 
 // ── ConfirmModal 컴포넌트 ──────────────────────────────────────────
 interface ConfirmModalProps {
@@ -34,35 +35,32 @@ export default function ConfirmModal({
 
   // createPortal — body에 직접 마운트해 모달 위에도 정상 표시
   return createPortal(
-    <div className="cm-overlay" role="presentation">
+    <div
+      className="fixed inset-0 bg-[rgba(0,0,0,0.52)] backdrop-blur-[3px] z-[300] flex items-center justify-center p-6 [animation:fadeIn_0.2s_ease]"
+      role="presentation"
+    >
       <div
-        className="cm-box"
+        className="bg-background border border-border rounded-2xl shadow-[var(--shadow-lg)] w-full max-w-[360px] px-6 pt-8 pb-6 flex flex-col items-center gap-[18px] text-center [animation:slideUp_0.25s_ease]"
         role="alertdialog"
         aria-modal="true"
         aria-describedby="cm-msg"
       >
         {/* 아이콘 */}
-        <div className={`cm-icon-wrap cm-icon-wrap--${variant}`}>
+        <div className={`w-[60px] h-[60px] rounded-full flex items-center justify-center shrink-0 ${variant === 'danger' ? 'bg-danger-dim text-danger' : 'bg-accent-dim text-accent'}`}>
           {variant === 'danger'
             ? <IconAlertCircle width={28} height={28} />
             : <IconCheck width={28} height={28} />}
         </div>
 
         {/* 메시지 */}
-        <p id="cm-msg" className="cm-msg">{message}</p>
+        <p id="cm-msg" className="text-[0.9rem] text-secondary leading-[1.65] [word-break:keep-all]">{message}</p>
 
         {/* 버튼 */}
-        <div className="cm-footer">
-          <button type="button" className="btn btn-ghost cm-btn" onClick={onCancel}>
-            {cancelLabel}
-          </button>
-          <button
-            type="button"
-            className={`btn cm-btn ${variant === 'danger' ? 'btn-solid-danger' : 'btn-primary'}`}
-            onClick={onConfirm}
-          >
+        <div className="flex gap-2 w-full">
+          <Button variant="ghost" className="flex-1" onClick={onCancel}>{cancelLabel}</Button>
+          <Button variant={variant === 'danger' ? 'solid-danger' : 'primary'} className="flex-1" onClick={onConfirm}>
             {confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </div>,

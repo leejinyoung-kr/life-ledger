@@ -1,12 +1,15 @@
 'use client';
 
 /**
- * 공통 페이지네이션 컴포넌트.
+ * 공통 페이지네이션 컴포넌트 (Tailwind).
  * - Pagination: 하단 페이지 번호 내비게이션
  * - LimitSelect: 상단 오른쪽에 배치하는 "n개씩 보기" 선택박스
  */
 
 const LIMIT_OPTIONS = [10, 20, 30];
+
+const PAG_BTN =
+  'min-w-8 h-8 px-1.5 rounded-[var(--radius)] text-[0.85rem] font-medium text-secondary flex items-center justify-center transition-all enabled:hover:bg-surface enabled:hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed';
 
 // ── 페이지 번호 내비게이션 ────────────────────────────────────────
 interface PaginationProps {
@@ -22,18 +25,18 @@ export default function Pagination({ page, totalPages, totalItems, onPageChange 
   const pages = buildPageRange(page, totalPages);
 
   return (
-    <div className="pagination">
-      <div className="pagination-pages">
+    <div className="flex items-center justify-center gap-3 px-5 py-3.5 border-t border-border-subtle">
+      <div className="flex items-center gap-[3px]">
         <PagBtn disabled={page === 1} onClick={() => onPageChange(page - 1)}>‹</PagBtn>
 
         {pages.map((p, i) =>
           p === '...'
-            ? <span key={`el-${i}`} className="pagination-ellipsis">…</span>
+            ? <span key={`el-${i}`} className="min-w-7 text-center text-muted text-[0.85rem] leading-8">…</span>
             : (
               <button
                 key={p}
                 type="button"
-                className={`pagination-btn${page === p ? ' active' : ''}`}
+                className={`${PAG_BTN} ${page === p ? 'bg-accent text-white enabled:hover:bg-accent-dark enabled:hover:text-white' : ''}`}
                 onClick={() => onPageChange(Number(p))}
               >
                 {p}
@@ -56,7 +59,7 @@ interface LimitSelectProps {
 export function LimitSelect({ limit, onLimitChange }: LimitSelectProps) {
   return (
     <select
-      className="input limit-select"
+      className="input w-auto min-w-[72px] text-[0.82rem] shrink-0"
       value={limit}
       aria-label="페이지당 항목 수"
       onChange={(e) => onLimitChange(Number(e.target.value))}
@@ -70,7 +73,7 @@ export function LimitSelect({ limit, onLimitChange }: LimitSelectProps) {
 
 function PagBtn({ children, disabled, onClick }: { children: React.ReactNode; disabled: boolean; onClick: () => void }) {
   return (
-    <button type="button" className="pagination-btn" disabled={disabled} onClick={onClick}>
+    <button type="button" className={PAG_BTN} disabled={disabled} onClick={onClick}>
       {children}
     </button>
   );
