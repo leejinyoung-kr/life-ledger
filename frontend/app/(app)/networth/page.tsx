@@ -4,16 +4,20 @@
  * 자산 종합 페이지.
  * 순자산(자산 − 부채)을 도넛 구성·6개월 추이·부채 내역으로 추적한다.
  * 데이터는 백엔드 API(/assets)와 실시간 연동한다.
+ * 스타일: Tailwind + 공통 컴포넌트(StatCard/Button/Badge/Card/Modal/Field).
  */
-import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
 import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
+import { Field, ModalFooter } from '@/components/ui/Field';
 import { api } from '@/lib/api';
 import { won } from '@/lib/finance';
-import { IconPlus } from '@/components/icons';
 import {
   ASSET_TYPE_LABEL, ASSET_TYPE_COLOR, ASSET_TYPE_OPTIONS, BY_TYPE_CARD,
   wonM, millionsLabel,
@@ -89,39 +93,40 @@ export default function NetworthPage() {
 
   return (
     <AppShell activePath="/networth" topbarLabel="자산 종합">
-      <div className="page-header">
+      <div className="mb-7 flex items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">자산 종합</h1>
-          <p className="page-subtitle">순자산 = 자산 − 부채. 현금·예적금·투자·부동산을 합산해 추적합니다.</p>
+          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">자산 종합</h1>
+          <p className="text-sm text-secondary mt-1.5">순자산 = 자산 − 부채. 현금·예적금·투자·부동산을 합산해 추적합니다.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setModal({ open: true, mode: 'add' })}>
-          <IconPlus width={13} height={13} />자산 추가
-        </button>
+        <Button onClick={() => setModal({ open: true, mode: 'add' })}>자산 추가</Button>
       </div>
 
-      {error && <p className="ledger-note is-error">⚠️ {error}</p>}
+      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
 
       {summary && (
         <>
           {/* 히어로 — 총 순자산 + 도넛 + 범례 */}
-          <div className="nw-hero">
-            <div className="nw-hero-main">
-              <div className="nw-hero-label">총 순자산</div>
-              <div className="nw-hero-value">{won(summary.netWorth)}</div>
-              <div className="nw-hero-change">
+          <div className="flex gap-7 flex-wrap items-center p-7 bg-[linear-gradient(135deg,var(--accent-dim),transparent)] border border-border rounded-[var(--radius-lg)] mb-6">
+            <div className="flex-1 min-w-[200px]">
+              <div className="text-[0.8rem] text-secondary font-semibold uppercase tracking-[0.06em] mb-2">총 순자산</div>
+              <div className="[font-family:var(--font-display)] text-[2.6rem] font-extrabold tracking-[-0.04em] text-primary leading-none">{won(summary.netWorth)}</div>
+              <div className="mt-2.5 text-[0.875rem] text-accent font-semibold">
                 {up ? '▲' : '▼'} {won(summary.changeAmount)} ({summary.changeRate}%) 지난달 대비
               </div>
             </div>
-            <div className="donut" style={{ background: buildDonutGradient(summary.allocation) }}>
-              <div className="donut-label">
-                <div className="t">자산</div>
-                <div className="v">{wonM(summary.totalAssets)}</div>
+            <div
+              className="w-40 h-40 rounded-full shrink-0 flex items-center justify-center relative after:content-[''] after:w-24 after:h-24 after:rounded-full after:bg-background"
+              style={{ background: buildDonutGradient(summary.allocation) }}
+            >
+              <div className="absolute text-center">
+                <div className="text-[0.7rem] text-muted">자산</div>
+                <div className="[font-family:var(--font-display)] font-bold text-base">{wonM(summary.totalAssets)}</div>
               </div>
             </div>
-            <div className="legend">
+            <div className="flex flex-col gap-2">
               {summary.allocation.map((a) => (
-                <div className="legend-row" key={a.type}>
-                  <span className="legend-dot" style={{ background: ASSET_TYPE_COLOR[a.type] }} />
+                <div className="flex items-center gap-2 text-[0.82rem]" key={a.type}>
+                  <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: ASSET_TYPE_COLOR[a.type] }} />
                   {ASSET_TYPE_LABEL[a.type]} {wonM(a.amount)} ({a.percent}%)
                 </div>
               ))}
@@ -129,7 +134,7 @@ export default function NetworthPage() {
           </div>
 
           {/* 자산 유형별 통계 */}
-          <div className="grid-4 mb-8">
+          <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-8">
             {cards.map((c) => (
               <StatCard key={c.type} icon={c.icon} tone={c.tone} value={c.value} label={c.label} change={c.change} changeDir="neutral" />
             ))}
@@ -138,32 +143,33 @@ export default function NetworthPage() {
       )}
 
       {/* 추이 막대 + 부채 테이블 */}
-      <div className="grid-2 mb-6">
-        <div className="card">
-          <div className="card-header"><span className="card-title">순자산 추이 (6개월)</span></div>
-          <div className="card-body">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+        <Card>
+          <CardHeader><CardTitle>순자산 추이 (6개월)</CardTitle></CardHeader>
+          <CardBody>
             <div className="bars">
               {trend.map((t) => (
                 <div
                   key={t.month}
                   className={`bar${t.current ? ' current' : ''}`}
-                  style={{ height: `${Math.round((t.netWorth / maxTrend) * 100)}%` } as CSSProperties}
+                  style={{ height: `${Math.round((t.netWorth / maxTrend) * 100)}%` }}
                 >
                   <span>{millionsLabel(t.netWorth)}</span>
                   <small>{t.label}</small>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
 
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">부채</span>
-            <span className="badge badge-danger">{summary ? wonM(summary.totalDebt) : '-'}</span>
-          </div>
-          <div className="card-body flush">
-            <div className="table-wrap">
+        <Card>
+          <CardHeader>
+            <CardTitle>부채</CardTitle>
+            <Badge tone="danger">{summary ? wonM(summary.totalDebt) : '-'}</Badge>
+          </CardHeader>
+          <CardBody flush>
+            {/* 데스크톱 테이블 */}
+            <div className="table-wrap max-md:hidden">
               <table>
                 <thead>
                   <tr>
@@ -181,9 +187,9 @@ export default function NetworthPage() {
                       <td className="td-mono td-right">{won(d.amount)}</td>
                       <td className="td-right">{d.interestRate !== null ? `${d.interestRate}%` : '-'}</td>
                       <td className="td-center">
-                        <div className="row-actions">
-                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setModal({ open: true, mode: 'edit', editing: d })}>수정</button>
-                          <button type="button" className="btn btn-danger btn-sm" onClick={() => remove(d.id)}>삭제</button>
+                        <div className="flex justify-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => setModal({ open: true, mode: 'edit', editing: d })}>수정</Button>
+                          <Button variant="danger" size="sm" onClick={() => remove(d.id)}>삭제</Button>
                         </div>
                       </td>
                     </tr>
@@ -191,8 +197,26 @@ export default function NetworthPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
+
+            {/* 모바일 카드 */}
+            <div className="hidden max-md:flex flex-col gap-2.5 p-3">
+              {debts.length === 0 && <div className="text-center text-muted py-7">부채가 없습니다.</div>}
+              {debts.map((d) => (
+                <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={d.id}>
+                  <div className="flex justify-between items-baseline gap-2.5">
+                    <span className="font-semibold text-[0.95rem] break-all">{d.name}</span>
+                    <span className="font-bold text-base whitespace-nowrap [font-family:var(--font-mono)]">{won(d.amount)}</span>
+                  </div>
+                  <div className="mt-2 text-[0.78rem] text-secondary">금리 {d.interestRate !== null ? `${d.interestRate}%` : '-'}</div>
+                  <div className="flex gap-2 mt-3">
+                    <Button variant="ghost" className="flex-1" onClick={() => setModal({ open: true, mode: 'edit', editing: d })}>수정</Button>
+                    <Button variant="danger" className="flex-1" onClick={() => remove(d.id)}>삭제</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
       </div>
 
       {confirmElement}
@@ -262,12 +286,7 @@ function AssetModal({ state, onClose, onSaved }: { state: { open: boolean; mode:
       open={state.open}
       onClose={onClose}
       title={state.mode === 'edit' ? '자산 수정' : '자산 추가'}
-      footer={
-        <>
-          <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>취소</button>
-          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? '저장 중...' : '저장'}</button>
-        </>
-      }
+      footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}
     >
       <Field label="자산 유형" required>
         <select className="input" aria-label="자산 유형" value={type} onChange={(ev) => setType(ev.target.value as AssetType)}>
@@ -277,7 +296,7 @@ function AssetModal({ state, onClose, onSaved }: { state: { open: boolean; mode:
       <Field label="자산명" required error={errors.name}>
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 신한 입출금 계좌" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />
       </Field>
-      <div className="form-grid-2">
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="금액 (원)" required error={errors.amount}>
           <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }} />
         </Field>
@@ -285,16 +304,5 @@ function AssetModal({ state, onClose, onSaved }: { state: { open: boolean; mode:
       </div>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="기관/계좌 등" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
     </Modal>
-  );
-}
-
-// 입력 그룹 (라벨 + 입력요소). label 로 감싸 입력요소에 접근성 이름을 연결한다.
-function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
-  return (
-    <label className="input-group">
-      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
-      {children}
-      {error && <span className="field-error">{error}</span>}
-    </label>
   );
 }
