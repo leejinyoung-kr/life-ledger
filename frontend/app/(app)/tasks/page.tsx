@@ -4,13 +4,18 @@
  * 할일/목표 페이지.
  * 운영 todo(체크 토글)와 저축·자산 목표(진행바)를 2단으로 함께 추적한다.
  * 데이터는 백엔드 API(/tasks, /goals)와 연동한다.
+ * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Badge/Field). 진행바(track/fill)는 공통 globals.
  */
-import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Modal from '@/components/Modal';
-import { IconCheck, IconPlus } from '@/components/icons';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Field, ModalFooter } from '@/components/ui/Field';
+import { IconCheck } from '@/components/icons';
 import { api } from '@/lib/api';
 import {
   PRIORITY_OPTIONS, formatDue, isSoon, formatGoalValue,
@@ -62,66 +67,69 @@ export default function TasksPage() {
 
   return (
     <AppShell activePath="/tasks" topbarLabel="할일 / 목표">
-      <div className="page-header">
+      <div className="mb-7 flex items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">할일 / 목표</h1>
-          <p className="page-subtitle">운영 todo 와 저축·자산 목표를 함께 추적합니다.</p>
+          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">할일 / 목표</h1>
+          <p className="text-sm text-secondary mt-1.5">운영 todo 와 저축·자산 목표를 함께 추적합니다.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setAddModal(true)}>
-          <IconPlus width={13} height={13} />할일 추가
-        </button>
+        <Button onClick={() => setAddModal(true)}>할일 추가</Button>
       </div>
 
-      {error && <p className="ledger-note is-error">⚠️ {error}</p>}
+      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
 
-      <div className="tg-layout">
+      <div className="grid grid-cols-1 min-[900px]:grid-cols-2 gap-5 items-start">
         {/* 할 일 */}
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">할 일</span>
-            <div className="flex-center gap-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>할 일</CardTitle>
+            <div className="flex items-center gap-2">
               <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
-              <span className="badge badge-neutral">{doneCount} / {tasks.length} 완료</span>
+              <Badge tone="neutral">{doneCount} / {tasks.length} 완료</Badge>
             </div>
-          </div>
-          <div className="card-list">
-            {pagedTasks.length === 0 && <div className="task-item"><div className="task-text td-muted">할 일이 없습니다.</div></div>}
+          </CardHeader>
+          <div>
+            {pagedTasks.length === 0 && <div className="px-4 py-3 text-[0.875rem] text-muted">할 일이 없습니다.</div>}
             {pagedTasks.map((task) => (
-              <div className={`task-item${task.done ? ' done' : ''}`} key={task.id}>
-                <button type="button" className={`task-check${task.done ? ' done' : ''}`} onClick={() => toggleTask(task.id)} aria-label="완료 토글">
+              <div className="flex items-start gap-3 px-4 py-3 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface" key={task.id}>
+                <button
+                  type="button"
+                  className={`w-[18px] h-[18px] border-2 rounded-[5px] shrink-0 mt-px cursor-pointer flex items-center justify-center text-white ${task.done ? 'bg-accent border-accent' : 'border-border bg-transparent'}`}
+                  onClick={() => toggleTask(task.id)}
+                  aria-label="완료 토글"
+                >
                   {task.done && <IconCheck width={11} height={11} />}
                 </button>
-                <div className="task-text">{task.text}</div>
-                <div className={`task-due${isSoon(task) ? ' soon' : ''}`}>{formatDue(task)}</div>
+                <div className={`flex-1 text-[0.875rem] ${task.done ? 'text-muted line-through' : 'text-primary'}`}>{task.text}</div>
+                <div className={`text-[0.72rem] ${isSoon(task) ? 'text-warning font-semibold' : 'text-muted'}`}>{formatDue(task)}</div>
               </div>
             ))}
           </div>
           <Pagination page={page} totalPages={totalPages} totalItems={tasks.length} onPageChange={setPage} />
-        </div>
+        </Card>
 
         {/* 목표 */}
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">목표</span>
-            <span className="badge badge-success">{goals.length}건 진행중</span>
-          </div>
-          <div className="card-list">
-            {goals.length === 0 && <div className="goal-card td-muted">목표가 없습니다.</div>}
+        <Card>
+          <CardHeader>
+            <CardTitle>목표</CardTitle>
+            <Badge tone="success">{goals.length}건 진행중</Badge>
+          </CardHeader>
+          <div>
+            {goals.length === 0 && <div className="px-5 py-4 text-[0.875rem] text-muted">목표가 없습니다.</div>}
             {goals.map((goal) => (
-              <div className="goal-card" key={goal.id}>
-                <div className="goal-top">
-                  <span className="goal-name">{goal.name}</span>
-                  <span className="goal-pct">{goal.pct}%</span>
+              <div className="px-5 py-4 border-b border-border-subtle last:border-b-0" key={goal.id}>
+                <div className="flex justify-between items-baseline mb-2">
+                  <span className="font-semibold text-[0.9rem] text-primary">{goal.name}</span>
+                  <span className="[font-family:var(--font-display)] font-bold text-accent">{goal.pct}%</span>
                 </div>
-                <div className="track"><div className={`fill ${goal.tone}`} style={{ width: `${goal.pct}%` } as CSSProperties} /></div>
-                <div className="goal-amt">
+                <div className="track"><div className={`fill ${goal.tone}`} style={{ width: `${goal.pct}%` }} /></div>
+                <div className="flex justify-between text-[0.78rem] text-muted mt-1.5">
                   <span>{formatGoalValue(goal.unit, goal.currentVal)}</span>
                   <span>목표 {formatGoalValue(goal.unit, goal.targetVal)}</span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* 할일 추가 모달 */}
@@ -166,21 +174,11 @@ function AddTaskModal({ open, onClose, onSaved }: { open: boolean; onClose: () =
   }
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="할일 추가"
-      footer={
-        <>
-          <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>취소</button>
-          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? '저장 중...' : '저장'}</button>
-        </>
-      }
-    >
+    <Modal open={open} onClose={onClose} title="할일 추가" footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="내용" required error={errors.text}>
         <input type="text" className={`input${errors.text ? ' is-invalid' : ''}`} placeholder="예: 자동차 보험 갱신" value={text} onChange={(e) => { setText(e.target.value); setErrors((p) => { const n = { ...p }; delete n.text; return n; }); }} />
       </Field>
-      <div className="form-grid-2">
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="마감일"><input type="date" className="input" aria-label="마감일" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></Field>
         <Field label="우선순위" required>
           <select className="input" aria-label="우선순위" value={priority} onChange={(e) => setPriority(e.target.value as TaskPriority)}>
@@ -190,16 +188,5 @@ function AddTaskModal({ open, onClose, onSaved }: { open: boolean; onClose: () =
       </div>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 메모" value={memo} onChange={(e) => setMemo(e.target.value)} /></Field>
     </Modal>
-  );
-}
-
-// 입력 그룹 (라벨 + 입력요소). label 로 감싸 입력요소에 접근성 이름을 연결한다.
-function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
-  return (
-    <label className="input-group">
-      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
-      {children}
-      {error && <span className="field-error">{error}</span>}
-    </label>
   );
 }
