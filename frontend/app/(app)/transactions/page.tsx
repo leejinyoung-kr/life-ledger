@@ -397,7 +397,7 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
-      <div className="card flush">
+      <div className="card flush tx-table-card">
         <div className="table-wrap">
           <table>
             <colgroup>
@@ -438,6 +438,28 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
             </tbody>
           </table>
         </div>
+
+        {/* 모바일 카드 (강조형) */}
+        <div className="tx-cards">
+          {pagedRows.length === 0 && <div className="tx-card-empty">내역이 없습니다.</div>}
+          {pagedRows.map((row) => (
+            <div className="tx-card" key={row.id}>
+              <div className="tx-card-top">
+                <span className="tx-card-title">{row.title}</span>
+                <span className={`tx-card-amount amount-${row.type}`}>{signedWon(row.type, row.amount)}</span>
+              </div>
+              <div className="tx-card-sub">
+                <span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span>
+                <span className="cat-chip">{catMap[row.category] ?? row.category}</span>
+                {row.type === 'expense' && <span>{row.payMethod}</span>}
+                <span>{dotDate(row.date)}</span>
+                {row.memo && <span>· {row.memo}</span>}
+              </div>
+              <CardActions onEdit={() => onEdit(row)} onDelete={() => remove(row.id)} />
+            </div>
+          ))}
+        </div>
+
         <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
       </div>
       {confirmElement}
@@ -520,7 +542,7 @@ function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloa
         <span className="table-count">총 {filtered.length}건</span>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
-      <div className="card flush mb-4">
+      <div className="card flush mb-4 tx-table-card">
         <div className="table-wrap">
           <table>
             <colgroup>
@@ -570,6 +592,37 @@ function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloa
             </tbody>
           </table>
         </div>
+
+        {/* 모바일 카드 (강조형) */}
+        <div className="tx-cards">
+          {paged.length === 0 && <div className="tx-card-empty">예적금 내역이 없습니다.</div>}
+          {paged.map((c) => {
+            const dleft = daysUntil(c.maturityDate);
+            const near = dleft !== null && dleft >= 0 && dleft <= 30;
+            return (
+              <div className="tx-card" key={c.id}>
+                <div className="tx-card-top">
+                  <span className="tx-card-title">{c.name}</span>
+                  <span className="tx-card-amount">{won(c.balance)}</span>
+                </div>
+                <div className="tx-card-sub">
+                  <span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span>
+                  <span>{c.bank}</span>
+                  <span className="savings-meta-value accent">{c.interestRate}%</span>
+                  {c.monthlyAmount > 0 && <span>월 {won(c.monthlyAmount)}</span>}
+                  <span>{dotDate(c.startDate)} 가입</span>
+                  {c.maturityDate && (
+                    <span className={near ? 'savings-meta-value warning' : undefined}>
+                      만기 {dotDate(c.maturityDate)}{near ? ` ⚠️ D-${dleft}` : ''}
+                    </span>
+                  )}
+                </div>
+                <CardActions onEdit={() => onEdit(c)} onDelete={() => remove(c.id)} />
+              </div>
+            );
+          })}
+        </div>
+
         <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
       </div>
         </>);
@@ -654,7 +707,7 @@ function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reload
         <span className="table-count">총 {filtered.length}건</span>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
-      <div className="card flush mb-6">
+      <div className="card flush mb-6 tx-table-card">
         <div className="table-wrap">
           <table>
             <colgroup>
@@ -699,6 +752,31 @@ function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reload
             </tbody>
           </table>
         </div>
+
+        {/* 모바일 카드 (강조형) */}
+        <div className="tx-cards">
+          {paged.length === 0 && <div className="tx-card-empty">투자 항목이 없습니다.</div>}
+          {paged.map((row) => {
+            const up = row.profit >= 0;
+            return (
+              <div className="tx-card" key={row.id}>
+                <div className="tx-card-top">
+                  <span className="tx-card-title">{row.name}</span>
+                  <span className="tx-card-amount">{won(row.currentValue)}</span>
+                </div>
+                <div className="tx-card-sub">
+                  <span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span>
+                  <span>원금 {won(row.principal)}</span>
+                  <span className={`amount-${up ? 'income' : 'expense'}`}>{up ? '+' : '-'}{won(row.profit)}</span>
+                  <span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span>
+                  {row.memo && <span>· {row.memo}</span>}
+                </div>
+                <CardActions onEdit={() => onEdit(row)} onDelete={() => remove(row.id)} />
+              </div>
+            );
+          })}
+        </div>
+
         <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
       </div>
         </>);
@@ -713,6 +791,16 @@ function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => 
     <div className="row-actions">
       <button type="button" className="btn btn-ghost btn-icon" onClick={onEdit} aria-label="수정"><IconEdit width={14} height={14} /></button>
       <button type="button" className="btn btn-danger btn-icon" onClick={onDelete} aria-label="삭제"><IconTrash width={14} height={14} /></button>
+    </div>
+  );
+}
+
+// 모바일 카드 하단 풀폭 수정/삭제 버튼
+function CardActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+  return (
+    <div className="tx-card-actions">
+      <button type="button" className="btn btn-ghost" onClick={onEdit}><IconEdit width={14} height={14} /> 수정</button>
+      <button type="button" className="btn btn-danger" onClick={onDelete}><IconTrash width={14} height={14} /> 삭제</button>
     </div>
   );
 }

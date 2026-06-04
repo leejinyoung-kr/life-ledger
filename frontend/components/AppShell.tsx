@@ -52,7 +52,7 @@ export default function AppShell({
       <div className="app-shell">
         <Sidebar activePath={activePath} open={sidebarOpen} onLogout={handleLogout} />
         <div className="main-content">
-          <TopBar label={topbarLabel} onToggleSidebar={toggleSidebar} />
+          <TopBar label={topbarLabel} />
           {bare ? children : <div className="page-body">{children}</div>}
         </div>
       </div>

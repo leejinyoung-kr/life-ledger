@@ -2,20 +2,19 @@
 
 /**
  * 공통 상단 헤더 바.
- * 좌측: 햄버거(모바일 사이드바 토글) + 기간 라벨, 중앙: 통합 검색, 우측: 다크토글/알림.
+ * 좌측: 기간 라벨, 중앙: 통합 검색, 우측: 다크토글/알림.
+ * 모바일 메뉴 진입은 하단 내비 '더보기'로 일원화 — 상단 햄버거는 두지 않는다.
  */
 import { useState, useEffect } from 'react';
 import GlobalSearch from './GlobalSearch';
-import { IconMenu, IconBell } from './icons';
+import { IconBell } from './icons';
 
 interface TopBarProps {
   /** 좌측 보조 라벨 (예: '2025년 5월') */
   label?: string;
-  /** 햄버거 클릭 (모바일 사이드바 토글) */
-  onToggleSidebar?: () => void;
 }
 
-export default function TopBar({ label, onToggleSidebar }: TopBarProps) {
+export default function TopBar({ label }: TopBarProps) {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
@@ -41,9 +40,6 @@ export default function TopBar({ label, onToggleSidebar }: TopBarProps) {
   return (
     <div className="top-bar">
       <div className="top-bar-left">
-        <button type="button" className="hamburger" onClick={onToggleSidebar} aria-label="메뉴">
-          <IconMenu width={18} height={18} />
-        </button>
         {label && <span className="topbar-label">{label}</span>}
       </div>
 
