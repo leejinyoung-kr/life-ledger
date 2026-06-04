@@ -92,7 +92,7 @@ export interface Investment {
   currentValue: number;
   profit: number;
   profitRate: number;
-  purchaseDate: string;
+  purchaseDate: string | null;
   memo: string | null;
 }
 

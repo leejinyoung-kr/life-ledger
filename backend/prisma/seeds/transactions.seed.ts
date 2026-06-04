@@ -77,7 +77,8 @@ export const seedTransactions: SeedFn = async (prisma, userId) => {
         title: t.title,
         category: t.category,
         amount: t.amount,
-        pay_method: t.payMethod,
+        // 결제수단은 지출에만 의미 — 수입/자산이동은 빈값 저장
+        pay_method: t.type === 'expense' ? t.payMethod : '',
         memo: t.memo ?? null,
         is_recurring: t.recurring ?? false,
         recurring_rule: t.recurring

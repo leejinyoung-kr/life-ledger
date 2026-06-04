@@ -24,8 +24,10 @@ export class CreateInvestmentDto {
   @IsNumber()
   currentValue: number;
 
+  // 최초 매수일 — 과거 매수일을 모를 수 있어 선택값
+  @IsOptional()
   @IsDateString()
-  purchaseDate: string;
+  purchaseDate?: string;
 
   @IsOptional()
   @IsString()

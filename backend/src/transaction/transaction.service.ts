@@ -225,7 +225,7 @@ export class TransactionService {
         title: dto.title,
         category: dto.category,
         amount: new Prisma.Decimal(dto.amount),
-        pay_method: dto.payMethod,
+        pay_method: dto.payMethod ?? '',
         memo: dto.memo,
         is_recurring: dto.isRecurring ?? false,
         recurring_rule: dto.isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
@@ -289,7 +289,8 @@ export class TransactionService {
       if (!type) bad.push('유형');
       if (!category) bad.push('카테고리');
       if (!title) bad.push('내역');
-      if (!payMethod) bad.push('결제수단');
+      // 결제수단은 지출일 때만 필수
+      if (type === 'expense' && !payMethod) bad.push('결제수단');
       if (amount == null) bad.push('금액');
       if (!date) bad.push('날짜');
       if (bad.length) {
@@ -305,7 +306,8 @@ export class TransactionService {
         title,
         category: category!,
         amount: new Prisma.Decimal(amount!),
-        pay_method: payMethod,
+        // 지출만 결제수단 저장 — 수입/자산이동은 빈값
+        pay_method: type === 'expense' ? payMethod : '',
         memo: memo || null,
         is_recurring: false,
         recurring_rule: Prisma.JsonNull,

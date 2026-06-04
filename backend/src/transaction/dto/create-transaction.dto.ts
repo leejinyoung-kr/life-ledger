@@ -29,9 +29,11 @@ export class CreateTransactionDto {
   @IsNumber()
   amount: number;
 
+  // 결제수단 — 지출에만 의미. 수입/자산이동이면 미입력(빈값 저장)
+  @IsOptional()
   @IsString()
   @MaxLength(50)
-  payMethod: string;
+  payMethod?: string;
 
   @IsOptional()
   @IsString()

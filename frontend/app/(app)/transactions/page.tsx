@@ -768,7 +768,10 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: { open: b
     setSaving(true);
     try {
       const payload = {
-        type, date, title, category, amount: Number(amount), payMethod, memo: memo || undefined,
+        type, date, title, category, amount: Number(amount),
+        // 결제수단은 지출에만 의미 — 수입/자산이동이면 미전송
+        payMethod: type === 'expense' ? payMethod : undefined,
+        memo: memo || undefined,
         isRecurring,
         recurringRule: isRecurring ? { cycle: recurringCycle, day: recurringDay, weekendAdjust } : undefined,
       };
@@ -806,11 +809,14 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: { open: b
           <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }} />
         </Field>
       </div>
-      <Field label="결제수단" required>
-        <select className="input" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
-          {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
-        </select>
-      </Field>
+      {/* 결제수단은 지출일 때만 노출·필수 — 수입/자산이동엔 의미 없음 */}
+      {type === 'expense' && (
+        <Field label="결제수단" required>
+          <select className="input" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
+            {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </Field>
+      )}
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
 
       <div className="recur-block">
@@ -883,7 +889,6 @@ function SavingsModal({ state, onClose, onSaved }: { state: { open: boolean; mod
     const err: Record<string, string> = {};
     if (!bank.trim()) err.bank = '은행/기관을 입력하세요.';
     if (!name.trim()) err.name = '상품명을 입력하세요.';
-    if (!interestRate) err.interestRate = '금리를 입력하세요.';
     if (!startDate) err.startDate = '가입일을 선택하세요.';
     setErrors(err);
     return !Object.keys(err).length;
@@ -897,9 +902,12 @@ function SavingsModal({ state, onClose, onSaved }: { state: { open: boolean; mod
     try {
       const payload = {
         bank, name, type,
-        interestRate: Number(interestRate), monthlyAmount: Number(monthlyAmount || 0),
+        // 금리·월납입·잔액은 선택 — 빈값이면 미전송(백엔드 기본 0)
+        interestRate: interestRate ? Number(interestRate) : undefined,
+        monthlyAmount: monthlyAmount ? Number(monthlyAmount) : undefined,
         startDate, maturityDate: maturityDate || undefined,
-        balance: Number(balance || 0), memo: memo || undefined,
+        balance: balance ? Number(balance) : undefined,
+        memo: memo || undefined,
       };
       if (state.mode === 'edit' && e) await api.put(`/savings/${e.id}`, payload);
       else await api.post('/savings', payload);
@@ -926,8 +934,8 @@ function SavingsModal({ state, onClose, onSaved }: { state: { open: boolean; mod
         </select>
       </Field>
       <div className="form-grid-2">
-        <Field label="금리 (%)" required error={errors.interestRate}>
-          <input type="number" className={`input${errors.interestRate ? ' is-invalid' : ''}`} placeholder="3.5" step="0.1" value={interestRate} onChange={(ev) => { setInterestRate(ev.target.value); clearErr('interestRate'); }} />
+        <Field label="금리 (%)">
+          <input type="number" className="input" placeholder="3.5" step="0.1" value={interestRate} onChange={(ev) => setInterestRate(ev.target.value)} />
         </Field>
         <Field label="월 납입액 (원)"><input type="number" className="input" placeholder="200000" value={monthlyAmount} onChange={(ev) => setMonthlyAmount(ev.target.value)} /></Field>
       </div>
@@ -981,7 +989,7 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
     if (!validate()) return;
     setSaving(true);
     try {
-      const payload = { name, type, principal: Number(principal || 0), currentValue: Number(currentValue || 0), purchaseDate, memo: memo || undefined };
+      const payload = { name, type, principal: Number(principal || 0), currentValue: Number(currentValue || 0), purchaseDate: purchaseDate || undefined, memo: memo || undefined };
       if (state.mode === 'edit' && e) await api.put(`/investments/${e.id}`, payload);
       else await api.post('/investments', payload);
       toast.success(state.mode === 'edit' ? '투자 항목이 수정됐습니다.' : '투자 항목이 추가됐습니다.');

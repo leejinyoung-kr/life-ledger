@@ -119,7 +119,7 @@ model Investment {
   type          InvestmentType
   principal     Decimal        @db.Decimal(15, 2)
   current_value Decimal        @db.Decimal(15, 2)
-  purchase_date DateTime       @db.Date
+  purchase_date DateTime?      @db.Date
   memo          String?        @db.VarChar(300)
   deleted_at    DateTime?
   created_at    DateTime       @default(now())

@@ -21,7 +21,7 @@ export class InvestmentService {
       currentValue,
       profit,
       profitRate: principal ? Math.round((profit / principal) * 1000) / 10 : 0,
-      purchaseDate: v.purchase_date.toISOString().slice(0, 10),
+      purchaseDate: v.purchase_date ? v.purchase_date.toISOString().slice(0, 10) : null,
       memo: v.memo,
     };
   }
@@ -60,7 +60,7 @@ export class InvestmentService {
         type: dto.type,
         principal: new Prisma.Decimal(dto.principal),
         current_value: new Prisma.Decimal(dto.currentValue),
-        purchase_date: new Date(dto.purchaseDate),
+        purchase_date: dto.purchaseDate ? new Date(dto.purchaseDate) : null,
         memo: dto.memo,
       },
     });

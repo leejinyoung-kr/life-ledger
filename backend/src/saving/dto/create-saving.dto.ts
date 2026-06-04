@@ -20,13 +20,15 @@ export class CreateSavingDto {
   @IsEnum(SavingType)
   type: SavingType;
 
-  // 금리(%)
+  // 금리(%) — 청약/기타는 금리 개념이 없을 수 있어 선택값(미입력 시 0)
+  @IsOptional()
   @IsNumber()
-  interestRate: number;
+  interestRate?: number;
 
-  // 월 납입액(원)
+  // 월 납입액(원) — 예금 등 월납입 없는 상품 고려 선택값(미입력 시 0)
+  @IsOptional()
   @IsNumber()
-  monthlyAmount: number;
+  monthlyAmount?: number;
 
   @IsDateString()
   startDate: string;
@@ -35,9 +37,10 @@ export class CreateSavingDto {
   @IsDateString()
   maturityDate?: string;
 
-  // 현재 잔액(원)
+  // 현재 잔액(원) — 신규 가입 직후 0 가능, 선택값(미입력 시 0)
+  @IsOptional()
   @IsNumber()
-  balance: number;
+  balance?: number;
 
   @IsOptional()
   @IsString()
