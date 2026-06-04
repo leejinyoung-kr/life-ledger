@@ -10,6 +10,7 @@ import { useState, type ReactNode } from 'react';
 import AppShell from '@/components/AppShell';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import Toggle from '@/components/ui/Toggle';
 import { Card, CardBody } from '@/components/ui/Card';
 import { IconCube } from '@/components/icons';
 
@@ -57,13 +58,7 @@ export default function AiReportPage() {
         <div className="flex items-center gap-2">
           <span className="text-[0.82rem] text-secondary">매월 1일 자동 생성</span>
           {/* TODO: 자동 생성 설정 저장 API 연동 */}
-          <button
-            type="button"
-            className={`relative w-11 h-6 rounded-full border transition-colors shrink-0 cursor-pointer after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:w-4 after:h-4 after:rounded-full after:transition-transform ${autoMonthly ? 'bg-accent border-accent after:translate-x-5 after:bg-white' : 'bg-elevated border-border after:bg-muted'}`}
-            onClick={() => setAutoMonthly((v) => !v)}
-            aria-label="매월 자동 생성 토글"
-            aria-pressed={autoMonthly}
-          />
+          <Toggle on={autoMonthly} onToggle={() => setAutoMonthly((v) => !v)} label="매월 자동 생성 토글" />
         </div>
       </div>
 

@@ -4,10 +4,14 @@
  * 설정 페이지.
  * 좌측 탭(프로필/예산/카테고리/보안/API키/위젯/데이터)으로 분기하며,
  * 토글·위젯 드래그 정렬을 지원한다. 데이터는 백엔드 API(/settings)와 연동한다.
+ * 스타일: Tailwind + 공통 컴포넌트(Button/Badge/Toggle).
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import Toggle from '@/components/ui/Toggle';
 import { IconWon, IconBars, IconClock, IconZap, IconLock, IconCube, IconDrag } from '@/components/icons';
 import { api } from '@/lib/api';
 import {
@@ -41,8 +45,11 @@ const DEFAULT_WIDGETS: WidgetPref[] = [
   { id: 'cred-count', on: false }, { id: 'ai-summary', on: false },
 ];
 
-// stat-icon 색 클래스로 매핑 (위젯 아이콘 배경)
-const toneClass = (tone: string) => (tone === 'muted' || tone === 'accent' ? `widget-icon ${tone}` : `widget-icon stat-icon ${tone}`);
+// 위젯 아이콘 배경색 (tone → Tailwind)
+const WIDGET_ICON_BG: Record<string, string> = {
+  green: 'bg-accent-dim text-accent', amber: 'bg-amber-dim text-amber', blue: 'bg-blue-dim text-blue',
+  red: 'bg-danger-dim text-danger', muted: 'bg-elevated text-secondary', accent: 'bg-accent-dim text-accent',
+};
 
 export default function SettingsPage() {
   const [tab, setTab] = useState<TabId>('profile');
@@ -92,8 +99,8 @@ export default function SettingsPage() {
   if (!s) {
     return (
       <AppShell activePath="/settings" topbarLabel="설정">
-        <div className="page-header"><h1 className="page-title">설정</h1></div>
-        {error ? <p className="ledger-note is-error">⚠️ {error}</p> : <p className="muted-note">불러오는 중...</p>}
+        <div className="mb-7"><h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">설정</h1></div>
+        {error ? <p className="mt-3 text-[0.78rem] text-danger">⚠️ {error}</p> : <p className="text-[0.82rem] text-secondary">불러오는 중...</p>}
       </AppShell>
     );
   }
@@ -141,39 +148,37 @@ export default function SettingsPage() {
 
   return (
     <AppShell activePath="/settings" topbarLabel="설정">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">설정</h1>
-          <p className="page-subtitle">계정, 보안, 예산, 대시보드 위젯 등을 관리합니다.</p>
-        </div>
+      <div className="mb-7">
+        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">설정</h1>
+        <p className="text-sm text-secondary mt-1.5">계정, 보안, 예산, 대시보드 위젯 등을 관리합니다.</p>
       </div>
 
-      {error && <p className="ledger-note is-error">⚠️ {error}</p>}
+      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
 
-      <div className="settings-layout">
+      <div className="grid grid-cols-[192px_1fr] gap-7 items-start max-md:grid-cols-1">
         {/* 탭 네비 */}
-        <div className="settings-nav">
+        <div className="bg-background border border-border rounded-[var(--radius-lg)] p-2.5 flex flex-col gap-0.5 sticky top-[calc(var(--header-h)+28px)] shadow-[var(--shadow-sm)] max-md:static max-md:flex-row max-md:flex-wrap">
           {TABS.map((t) => (
-            <button key={t.id} type="button" className={`s-nav-item${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
+            <button key={t.id} type="button" className={`px-3 py-2 rounded-[var(--radius)] text-[0.855rem] cursor-pointer transition-all font-medium text-left ${tab === t.id ? 'bg-accent-dim text-accent font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`} onClick={() => setTab(t.id)}>{t.label}</button>
           ))}
         </div>
 
-        <div className="settings-section">
+        <div className="flex flex-col gap-4">
           {/* ── 프로필 ── */}
           {tab === 'profile' && (
             <>
               <Group title="내 계정">
-                <div className="profile-area">
-                  <div className="avatar-big">{(s.displayName || s.user.name || '?').charAt(0)}</div>
+                <div className="flex items-center gap-5 p-5">
+                  <div className="w-[60px] h-[60px] rounded-full bg-accent-dim border-2 border-accent flex items-center justify-center [font-family:var(--font-display)] text-[1.4rem] font-extrabold text-accent shrink-0">{(s.displayName || s.user.name || '?').charAt(0)}</div>
                   <div>
-                    <div className="profile-name">{s.displayName}</div>
-                    <div className="profile-email">{s.user.email}</div>
-                    <div className="profile-badge"><span className="badge badge-success">Google 연결됨</span></div>
+                    <div className="font-semibold text-primary text-[0.95rem]">{s.displayName}</div>
+                    <div className="text-[0.82rem] text-muted mt-0.5">{s.user.email}</div>
+                    <div className="mt-2.5"><Badge tone="success">Google 연결됨</Badge></div>
                   </div>
                 </div>
                 <Row label="표시 이름" desc="대시보드 상단에 표시되는 이름">
-                  <input type="text" className="input w-180" value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="표시 이름" />
-                  <button type="button" className="btn btn-ghost" onClick={() => patch({ displayName })}>저장</button>
+                  <input type="text" className="input w-[180px]" value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="표시 이름" />
+                  <Button variant="ghost" onClick={() => patch({ displayName })}>저장</Button>
                 </Row>
               </Group>
               <Group title="알림">
@@ -196,7 +201,7 @@ export default function SettingsPage() {
               {Object.keys(BUDGET_LABEL).map((code) => (
                 <Row key={code} label={BUDGET_LABEL[code]}>
                   <input
-                    type="number" className="input w-140"
+                    type="number" className="input w-[140px]"
                     value={budgets[code] ?? 0}
                     onChange={(e) => setBudgets((b) => ({ ...b, [code]: Number(e.target.value) }))}
                     aria-label={`${BUDGET_LABEL[code]} 예산`}
@@ -204,18 +209,17 @@ export default function SettingsPage() {
                   <span className="text-muted">원</span>
                 </Row>
               ))}
-              <div className="settings-row end">
-                <button type="button" className="btn btn-primary" onClick={() => patch({ budgets })}>저장</button>
+              <div className="flex items-center justify-end px-5 py-3.5">
+                <Button onClick={() => patch({ budgets })}>저장</Button>
               </div>
             </Group>
           )}
-
 
           {/* ── 보안 ── */}
           {tab === 'security' && (
             <Group title="암호화 설정">
               <Row label="암호화 방식" desc="계정 보관함 비밀번호 암호화 알고리즘">
-                <span className="badge badge-success">AES-256-GCM</span>
+                <Badge tone="success">AES-256-GCM</Badge>
               </Row>
               <Row label="세션 자동 만료" desc="비활성 시간 후 자동 로그아웃">
                 <select className="input w-auto" aria-label="세션 자동 만료" value={s.sessionExpiry} onChange={(e) => patch({ sessionExpiry: e.target.value })}>
@@ -234,11 +238,11 @@ export default function SettingsPage() {
           {tab === 'api' && (
             <Group title="Claude API">
               <Row label="API 키" desc={s.claudeApiKeySet ? `저장됨 (${s.claudeApiKeyMasked})` : 'AI 리포트 생성에 사용됩니다.'}>
-                <input type="password" className="input w-200 input-mono" placeholder={s.claudeApiKeySet ? '변경하려면 입력' : 'sk-ant-api...'} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} aria-label="API 키" />
-                <button type="button" className="btn btn-ghost" onClick={() => patch({ claudeApiKey: apiKeyInput || undefined }).then(() => setApiKeyInput(''))}>저장</button>
+                <input type="password" className="input w-[200px] [font-family:var(--font-mono)]" placeholder={s.claudeApiKeySet ? '변경하려면 입력' : 'sk-ant-api...'} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} aria-label="API 키" />
+                <Button variant="ghost" onClick={() => patch({ claudeApiKey: apiKeyInput || undefined }).then(() => setApiKeyInput(''))}>저장</Button>
               </Row>
               <Row label="모델" desc="리포트 생성에 사용할 Claude 모델">
-                <select className="input w-200 input-mono" aria-label="모델" value={claudeModel} onChange={(e) => { setClaudeModel(e.target.value); patch({ claudeModel: e.target.value }); }}>
+                <select className="input w-[200px] [font-family:var(--font-mono)]" aria-label="모델" value={claudeModel} onChange={(e) => { setClaudeModel(e.target.value); patch({ claudeModel: e.target.value }); }}>
                   {CLAUDE_MODEL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </Row>
@@ -249,24 +253,24 @@ export default function SettingsPage() {
           {tab === 'widgets' && (
             <>
               <Group title="대시보드 위젯 표시 설정">
-                <p className="settings-note">표시할 위젯을 켜고 끌 수 있습니다. 드래그로 순서를 변경하세요.</p>
+                <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">표시할 위젯을 켜고 끌 수 있습니다. 드래그로 순서를 변경하세요.</p>
                 {widgets.map((w) => {
                   const meta = WIDGET_META[w.id];
                   if (!meta) return null;
                   return (
                     <div
                       key={w.id}
-                      className="widget-item"
+                      className="flex items-center gap-3.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface"
                       draggable
                       onDragStart={() => setDragId(w.id)}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={() => onDrop(w.id)}
                     >
-                      <span className="widget-drag-handle"><IconDrag width={14} height={14} /></span>
-                      <div className={toneClass(meta.tone)}>{meta.icon}</div>
-                      <div className="widget-info">
-                        <div className="widget-name">{meta.name}</div>
-                        <div className="widget-desc">{meta.desc}</div>
+                      <span className="text-muted cursor-grab active:cursor-grabbing shrink-0 flex"><IconDrag width={14} height={14} /></span>
+                      <div className={`w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 ${WIDGET_ICON_BG[meta.tone]}`}>{meta.icon}</div>
+                      <div className="flex-1">
+                        <div className="text-[0.875rem] font-medium text-primary">{meta.name}</div>
+                        <div className="text-[0.775rem] text-muted mt-0.5">{meta.desc}</div>
                       </div>
                       <Toggle on={w.on} onToggle={() => toggleWidget(w.id)} />
                     </div>
@@ -275,19 +279,19 @@ export default function SettingsPage() {
               </Group>
 
               <Group title="위젯 미리보기">
-                <div className="widget-preview">
+                <div className="grid grid-cols-2 gap-2.5 px-5 py-4">
                   {widgets.map((w) => {
                     const meta = WIDGET_META[w.id];
                     if (!meta) return null;
-                    return <div key={w.id} className={`widget-preview-card${w.on ? '' : ' off'}`}>{meta.emoji} {meta.short}</div>;
+                    return <div key={w.id} className={`bg-background border border-border rounded-[var(--radius)] px-3 py-2.5 flex items-center gap-2 text-[0.78rem] text-secondary transition-all ${w.on ? '' : 'opacity-35 line-through'}`}>{meta.emoji} {meta.short}</div>;
                   })}
                 </div>
-                <div className="settings-note">실제 구현 시 대시보드에 즉시 반영됩니다.</div>
+                <div className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">실제 구현 시 대시보드에 즉시 반영됩니다.</div>
               </Group>
 
-              <div className="settings-actions">
-                <button type="button" className="btn btn-ghost" onClick={resetWidgets}>초기화</button>
-                <button type="button" className="btn btn-primary" onClick={() => patch({ widgets })}>저장</button>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={resetWidgets}>초기화</Button>
+                <Button onClick={() => patch({ widgets })}>저장</Button>
               </div>
             </>
           )}
@@ -297,20 +301,20 @@ export default function SettingsPage() {
             <>
               <Group title="데이터 내보내기">
                 <Row label="가계부 데이터" desc="전체 거래 내역을 CSV로 다운로드">
-                  <button type="button" className="btn btn-ghost">CSV 다운로드</button>
+                  <Button variant="ghost">CSV 다운로드</Button>
                 </Row>
                 <Row label="계정 보관함" desc="암호화된 JSON 형태로 백업">
-                  <button type="button" className="btn btn-ghost">JSON 백업</button>
+                  <Button variant="ghost">JSON 백업</Button>
                 </Row>
                 <Row label="메모" desc="전체 메모를 마크다운 ZIP으로 다운로드">
-                  <button type="button" className="btn btn-ghost">ZIP 다운로드</button>
+                  <Button variant="ghost">ZIP 다운로드</Button>
                 </Row>
               </Group>
-              <div className="settings-group danger-group">
-                <div className="settings-group-header">위험 구역</div>
+              <div className="bg-background border border-[rgba(240,68,56,0.2)] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">
+                <div className="px-5 py-3.5 border-b border-[rgba(240,68,56,0.15)] [font-family:var(--font-display)] font-bold text-[0.875rem] text-danger bg-danger-dim">위험 구역</div>
                 <Row labelClass="danger" label="계정 삭제" desc="모든 데이터가 영구 삭제됩니다. 되돌릴 수 없습니다.">
                   {/* TODO: 계정 삭제 API 연동 (확인 절차 필수) */}
-                  <button type="button" className="btn btn-danger">계정 삭제</button>
+                  <Button variant="danger">계정 삭제</Button>
                 </Row>
               </div>
             </>
@@ -324,8 +328,8 @@ export default function SettingsPage() {
 // 설정 그룹 (헤더 + 행 묶음)
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="settings-group">
-      <div className="settings-group-header">{title}</div>
+    <div className="bg-background border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">
+      <div className="px-5 py-3.5 border-b border-border [font-family:var(--font-display)] font-bold text-[0.875rem] text-primary bg-surface">{title}</div>
       {children}
     </div>
   );
@@ -334,20 +338,12 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 // 설정 행 (라벨/설명 + 우측 컨트롤)
 function Row({ label, desc, labelClass, children }: { label: string; desc?: string; labelClass?: string; children: ReactNode }) {
   return (
-    <div className="settings-row">
+    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border-subtle last:border-b-0 gap-6">
       <div>
-        <div className={`row-label${labelClass ? ` ${labelClass}` : ''}`}>{label}</div>
-        {desc && <div className="row-desc">{desc}</div>}
+        <div className={`text-[0.875rem] font-medium ${labelClass === 'danger' ? 'text-danger' : 'text-primary'}`}>{label}</div>
+        {desc && <div className="text-[0.78rem] text-muted mt-0.5">{desc}</div>}
       </div>
-      <div className="row-ctrl">{children}</div>
+      <div className="shrink-0 flex items-center gap-2.5">{children}</div>
     </div>
   );
 }
-
-// 토글 스위치 (controlled)
-function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
-  return (
-    <button type="button" className={`toggle${on ? ' on' : ''}`} onClick={onToggle} aria-pressed={on ? 'true' : 'false'} aria-label="토글" />
-  );
-}
-
