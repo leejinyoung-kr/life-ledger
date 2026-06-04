@@ -11,7 +11,7 @@ import Modal from '@/components/Modal';
 import StatCard from '@/components/StatCard';
 import {
   IconWon, IconBank, IconTrendUp, IconDownload, IconFileBlank, IconUpload,
-  IconSearch, IconEdit, IconTrash, IconPlus, IconChart, IconAlertTriangle,
+  IconSearch, IconEdit, IconTrash, IconChart, IconAlertTriangle,
 } from '@/components/icons';
 
 import { toast } from 'sonner';
@@ -83,7 +83,7 @@ export default function TransactionsPage() {
         <Tab active={tab === 'invest'} onClick={() => setTab('invest')} icon={<IconTrendUp />}>투자</Tab>
         <div style={{ flex: 1 }} />
         <button type="button" className="btn btn-primary tabs-add-btn" onClick={openAddModal}>
-          <IconPlus width={13} height={13} />{ADD_LABELS[tab]}
+          {ADD_LABELS[tab]}
         </button>
       </div>
 
@@ -304,6 +304,10 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
         </div>
       )}
 
+      <p className="ledger-note mb-6">
+        💡 <strong>자산이동</strong>은 실소비가 아닌 자산 이동으로 잔액 계산에서 제외됩니다.
+      </p>
+
       <div className="grid-2 mb-6">
         <div className="card">
           <div className="card-header"><span className="card-title">월별 지출 추이</span></div>
@@ -434,14 +438,8 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div className="card flush">
         <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
       </div>
-      <p className="ledger-note">
-        💡 <strong>자산이동</strong>은 실소비가 아닌 자산 이동으로 잔액 계산에서 제외됩니다.
-      </p>
       {confirmElement}
     </>
   );
@@ -572,8 +570,8 @@ function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloa
             </tbody>
           </table>
         </div>
+        <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
       </div>
-      <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
         </>);
       })()}
       {confirmElement}
@@ -701,8 +699,8 @@ function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reload
             </tbody>
           </table>
         </div>
+        <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
       </div>
-      <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
         </>);
       })()}
       {confirmElement}
