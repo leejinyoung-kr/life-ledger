@@ -4,8 +4,9 @@
  * 코드 관리 페이지.
  * 가계부 카테고리·결제수단·신원지갑 종류 등 앱 전역 선택박스 항목을 도메인별로 관리한다.
  * @dnd-kit 으로 드래그 순서 변경 → 순서가 바뀐 항목만 PATCH 호출(최소 요청).
+ * 스타일: Tailwind + 공통 컴포넌트(Button/Card). 드래그 transform 은 dnd-kit inline style.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
@@ -25,6 +26,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
+import Button from '@/components/ui/Button';
+import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { IconDrag, IconPlus } from '@/components/icons';
 import { api } from '@/lib/api';
 
@@ -196,20 +199,18 @@ export default function CodesPage() {
 
   return (
     <AppShell activePath="/codes" topbarLabel="코드 관리">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">코드 관리</h1>
-          <p className="page-subtitle">선택박스 항목을 도메인별로 관리합니다. 드래그로 순서를 변경할 수 있습니다.</p>
-        </div>
+      <div className="mb-7">
+        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">코드 관리</h1>
+        <p className="text-sm text-secondary mt-1.5">선택박스 항목을 도메인별로 관리합니다. 드래그로 순서를 변경할 수 있습니다.</p>
       </div>
 
       {/* 도메인 탭 */}
-      <div className="cat-domain-tabs">
+      <div className="flex gap-1.5 flex-wrap mb-4">
         {DOMAINS.map((d) => (
           <button
             key={d.key}
             type="button"
-            className={`cat-domain-tab${domain === d.key ? ' active' : ''}`}
+            className={`px-3.5 py-1.5 rounded-[var(--radius)] border text-[0.82rem] cursor-pointer transition-all ${domain === d.key ? 'bg-accent border-accent text-white font-semibold' : 'bg-background border-border text-secondary hover:bg-surface hover:text-primary'}`}
             onClick={() => setDomain(d.key)}
           >
             {d.label}
@@ -217,27 +218,25 @@ export default function CodesPage() {
         ))}
       </div>
 
-      <div className="card">
+      <Card>
         {/* 카드 헤더 */}
-        <div className="card-header">
+        <CardHeader>
           <div>
-            <span className="card-title">{currentDomain.label}</span>
-            <span className="codes-domain-desc">{currentDomain.desc}</span>
+            <CardTitle>{currentDomain.label}</CardTitle>
+            <span className="text-[0.78rem] text-muted ml-2.5">{currentDomain.desc}</span>
           </div>
-          <div className="flex-center gap-2">
+          <div className="flex items-center gap-2">
             <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
-            <button type="button" className="btn btn-ghost btn-sm" onClick={seed}>
-              기본값 복원
-            </button>
+            <Button variant="ghost" size="sm" onClick={seed}>기본값 복원</Button>
           </div>
-        </div>
+        </CardHeader>
 
         {/* 항목 목록 (드래그 가능) */}
-        <div className="codes-list">
-          {loading && <p className="codes-empty">불러오는 중...</p>}
+        <div className="border-t border-border-subtle">
+          {loading && <p className="px-5 py-4 text-[0.875rem] text-muted">불러오는 중...</p>}
 
           {!loading && items.length === 0 && (
-            <p className="codes-empty">항목이 없습니다. 추가하거나 기본값을 복원하세요.</p>
+            <p className="px-5 py-4 text-[0.875rem] text-muted">항목이 없습니다. 추가하거나 기본값을 복원하세요.</p>
           )}
 
           <DndContext
@@ -270,11 +269,11 @@ export default function CodesPage() {
         </div>
 
         {/* 추가 폼 */}
-        <div className="codes-add-row">
-          <IconPlus width={14} height={14} className="codes-add-icon" />
+        <div className="flex items-center gap-2 px-5 py-3 border-t border-border-subtle bg-surface">
+          <IconPlus width={14} height={14} className="text-muted shrink-0" />
           <input
             type="text"
-            className="input"
+            className="input flex-1"
             placeholder="코드 (영문, 예: food)"
             value={newCode}
             onChange={(e) => setNewCode(e.target.value)}
@@ -282,19 +281,17 @@ export default function CodesPage() {
           />
           <input
             type="text"
-            className="input codes-add-label"
+            className="input flex-[1.5]"
             placeholder="표시명 (예: 식비)"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && add()}
             aria-label="표시명"
           />
-          <button type="button" className="btn btn-primary" onClick={add} disabled={saving}>
-            추가
-          </button>
+          <Button onClick={add} disabled={saving}>추가</Button>
         </div>
-        <p className="settings-note">코드는 영문 소문자·숫자·언더바만 사용 (예: public_transport)</p>
-      </div>
+        <p className="px-5 pt-3 pb-3 text-[0.82rem] text-muted">코드는 영문 소문자·숫자·언더바만 사용 (예: public_transport)</p>
+      </Card>
       {confirmElement}
     </AppShell>
   );
@@ -323,7 +320,7 @@ function SortableRow({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
 
-  const style = {
+  const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
@@ -331,14 +328,14 @@ function SortableRow({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={`code-item${!item.isActive ? ' code-item--off' : ''}`}>
+    <div ref={setNodeRef} style={style} className={`flex items-center gap-2.5 px-5 py-2.5 border-b border-border-subtle last:border-b-0 bg-background transition-colors hover:bg-surface ${item.isActive ? '' : 'opacity-55'}`}>
       {/* 순서 번호 */}
-      <span className="code-order">{idx + 1}</span>
+      <span className="min-w-6 text-[0.72rem] font-bold text-muted text-right [font-family:var(--font-mono)]">{idx + 1}</span>
 
       {/* 드래그 핸들 */}
       <button
         type="button"
-        className="code-drag-handle"
+        className="flex items-center justify-center w-7 h-7 rounded-[var(--radius)] text-muted cursor-grab transition-colors hover:bg-elevated hover:text-secondary shrink-0 touch-none active:cursor-grabbing"
         aria-label="순서 변경"
         {...attributes}
         {...listeners}
@@ -348,10 +345,10 @@ function SortableRow({
 
       {/* 인라인 편집 / 표시 */}
       {editingId === item.id ? (
-        <div className="code-edit-inline">
+        <div className="flex items-center gap-2 flex-1">
           <input
             type="text"
-            className="input"
+            className="input flex-1 min-w-0"
             value={editLabel}
             onChange={(e) => onEditLabelChange(e.target.value)}
             onKeyDown={(e) => {
@@ -360,23 +357,19 @@ function SortableRow({
             }}
             autoFocus
           />
-          <button type="button" className="btn btn-primary btn-sm" onClick={onEditSave}>저장</button>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onEditCancel}>취소</button>
+          <Button size="sm" onClick={onEditSave}>저장</Button>
+          <Button variant="ghost" size="sm" onClick={onEditCancel}>취소</Button>
         </div>
       ) : (
         <>
-          <span className="code-label">{item.label}</span>
-          <span className="code-badge">{item.code}</span>
-          <div className="code-actions">
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => onEdit(item)}>수정</button>
-            <button
-              type="button"
-              className={`btn btn-sm ${item.isActive ? 'btn-ghost' : 'btn-primary'}`}
-              onClick={() => onToggle(item.id, item.isActive)}
-            >
+          <span className="flex-1 text-[0.875rem] text-primary font-medium min-w-0">{item.label}</span>
+          <span className="text-[0.72rem] text-muted [font-family:var(--font-mono)] bg-elevated px-[7px] py-0.5 rounded-[4px] whitespace-nowrap shrink-0">{item.code}</span>
+          <div className="flex gap-1.5 shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>수정</Button>
+            <Button variant={item.isActive ? 'ghost' : 'primary'} size="sm" onClick={() => onToggle(item.id, item.isActive)}>
               {item.isActive ? '비활성' : '활성'}
-            </button>
-            <button type="button" className="btn btn-danger btn-sm" onClick={() => onDelete(item.id)}>삭제</button>
+            </Button>
+            <Button variant="danger" size="sm" onClick={() => onDelete(item.id)}>삭제</Button>
           </div>
         </>
       )}
