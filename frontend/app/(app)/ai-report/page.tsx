@@ -4,9 +4,13 @@
  * AI 리포트 페이지.
  * 가계부 데이터를 Claude API로 분석해 소비 패턴·절약 인사이트를 리포트로 생성·보관한다.
  * 공통 레이아웃(AppShell)을 재사용하고, 생성은 더미(setTimeout) 시뮬레이션. (TODO: Claude API)
+ * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Badge).
  */
 import { useState, type ReactNode } from 'react';
 import AppShell from '@/components/AppShell';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import { Card, CardBody } from '@/components/ui/Card';
 import { IconCube } from '@/components/icons';
 
 type InsTone = 'green' | 'warning' | 'danger';
@@ -21,6 +25,8 @@ const APRIL_INSIGHTS: Insight[] = [
 ];
 const APRIL_TAGS = ['식비 -27%', '구독 과다', '교통 안정', '주말 충동구매'];
 
+const INS_DOT: Record<InsTone, string> = { green: 'bg-accent', warning: 'bg-warning', danger: 'bg-danger' };
+
 export default function AiReportPage() {
   const [generating, setGenerating] = useState(false);
   const [autoMonthly, setAutoMonthly] = useState(true); // 매월 1일 자동 생성
@@ -34,26 +40,26 @@ export default function AiReportPage() {
 
   return (
     <AppShell activePath="/ai-report" topbarLabel="AI 리포트">
-      <div className="page-header">
-        <h1 className="page-title">AI 리포트</h1>
-        <p className="page-subtitle">가계부 데이터를 분석하여 소비 패턴과 절약 인사이트를 제공합니다.</p>
+      <div className="mb-7">
+        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">AI 리포트</h1>
+        <p className="text-sm text-secondary mt-1.5">가계부 데이터를 분석하여 소비 패턴과 절약 인사이트를 제공합니다.</p>
       </div>
 
       {/* 대화형 질문 안내 + 정기 생성 토글 */}
-      <div className="ai-ask-bar">
+      <div className="flex items-center gap-3 flex-wrap px-[18px] py-3.5 bg-surface border border-border rounded-[var(--radius-lg)] mb-5">
         <span>💬</span>
-        <div className="ai-ask-main">
-          <div className="ai-ask-title">대화형으로 물어보기</div>
-          <div className="ai-ask-sub">&quot;이번 달 외식비 왜 늘었어?&quot; 처럼 자유롭게 질문</div>
+        <div className="flex-1 min-w-[160px]">
+          <div className="text-[0.875rem] font-semibold text-primary">대화형으로 물어보기</div>
+          <div className="text-[0.78rem] text-muted">&quot;이번 달 외식비 왜 늘었어?&quot; 처럼 자유롭게 질문</div>
         </div>
-        <a href="/assistant" className="btn btn-primary btn-sm">AI 챗 열기</a>
-        <div className="divider-v" />
-        <div className="ai-ask-schedule">
-          <span>매월 1일 자동 생성</span>
+        <Button href="/assistant" size="sm">AI 챗 열기</Button>
+        <div className="w-px bg-border self-stretch mx-1 shrink-0 max-md:hidden" />
+        <div className="flex items-center gap-2">
+          <span className="text-[0.82rem] text-secondary">매월 1일 자동 생성</span>
           {/* TODO: 자동 생성 설정 저장 API 연동 */}
           <button
             type="button"
-            className={`toggle${autoMonthly ? ' on' : ''}`}
+            className={`relative w-11 h-6 rounded-full border transition-colors shrink-0 cursor-pointer after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:w-4 after:h-4 after:rounded-full after:transition-transform ${autoMonthly ? 'bg-accent border-accent after:translate-x-5 after:bg-white' : 'bg-elevated border-border after:bg-muted'}`}
             onClick={() => setAutoMonthly((v) => !v)}
             aria-label="매월 자동 생성 토글"
             aria-pressed={autoMonthly}
@@ -62,30 +68,30 @@ export default function AiReportPage() {
       </div>
 
       {/* 새 리포트 생성 박스 */}
-      <div className="generate-box">
+      <div className="border border-dashed border-border rounded-[var(--radius-lg)] px-6 py-12 flex flex-col items-center gap-4 text-center mb-7 transition-all hover:border-accent hover:bg-accent-dim [&>svg]:text-accent">
         <IconCube width={34} height={34} />
         <div>
-          <div className="generate-title">새 리포트 생성</div>
-          <div className="generate-desc">이번 달 또는 원하는 기간의 소비 패턴을 AI로 분석합니다.</div>
+          <div className="[font-family:var(--font-display)] font-bold text-primary mb-1.5">새 리포트 생성</div>
+          <div className="text-[0.855rem] text-secondary">이번 달 또는 원하는 기간의 소비 패턴을 AI로 분석합니다.</div>
         </div>
-        <div className="generate-controls">
-          <select className="input" aria-label="분석 기간">
+        <div className="flex items-center gap-3 flex-wrap justify-center">
+          <select className="input w-auto" aria-label="분석 기간">
             <option>이번 달 (2025.05)</option>
             <option>지난 달 (2025.04)</option>
             <option>최근 3개월</option>
             <option>올해 전체</option>
           </select>
-          <button type="button" className="btn btn-primary" onClick={generateReport} disabled={generating}>
-            {generating && <span className="spinner" />}
+          <Button onClick={generateReport} disabled={generating}>
+            {generating && <span className="inline-block w-[18px] h-[18px] border-2 border-white/40 border-t-white rounded-full animate-spin" />}
             {generating ? '분석 중...' : '리포트 생성'}
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* 저장된 리포트 */}
-      <div className="saved-head">
-        <span className="saved-head-title">저장된 리포트</span>
-        <span className="badge badge-neutral">2개</span>
+      <div className="flex items-center gap-2 mb-6">
+        <span className="text-[0.875rem] font-semibold text-primary">저장된 리포트</span>
+        <Badge tone="neutral">2개</Badge>
       </div>
 
       {/* 4월 리포트 (인사이트 + 태그) */}
@@ -109,35 +115,35 @@ function ReportCard({
   insights?: Insight[]; tags?: string[];
 }) {
   return (
-    <div className="card report-card">
-      <div className="card-body">
-        <div className="report-card-header">
-          <div className="report-icon"><IconCube width={17} height={17} /></div>
-          <div className="report-head">
-            <div className="report-title">{title}</div>
-            <div className="report-date">{date}</div>
+    <Card className="mb-4">
+      <CardBody>
+        <div className="flex items-start gap-3 mb-3.5">
+          <div className="w-[38px] h-[38px] rounded-[var(--radius)] bg-accent-dim border border-[rgba(0,192,127,0.2)] flex items-center justify-center text-accent shrink-0"><IconCube width={17} height={17} /></div>
+          <div className="flex-1">
+            <div className="[font-family:var(--font-display)] text-[0.95rem] font-bold text-primary">{title}</div>
+            <div className="text-[0.75rem] text-muted mt-0.5">{date}</div>
           </div>
-          <span className="badge badge-success">완료</span>
+          <Badge tone="success">완료</Badge>
         </div>
-        <p className="report-body">{children}</p>
+        <p className="text-[0.875rem] text-secondary leading-[1.8] [&_strong]:text-primary [&_strong]:font-semibold [&_.hi]:text-accent [&_.hi]:font-semibold [&_.warn]:text-warning [&_.warn]:font-semibold">{children}</p>
 
         {insights && (
-          <div className="insight-list">
+          <div className="flex flex-col gap-2.5 mt-4">
             {insights.map((ins, i) => (
-              <div className="insight-item" key={i}>
-                <div className={`ins-dot ${ins.tone}`} />
-                <div className="insight-text">{ins.node}</div>
+              <div className="flex gap-3 px-3.5 py-3 bg-surface border border-border rounded-[var(--radius)]" key={i}>
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 mt-[7px] ${INS_DOT[ins.tone]}`} />
+                <div className="text-[0.845rem] text-secondary leading-relaxed [&_strong]:text-primary [&_.warn]:text-warning [&_.warn]:font-semibold">{ins.node}</div>
               </div>
             ))}
           </div>
         )}
 
         {tags && (
-          <div className="tag-list">
-            {tags.map((t) => <span className="tag" key={t}>{t}</span>)}
+          <div className="flex flex-wrap gap-1.5 mt-3.5">
+            {tags.map((t) => <span className="px-2.5 py-[3px] rounded-full text-[0.75rem] bg-surface text-secondary border border-border" key={t}>{t}</span>)}
           </div>
         )}
-      </div>
-    </div>
+      </CardBody>
+    </Card>
   );
 }
