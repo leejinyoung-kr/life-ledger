@@ -4,19 +4,30 @@
  * 캘린더 페이지.
  * 구독 결제·예적금 만기·서류 만료·할일을 월 그리드에 모아 본다.
  * 월 그리드는 Date 계산으로 직접 생성(라이브러리 미사용), 데이터는 API(/calendar)와 연동한다.
+ * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Field).
  */
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
+import Button from '@/components/ui/Button';
+import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
+import { Field, ModalFooter } from '@/components/ui/Field';
 import { api } from '@/lib/api';
-import { IconPlus } from '@/components/icons';
 import {
   EV_TYPE_LABEL, EV_TYPE_OPTIONS, EV_LEGEND, ddLabel,
   type CalEvent, type UpcomingEvent, type EvType,
 } from '@/lib/calendar';
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+
+// 일정 유형별 색 (그리드 칩 / 점)
+const EV_BG: Record<EvType, string> = {
+  pay: 'bg-danger-dim text-danger', due: 'bg-blue-dim text-blue', exp: 'bg-warning-dim text-warning', task: 'bg-accent-dim text-accent',
+};
+const DOT_BG: Record<EvType, string> = {
+  pay: 'bg-danger', due: 'bg-blue', exp: 'bg-warning', task: 'bg-accent',
+};
 
 // 2자리 0 패딩
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -94,44 +105,43 @@ export default function CalendarPage() {
   }
 
   const cells = view ? buildMonth(view.year, view.month) : [];
+  const navBtn = 'w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] text-[1.1rem] leading-none text-secondary border border-border transition-all hover:bg-surface hover:text-primary';
 
   return (
     <AppShell activePath="/calendar" topbarLabel="캘린더">
-      <div className="page-header">
+      <div className="mb-7 flex items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">캘린더</h1>
-          <p className="page-subtitle">구독 결제·예적금 만기·서류 만료·할일을 한 곳에서 봅니다.</p>
+          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">캘린더</h1>
+          <p className="text-sm text-secondary mt-1.5">구독 결제·예적금 만기·서류 만료·할일을 한 곳에서 봅니다.</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setAddModal(true)}>
-          <IconPlus width={13} height={13} />일정 추가
-        </button>
+        <Button onClick={() => setAddModal(true)}>일정 추가</Button>
       </div>
 
-      {error && <p className="ledger-note is-error">⚠️ {error}</p>}
+      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
 
-      <div className="cal-layout">
+      <div className="grid grid-cols-1 min-[900px]:grid-cols-[1fr_300px] gap-5 items-start">
         <div>
           {/* 월 이동 툴바 */}
-          <div className="cal-toolbar">
-            <div className="flex-center gap-2">
-              <button type="button" className="btn btn-ghost btn-icon cal-nav-btn" onClick={() => moveMonth(-1)} aria-label="이전 달">‹</button>
-              <span className="cal-month-label">{view ? `${view.year}년 ${view.month + 1}월` : ''}</span>
-              <button type="button" className="btn btn-ghost btn-icon cal-nav-btn" onClick={() => moveMonth(1)} aria-label="다음 달">›</button>
+          <div className="flex items-center justify-between mb-3.5">
+            <div className="flex items-center gap-2">
+              <button type="button" className={navBtn} onClick={() => moveMonth(-1)} aria-label="이전 달">‹</button>
+              <span className="[font-family:var(--font-display)] font-bold text-[1.1rem]">{view ? `${view.year}년 ${view.month + 1}월` : ''}</span>
+              <button type="button" className={navBtn} onClick={() => moveMonth(1)} aria-label="다음 달">›</button>
             </div>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={goToday}>오늘</button>
+            <Button variant="ghost" size="sm" onClick={goToday}>오늘</Button>
           </div>
 
           {/* 월 그리드 */}
-          <div className="cal-grid">
-            {DOW.map((d) => <div key={d} className="cal-dow">{d}</div>)}
+          <div className="grid grid-cols-7 bg-border gap-px border border-border rounded-[var(--radius-lg)] overflow-hidden">
+            {DOW.map((d) => <div key={d} className="bg-surface p-2 text-center text-[0.7rem] font-semibold text-muted uppercase">{d}</div>)}
             {cells.map((cell) => {
               const events = cell.iso ? eventsByDate[cell.iso] : undefined;
               const isToday = cell.iso === todayIso;
               return (
-                <div key={cell.key} className={`cal-cell${cell.dim ? ' dim' : ''}${isToday ? ' today' : ''}`}>
-                  <span className="cal-date">{cell.day}</span>
+                <div key={cell.key} className={`min-h-[92px] max-md:min-h-[64px] p-1.5 flex flex-col gap-[3px] ${cell.dim ? 'bg-surface text-muted' : 'bg-background'}`}>
+                  <span className={isToday ? 'bg-accent text-white w-[22px] h-[22px] rounded-full flex items-center justify-center text-[0.78rem] font-semibold' : 'text-[0.78rem] font-semibold text-secondary'}>{cell.day}</span>
                   {events?.map((ev) => (
-                    <span key={ev.id} className={`cal-ev ${ev.type}`}>{ev.title}</span>
+                    <span key={ev.id} className={`text-[0.65rem] px-[5px] py-px rounded-[4px] whitespace-nowrap overflow-hidden text-ellipsis ${EV_BG[ev.type]}`}>{ev.title}</span>
                   ))}
                 </div>
               );
@@ -140,37 +150,37 @@ export default function CalendarPage() {
         </div>
 
         {/* 우측 — 다가오는 일정 + 범례 */}
-        <div className="cal-side">
-          <div className="card">
-            <div className="card-header"><span className="card-title">다가오는 일정</span></div>
-            <div className="card-body compact">
-              {upcoming.length === 0 && <div className="up-item td-muted">다가오는 일정이 없습니다.</div>}
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader><CardTitle>다가오는 일정</CardTitle></CardHeader>
+            <CardBody compact>
+              {upcoming.length === 0 && <div className="py-2.5 text-muted text-[0.84rem]">다가오는 일정이 없습니다.</div>}
               {upcoming.map((u) => {
                 const [, m, d] = u.date.split('-');
                 return (
-                  <div className="up-item" key={u.id}>
-                    <div className="up-date">{Number(m)}/{d}</div>
-                    <div className={`up-dot ${u.type}`} />
+                  <div className="flex gap-2.5 py-2.5 border-b border-border-subtle last:border-b-0" key={u.id}>
+                    <div className="[font-family:var(--font-display)] font-bold text-[0.78rem] text-primary w-[42px] shrink-0 text-center">{Number(m)}/{d}</div>
+                    <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${DOT_BG[u.type]}`} />
                     <div>
-                      <div className="up-name">{u.title}</div>
-                      <div className="up-sub">{EV_TYPE_LABEL[u.type]} · {ddLabel(u.daysUntil)}</div>
+                      <div className="text-[0.84rem] font-medium">{u.title}</div>
+                      <div className="text-[0.72rem] text-muted">{EV_TYPE_LABEL[u.type]} · {ddLabel(u.daysUntil)}</div>
                     </div>
                   </div>
                 );
               })}
-            </div>
-          </div>
+            </CardBody>
+          </Card>
 
-          <div className="card">
-            <div className="card-header"><span className="card-title">범례</span></div>
-            <div className="card-body">
+          <Card>
+            <CardHeader><CardTitle>범례</CardTitle></CardHeader>
+            <CardBody>
               {EV_LEGEND.map((l) => (
-                <div className="legend-row" key={l.type}>
-                  <span className={`legend-dot ${l.type}`} />{l.label}
+                <div className="flex items-center gap-2 text-[0.78rem] mb-1.5 last:mb-0" key={l.type}>
+                  <span className={`w-2.5 h-2.5 rounded-[3px] ${DOT_BG[l.type]}`} />{l.label}
                 </div>
               ))}
-            </div>
-          </div>
+            </CardBody>
+          </Card>
         </div>
       </div>
 
@@ -220,21 +230,11 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
   }
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="일정 추가"
-      footer={
-        <>
-          <button type="button" className="btn btn-ghost" onClick={onClose} disabled={saving}>취소</button>
-          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>{saving ? '저장 중...' : '저장'}</button>
-        </>
-      }
-    >
+    <Modal open={open} onClose={onClose} title="일정 추가" footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="제목" required error={errors.title}>
         <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 보험 갱신" value={title} onChange={(e) => { setTitle(e.target.value); clearErr('title'); }} />
       </Field>
-      <div className="form-grid-2">
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="날짜" required error={errors.date}>
           <input type="date" className={`input${errors.date ? ' is-invalid' : ''}`} aria-label="날짜" value={date} onChange={(e) => { setDate(e.target.value); clearErr('date'); }} />
         </Field>
@@ -246,16 +246,5 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
       </div>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 메모" value={memo} onChange={(e) => setMemo(e.target.value)} /></Field>
     </Modal>
-  );
-}
-
-// 입력 그룹 (라벨 + 입력요소). label 로 감싸 입력요소에 접근성 이름을 연결한다.
-function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
-  return (
-    <label className="input-group">
-      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
-      {children}
-      {error && <span className="field-error">{error}</span>}
-    </label>
   );
 }
