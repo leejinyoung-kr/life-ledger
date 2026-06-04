@@ -5,15 +5,30 @@
  * 리스트에서는 제목·시간만 노출, 클릭 시 상세 모달로 내용 확인.
  * 읽지 않은 알림 클릭 시 읽음 처리 + 토스트 알림.
  * "모두 읽음" 클릭 시 전체 읽음 처리 + 토스트.
+ * 스타일: Tailwind + 공통 컴포넌트(Button/Badge/Modal/Pagination).
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
+import Button from '@/components/ui/Button';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import { IconAlertTriangle, IconCube, IconLock, IconFolder } from '@/components/icons';
 import { api } from '@/lib/api';
-import { TONE_CLASS, NOTI_TABS, relativeTime, type Noti } from '@/lib/notification';
+import { NOTI_TABS, relativeTime, type Noti, type NotiTone } from '@/lib/notification';
+
+// tone → 리스트 아이콘 배경/색 (info 는 muted 재사용)
+const ICON_TONE: Record<NotiTone, string> = {
+  warning: 'bg-warning-dim text-warning',
+  success: 'bg-accent-dim text-accent',
+  info: 'bg-elevated text-muted',
+};
+// tone → 상세 모달 원형 아이콘 (info 는 blue)
+const DETAIL_TONE: Record<NotiTone, string> = {
+  warning: 'bg-warning-dim text-warning',
+  success: 'bg-accent-dim text-accent',
+  info: 'bg-blue-dim text-blue',
+};
 
 // 발생처/톤으로 아이콘 결정
 function iconFor(n: Noti): ReactNode {
@@ -87,45 +102,44 @@ export default function NotificationsPage() {
 
   return (
     <AppShell activePath="/notifications" topbarLabel="알림">
-      <div className="page-header">
+      <div className="mb-7 flex items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">알림</h1>
-          <p className="page-subtitle">
+          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">알림</h1>
+          <p className="text-sm text-secondary mt-1.5">
             {unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개가 있습니다.` : '모든 알림을 읽었습니다.'}
           </p>
         </div>
-        <button type="button" className="btn btn-ghost" onClick={markAllRead}>모두 읽음</button>
+        <Button variant="ghost" onClick={markAllRead}>모두 읽음</Button>
       </div>
 
-      {error && <p className="ledger-note is-error">⚠️ {error}</p>}
+      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
 
       {/* 필터 탭 + 페이지당 항목 수 */}
-      <div className="flex-center" style={{ justifyContent: 'space-between', gap: '10px', marginBottom: '20px' }}>
-        <div className="notif-tabs" style={{ marginBottom: 0 }}>
+      <div className="flex items-center justify-between gap-2.5 mb-5 max-md:flex-wrap">
+        <div className="flex gap-1 flex-wrap">
           {NOTI_TABS.map((t) => (
-            <button key={t.kind} type="button" className={`btn ${tab === t.kind ? 'btn-primary' : 'btn-ghost'}`} onClick={() => changeTab(t.kind)}>
+            <Button key={t.kind} size="sm" variant={tab === t.kind ? 'primary' : 'ghost'} onClick={() => changeTab(t.kind)}>
               {t.label}
-            </button>
+            </Button>
           ))}
         </div>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
       {/* 알림 리스트 — 리스트에서는 desc 미노출, 클릭 시 상세 모달 */}
-      <div className="card flush">
-        {paged.length === 0 && <p className="muted-note notif-empty">알림이 없습니다.</p>}
+      <div className="bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] overflow-hidden">
+        {paged.length === 0 && <p className="text-secondary text-center py-5">알림이 없습니다.</p>}
         {paged.map((n) => (
           <div
             key={n.id}
-            className={`notif-item${n.read ? '' : ' unread'}`}
+            className={`flex gap-3.5 px-5 py-4 border-b border-border-subtle last:border-b-0 transition-colors cursor-pointer hover:bg-surface ${n.read ? '' : 'bg-[rgba(0,192,127,0.04)]'}`}
             onClick={() => openDetail(n)}
-            style={{ cursor: 'pointer' }}
           >
-            <div className={`notif-dot ${n.read ? 'read' : 'unread'}`} />
-            <div className={`notif-type-icon ${TONE_CLASS[n.tone]}`}>{iconFor(n)}</div>
-            <div className="notif-main">
-              <div className="notif-title">{n.title}</div>
-              <div className="notif-time">{relativeTime(n.occurredAt)} · {n.source}</div>
+            <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${n.read ? 'bg-transparent border-[1.5px] border-border' : 'bg-accent'}`} />
+            <div className={`w-9 h-9 rounded-[var(--radius)] shrink-0 flex items-center justify-center ${ICON_TONE[n.tone]}`}>{iconFor(n)}</div>
+            <div className="flex-1">
+              <div className={`text-[0.875rem] font-medium ${n.read ? 'text-secondary' : 'text-primary'}`}>{n.title}</div>
+              <div className="text-[0.72rem] text-muted mt-1">{relativeTime(n.occurredAt)} · {n.source}</div>
             </div>
           </div>
         ))}
@@ -135,27 +149,23 @@ export default function NotificationsPage() {
       {/* 상세 모달 */}
       {detail && (
         <Modal open={!!detail} title="알림 상세" onClose={() => setDetail(null)}>
-          <div className="notif-detail">
-            {/* 아이콘 원형 — 컨펌 모달과 동일한 스타일 */}
-            <div className={`notif-detail-icon notif-detail-icon--${detail.tone}`}>
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className={`w-[60px] h-[60px] rounded-full shrink-0 flex items-center justify-center mb-1 ${DETAIL_TONE[detail.tone]}`}>
               {iconFor(detail)}
             </div>
 
-            {/* 제목 + 읽음 여부 뱃지 */}
-            <div className="notif-detail-title-row">
-              <p className="notif-detail-title">{detail.title}</p>
-              {!detail.read && <span className="notif-detail-unread-badge">읽지 않음</span>}
+            <div className="flex flex-col items-center gap-1.5">
+              <p className="text-base font-bold text-primary leading-[1.45] break-keep">{detail.title}</p>
+              {!detail.read && <span className="inline-block text-[0.7rem] font-semibold px-2 py-0.5 rounded-full bg-danger-dim text-danger">읽지 않음</span>}
             </div>
 
-            {/* 출처 · 시간 */}
-            <p className="notif-detail-meta">
+            <p className="flex items-center gap-1.5 text-[0.78rem] text-muted">
               <span>{detail.source}</span>
-              <span className="notif-detail-sep">·</span>
+              <span className="text-border">·</span>
               <span>{relativeTime(detail.occurredAt)}</span>
             </p>
 
-            {/* 내용 */}
-            <p className="notif-detail-desc">{detail.desc}</p>
+            <p className="w-full text-left text-[0.875rem] text-secondary leading-[1.7] break-keep px-4 py-3.5 mt-1 bg-surface rounded-[var(--radius)] border border-border-subtle">{detail.desc}</p>
           </div>
         </Modal>
       )}
