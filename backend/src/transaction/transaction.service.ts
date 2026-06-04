@@ -1,9 +1,71 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Transaction, TransactionType } from '@prisma/client';
+import * as ExcelJS from 'exceljs';
+import type { Writable } from 'stream';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { QueryTransactionDto } from './dto/query-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
+
+// 엑셀 양식 유형 라벨 → TransactionType 코드
+const TYPE_CODE: Record<string, TransactionType> = {
+  수입: 'income',
+  지출: 'expense',
+  자산이동: 'transfer',
+};
+
+// TransactionType 코드 → 한글 라벨 (내보내기용, TYPE_CODE 역방향)
+const TYPE_LABEL: Record<TransactionType, string> = {
+  income: '수입',
+  expense: '지출',
+  transfer: '자산이동',
+};
+
+// 내보내기/양식 공통 컬럼 — 화면 테이블과 동일 순서
+const EXPORT_COLUMNS: { header: string; key: string; width: number }[] = [
+  { header: '유형', key: 'type', width: 12 },
+  { header: '카테고리', key: 'category', width: 16 },
+  { header: '내역', key: 'title', width: 28 },
+  { header: '결제수단', key: 'payMethod', width: 14 },
+  { header: '금액', key: 'amount', width: 14 },
+  { header: '날짜', key: 'date', width: 14 },
+  { header: '메모', key: 'memo', width: 30 },
+];
+
+// 양식 필수 컬럼 (헤더의 '*'/공백 제거 후 기준)
+const REQUIRED_HEADERS = ['유형', '카테고리', '내역', '결제수단', '금액', '날짜'];
+
+// 엑셀 업로드 결과 요약
+export interface ImportResult {
+  imported: number;
+  failed: number;
+  errors: { row: number; message: string }[];
+}
+
+// 헤더 라벨 정규화 ('유형*' → '유형')
+function normalizeHeader(s: string): string {
+  return s.replace(/\*/g, '').trim();
+}
+
+// 금액 셀 → 양수 number. 콤마 허용. 실패 시 null
+function parseAmount(v: ExcelJS.CellValue): number | null {
+  if (typeof v === 'number') return v > 0 ? v : null;
+  if (typeof v === 'string') {
+    const n = Number(v.replace(/[,\s₩]/g, ''));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  return null;
+}
+
+// 날짜 셀 → Date. Date 객체/'YYYY-MM-DD' 문자열 허용. 실패 시 null
+function parseDate(v: ExcelJS.CellValue): Date | null {
+  if (v instanceof Date) return v;
+  if (typeof v === 'string') {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v.trim());
+    if (m) return new Date(`${m[1]}-${m[2]}-${m[3]}`);
+  }
+  return null;
+}
 
 // Date → 'YYYY-MM-DD' (UTC 기준, @db.Date 는 시각 정보 없음)
 function toDateStr(d: Date): string {
@@ -48,8 +110,8 @@ export class TransactionService {
     return latest ? toDateStr(latest.date).slice(0, 7) : null;
   }
 
-  // 내역 목록 — 날짜범위/유형/카테고리/검색어 필터
-  async findAll(userId: number, query: QueryTransactionDto) {
+  // 목록/내보내기 공통 where 빌더 — 날짜범위/유형/카테고리/검색어 필터
+  private buildWhere(userId: number, query: QueryTransactionDto): Prisma.TransactionWhereInput {
     const where: Prisma.TransactionWhereInput = {
       user_id: userId,
       deleted_at: null,
@@ -63,9 +125,13 @@ export class TransactionService {
     if (query.type) where.type = query.type;
     if (query.category) where.category = query.category;
     if (query.q) where.title = { contains: query.q };
+    return where;
+  }
 
+  // 내역 목록 — 날짜범위/유형/카테고리/검색어 필터
+  async findAll(userId: number, query: QueryTransactionDto) {
     const rows = await this.prisma.transaction.findMany({
-      where,
+      where: this.buildWhere(userId, query),
       orderBy: [{ date: 'desc' }, { id: 'desc' }],
     });
     return rows.map((r) => this.toDto(r));
@@ -166,6 +232,147 @@ export class TransactionService {
       },
     });
     return this.toDto(created);
+  }
+
+  // 엑셀 양식(.xlsx) 업로드 → 행별 검증 후 일괄 추가.
+  // 카테고리/유형은 라벨로 입력되므로 코드로 역매핑하고, 검증 실패 행은 건너뛰고 결과에 사유를 모은다.
+  async importExcel(userId: number, buffer: Buffer): Promise<ImportResult> {
+    const wb = new ExcelJS.Workbook();
+    try {
+      await wb.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+    } catch {
+      throw new BadRequestException('엑셀 파일을 읽을 수 없습니다.');
+    }
+    const ws = wb.getWorksheet('가계부') ?? wb.worksheets[0];
+    if (!ws) throw new BadRequestException('시트를 찾을 수 없습니다.');
+
+    // 헤더행 → 컬럼 인덱스 맵
+    const colOf: Record<string, number> = {};
+    ws.getRow(1).eachCell((cell, col) => {
+      const key = normalizeHeader(String(cell.text ?? ''));
+      if (key) colOf[key] = col;
+    });
+    const missingHeader = REQUIRED_HEADERS.filter((h) => !colOf[h]);
+    if (missingHeader.length) {
+      throw new BadRequestException(`양식 헤더 누락: ${missingHeader.join(', ')}`);
+    }
+
+    // 카테고리 라벨 → 코드 (해당 사용자의 transaction 도메인)
+    const cats = await this.prisma.category.findMany({
+      where: { user_id: userId, domain: 'transaction' },
+      select: { code: true, label: true },
+    });
+    const catCode = new Map(cats.map((c) => [c.label, c.code]));
+    const memoCol = colOf['메모'];
+
+    const valid: Prisma.TransactionCreateManyInput[] = [];
+    const errors: { row: number; message: string }[] = [];
+
+    for (let r = 2; r <= ws.rowCount; r++) {
+      const row = ws.getRow(r);
+      const typeLabel = String(row.getCell(colOf['유형']).text ?? '').trim();
+      const catLabel = String(row.getCell(colOf['카테고리']).text ?? '').trim();
+      const title = String(row.getCell(colOf['내역']).text ?? '').trim();
+      const payMethod = String(row.getCell(colOf['결제수단']).text ?? '').trim();
+      const amountRaw = row.getCell(colOf['금액']).value;
+      const dateRaw = row.getCell(colOf['날짜']).value;
+
+      // 완전 빈 행은 건너뜀
+      if (!typeLabel && !catLabel && !title && !payMethod && amountRaw == null && dateRaw == null) continue;
+
+      const type = TYPE_CODE[typeLabel];
+      const category = catCode.get(catLabel);
+      const amount = parseAmount(amountRaw);
+      const date = parseDate(dateRaw);
+
+      const bad: string[] = [];
+      if (!type) bad.push('유형');
+      if (!category) bad.push('카테고리');
+      if (!title) bad.push('내역');
+      if (!payMethod) bad.push('결제수단');
+      if (amount == null) bad.push('금액');
+      if (!date) bad.push('날짜');
+      if (bad.length) {
+        errors.push({ row: r, message: `${bad.join(', ')} 값 오류` });
+        continue;
+      }
+
+      const memo = memoCol ? String(row.getCell(memoCol).text ?? '').trim() : '';
+      valid.push({
+        user_id: userId,
+        type: type!,
+        date: date!,
+        title,
+        category: category!,
+        amount: new Prisma.Decimal(amount!),
+        pay_method: payMethod,
+        memo: memo || null,
+        is_recurring: false,
+        recurring_rule: Prisma.JsonNull,
+      });
+    }
+
+    // 대량 INSERT 패킷 한계 회피 — 1000건씩 분할 등록
+    const CHUNK = 1000;
+    for (let i = 0; i < valid.length; i += CHUNK) {
+      await this.prisma.transaction.createMany({ data: valid.slice(i, i + CHUNK) });
+    }
+    return { imported: valid.length, failed: errors.length, errors };
+  }
+
+  // 현재 필터(findAll 동일)에 해당하는 내역을 .xlsx 로 스트리밍 내보낸다.
+  // 전체 메모리 적재를 피하려 행은 커서 배치로 읽고 exceljs 스트림 라이터로 응답에 바로 흘려보낸다.
+  // 카테고리/유형은 코드→라벨로 변환해 양식과 동일한 형태로 출력(재업로드 가능).
+  async streamExport(userId: number, query: QueryTransactionDto, stream: Writable): Promise<void> {
+    const where = this.buildWhere(userId, query);
+    const cats = await this.prisma.category.findMany({
+      where: { user_id: userId, domain: 'transaction' },
+      select: { code: true, label: true },
+    });
+    const catLabel = new Map(cats.map((c) => [c.code, c.label]));
+
+    const wb = new ExcelJS.stream.xlsx.WorkbookWriter({ stream, useStyles: true });
+    const ws = wb.addWorksheet('가계부');
+    ws.columns = EXPORT_COLUMNS;
+    ws.getColumn('amount').numFmt = '#,##0';
+
+    // 헤더행 스타일 후 커밋
+    const head = ws.getRow(1);
+    head.font = { bold: true };
+    head.alignment = { horizontal: 'center', vertical: 'middle' };
+    head.eachCell((cell) => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFEFEF' } };
+    });
+    head.commit();
+
+    // 커서 기반 배치 조회 — 메모리 상한 유지
+    const BATCH = 1000;
+    let cursor: number | undefined;
+    for (;;) {
+      const rows = await this.prisma.transaction.findMany({
+        where,
+        orderBy: [{ date: 'desc' }, { id: 'desc' }],
+        take: BATCH,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+      });
+      if (!rows.length) break;
+      for (const t of rows) {
+        ws.addRow({
+          type: TYPE_LABEL[t.type],
+          category: catLabel.get(t.category) ?? t.category,
+          title: t.title,
+          payMethod: t.pay_method,
+          amount: t.amount.toNumber(),
+          date: toDateStr(t.date),
+          memo: t.memo ?? '',
+        }).commit();
+      }
+      cursor = rows[rows.length - 1].id;
+      if (rows.length < BATCH) break;
+    }
+
+    await ws.commit();
+    await wb.commit();
   }
 
   // 본인 소유 + 미삭제 내역인지 확인 후 반환

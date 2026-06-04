@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import { api } from '@/lib/api';
+import { downloadTransactionTemplate } from '@/lib/excel';
 import {
   CATEGORY_LABEL, PAY_METHODS, SAVING_TYPE_LABEL, INVEST_TYPE_LABEL,
   TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL, won, signedWon, dotDate, daysUntil,
@@ -242,6 +243,50 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
     }
   }
 
+  // 활성 카테고리 라벨로 빈 엑셀 양식 다운로드
+  async function downloadTemplate() {
+    try {
+      await downloadTransactionTemplate(categories.map((c) => c.label));
+    } catch {
+      toast.error('양식 생성에 실패했습니다.');
+    }
+  }
+
+  // 엑셀 양식 업로드 → 백엔드 일괄 등록 후 결과 토스트 + 목록 갱신
+  async function handleUpload(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0];
+    ev.target.value = ''; // 같은 파일 재선택 가능하도록 초기화
+    if (!file) return;
+    try {
+      const res = await api.upload<{ imported: number; failed: number; errors: { row: number; message: string }[] }>(
+        '/transactions/import', file,
+      );
+      if (res.failed > 0) {
+        toast.warning(`${res.imported}건 추가 · ${res.failed}건 실패 (${res.errors.slice(0, 3).map((e) => `${e.row}행`).join(', ')}…)`);
+      } else {
+        toast.success(`${res.imported}건이 추가됐습니다.`);
+      }
+      onDeleted(); // reloadKey bump → 목록·요약 재조회
+    } catch (err) {
+      toast.error((err as Error).message || '업로드에 실패했습니다.');
+    }
+  }
+
+  // 현재 적용 필터 그대로 백엔드 export 엔드포인트로 xlsx 다운로드
+  async function downloadData() {
+    const params = new URLSearchParams();
+    if (applied.from) params.set('from', applied.from);
+    if (applied.to) params.set('to', applied.to);
+    if (applied.type) params.set('type', applied.type);
+    if (applied.cat) params.set('category', applied.cat);
+    if (applied.q) params.set('q', applied.q);
+    try {
+      await api.download(`/transactions/export?${params.toString()}`, '가계부.xlsx');
+    } catch (err) {
+      toast.error((err as Error).message || '다운로드에 실패했습니다.');
+    }
+  }
+
   const maxTrend = Math.max(1, ...trend.map((b) => b.total));
   const totalPages = Math.ceil(rows.length / limit);
   const pagedRows = rows.slice((page - 1) * limit, page * limit);
@@ -305,13 +350,13 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
       {/* 엑셀 툴바 — TODO: 다운로드/업로드 API 연동 (Phase 4-5) */}
       <div className="excel-toolbar">
         <span className="excel-toolbar-label">엑셀</span>
-        <button type="button" className="excel-btn"><IconDownload />데이터 다운로드</button>
-        <div className="divider-v" />
-        <button type="button" className="excel-btn"><IconFileBlank />양식 다운로드</button>
+        <button type="button" className="excel-btn" onClick={downloadTemplate}><IconFileBlank />양식 다운로드</button>
         <label className="excel-btn upload">
           <IconUpload />엑셀 업로드
-          <input type="file" accept=".xlsx,.xls,.csv" hidden aria-label="엑셀 업로드" />
+          <input type="file" accept=".xlsx,.xls,.csv" hidden aria-label="엑셀 업로드" onChange={handleUpload} />
         </label>
+        <div className="divider-v" />
+        <button type="button" className="excel-btn" onClick={downloadData}><IconDownload />데이터 다운로드</button>
       </div>
 
       <div className="search-panel">
@@ -451,17 +496,19 @@ function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloa
         </div>
       )}
 
-      <div className="filter-row mb-4">
-        <select className="input filter-select" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
-          <option value="">전체 유형</option>
-          {savingCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
-        </select>
-        <div className="search-wrap filter-search">
-          <IconSearch className="search-icon" />
-          <input className="input" type="text" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="상품명 검색" />
+      <div className="search-panel">
+        <div className="search-panel-row">
+          <select className="input filter-select" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+            <option value="">전체 유형</option>
+            {savingCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+          </select>
+          <div className="search-wrap filter-search">
+            <IconSearch className="search-icon" />
+            <input className="input" type="text" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="상품명 검색" />
+          </div>
+          <button type="button" className="btn btn-primary" onClick={search}>조회</button>
+          <button type="button" className="btn btn-ghost" onClick={reset}>초기화</button>
         </div>
-        <button type="button" className="btn btn-ghost" onClick={reset}>초기화</button>
-        <button type="button" className="btn btn-primary" onClick={search}>조회</button>
       </div>
 
       {(() => {
@@ -478,6 +525,18 @@ function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloa
       <div className="card flush mb-4">
         <div className="table-wrap">
           <table>
+            <colgroup>
+              <col style={{ width: '64px' }} />
+              <col style={{ width: '88px' }} />
+              <col style={{ width: '140px' }} />
+              <col />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '72px' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>번호</th><th>유형</th><th>은행/기관</th><th>상품명</th>
@@ -571,17 +630,19 @@ function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reload
         </div>
       )}
 
-      <div className="filter-row mb-4">
-        <select className="input filter-select" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
-          <option value="">전체 유형</option>
-          {investCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
-        </select>
-        <div className="search-wrap filter-search">
-          <IconSearch className="search-icon" />
-          <input className="input" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="종목명 검색" />
+      <div className="search-panel">
+        <div className="search-panel-row">
+          <select className="input filter-select" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+            <option value="">전체 유형</option>
+            {investCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+          </select>
+          <div className="search-wrap filter-search">
+            <IconSearch className="search-icon" />
+            <input className="input" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="종목명 검색" />
+          </div>
+          <button type="button" className="btn btn-primary" onClick={search}>조회</button>
+          <button type="button" className="btn btn-ghost" onClick={reset}>초기화</button>
         </div>
-        <button type="button" className="btn btn-ghost" onClick={reset}>초기화</button>
-        <button type="button" className="btn btn-primary" onClick={search}>조회</button>
       </div>
 
       {(() => {
@@ -598,6 +659,17 @@ function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reload
       <div className="card flush mb-6">
         <div className="table-wrap">
           <table>
+            <colgroup>
+              <col style={{ width: '64px' }} />
+              <col style={{ width: '96px' }} />
+              <col />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '96px' }} />
+              <col style={{ width: '180px' }} />
+              <col style={{ width: '72px' }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>번호</th><th>유형</th><th>종목</th>

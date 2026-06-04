@@ -22,8 +22,14 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /transactions/monthly-trend?month= | 월별 지출 추이 (최근 5개월) |
 | GET | /transactions/recurring | 반복 거래 목록 (동일 규칙 중복 제거) |
 | POST | /transactions | 내역 추가 |
+| POST | /transactions/import | 엑셀 양식(.xlsx) 업로드 → 행별 검증 후 일괄 추가 (multipart, 필드명 `file`, 최대 5MB) |
+| GET | /transactions/export?from=&to=&type=&category=&q= | 현재 필터 내역을 .xlsx 로 스트리밍 다운로드 |
 | PUT | /transactions/:id | 내역 수정 |
 | DELETE | /transactions/:id | 내역 삭제 (soft delete) |
+
+> **엑셀 양식 컬럼** (화면 테이블 순서): `유형` · `카테고리` · `내역` · `결제수단` · `금액` · `날짜` (필수) / `메모` (선택)
+> 유형·카테고리는 한글 라벨로 입출력하며 업로드 시 코드로 역매핑된다. 양식 다운로드는 프론트(exceljs)에서 생성한다.
+> import 응답: `{ imported, failed, errors: [{ row, message }] }` — 검증 실패 행은 건너뛰고 정상 행만 등록(부분 성공).
 
 ## 가계부 — 예적금
 
