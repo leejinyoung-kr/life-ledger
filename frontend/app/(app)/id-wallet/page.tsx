@@ -86,7 +86,7 @@ export default function IdWalletPage() {
                   <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => toggleNum(idx)} aria-label="번호 표시/숨김">
                     <IconEye width={14} height={14} />
                   </button>
-                  <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" aria-label="사본 보기">
+                  <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => toast('준비 중인 기능입니다.')} aria-label="사본 보기">
                     <IconDoc width={14} height={14} />
                   </button>
                 </div>

@@ -163,6 +163,7 @@ export default function CodesPage() {
   async function toggleActive(id: number, isActive: boolean) {
     try {
       await api.patch(`/categories/${id}`, { isActive: !isActive });
+      toast.success(isActive ? '비활성화했습니다.' : '활성화했습니다.');
       load();
     } catch {
       toast.error('수정에 실패했습니다.');

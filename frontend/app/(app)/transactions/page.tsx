@@ -402,7 +402,7 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
           </select>
           <div className="relative flex-1 min-w-[160px]">
             <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-            <input className="input pl-[34px]" type="text" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} aria-label="내역 검색" />
+            <input className="input pl-icon" type="text" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} aria-label="내역 검색" />
           </div>
           <Button onClick={search}>조회</Button>
           <Button variant="ghost" onClick={reset}>초기화</Button>
@@ -541,7 +541,7 @@ function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloa
           </select>
           <div className="relative flex-1 min-w-[160px]">
             <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-            <input className="input pl-[34px]" type="text" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="상품명 검색" />
+            <input className="input pl-icon" type="text" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="상품명 검색" />
           </div>
           <Button onClick={search}>조회</Button>
           <Button variant="ghost" onClick={reset}>초기화</Button>
@@ -706,7 +706,7 @@ function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reload
           </select>
           <div className="relative flex-1 min-w-[160px]">
             <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-            <input className="input pl-[34px]" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="종목명 검색" />
+            <input className="input pl-icon" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} aria-label="종목명 검색" />
           </div>
           <Button onClick={search}>조회</Button>
           <Button variant="ghost" onClick={reset}>초기화</Button>

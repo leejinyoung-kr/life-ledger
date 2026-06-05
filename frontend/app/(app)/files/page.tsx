@@ -7,6 +7,7 @@
  * 스타일: Tailwind + 공통 컴포넌트(Modal/Button/Field).
  */
 import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button, { buttonClasses } from '@/components/ui/Button';
@@ -83,7 +84,7 @@ export default function FilesPage() {
       {/* 내보내기 */}
       <div className="flex gap-2 flex-wrap items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
         <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">내보내기</span>
-        <button type="button" className="excel-btn"><IconDownload />파일 목록 다운로드</button>
+        <button type="button" className="excel-btn" onClick={() => toast('준비 중인 기능입니다.')}><IconDownload />파일 목록 다운로드</button>
       </div>
 
       {/* 업로드 드롭존 */}
@@ -119,7 +120,7 @@ export default function FilesPage() {
       <div className="flex items-center gap-2.5 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-          <input className="input pl-[34px]" type="text" placeholder="파일/폴더명 검색..." aria-label="파일 검색" />
+          <input className="input pl-icon" type="text" placeholder="파일/폴더명 검색..." aria-label="파일 검색" />
         </div>
         <select className="input w-auto min-w-[110px] shrink-0" defaultValue="전체" aria-label="유형 필터">
           <option>전체</option><option>이미지</option><option>PDF</option><option>문서</option>
@@ -160,9 +161,9 @@ export default function FilesPage() {
             </div>
             <div className="flex border-t border-border-subtle" onClick={(e) => e.stopPropagation()}>
               <button type="button" className={FILE_BTN} onClick={() => setViewer(file)}><IconEye width={11} height={11} />보기</button>
-              <button type="button" className={FILE_BTN}><IconDownload width={11} height={11} />다운</button>
-              <button type="button" className={FILE_BTN}><IconFolder width={11} height={11} />이동</button>
-              <button type="button" className={`${FILE_BTN} hover:text-danger`}><IconTrash width={11} height={11} />삭제</button>
+              <button type="button" className={FILE_BTN} onClick={() => toast('준비 중인 기능입니다.')}><IconDownload width={11} height={11} />다운</button>
+              <button type="button" className={FILE_BTN} onClick={() => toast('준비 중인 기능입니다.')}><IconFolder width={11} height={11} />이동</button>
+              <button type="button" className={`${FILE_BTN} hover:text-danger`} onClick={() => toast('준비 중인 기능입니다.')}><IconTrash width={11} height={11} />삭제</button>
             </div>
           </div>
         ))}
@@ -190,7 +191,7 @@ function ViewerModal({ file, onClose }: { file: FileItem | null; onClose: () => 
       <span className="text-[1.2rem]">{file.type === 'pdf' ? '📄' : '🖼️'}</span>
       <span className="text-[0.875rem] font-semibold text-primary flex-1 truncate">{file.name}</span>
       <div className="flex gap-1.5 items-center">
-        <Button variant="ghost" size="sm"><IconDownload width={13} height={13} />다운로드</Button>
+        <Button variant="ghost" size="sm" onClick={() => toast('준비 중인 기능입니다.')}><IconDownload width={13} height={13} />다운로드</Button>
         <button type="button" className="w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] text-secondary border border-border transition-all hover:bg-surface hover:text-primary" onClick={onClose} aria-label="닫기">
           <IconClose width={16} height={16} />
         </button>

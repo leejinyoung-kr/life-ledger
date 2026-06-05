@@ -385,6 +385,8 @@ input, select, textarea { font: inherit; }
 }
 .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 .input::placeholder { color: var(--text-muted); }
+/* 좌측 돋보기 아이콘용 패딩 — .input 의 shorthand padding 을 명시도로 덮어쓴다 */
+.input.pl-icon { padding-left: 34px; }
 select.input option { background: var(--bg-base); }
 .input-group { display: flex; flex-direction: column; gap: 6px; }
 

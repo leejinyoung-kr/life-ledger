@@ -151,7 +151,7 @@ export default function EnvsPage() {
   }
 
   function copy(text: string) {
-    navigator.clipboard.writeText(text).catch(() => {});
+    navigator.clipboard.writeText(text).then(() => toast.success('클립보드에 복사됐습니다.')).catch(() => {});
   }
 
   // 현재 환경 변수를 .env 파일로 다운로드
@@ -163,6 +163,7 @@ export default function EnvsPage() {
     a.download = `.${env}`;
     a.click();
     URL.revokeObjectURL(a.href);
+    toast.success('.env 파일을 다운로드했습니다.');
   }
 
   // 붙여넣은 .env 텍스트를 KEY=VALUE 로 파싱. TODO: 파싱 결과 암호화 저장 API 연동
@@ -240,8 +241,8 @@ export default function EnvsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Button variant="ghost" size="sm"><IconCode width={13} height={13} />환경 비교</Button>
-              <Button variant="ghost" size="sm"><IconFileBlank width={13} height={13} />.env.example</Button>
+              <Button variant="ghost" size="sm" onClick={() => toast('준비 중인 기능입니다.')}><IconCode width={13} height={13} />환경 비교</Button>
+              <Button variant="ghost" size="sm" onClick={() => toast('준비 중인 기능입니다.')}><IconFileBlank width={13} height={13} />.env.example</Button>
               <Button variant="ghost" size="sm" onClick={() => setProjectModal({ open: true, mode: 'edit' })}><IconEdit width={13} height={13} />수정</Button>
               <Button variant="danger" size="sm" onClick={() => setEnvModal({ open: true, mode: 'add' })}><IconPlus width={13} height={13} />변수 추가</Button>
             </div>
@@ -356,7 +357,7 @@ function EnvGroupRows({
                 <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center text-secondary border border-border transition-all hover:bg-surface hover:text-primary" onClick={onEdit} aria-label="수정">
                   <IconEdit width={14} height={14} />
                 </button>
-                <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center bg-danger-dim text-danger transition-all hover:bg-[rgba(240,68,56,0.15)]" aria-label="삭제">
+                <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center bg-danger-dim text-danger transition-all hover:bg-[rgba(240,68,56,0.15)]" onClick={() => toast('준비 중인 기능입니다.')} aria-label="삭제">
                   <IconTrash width={14} height={14} />
                 </button>
               </div>
