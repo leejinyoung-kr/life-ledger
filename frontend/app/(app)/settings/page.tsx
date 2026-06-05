@@ -7,8 +7,10 @@
  * 스타일: Tailwind + 공통 컴포넌트(Button/Badge/Toggle).
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
+import { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
@@ -52,9 +54,24 @@ const WIDGET_ICON_BG: Record<string, string> = {
 };
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const { confirm, confirmElement } = useConfirm();
   const [tab, setTab] = useState<TabId>('profile');
   const [s, setS] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // 계정 영구 삭제 — 확인 후 전 데이터 제거 + 로그아웃
+  async function deleteAccount() {
+    if (!await confirm('계정을 영구 삭제할까요? 모든 데이터가 사라지며 되돌릴 수 없습니다.', 'danger')) return;
+    try {
+      await api.del('/auth/me');
+      localStorage.removeItem('auth_token');
+      notify.success('계정이 삭제됐습니다.');
+      router.push('/login');
+    } catch {
+      notify.error('계정 삭제에 실패했습니다.');
+    }
+  }
 
   // 로컬 편집 상태 (입력 중 값 — 저장 버튼으로 커밋)
   const [displayName, setDisplayName] = useState('');
@@ -301,26 +318,26 @@ export default function SettingsPage() {
             <>
               <Group title="데이터 내보내기">
                 <Row label="가계부 데이터" desc="전체 거래 내역을 CSV로 다운로드">
-                  <Button variant="ghost">CSV 다운로드</Button>
+                  <Button variant="ghost" onClick={() => notify.comingSoon()}>CSV 다운로드</Button>
                 </Row>
                 <Row label="계정 보관함" desc="암호화된 JSON 형태로 백업">
-                  <Button variant="ghost">JSON 백업</Button>
+                  <Button variant="ghost" onClick={() => notify.comingSoon()}>JSON 백업</Button>
                 </Row>
                 <Row label="메모" desc="전체 메모를 마크다운 ZIP으로 다운로드">
-                  <Button variant="ghost">ZIP 다운로드</Button>
+                  <Button variant="ghost" onClick={() => notify.comingSoon()}>ZIP 다운로드</Button>
                 </Row>
               </Group>
               <div className="bg-background border border-[rgba(240,68,56,0.2)] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">
                 <div className="px-5 py-3.5 border-b border-[rgba(240,68,56,0.15)] [font-family:var(--font-display)] font-bold text-[0.875rem] text-danger bg-danger-dim">위험 구역</div>
                 <Row labelClass="danger" label="계정 삭제" desc="모든 데이터가 영구 삭제됩니다. 되돌릴 수 없습니다.">
-                  {/* TODO: 계정 삭제 API 연동 (확인 절차 필수) */}
-                  <Button variant="danger">계정 삭제</Button>
+                  <Button variant="danger" onClick={deleteAccount}>계정 삭제</Button>
                 </Row>
               </div>
             </>
           )}
         </div>
       </div>
+      {confirmElement}
     </AppShell>
   );
 }

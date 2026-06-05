@@ -6,6 +6,7 @@
  * ⌘K / Ctrl+K 단축키로 포커스, Esc 로 닫기.
  */
 import { useEffect, useRef, useState } from 'react';
+import { api } from '@/lib/api';
 
 type SearchType = 'tx' | 'cred' | 'file' | 'note';
 
@@ -19,20 +20,6 @@ interface SearchEntry {
 
 // 타입 코드 → 한글 라벨
 const TYPE_LABEL: Record<SearchType, string> = { tx: '가계부', cred: '계정', file: '파일', note: '메모' };
-
-// TODO: API 연동 — GET /api/v1/search?q= 결과로 대체. 현재는 더미 데이터.
-const SEARCH_DATA: SearchEntry[] = [
-  { type: 'tx',   icon: '💰', title: '월급 +₩3,200,000',        sub: '2025.05.25 · 가계부',   href: '#' },
-  { type: 'tx',   icon: '☕', title: '스타벅스 -₩6,500',          sub: '2025.05.31 · 가계부',   href: '#' },
-  { type: 'tx',   icon: '📺', title: '넷플릭스 -₩17,000',         sub: '2025.05.29 · 가계부',   href: '#' },
-  { type: 'cred', icon: '🐙', title: 'GitHub',                  sub: 'myusername · 개발',     href: '#' },
-  { type: 'cred', icon: '🏦', title: '카카오뱅크',                sub: '010-1234-5678 · 금융',  href: '#' },
-  { type: 'cred', icon: '📦', title: '쿠팡',                     sub: 'user@email.com · 쇼핑', href: '#' },
-  { type: 'file', icon: '📄', title: '보험증권_2025.pdf',         sub: '1.2MB · 파일 보관함',   href: '#' },
-  { type: 'file', icon: '🖼️', title: '주민등록등본_250415.jpg',   sub: '845KB · 파일 보관함',   href: '#' },
-  { type: 'note', icon: '📝', title: '월간 지출 분석 메모',        sub: '2025.05.31 · 메모',     href: '#' },
-  { type: 'note', icon: '📝', title: '개발 환경 세팅 체크리스트',   sub: '2025.05.28 · 메모',     href: '#' },
-];
 
 // 정규식 특수문자 이스케이프 (검색어를 안전하게 하이라이트하기 위함)
 function escapeRegExp(s: string) {
@@ -59,7 +46,21 @@ function highlight(text: string, q: string) {
 export default function GlobalSearch() {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
+  const [results, setResults] = useState<SearchEntry[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 검색어 변경 시 디바운스 후 통합 검색 API 호출
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) { setResults([]); return; }
+    let cancelled = false;
+    const t = setTimeout(() => {
+      api.get<SearchEntry[]>(`/search?q=${encodeURIComponent(q)}`)
+        .then((r) => { if (!cancelled) setResults(r); })
+        .catch(() => { if (!cancelled) setResults([]); });
+    }, 200);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [query]);
 
   // ⌘K/Ctrl+K → 검색창 포커스, Esc → 닫기
   useEffect(() => {
@@ -77,15 +78,6 @@ export default function GlobalSearch() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
-
-  // 검색어로 더미 데이터 필터 (제목/부제목 부분일치)
-  const results = query.trim()
-    ? SEARCH_DATA.filter(
-        (d) =>
-          d.title.toLowerCase().includes(query.toLowerCase()) ||
-          d.sub.toLowerCase().includes(query.toLowerCase()),
-      )
-    : SEARCH_DATA.slice(0, 4); // 빈 입력 시 최근 항목 4개
 
   // 결과를 타입별로 묶고 타입당 최대 3개로 제한
   const groups = results.reduce<Record<string, SearchEntry[]>>((acc, r) => {
@@ -115,12 +107,7 @@ export default function GlobalSearch() {
         {isEmpty ? (
           <div className="p-6 text-center text-[0.855rem] text-muted">검색 결과가 없습니다.</div>
         ) : !query.trim() ? (
-          <>
-            <div className="px-3.5 pt-2.5 pb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-muted bg-surface border-b border-border-subtle">최근 항목</div>
-            {results.map((item, i) => (
-              <SearchResultRow key={i} item={item} query="" />
-            ))}
-          </>
+          <div className="p-6 text-center text-[0.855rem] text-muted">가계부·메모를 검색하세요.</div>
         ) : (
           Object.entries(groups).map(([type, items]) => (
             <div key={type}>

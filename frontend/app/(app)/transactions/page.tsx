@@ -839,12 +839,17 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: { open: b
   const [recurringCycle, setRecurringCycle] = useState<RecurringCycle>('monthly');
   const [recurringDay, setRecurringDay] = useState(1);
   const [weekendAdjust, setWeekendAdjust] = useState<WeekendAdjust>('none');
+  const [scope, setScope] = useState<'one' | 'future' | 'all'>('one'); // 반복 수정 범위
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // 반복 시리즈에 속한 거래를 수정 중인지 (템플릿 or 자동생성 회차)
+  const editingRecurring = state.mode === 'edit' && !!(e?.isRecurring || e?.recurringParentId);
 
   useEffect(() => {
     if (!state.open) return;
     setErrors({});
+    setScope('one');
     setType(e?.type ?? 'expense');
     setDate(e?.date ?? new Date().toISOString().slice(0, 10));
     setTitle(e?.title ?? '');
@@ -880,6 +885,8 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: { open: b
         memo: memo || undefined,
         isRecurring,
         recurringRule: isRecurring ? { cycle: recurringCycle, day: recurringDay, weekendAdjust } : undefined,
+        // 반복 시리즈 수정 시에만 범위 전송
+        scope: editingRecurring ? scope : undefined,
       };
       if (state.mode === 'edit' && e) await api.put(`/transactions/${e.id}`, payload);
       else await api.post('/transactions', payload);
@@ -894,6 +901,17 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: { open: b
 
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '항목 수정' : '항목 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
+      {editingRecurring && (
+        <div className="flex flex-col gap-2 p-3.5 bg-surface border border-border rounded-[var(--radius)]">
+          <span className="text-[0.8rem] font-medium text-secondary">🔁 반복 거래 — 수정 범위</span>
+          <div className="flex gap-4 flex-wrap text-[0.82rem] text-secondary [&_label]:flex [&_label]:items-center [&_label]:gap-1.5 [&_label]:cursor-pointer [&_input]:accent-accent">
+            <label><input type="radio" name="scope" checked={scope === 'one'} onChange={() => setScope('one')} />이 항목만</label>
+            <label><input type="radio" name="scope" checked={scope === 'future'} onChange={() => setScope('future')} />이후 전체</label>
+            <label><input type="radio" name="scope" checked={scope === 'all'} onChange={() => setScope('all')} />전체</label>
+          </div>
+          <span className="text-[0.72rem] text-muted">날짜는 해당 회차만 변경됩니다. 금액·내역 등은 선택 범위에 적용됩니다.</span>
+        </div>
+      )}
       <Field label="유형" required>
         <select className="input" value={type} onChange={(ev) => setType(ev.target.value as TransactionType)}>
           <option value="expense">지출</option><option value="income">수입</option><option value="transfer">자산이동</option>

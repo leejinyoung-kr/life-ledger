@@ -19,6 +19,8 @@ import { SubscriptionModule } from './subscription/subscription.module';
 import { TaskModule } from './task/task.module';
 import { TrashModule } from './trash/trash.module';
 import { TransactionModule } from './transaction/transaction.module';
+import { SearchModule } from './search/search.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { TransactionModule } from './transaction/transaction.module';
     TrashModule,
     SecurityModule,
     CategoryModule,
+    SearchModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   // 전역 JWT 가드 — 모든 엔드포인트 보호. @Public() 핸들러만 예외(로그인 등)

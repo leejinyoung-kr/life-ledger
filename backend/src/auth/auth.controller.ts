@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Req, Res, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiExcludeController } from '@nestjs/swagger';
@@ -20,6 +20,12 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: AuthUser): AuthUser {
     return user;
+  }
+
+  // 계정 영구 삭제 (토큰 필요) — 전 도메인 데이터 + 사용자 제거
+  @Delete('me')
+  deleteAccount(@CurrentUser() user: AuthUser) {
+    return this.authService.deleteAccount(user.id);
   }
 
   @Public()

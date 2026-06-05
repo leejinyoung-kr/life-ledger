@@ -6,13 +6,15 @@
  * 공통 레이아웃(AppShell)을 재사용하고, 생성은 더미(setTimeout) 시뮬레이션. (TODO: Claude API)
  * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Badge).
  */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import AppShell from '@/components/AppShell';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
 import { Card, CardBody } from '@/components/ui/Card';
 import { IconCube } from '@/components/icons';
+import { api } from '@/lib/api';
+import { notify } from '@/lib/toast';
 
 type InsTone = 'green' | 'warning' | 'danger';
 interface Insight { tone: InsTone; node: ReactNode; }
@@ -30,7 +32,21 @@ const INS_DOT: Record<InsTone, string> = { green: 'bg-accent', warning: 'bg-warn
 
 export default function AiReportPage() {
   const [generating, setGenerating] = useState(false);
-  const [autoMonthly, setAutoMonthly] = useState(true); // 매월 1일 자동 생성
+  const [autoMonthly, setAutoMonthly] = useState(true); // 매월 1일 자동 생성 (설정 notifMonthly 와 동기화)
+
+  // 설정에서 자동 생성 여부 로드
+  useEffect(() => {
+    api.get<{ notifMonthly: boolean }>('/settings').then((s) => setAutoMonthly(s.notifMonthly)).catch(() => {});
+  }, []);
+
+  // 자동 생성 토글 — 즉시 설정 저장
+  function toggleAuto() {
+    const next = !autoMonthly;
+    setAutoMonthly(next);
+    api.put('/settings', { notifMonthly: next })
+      .then(() => notify.saved())
+      .catch(() => { setAutoMonthly(!next); notify.saveFailed(); });
+  }
 
   // 리포트 생성 — 더미 2.5초 후 완료. TODO: POST /api/v1/reports (Claude API 분석)
   function generateReport() {
@@ -57,8 +73,7 @@ export default function AiReportPage() {
         <div className="w-px bg-border self-stretch mx-1 shrink-0 max-md:hidden" />
         <div className="flex items-center gap-2">
           <span className="text-[0.82rem] text-secondary">매월 1일 자동 생성</span>
-          {/* TODO: 자동 생성 설정 저장 API 연동 */}
-          <Toggle on={autoMonthly} onToggle={() => setAutoMonthly((v) => !v)} label="매월 자동 생성 토글" />
+          <Toggle on={autoMonthly} onToggle={toggleAuto} label="매월 자동 생성 토글" />
         </div>
       </div>
 

@@ -483,7 +483,7 @@ export class TransactionService {
 
   // 내역 수정
   async update(userId: number, id: number, dto: UpdateTransactionDto) {
-    await this.findOwned(userId, id);
+    const target = await this.findOwned(userId, id);
     const updated = await this.prisma.transaction.update({
       where: { id },
       data: {
@@ -500,6 +500,29 @@ export class TransactionService {
           : undefined,
       },
     });
+
+    // 반복 거래 범위 수정 — 날짜는 회차별 고유라 제외, 내용 필드만 전파
+    if ((dto.scope === 'future' || dto.scope === 'all')) {
+      const templateId = target.recurring_parent_id ?? target.id; // 템플릿 기준
+      const where: Prisma.TransactionWhereInput = {
+        user_id: userId,
+        deleted_at: null,
+        id: { not: id },
+        OR: [{ id: templateId }, { recurring_parent_id: templateId }],
+      };
+      if (dto.scope === 'future') where.date = { gte: target.date }; // 이번 회차 이후
+      await this.prisma.transaction.updateMany({
+        where,
+        data: {
+          type: dto.type,
+          title: dto.title,
+          category: dto.category,
+          amount: dto.amount !== undefined ? new Prisma.Decimal(dto.amount) : undefined,
+          pay_method: dto.payMethod,
+          memo: dto.memo,
+        },
+      });
+    }
     return this.toDto(updated);
   }
 
