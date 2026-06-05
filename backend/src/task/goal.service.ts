@@ -25,7 +25,7 @@ export class GoalService {
   async findAll(userId: number) {
     const rows = await this.prisma.goal.findMany({
       where: { user_id: userId, deleted_at: null },
-      orderBy: { id: 'asc' },
+      orderBy: { created_at: 'desc' },
     });
     return rows.map((r) => this.toDto(r));
   }

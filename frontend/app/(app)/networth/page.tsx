@@ -37,7 +37,7 @@ export default function NetworthPage() {
       const [s, t, assets] = await Promise.all([
         api.get<NetWorthSummary>('/assets/summary'),
         api.get<TrendPoint[]>('/assets/trend'),
-        api.get<Asset[]>('/assets?type=debt'),
+        api.get<Asset[]>('/assets?type=debt&take=5'),
       ]);
       setSummary(s); setTrend(t); setDebts(assets); setError(null);
     } catch (e) {

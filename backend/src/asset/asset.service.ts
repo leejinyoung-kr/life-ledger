@@ -21,14 +21,15 @@ export class AssetService {
   }
 
   // 자산/부채 목록 — 기본값은 realestate+debt만 반환 (cash/savings/investment는 각 전용 테이블에서 집계)
-  async findAll(userId: number, type?: AssetType) {
+  async findAll(userId: number, type?: AssetType, take?: number) {
     const rows = await this.prisma.asset.findMany({
       where: {
         user_id: userId,
         deleted_at: null,
         type: type ? type : { in: ['realestate', 'debt'] },
       },
-      orderBy: [{ type: 'asc' }, { id: 'asc' }],
+      orderBy: { created_at: 'desc' },
+      ...(take ? { take } : {}),
     });
     return rows.map((r) => this.toDto(r));
   }

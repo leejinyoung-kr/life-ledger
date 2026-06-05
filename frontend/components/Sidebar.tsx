@@ -19,7 +19,6 @@ interface NavLeaf {
   label: string;
   href: string;
   icon: ReactNode;
-  badge?: number;
 }
 
 interface NavGroup {
@@ -81,7 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <IconSettings className={GROUP_IC} />,
     children: [
       { label: '보안 센터', href: '/security', icon: <IconShield /> },
-      { label: '알림', href: '/notifications', icon: <IconBell />, badge: 3 },
+      { label: '알림', href: '/notifications', icon: <IconBell /> },
       { label: '코드 관리', href: '/codes', icon: <IconBars /> },
       { label: '휴지통', href: '/trash', icon: <IconTrash /> },
       { label: '설정', href: '/settings', icon: <IconSettings /> },
@@ -192,9 +191,6 @@ function NavGroupItem({ group, activePath }: { group: NavGroup; activePath: stri
           >
             {leaf.icon}
             {leaf.label}
-            {leaf.badge != null && (
-              <span className="ml-auto min-w-[18px] h-[18px] bg-danger text-white text-[0.65rem] font-bold rounded-full flex items-center justify-center px-[5px]">{leaf.badge}</span>
-            )}
           </a>
         ))}
       </div>

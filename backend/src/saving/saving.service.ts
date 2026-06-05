@@ -33,7 +33,7 @@ export class SavingService {
   async findAll(userId: number) {
     const rows = await this.prisma.saving.findMany({
       where: { user_id: userId, deleted_at: null },
-      orderBy: { id: 'desc' },
+      orderBy: { start_date: 'desc' },
     });
     return rows.map((r) => this.toDto(r));
   }

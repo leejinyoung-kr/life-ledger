@@ -536,7 +536,6 @@ model Credential {
   id           Int       @id @default(autoincrement())
   user_id      Int /// user.id FK
   name         String    @db.VarChar(100)
-  emoji        String?   @db.VarChar(10)
   url          String?   @db.VarChar(300)
   category     String    @db.VarChar(50)
   username     String    @db.VarChar(200)
@@ -566,7 +565,6 @@ enum EnvKind {
 model EnvProject {
   id          Int       @id @default(autoincrement())
   user_id     Int /// user.id FK
-  emoji       String?   @db.VarChar(10)
   name        String    @db.VarChar(100)
   description String?   @db.VarChar(300)
   deleted_at  DateTime?

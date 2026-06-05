@@ -30,7 +30,7 @@ export class NotificationService {
   async findAll(userId: number) {
     const rows = await this.prisma.notification.findMany({
       where: { user_id: userId },
-      orderBy: { created_at: 'desc' },
+      orderBy: { occurred_at: 'desc' },
     });
     return rows.map((r) => this.toDto(r));
   }

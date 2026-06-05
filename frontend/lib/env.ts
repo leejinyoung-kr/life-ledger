@@ -7,7 +7,6 @@ export type EnvKind = 'dev' | 'staging' | 'prod';
 
 export interface EnvProject {
   id: number;
-  emoji: string | null;
   name: string;
   description: string | null;
   counts: Record<EnvKind, number>;

@@ -43,7 +43,6 @@ export class CredentialService {
     return {
       id: c.id,
       name: c.name,
-      emoji: c.emoji,
       url: c.url,
       category: c.category,
       username: c.username,
@@ -68,7 +67,6 @@ export class CredentialService {
       data: {
         user_id: userId,
         name: dto.name.trim(),
-        emoji: dto.emoji || null,
         url: dto.url || null,
         category: dto.category,
         username: dto.username.trim(),
@@ -126,7 +124,6 @@ export class CredentialService {
       where: { id },
       data: {
         name: dto.name?.trim(),
-        emoji: dto.emoji === undefined ? undefined : dto.emoji || null,
         url: dto.url === undefined ? undefined : dto.url || null,
         category: dto.category,
         username: dto.username?.trim(),

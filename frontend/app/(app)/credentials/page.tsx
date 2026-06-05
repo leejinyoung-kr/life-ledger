@@ -165,13 +165,8 @@ export default function CredentialsPage() {
               {paged.map((c) => (
                 <tr key={c.id} className="cursor-pointer" onClick={() => setDetail(c)}>
                   <td>
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-[30px] h-[30px] rounded-md bg-elevated border border-border flex items-center justify-center text-[0.9rem] shrink-0">{c.emoji ?? '🔑'}</div>
-                      <div>
-                        <div className="font-medium text-[0.875rem] text-primary">{c.name}</div>
-                        <div className="text-[0.72rem] text-muted">{c.url ?? '—'}</div>
-                      </div>
-                    </div>
+                    <div className="font-medium text-[0.875rem] text-primary">{c.name}</div>
+                    <div className="text-[0.72rem] text-muted">{c.url ?? '—'}</div>
                   </td>
                   <td className="td-center"><Badge tone="neutral">{c.category}</Badge></td>
                   <td className="td-mono">{c.username}</td>
@@ -194,7 +189,6 @@ export default function CredentialsPage() {
           {paged.map((c) => (
             <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={c.id} onClick={() => setDetail(c)}>
               <div className="flex items-center gap-2.5">
-                <div className="w-[30px] h-[30px] rounded-md bg-elevated border border-border flex items-center justify-center text-[0.9rem] shrink-0">{c.emoji ?? '🔑'}</div>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-[0.95rem] text-primary truncate">{c.name}</div>
                   <div className="text-[0.72rem] text-muted truncate">{c.url ?? '—'}</div>
@@ -283,7 +277,6 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
 
   const header = (
     <div className="flex items-center gap-3.5 px-6 pt-5 pb-4 border-b border-border">
-      <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-surface border border-border flex items-center justify-center text-[1.5rem] shrink-0">{cred.emoji ?? '🔑'}</div>
       <div className="flex-1">
         <div className="[font-family:var(--font-display)] text-base font-bold text-primary">{cred.name}</div>
         <div className="text-[0.78rem] text-muted mt-0.5">{cred.url ?? '—'}</div>
@@ -356,7 +349,6 @@ function DetailField({ label, children }: { label: string; children: React.React
 // 계정 추가·수정 모달 (수정 시 비밀번호는 입력해야만 변경)
 function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editing: Credential | null }; onClose: () => void; onSaved: () => void }) {
   const editing = state.editing;
-  const [emoji, setEmoji] = useState('');
   const [serviceName, setServiceName] = useState('');
   const [url, setUrl] = useState('');
   const [category, setCategory] = useState(CRED_CATEGORIES[0]);
@@ -370,7 +362,6 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
   useEffect(() => {
     if (!state.open) return;
     setErrors({});
-    setEmoji(editing?.emoji ?? '');
     setServiceName(editing?.name ?? '');
     setUrl(editing?.url ?? '');
     setCategory(editing?.category ?? CRED_CATEGORIES[0]);
@@ -395,7 +386,6 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
     if (!validate()) return;
     const body = {
       name: serviceName.trim(),
-      emoji: emoji || undefined,
       url: url || undefined,
       category,
       username: username.trim(),
@@ -427,12 +417,9 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
       title={editing ? '계정 수정' : '계정 추가'}
       footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} saveLabel="저장 (암호화)" />}
     >
-      <div className="grid grid-cols-[80px_1fr] gap-4 max-md:grid-cols-1">
-        <Field label="이모지"><input type="text" className="input" placeholder="🐙" value={emoji} onChange={(e) => setEmoji(e.target.value)} aria-label="이모지" /></Field>
-        <Field label="서비스명" required error={errors.serviceName}>
-          <input type="text" className={`input${errors.serviceName ? ' is-invalid' : ''}`} placeholder="예: GitHub" value={serviceName} onChange={(e) => { setServiceName(e.target.value); clearErr('serviceName'); }} />
-        </Field>
-      </div>
+      <Field label="서비스명" required error={errors.serviceName}>
+        <input type="text" className={`input${errors.serviceName ? ' is-invalid' : ''}`} placeholder="예: GitHub" value={serviceName} onChange={(e) => { setServiceName(e.target.value); clearErr('serviceName'); }} />
+      </Field>
       <Field label="URL"><input type="url" className="input" placeholder="https://github.com" value={url} onChange={(e) => setUrl(e.target.value)} /></Field>
       <Field label="카테고리" required>
         <select className="input" aria-label="카테고리" value={category} onChange={(e) => setCategory(e.target.value)}>

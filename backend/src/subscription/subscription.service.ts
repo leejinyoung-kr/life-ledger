@@ -46,7 +46,7 @@ export class SubscriptionService {
   async findAll(userId: number) {
     const rows = await this.prisma.subscription.findMany({
       where: { user_id: userId, deleted_at: null },
-      orderBy: { next_payment_date: 'asc' },
+      orderBy: { created_at: 'desc' },
     });
     return rows.map((r) => this.toDto(r));
   }

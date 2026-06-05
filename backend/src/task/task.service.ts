@@ -29,7 +29,7 @@ export class TaskService {
   async findAll(userId: number) {
     const rows = await this.prisma.task.findMany({
       where: { user_id: userId, deleted_at: null },
-      orderBy: [{ done: 'asc' }, { due_date: 'asc' }, { id: 'asc' }],
+      orderBy: { created_at: 'desc' },
     });
     return rows.map((r) => this.toDto(r));
   }

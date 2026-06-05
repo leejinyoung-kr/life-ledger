@@ -24,7 +24,6 @@ export class EnvService {
   private projectDto(p: EnvProject, counts: Record<EnvKind, number>) {
     return {
       id: p.id,
-      emoji: p.emoji,
       name: p.name,
       description: p.description,
       counts,
@@ -67,7 +66,6 @@ export class EnvService {
     const created = await this.prisma.envProject.create({
       data: {
         user_id: userId,
-        emoji: dto.emoji || null,
         name: dto.name.trim(),
         description: dto.description || null,
       },
@@ -81,7 +79,6 @@ export class EnvService {
     await this.prisma.envProject.update({
       where: { id },
       data: {
-        emoji: dto.emoji === undefined ? undefined : dto.emoji || null,
         name: dto.name?.trim(),
         description: dto.description === undefined ? undefined : dto.description || null,
       },
@@ -123,7 +120,7 @@ export class EnvService {
     await this.findOwnedProject(userId, projectId);
     const rows = await this.prisma.envVar.findMany({
       where: { user_id: userId, project_id: projectId, env, deleted_at: null },
-      orderBy: [{ group: 'asc' }, { id: 'asc' }],
+      orderBy: { created_at: 'desc' },
     });
     return rows.map((r) => this.varDto(r));
   }
@@ -133,7 +130,7 @@ export class EnvService {
     await this.findOwnedProject(userId, projectId);
     const rows = await this.prisma.envVar.findMany({
       where: { user_id: userId, project_id: projectId, env, deleted_at: null },
-      orderBy: [{ group: 'asc' }, { id: 'asc' }],
+      orderBy: { created_at: 'desc' },
     });
     return rows.map((r) => ({
       key: r.key,

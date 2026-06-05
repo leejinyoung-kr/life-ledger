@@ -12,13 +12,8 @@ import {
 export const ENV_KINDS = ['dev', 'staging', 'prod'] as const;
 export type EnvKindDto = (typeof ENV_KINDS)[number];
 
-// ENV 프로젝트 생성 — 이름 필수, 이모지·설명 선택
+// ENV 프로젝트 생성 — 이름 필수, 설명 선택
 export class CreateEnvProjectDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(10)
-  emoji?: string;
-
   @IsString()
   @MinLength(1)
   @MaxLength(100)

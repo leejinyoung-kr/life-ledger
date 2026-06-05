@@ -40,8 +40,12 @@ export class AssetController {
 
   // 자산/부채 목록 (type 쿼리로 필터 — 없으면 realestate+debt 반환)
   @Get()
-  findAll(@CurrentUser() user: AuthUser, @Query('type') type?: AssetType) {
-    return this.service.findAll(user.id, type);
+  findAll(
+    @CurrentUser() user: AuthUser,
+    @Query('type') type?: AssetType,
+    @Query('take') take?: string,
+  ) {
+    return this.service.findAll(user.id, type, take ? Number(take) : undefined);
   }
 
   // 자산/부채 추가

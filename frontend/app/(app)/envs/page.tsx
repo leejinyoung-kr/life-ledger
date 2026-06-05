@@ -234,7 +234,6 @@ export default function EnvsPage() {
               const active = p.id === selectedId;
               return (
                 <button type="button" key={p.id} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--radius)] cursor-pointer transition-colors border border-transparent w-full text-left hover:bg-surface ${active ? 'bg-accent-dim border-[rgba(0,192,127,0.2)]' : ''}`} onClick={() => selectProject(p.id)}>
-                  <div className={`w-8 h-8 rounded-[var(--radius)] border flex items-center justify-center text-[0.9rem] shrink-0 ${active ? 'bg-accent-dim border-[rgba(0,192,127,0.3)]' : 'bg-elevated border-border'}`}>{p.emoji ?? '📦'}</div>
                   <div className="min-w-0">
                     <div className={`text-[0.855rem] font-semibold truncate ${active ? 'text-accent' : 'text-primary'}`}>{p.name}</div>
                     <div className="text-[0.72rem] text-muted mt-px">변수 {p.totalVars}개</div>
@@ -254,7 +253,6 @@ export default function EnvsPage() {
             {/* 프로젝트 헤더 + 액션 */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2.5">
-                <span className="text-[1.4rem]">{project.emoji ?? '📦'}</span>
                 <div>
                   <div className="[font-family:var(--font-display)] text-base font-bold text-primary">{project.name}</div>
                   <div className="text-[0.75rem] text-muted">AES-256-GCM 암호화 · {project.totalVars}개 변수</div>
@@ -442,7 +440,6 @@ function EnvGroupRows({
 // 프로젝트 추가·수정 모달
 function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; editing: EnvProject | null }; onClose: () => void; onSaved: () => void }) {
   const editing = state.editing;
-  const [emoji, setEmoji] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
@@ -451,14 +448,13 @@ function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; edi
   useEffect(() => {
     if (!state.open) return;
     setErrors({});
-    setEmoji(editing?.emoji ?? '');
     setName(editing?.name ?? '');
     setDescription(editing?.description ?? '');
   }, [state.open, editing]);
 
   async function handleSave() {
     if (!name.trim()) { setErrors({ name: '프로젝트명을 입력하세요.' }); return; }
-    const body = { emoji: emoji || undefined, name: name.trim(), description: description || undefined };
+    const body = { name: name.trim(), description: description || undefined };
     setSaving(true);
     try {
       if (editing) await api.put(`/env-projects/${editing.id}`, body);
@@ -474,12 +470,9 @@ function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; edi
 
   return (
     <Modal open={state.open} onClose={onClose} title={editing ? '프로젝트 수정' : '프로젝트 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
-      <div className="grid grid-cols-[80px_1fr] gap-4 max-md:grid-cols-1">
-        <Field label="이모지"><input type="text" className="input" placeholder="🚀" value={emoji} onChange={(e) => setEmoji(e.target.value)} aria-label="이모지" /></Field>
-        <Field label="프로젝트명" required error={errors.name}>
-          <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: my-project" value={name} onChange={(e) => { setName(e.target.value); setErrors((p) => { const n = { ...p }; delete n.name; return n; }); }} />
-        </Field>
-      </div>
+      <Field label="프로젝트명" required error={errors.name}>
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: my-project" value={name} onChange={(e) => { setName(e.target.value); setErrors((p) => { const n = { ...p }; delete n.name; return n; }); }} />
+      </Field>
       <Field label="설명 (선택)"><input type="text" className="input" placeholder="프로젝트 간단 설명" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
     </Modal>
   );

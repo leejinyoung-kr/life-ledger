@@ -7,7 +7,6 @@
  * 스타일: Tailwind + 공통 컴포넌트(Button/Card). 드래그 transform 은 dnd-kit inline style.
  */
 import { useCallback, useEffect, useState, type CSSProperties } from 'react';
-import Pagination, { LimitSelect } from '@/components/Pagination';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
   DndContext,
@@ -77,8 +76,6 @@ export default function CodesPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   );
   const { confirm, confirmElement } = useConfirm();
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
 
   // 도메인별 항목 조회
   const load = useCallback(async () => {
@@ -93,7 +90,7 @@ export default function CodesPage() {
     }
   }, [domain]);
 
-  useEffect(() => { load(); setPage(1); }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   // 드래그 종료 — 순서 바뀐 항목만 PATCH(최소 요청)
   async function handleDragEnd(event: DragEndEvent) {
@@ -194,8 +191,6 @@ export default function CodesPage() {
     }
   }
 
-  const totalPages = Math.ceil(items.length / limit);
-  const pagedItems = items.slice((page - 1) * limit, page * limit);
   const currentDomain = DOMAINS.find((d) => d.key === domain)!;
 
   return (
@@ -226,10 +221,7 @@ export default function CodesPage() {
             <CardTitle>{currentDomain.label}</CardTitle>
             <span className="text-[0.78rem] text-muted ml-2.5">{currentDomain.desc}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
-            <Button variant="ghost" size="sm" onClick={seed}>기본값 복원</Button>
-          </div>
+          <Button variant="ghost" size="sm" onClick={seed}>기본값 복원</Button>
         </CardHeader>
 
         {/* 항목 목록 (드래그 가능) */}
@@ -240,33 +232,34 @@ export default function CodesPage() {
             <p className="px-5 py-4 text-[0.875rem] text-muted">항목이 없습니다. 추가하거나 기본값을 복원하세요.</p>
           )}
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={items.map((i) => i.id)}
-              strategy={verticalListSortingStrategy}
+          <div className="max-h-64.5 md:max-h-118.25 overflow-y-auto">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
             >
-              {pagedItems.map((item, idx) => (
-                <SortableRow
-                  key={item.id}
-                  item={item}
-                  idx={(page - 1) * limit + idx}
-                  editingId={editingId}
-                  editLabel={editLabel}
-                  onEditLabelChange={setEditLabel}
-                  onEdit={(it) => { setEditingId(it.id); setEditLabel(it.label); }}
-                  onEditSave={() => saveEdit(item.id)}
-                  onEditCancel={() => setEditingId(null)}
-                  onToggle={toggleActive}
-                  onDelete={remove}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
-          <Pagination page={page} totalPages={totalPages} totalItems={items.length} onPageChange={setPage} />
+              <SortableContext
+                items={items.map((i) => i.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {items.map((item, idx) => (
+                  <SortableRow
+                    key={item.id}
+                    item={item}
+                    idx={idx}
+                    editingId={editingId}
+                    editLabel={editLabel}
+                    onEditLabelChange={setEditLabel}
+                    onEdit={(it) => { setEditingId(it.id); setEditLabel(it.label); }}
+                    onEditSave={() => saveEdit(item.id)}
+                    onEditCancel={() => setEditingId(null)}
+                    onToggle={toggleActive}
+                    onDelete={remove}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          </div>
         </div>
 
         {/* 추가 폼 */}

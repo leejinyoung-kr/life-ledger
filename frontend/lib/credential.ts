@@ -6,7 +6,6 @@
 export interface Credential {
   id: number;
   name: string;
-  emoji: string | null;
   url: string | null;
   category: string;
   username: string;
