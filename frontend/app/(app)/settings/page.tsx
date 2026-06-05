@@ -7,7 +7,7 @@
  * 스타일: Tailwind + 공통 컴포넌트(Button/Badge/Toggle).
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';

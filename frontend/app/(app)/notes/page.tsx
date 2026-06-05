@@ -8,7 +8,7 @@
  * 모바일은 목록↔에디터 전환(노트 선택 시 에디터, "← 목록"으로 복귀).
  */
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import { useConfirm } from '@/components/ConfirmModal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -71,10 +71,10 @@ export default function NotesPage() {
       setSelectedId(created.id);
       setTab('edit');
       setMobileView('editor');
-      toast.success('새 메모가 생성됐습니다.');
+      notify.success('새 메모가 생성됐습니다.');
     } catch (e) {
       setError((e as Error).message);
-      toast.error('메모 생성에 실패했습니다.');
+      notify.error('메모 생성에 실패했습니다.');
     }
   }
 
@@ -85,10 +85,10 @@ export default function NotesPage() {
     try {
       const updated = await api.put<Note>(`/notes/${note.id}`, { title: note.title, body: note.body, tag: note.tag ?? '' });
       setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
-      toast.success('메모가 저장됐습니다.');
+      notify.saved('메모');
     } catch (e) {
       setError((e as Error).message);
-      toast.error('저장에 실패했습니다.');
+      notify.saveFailed();
     } finally {
       setSaving(false);
     }
@@ -106,10 +106,10 @@ export default function NotesPage() {
         return next;
       });
       setMobileView('list');
-      toast.success('메모가 삭제됐습니다.');
+      notify.deleted('메모');
     } catch (e) {
       setError((e as Error).message);
-      toast.error('삭제에 실패했습니다.');
+      notify.deleteFailed();
     }
   }
 

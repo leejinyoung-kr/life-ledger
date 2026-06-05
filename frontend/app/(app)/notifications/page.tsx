@@ -8,7 +8,7 @@
  * 스타일: Tailwind + 공통 컴포넌트(Button/Badge/Modal/Pagination).
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
@@ -68,7 +68,7 @@ export default function NotificationsPage() {
     setItems((prev) => prev.map((item) => (item.id === n.id ? { ...item, read: true } : item)));
     try {
       await api.put(`/notifications/${n.id}/read`, {});
-      toast.success('알림을 읽음 처리했습니다.');
+      notify.success('알림을 읽음 처리했습니다.');
     } catch (e) {
       setError((e as Error).message);
       load();
@@ -80,10 +80,10 @@ export default function NotificationsPage() {
     setItems((prev) => prev.map((n) => ({ ...n, read: true })));
     try {
       await api.put('/notifications/read-all', {});
-      toast.success('모든 알림을 읽음 처리했습니다.');
+      notify.success('모든 알림을 읽음 처리했습니다.');
     } catch (e) {
       setError((e as Error).message);
-      toast.error('읽음 처리에 실패했습니다.');
+      notify.error('읽음 처리에 실패했습니다.');
       load();
     }
   }

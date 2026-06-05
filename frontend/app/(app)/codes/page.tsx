@@ -24,7 +24,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -87,7 +87,7 @@ export default function CodesPage() {
       const data = await api.get<CodeItem[]>(`/categories?domain=${domain}`);
       setItems(data);
     } catch {
-      toast.error('항목을 불러오지 못했습니다.');
+      notify.loadFailed();
     } finally {
       setLoading(false);
     }
@@ -115,10 +115,10 @@ export default function CodesPage() {
           api.patch(`/categories/${item.id}`, { sortOrder: newOrder }),
         ),
       );
-      toast.success('순서가 변경됐습니다.');
+      notify.success('순서가 변경됐습니다.');
       load();
     } catch {
-      toast.error('순서 저장에 실패했습니다.');
+      notify.error('순서 저장에 실패했습니다.');
       load();
     }
   }
@@ -126,7 +126,7 @@ export default function CodesPage() {
   // 항목 추가
   async function add() {
     if (!newCode.trim() || !newLabel.trim()) {
-      toast.error('코드와 표시명을 모두 입력하세요.');
+      notify.error('코드와 표시명을 모두 입력하세요.');
       return;
     }
     setSaving(true);
@@ -136,11 +136,11 @@ export default function CodesPage() {
         code: newCode.trim().toLowerCase().replace(/\s+/g, '_'),
         label: newLabel.trim(),
       });
-      toast.success('항목이 추가됐습니다.');
+      notify.added('항목');
       setNewCode(''); setNewLabel('');
       load();
     } catch (e) {
-      toast.error((e as Error).message.includes('이미') ? '이미 존재하는 코드입니다.' : '추가에 실패했습니다.');
+      notify.error((e as Error).message.includes('이미') ? '이미 존재하는 코드입니다.' : '추가에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -151,11 +151,11 @@ export default function CodesPage() {
     if (!editLabel.trim()) return;
     try {
       await api.patch(`/categories/${id}`, { label: editLabel.trim() });
-      toast.success('수정됐습니다.');
+      notify.success('수정됐습니다.');
       setEditingId(null);
       load();
     } catch {
-      toast.error('수정에 실패했습니다.');
+      notify.updateFailed();
     }
   }
 
@@ -163,10 +163,10 @@ export default function CodesPage() {
   async function toggleActive(id: number, isActive: boolean) {
     try {
       await api.patch(`/categories/${id}`, { isActive: !isActive });
-      toast.success(isActive ? '비활성화했습니다.' : '활성화했습니다.');
+      notify.success(isActive ? '비활성화했습니다.' : '활성화했습니다.');
       load();
     } catch {
-      toast.error('수정에 실패했습니다.');
+      notify.updateFailed();
     }
   }
 
@@ -175,10 +175,10 @@ export default function CodesPage() {
     if (!await confirm('이 항목을 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/categories/${id}`);
-      toast.success('삭제됐습니다.');
+      notify.success('삭제됐습니다.');
       load();
     } catch {
-      toast.error('삭제에 실패했습니다.');
+      notify.deleteFailed();
     }
   }
 
@@ -187,10 +187,10 @@ export default function CodesPage() {
     if (!await confirm('기본 항목으로 복원할까요? 기존 항목은 유지됩니다.', 'primary')) return;
     try {
       await api.post(`/categories/seed?domain=${domain}`, {});
-      toast.success('기본값이 복원됐습니다.');
+      notify.success('기본값이 복원됐습니다.');
       load();
     } catch {
-      toast.error('복원에 실패했습니다.');
+      notify.error('복원에 실패했습니다.');
     }
   }
 

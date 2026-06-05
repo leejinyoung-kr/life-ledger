@@ -7,7 +7,7 @@
  * 스타일: Tailwind + 공통 컴포넌트(StatCard/Button/Badge/Card/Modal/Field).
  */
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
 import StatCard from '@/components/StatCard';
@@ -69,10 +69,10 @@ export default function NetworthPage() {
     if (!await confirm('이 항목을 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/assets/${id}`);
-      toast.success('항목이 삭제됐습니다.');
+      notify.deleted('항목');
       bump();
     } catch {
-      toast.error('삭제에 실패했습니다.');
+      notify.deleteFailed();
     }
   }
 
@@ -272,10 +272,10 @@ function AssetModal({ state, onClose, onSaved }: { state: { open: boolean; mode:
       };
       if (state.mode === 'edit' && e) await api.put(`/assets/${e.id}`, payload);
       else await api.post('/assets', payload);
-      toast.success(state.mode === 'edit' ? '자산이 수정됐습니다.' : '자산이 추가됐습니다.');
+      notify.upserted(state.mode, '자산');
       onSaved();
     } catch {
-      toast.error('저장에 실패했습니다.');
+      notify.saveFailed();
     } finally {
       setSaving(false);
     }

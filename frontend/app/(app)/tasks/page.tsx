@@ -7,7 +7,7 @@
  * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Badge/Field). 진행바(track/fill)는 공통 globals.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Modal from '@/components/Modal';
@@ -53,7 +53,7 @@ export default function TasksPage() {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: next } : t)));
     try {
       await api.put(`/tasks/${id}`, { done: next });
-      if (next) toast.success('할일을 완료했습니다.');
+      if (next) notify.success('할일을 완료했습니다.');
       load();
     } catch (e) {
       setError((e as Error).message);
@@ -164,10 +164,10 @@ function AddTaskModal({ open, onClose, onSaved }: { open: boolean; onClose: () =
     setSaving(true);
     try {
       await api.post('/tasks', { text: text.trim(), dueDate: dueDate || undefined, priority, memo: memo || undefined });
-      toast.success('할일이 추가됐습니다.');
+      notify.added('할일');
       onSaved();
     } catch {
-      toast.error('저장에 실패했습니다.');
+      notify.saveFailed();
     } finally {
       setSaving(false);
     }

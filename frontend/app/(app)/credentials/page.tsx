@@ -7,7 +7,7 @@
  * 스타일: Tailwind + 공통 컴포넌트(Modal/Button/Badge/Field). 표+모바일카드 패턴.
  */
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Modal from '@/components/Modal';
@@ -76,12 +76,12 @@ export default function CredentialsPage() {
       {/* 엑셀 툴바 — TODO: 다운로드/업로드 API 연동 */}
       <div className="flex gap-2 flex-wrap items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
         <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">엑셀</span>
-        <button type="button" className="excel-btn" onClick={() => toast('준비 중인 기능입니다.')}><IconDownload />데이터 다운로드</button>
+        <button type="button" className="excel-btn" onClick={() => notify.comingSoon()}><IconDownload />데이터 다운로드</button>
         <div className="w-px bg-border self-stretch mx-1 shrink-0" />
-        <button type="button" className="excel-btn" onClick={() => toast('준비 중인 기능입니다.')}><IconFileBlank />양식 다운로드</button>
+        <button type="button" className="excel-btn" onClick={() => notify.comingSoon()}><IconFileBlank />양식 다운로드</button>
         <label className="excel-btn upload">
           <IconUpload />엑셀 업로드
-          <input type="file" accept=".xlsx,.xls,.csv" hidden onChange={() => toast('준비 중인 기능입니다.')} />
+          <input type="file" accept=".xlsx,.xls,.csv" hidden onChange={() => notify.comingSoon()} />
         </label>
       </div>
 
@@ -128,7 +128,7 @@ export default function CredentialsPage() {
                   <td className="td-center" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-center gap-1">
                       <button type="button" className={`${ICON_BTN} border border-border hover:text-primary`} onClick={() => setEdit({ open: true, mode: 'edit' })} aria-label="수정"><IconEdit width={14} height={14} /></button>
-                      <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center bg-danger-dim text-danger transition-all hover:bg-[rgba(240,68,56,0.15)]" onClick={() => toast('준비 중인 기능입니다.')} aria-label="삭제"><IconTrash width={14} height={14} /></button>
+                      <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center bg-danger-dim text-danger transition-all hover:bg-[rgba(240,68,56,0.15)]" onClick={() => notify.comingSoon()} aria-label="삭제"><IconTrash width={14} height={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -153,7 +153,7 @@ export default function CredentialsPage() {
               <div className="mt-2 text-[0.78rem] text-secondary [font-family:var(--font-mono)] truncate">{c.id}</div>
               <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" className="flex-1" onClick={() => setEdit({ open: true, mode: 'edit' })}>수정</Button>
-                <Button variant="danger" className="flex-1" onClick={() => toast('준비 중인 기능입니다.')}>삭제</Button>
+                <Button variant="danger" className="flex-1" onClick={() => notify.comingSoon()}>삭제</Button>
               </div>
             </div>
           ))}
@@ -200,7 +200,7 @@ function DetailModal({ cred, onClose, onEdit }: { cred: Credential | null; onClo
 
   // 클립보드 복사. TODO: 복사 완료 토스트 등 피드백 추가
   function copy(text: string) {
-    navigator.clipboard.writeText(text).then(() => toast.success('클립보드에 복사됐습니다.')).catch(() => {});
+    navigator.clipboard.writeText(text).then(() => notify.copied()).catch(() => {});
   }
 
   const maskedPw = '•'.repeat(Math.min(cred.pw.length, 16));
@@ -229,7 +229,7 @@ function DetailModal({ cred, onClose, onEdit }: { cred: Credential | null; onClo
       footer={
         <>
           {/* TODO: API 연동 — 계정 삭제 처리 */}
-          <Button variant="danger" className="mr-auto" onClick={() => toast('준비 중인 기능입니다.')}>삭제</Button>
+          <Button variant="danger" className="mr-auto" onClick={() => notify.comingSoon()}>삭제</Button>
           <Button variant="ghost" onClick={onClose}>닫기</Button>
           <Button onClick={onEdit}>수정</Button>
         </>
@@ -295,7 +295,7 @@ function EditModal({ state, onClose }: { state: { open: boolean; mode: 'add' | '
 
   function handleSave() {
     if (!validate()) return;
-    toast.success(state.mode === 'edit' ? '계정이 수정됐습니다.' : '계정이 추가됐습니다.');
+    notify.upserted(state.mode, '계정');
     onClose();
   }
 
@@ -322,7 +322,7 @@ function EditModal({ state, onClose }: { state: { open: boolean; mode: 'add' | '
       <Field label="비밀번호" required error={errors.pw}>
         <div className="flex gap-2">
           <input type="password" className={`input${errors.pw ? ' is-invalid' : ''}`} placeholder="비밀번호" value={pw} onChange={(e) => { setPw(e.target.value); clearErr('pw'); }} />
-          <Button variant="ghost" className="whitespace-nowrap" onClick={() => toast('준비 중인 기능입니다.')}>🎲 생성</Button>
+          <Button variant="ghost" className="whitespace-nowrap" onClick={() => notify.comingSoon()}>🎲 생성</Button>
         </div>
         <div className="track"><div className="fill warning" style={{ width: '55%' }} /></div>
         <span className="text-[0.72rem] text-warning">강도: 보통 — 12자 이상 + 특수문자 권장</span>

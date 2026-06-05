@@ -11,7 +11,7 @@ import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import { IconAlertCircle, IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
 import { trashDate, type TrashItem } from '@/lib/trash';
@@ -41,7 +41,7 @@ export default function TrashPage() {
   async function restore(it: TrashItem) {
     try {
       await api.post('/trash/restore', { kind: it.kind, id: it.id });
-      toast.success(`'${it.name}'을(를) 복구했습니다.`);
+      notify.success(`'${it.name}'을(를) 복구했습니다.`);
       load();
     } catch (e) { setError((e as Error).message); }
   }
@@ -51,7 +51,7 @@ export default function TrashPage() {
     if (!await confirm(`'${it.name}'을(를) 영구 삭제할까요? 되돌릴 수 없습니다.`, 'danger')) return;
     try {
       await api.post('/trash/purge', { kind: it.kind, id: it.id });
-      toast.success('영구 삭제됐습니다.');
+      notify.purged();
       load();
     } catch (e) { setError((e as Error).message); }
   }
@@ -62,7 +62,7 @@ export default function TrashPage() {
     if (!await confirm('모든 삭제 항목을 복구할까요?', 'primary')) return;
     try {
       await api.post('/trash/restore-all', {});
-      toast.success('전체 복구됐습니다.');
+      notify.restoredAll();
       load();
     } catch (e) { setError((e as Error).message); }
   }
@@ -73,7 +73,7 @@ export default function TrashPage() {
     if (!await confirm('휴지통을 비울까요? 모든 항목이 영구 삭제됩니다.', 'danger')) return;
     try {
       await api.post('/trash/empty', {});
-      toast.success('휴지통을 비웠습니다.');
+      notify.emptied();
       load();
     } catch (e) { setError((e as Error).message); }
   }

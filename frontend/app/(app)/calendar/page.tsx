@@ -7,7 +7,7 @@
  * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Field).
  */
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
@@ -220,10 +220,10 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
     setSaving(true);
     try {
       await api.post('/calendar', { title: title.trim(), date, type, memo: memo || undefined });
-      toast.success('일정이 추가됐습니다.');
+      notify.added('일정');
       onSaved();
     } catch {
-      toast.error('저장에 실패했습니다.');
+      notify.saveFailed();
     } finally {
       setSaving(false);
     }

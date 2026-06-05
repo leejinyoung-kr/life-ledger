@@ -7,7 +7,7 @@
  * 스타일: Tailwind + 공통 컴포넌트(StatCard/Button/Badge/Card/Modal/Field). 메인 목록은 카드형 유지.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
@@ -68,10 +68,10 @@ export default function SubscriptionsPage() {
     if (!await confirm('이 구독을 해지할까요?', 'danger')) return;
     try {
       await api.del(`/subscriptions/${id}`);
-      toast.success('구독이 해지됐습니다.');
+      notify.success('구독이 해지됐습니다.');
       bump();
     } catch {
-      toast.error('해지에 실패했습니다.');
+      notify.error('해지에 실패했습니다.');
     }
   }
 
@@ -278,10 +278,10 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
       };
       if (state.mode === 'edit' && e) await api.put(`/subscriptions/${e.id}`, payload);
       else await api.post('/subscriptions', payload);
-      toast.success(state.mode === 'edit' ? '구독이 수정됐습니다.' : '구독이 추가됐습니다.');
+      notify.upserted(state.mode, '구독');
       onSaved();
     } catch {
-      toast.error('저장에 실패했습니다.');
+      notify.saveFailed();
     } finally {
       setSaving(false);
     }

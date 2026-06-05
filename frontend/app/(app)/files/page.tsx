@@ -7,7 +7,7 @@
  * 스타일: Tailwind + 공통 컴포넌트(Modal/Button/Field).
  */
 import { useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button, { buttonClasses } from '@/components/ui/Button';
@@ -84,7 +84,7 @@ export default function FilesPage() {
       {/* 내보내기 */}
       <div className="flex gap-2 flex-wrap items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
         <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">내보내기</span>
-        <button type="button" className="excel-btn" onClick={() => toast('준비 중인 기능입니다.')}><IconDownload />파일 목록 다운로드</button>
+        <button type="button" className="excel-btn" onClick={() => notify.comingSoon()}><IconDownload />파일 목록 다운로드</button>
       </div>
 
       {/* 업로드 드롭존 */}
@@ -161,9 +161,9 @@ export default function FilesPage() {
             </div>
             <div className="flex border-t border-border-subtle" onClick={(e) => e.stopPropagation()}>
               <button type="button" className={FILE_BTN} onClick={() => setViewer(file)}><IconEye width={11} height={11} />보기</button>
-              <button type="button" className={FILE_BTN} onClick={() => toast('준비 중인 기능입니다.')}><IconDownload width={11} height={11} />다운</button>
-              <button type="button" className={FILE_BTN} onClick={() => toast('준비 중인 기능입니다.')}><IconFolder width={11} height={11} />이동</button>
-              <button type="button" className={`${FILE_BTN} hover:text-danger`} onClick={() => toast('준비 중인 기능입니다.')}><IconTrash width={11} height={11} />삭제</button>
+              <button type="button" className={FILE_BTN} onClick={() => notify.comingSoon()}><IconDownload width={11} height={11} />다운</button>
+              <button type="button" className={FILE_BTN} onClick={() => notify.comingSoon()}><IconFolder width={11} height={11} />이동</button>
+              <button type="button" className={`${FILE_BTN} hover:text-danger`} onClick={() => notify.comingSoon()}><IconTrash width={11} height={11} />삭제</button>
             </div>
           </div>
         ))}
@@ -191,7 +191,7 @@ function ViewerModal({ file, onClose }: { file: FileItem | null; onClose: () => 
       <span className="text-[1.2rem]">{file.type === 'pdf' ? '📄' : '🖼️'}</span>
       <span className="text-[0.875rem] font-semibold text-primary flex-1 truncate">{file.name}</span>
       <div className="flex gap-1.5 items-center">
-        <Button variant="ghost" size="sm" onClick={() => toast('준비 중인 기능입니다.')}><IconDownload width={13} height={13} />다운로드</Button>
+        <Button variant="ghost" size="sm" onClick={() => notify.comingSoon()}><IconDownload width={13} height={13} />다운로드</Button>
         <button type="button" className="w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] text-secondary border border-border transition-all hover:bg-surface hover:text-primary" onClick={onClose} aria-label="닫기">
           <IconClose width={16} height={16} />
         </button>

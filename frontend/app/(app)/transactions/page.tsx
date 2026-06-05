@@ -14,7 +14,7 @@ import {
   IconSearch, IconEdit, IconTrash, IconChart, IconAlertTriangle,
 } from '@/components/icons';
 
-import { toast } from 'sonner';
+import { notify } from '@/lib/toast';
 import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import { api } from '@/lib/api';
@@ -253,10 +253,10 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
     if (!await confirm('이 내역을 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/transactions/${id}`);
-      toast.success('내역이 삭제됐습니다.');
+      notify.deleted('내역');
       onDeleted();
     } catch {
-      toast.error('삭제에 실패했습니다.');
+      notify.deleteFailed();
     }
   }
 
@@ -265,7 +265,7 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
     try {
       await downloadTransactionTemplate(categories.map((c) => c.label));
     } catch {
-      toast.error('양식 생성에 실패했습니다.');
+      notify.error('양식 생성에 실패했습니다.');
     }
   }
 
@@ -279,13 +279,13 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
         '/transactions/import', file,
       );
       if (res.failed > 0) {
-        toast.warning(`${res.imported}건 추가 · ${res.failed}건 실패 (${res.errors.slice(0, 3).map((e) => `${e.row}행`).join(', ')}…)`);
+        notify.excelPartial(res.imported, res.failed, ` (${res.errors.slice(0, 3).map((e) => `${e.row}행`).join(', ')}…)`);
       } else {
-        toast.success(`${res.imported}건이 추가됐습니다.`);
+        notify.excelUploaded(res.imported);
       }
       onDeleted(); // reloadKey bump → 목록·요약 재조회
     } catch (err) {
-      toast.error((err as Error).message || '업로드에 실패했습니다.');
+      notify.error((err as Error).message || '업로드에 실패했습니다.');
     }
   }
 
@@ -300,7 +300,7 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
     try {
       await api.download(`/transactions/export?${params.toString()}`, '가계부.xlsx');
     } catch (err) {
-      toast.error((err as Error).message || '다운로드에 실패했습니다.');
+      notify.error((err as Error).message || '다운로드에 실패했습니다.');
     }
   }
 
@@ -514,10 +514,10 @@ function SavingsTab({ reloadKey, savingCats, onAdd, onEdit, onDeleted }: { reloa
     if (!await confirm('이 예적금을 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/savings/${id}`);
-      toast.success('예적금이 삭제됐습니다.');
+      notify.deleted('예적금');
       onDeleted();
     } catch {
-      toast.error('삭제에 실패했습니다.');
+      notify.deleteFailed();
     }
   }
 
@@ -679,10 +679,10 @@ function InvestTab({ reloadKey, investCats, onAdd, onEdit, onDeleted }: { reload
     if (!await confirm('이 투자 항목을 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/investments/${id}`);
-      toast.success('투자 항목이 삭제됐습니다.');
+      notify.deleted('투자 항목');
       onDeleted();
     } catch {
-      toast.error('삭제에 실패했습니다.');
+      notify.deleteFailed();
     }
   }
 
@@ -883,10 +883,10 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: { open: b
       };
       if (state.mode === 'edit' && e) await api.put(`/transactions/${e.id}`, payload);
       else await api.post('/transactions', payload);
-      toast.success(state.mode === 'edit' ? '항목이 수정됐습니다.' : '항목이 추가됐습니다.');
+      notify.upserted(state.mode, '항목');
       onSaved();
     } catch (x) {
-      toast.error('저장에 실패했습니다.');
+      notify.saveFailed();
     } finally {
       setSaving(false);
     }
@@ -1017,10 +1017,10 @@ function SavingsModal({ state, onClose, onSaved }: { state: { open: boolean; mod
       };
       if (state.mode === 'edit' && e) await api.put(`/savings/${e.id}`, payload);
       else await api.post('/savings', payload);
-      toast.success(state.mode === 'edit' ? '예적금이 수정됐습니다.' : '예적금이 추가됐습니다.');
+      notify.upserted(state.mode, '예적금');
       onSaved();
     } catch {
-      toast.error('저장에 실패했습니다.');
+      notify.saveFailed();
     } finally {
       setSaving(false);
     }
@@ -1098,10 +1098,10 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
       const payload = { name, type, principal: Number(principal || 0), currentValue: Number(currentValue || 0), purchaseDate: purchaseDate || undefined, memo: memo || undefined };
       if (state.mode === 'edit' && e) await api.put(`/investments/${e.id}`, payload);
       else await api.post('/investments', payload);
-      toast.success(state.mode === 'edit' ? '투자 항목이 수정됐습니다.' : '투자 항목이 추가됐습니다.');
+      notify.upserted(state.mode, '투자 항목');
       onSaved();
     } catch {
-      toast.error('저장에 실패했습니다.');
+      notify.saveFailed();
     } finally {
       setSaving(false);
     }
