@@ -72,6 +72,51 @@ function toDateStr(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+// 반복 규칙 형태
+interface RRule { cycle: 'monthly' | 'weekly' | 'yearly'; day: number; weekendAdjust?: 'none' | 'before' | 'after' }
+
+// 반복 회차 식별자 — 월간 'YYYY-MM' / 연간 'YYYY' / 주간 'YYYY-MM-DD'
+function periodOf(d: Date, cycle: string): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  if (cycle === 'yearly') return String(y);
+  if (cycle === 'weekly') return toDateStr(d);
+  return `${y}-${m}`;
+}
+
+// 주말이면 앞/뒤 평일로 보정 (none 은 그대로)
+function adjustWeekend(d: Date, mode?: string): Date {
+  const wd = d.getUTCDay(); // 0 일 .. 6 토
+  if (mode === 'before') {
+    if (wd === 6) d.setUTCDate(d.getUTCDate() - 1);
+    else if (wd === 0) d.setUTCDate(d.getUTCDate() - 2);
+  } else if (mode === 'after') {
+    if (wd === 6) d.setUTCDate(d.getUTCDate() + 2);
+    else if (wd === 0) d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return d;
+}
+
+// 해당 (연,월)의 기준일 날짜 — 말일 초과 시 말일로 클램프 + 주말 보정
+function monthlyDate(y: number, m: number, day: number, adj?: string): Date {
+  const dim = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return adjustWeekend(new Date(Date.UTC(y, m, Math.min(day, dim))), adj);
+}
+
+// 템플릿 기준 i번째 회차 날짜
+function nthOccurrence(base: Date, rule: RRule, i: number): Date {
+  const y = base.getUTCFullYear();
+  const m = base.getUTCMonth();
+  const day = rule.day || base.getUTCDate();
+  if (rule.cycle === 'weekly') {
+    const d = new Date(base);
+    d.setUTCDate(d.getUTCDate() + 7 * i);
+    return adjustWeekend(d, rule.weekendAdjust);
+  }
+  if (rule.cycle === 'yearly') return monthlyDate(y + i, m, day, rule.weekendAdjust);
+  return monthlyDate(y, m + i, day, rule.weekendAdjust); // monthly
+}
+
 // 'YYYY-MM' → 해당 월 [시작, 다음달 시작) 범위
 function monthRange(month: string): { gte: Date; lt: Date } {
   const [y, m] = month.split('-').map(Number);
@@ -97,7 +142,48 @@ export class TransactionService {
       memo: t.memo,
       isRecurring: t.is_recurring,
       recurringRule: t.recurring_rule ?? null,
+      // 반복 원본에서 자동 생성된 회차인지 (프론트 🔁 표시용)
+      recurringParentId: t.recurring_parent_id ?? null,
     };
+  }
+
+  // 활성 반복 템플릿의 회차를 현재 월까지 미리 생성한다.
+  // 회차는 recurring_period 로 식별 — 이미 있거나(편집 override 포함) 삭제된 회차는 다시 만들지 않는다.
+  private async materializeRecurring(userId: number): Promise<void> {
+    const templates = await this.prisma.transaction.findMany({
+      where: { user_id: userId, deleted_at: null, is_recurring: true },
+    });
+    if (!templates.length) return;
+    const now = new Date();
+
+    for (const t of templates) {
+      const rule = t.recurring_rule as unknown as RRule | null;
+      if (!rule?.cycle) continue;
+
+      // 이미 보유한 회차(템플릿 자신 + 생성분, 삭제분 포함)
+      const existing = await this.prisma.transaction.findMany({
+        where: { user_id: userId, OR: [{ id: t.id }, { recurring_parent_id: t.id }] },
+        select: { recurring_period: true },
+      });
+      const have = new Set(existing.map((e) => e.recurring_period).filter(Boolean) as string[]);
+      have.add(periodOf(t.date, rule.cycle)); // 템플릿 자신의 회차
+
+      const toCreate: Prisma.TransactionCreateManyInput[] = [];
+      for (let i = 1; i <= 120; i++) { // 안전 상한
+        const occ = nthOccurrence(t.date, rule, i);
+        if (occ > now) break;
+        const period = periodOf(occ, rule.cycle);
+        if (have.has(period)) continue;
+        have.add(period);
+        toCreate.push({
+          user_id: userId, type: t.type, date: occ, title: t.title, category: t.category,
+          amount: t.amount, pay_method: t.pay_method, memo: t.memo,
+          is_recurring: false, recurring_rule: Prisma.JsonNull,
+          recurring_parent_id: t.id, recurring_period: period,
+        });
+      }
+      if (toCreate.length) await this.prisma.transaction.createMany({ data: toCreate });
+    }
   }
 
   // 사용자의 가장 최근 거래 월(YYYY-MM). 없으면 null — 더미 데이터(과거)에서도 추이가 보이도록 기준점 사용
@@ -128,8 +214,10 @@ export class TransactionService {
     return where;
   }
 
-  // 내역 목록 — 날짜범위/유형/카테고리/검색어 필터
+  // 내역 목록 — 날짜범위/유형/카테고리/검색어 필터.
+  // 조회 시점에 반복 회차를 현재 월까지 자동 채운다(idempotent).
   async findAll(userId: number, query: QueryTransactionDto) {
+    await this.materializeRecurring(userId);
     const rows = await this.prisma.transaction.findMany({
       where: this.buildWhere(userId, query),
       orderBy: [{ date: 'desc' }, { id: 'desc' }],
@@ -217,20 +305,27 @@ export class TransactionService {
 
   // 내역 추가
   async create(userId: number, dto: CreateTransactionDto) {
+    const date = new Date(dto.date);
+    const isRecurring = dto.isRecurring ?? false;
+    const rule = dto.recurringRule as unknown as RRule | undefined;
     const created = await this.prisma.transaction.create({
       data: {
         user_id: userId,
         type: dto.type,
-        date: new Date(dto.date),
+        date,
         title: dto.title,
         category: dto.category,
         amount: new Prisma.Decimal(dto.amount),
         pay_method: dto.payMethod ?? '',
         memo: dto.memo,
-        is_recurring: dto.isRecurring ?? false,
-        recurring_rule: dto.isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
+        is_recurring: isRecurring,
+        recurring_rule: isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
+        // 반복 템플릿이면 자신의 회차 식별자 기록 (자동 생성 시 중복 방지)
+        recurring_period: isRecurring && rule?.cycle ? periodOf(date, rule.cycle) : null,
       },
     });
+    // 등록 즉시 과거~현재 회차 채움 (목록 진입 전 미리)
+    if (isRecurring) await this.materializeRecurring(userId);
     return this.toDto(created);
   }
 

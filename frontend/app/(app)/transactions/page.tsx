@@ -444,7 +444,7 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
                   <td className="td-center td-muted">{rows.length - (page - 1) * limit - i}</td>
                   <td className="td-center"><span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span></td>
                   <td className="td-center"><span className="cat-chip">{catMap[row.category] ?? row.category}</span></td>
-                  <td className="td-name">{row.title}</td>
+                  <td className="td-name">{(row.isRecurring || row.recurringParentId) && <span title="반복 거래">🔁 </span>}{row.title}</td>
                   <td className="td-center td-muted">{row.payMethod}</td>
                   <td className={`td-right amount-${row.type}`}>{signedWon(row.type, row.amount)}</td>
                   <td className="td-center td-muted">{row.memo ?? '-'}</td>
@@ -462,7 +462,7 @@ function LedgerTab({ reloadKey, categories, onEdit, onDeleted }: { reloadKey: nu
           {pagedRows.map((row) => (
             <div className={TXCARD} key={row.id}>
               <div className={TXCARD_TOP}>
-                <span className={TXCARD_TITLE}>{row.title}</span>
+                <span className={TXCARD_TITLE}>{(row.isRecurring || row.recurringParentId) && '🔁 '}{row.title}</span>
                 <span className={`${TXCARD_AMT} ${AMT_COLOR[row.type]}`}>{signedWon(row.type, row.amount)}</span>
               </div>
               <div className={TXCARD_SUB}>

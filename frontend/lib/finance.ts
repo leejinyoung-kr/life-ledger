@@ -37,6 +37,7 @@ export interface Transaction {
   memo: string | null;
   isRecurring: boolean;
   recurringRule: RecurringRule | null;
+  recurringParentId: number | null; // 반복 원본에서 자동 생성된 회차면 부모 id
 }
 
 export interface TransactionSummary {

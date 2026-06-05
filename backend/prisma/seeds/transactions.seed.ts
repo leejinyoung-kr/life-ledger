@@ -19,17 +19,13 @@ type TxSeed = {
   weekendAdjust?: WeekendAdjust;
 };
 
-// 2026-01 ~ 2026-06 매월 반복되는 고정 거래 (급여/저축이동/구독)
+// 반복 거래 템플릿 (첫 달만 등록 — 이후 회차는 백엔드 materialize 가 현재 월까지 자동 생성)
 function fixedRows(): TxSeed[] {
-  const months = ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06'];
-  const rows: TxSeed[] = [];
-  for (const ym of months) {
-    const mnum = Number(ym.slice(5));
-    rows.push({ type: 'income',   date: `${ym}-25`, title: '월급',         category: 'salary',       amount: 3200000, payMethod: '계좌이체', memo: `${mnum}월 급여`, recurring: true, weekendAdjust: 'before' });
-    rows.push({ type: 'transfer', date: `${ym}-30`, title: '청약저축 납입', category: 'transfer',     amount:  200000, payMethod: '계좌이체', memo: '잔액에서 제외',  recurring: true, weekendAdjust: 'none' });
-    rows.push({ type: 'expense',  date: `${ym}-29`, title: '넷플릭스',      category: 'subscription', amount:   17000, payMethod: '신한카드', memo: '월정액',        recurring: true, weekendAdjust: 'none' });
-  }
-  return rows;
+  return [
+    { type: 'income',   date: '2026-01-25', title: '월급',         category: 'salary',       amount: 3200000, payMethod: '계좌이체', memo: '월 급여',      recurring: true, weekendAdjust: 'before' },
+    { type: 'transfer', date: '2026-01-30', title: '청약저축 납입', category: 'transfer',     amount:  200000, payMethod: '계좌이체', memo: '잔액에서 제외', recurring: true, weekendAdjust: 'none' },
+    { type: 'expense',  date: '2026-01-29', title: '넷플릭스',      category: 'subscription', amount:   17000, payMethod: '신한카드', memo: '월정액',       recurring: true, weekendAdjust: 'none' },
+  ];
 }
 
 // 월별 변동 거래 — 금액·카테고리·결제수단 섞어서
@@ -84,6 +80,8 @@ export const seedTransactions: SeedFn = async (prisma, userId) => {
         recurring_rule: t.recurring
           ? { cycle: 'monthly', day: Number(t.date.slice(8)), weekendAdjust: t.weekendAdjust ?? 'none' }
           : undefined,
+        // 반복 템플릿이면 자신의 회차 식별 (자동 생성 시 중복 방지)
+        recurring_period: t.recurring ? t.date.slice(0, 7) : null,
       },
     });
   }

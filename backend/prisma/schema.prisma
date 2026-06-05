@@ -56,6 +56,8 @@ model Transaction {
   memo           String?         @db.VarChar(300)
   is_recurring   Boolean         @default(false)
   recurring_rule Json?
+  recurring_parent_id Int? /// 반복 원본 transaction.id (자동 생성 회차)
+  recurring_period    String? @db.VarChar(10) /// 반복 회차 식별 (YYYY-MM / YYYY / YYYY-MM-DD)
   deleted_at     DateTime?
   created_at     DateTime        @default(now())
   updated_at     DateTime        @updatedAt
@@ -63,6 +65,7 @@ model Transaction {
   user User @relation(fields: [user_id], references: [id])
 
   @@index([user_id, date])
+  @@index([recurring_parent_id])
   @@map("transaction")
 }
 
