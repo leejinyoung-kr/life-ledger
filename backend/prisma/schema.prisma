@@ -62,6 +62,7 @@ model Transaction {
   recurring_rule Json?
   recurring_parent_id Int? /// 반복 원본 transaction.id (자동 생성 회차)
   recurring_period    String? @db.VarChar(10) /// 반복 회차 식별 (YYYY-MM / YYYY / YYYY-MM-DD)
+  recurring_overridden Boolean @default(false) /// 사용자가 개별 수정한 회차 — 범위(이후/전체) 수정에서 보존
   deleted_at     DateTime?
   created_at     DateTime        @default(now())
   updated_at     DateTime        @updatedAt

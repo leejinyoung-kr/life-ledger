@@ -1,9 +1,34 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Credential } from '@prisma/client';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Credential, Prisma } from '@prisma/client';
+import * as ExcelJS from 'exceljs';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto.service';
 import { CreateCredentialDto } from './dto/create-credential.dto';
 import { UpdateCredentialDto } from './dto/update-credential.dto';
+
+// 엑셀 내보내기/양식 공통 컬럼
+const EXPORT_COLUMNS: { header: string; key: string; width: number }[] = [
+  { header: '서비스명', key: 'name', width: 20 },
+  { header: 'URL', key: 'url', width: 24 },
+  { header: '카테고리', key: 'category', width: 12 },
+  { header: '아이디', key: 'username', width: 24 },
+  { header: '비밀번호', key: 'password', width: 20 },
+  { header: '2FA', key: 'totp', width: 20 },
+  { header: '메모', key: 'memo', width: 24 },
+];
+const REQUIRED_HEADERS = ['서비스명', '카테고리', '아이디', '비밀번호'];
+
+// 헤더 라벨 정규화 ('서비스명*' → '서비스명')
+function normalizeHeader(s: string): string {
+  return s.replace(/\*/g, '').trim();
+}
+
+// 엑셀 업로드 결과 요약
+export interface ImportResult {
+  imported: number;
+  failed: number;
+  errors: { row: number; message: string }[];
+}
 
 @Injectable()
 export class CredentialService {
@@ -89,6 +114,103 @@ export class CredentialService {
       },
     });
     return this.toDto(updated);
+  }
+
+  // 빈 양식 엑셀(.xlsx) 버퍼 — 헤더(필수*)만 포함
+  async templateExcel(): Promise<Buffer> {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('계정');
+    ws.columns = EXPORT_COLUMNS.map((c) => ({
+      header: REQUIRED_HEADERS.includes(c.header) ? `${c.header}*` : c.header,
+      key: c.key,
+      width: c.width,
+    }));
+    ws.getRow(1).font = { bold: true };
+    return Buffer.from((await wb.xlsx.writeBuffer()) as ArrayBuffer);
+  }
+
+  // 계정 데이터 엑셀(.xlsx) 내보내기 — 비밀번호/TOTP 는 복호화한 평문으로 출력(사용자 본인 백업).
+  async exportExcel(userId: number): Promise<Buffer> {
+    const rows = await this.prisma.credential.findMany({
+      where: { user_id: userId, deleted_at: null },
+      orderBy: { id: 'asc' },
+    });
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('계정');
+    ws.columns = EXPORT_COLUMNS;
+    ws.getRow(1).font = { bold: true };
+    for (const c of rows) {
+      ws.addRow({
+        name: c.name,
+        url: c.url ?? '',
+        category: c.category,
+        username: c.username,
+        password: this.crypto.decrypt(c.password_enc),
+        totp: c.totp_enc ? this.crypto.decrypt(c.totp_enc) : '',
+        memo: c.memo ?? '',
+      });
+    }
+    return Buffer.from((await wb.xlsx.writeBuffer()) as ArrayBuffer);
+  }
+
+  // 엑셀 양식 업로드 → 행별 검증 후 일괄 추가 (비밀번호/TOTP 암호화 저장)
+  async importExcel(userId: number, buffer: Buffer): Promise<ImportResult> {
+    const wb = new ExcelJS.Workbook();
+    try {
+      await wb.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+    } catch {
+      throw new BadRequestException('엑셀 파일을 읽을 수 없습니다.');
+    }
+    const ws = wb.getWorksheet('계정') ?? wb.worksheets[0];
+    if (!ws) throw new BadRequestException('시트를 찾을 수 없습니다.');
+
+    const colOf: Record<string, number> = {};
+    ws.getRow(1).eachCell((cell, col) => {
+      const key = normalizeHeader(String(cell.text ?? ''));
+      if (key) colOf[key] = col;
+    });
+    const missing = REQUIRED_HEADERS.filter((h) => !colOf[h]);
+    if (missing.length) throw new BadRequestException(`양식 헤더 누락: ${missing.join(', ')}`);
+
+    const cell = (row: ExcelJS.Row, h: string) =>
+      colOf[h] ? String(row.getCell(colOf[h]).text ?? '').trim() : '';
+
+    const valid: Prisma.CredentialCreateManyInput[] = [];
+    const errors: { row: number; message: string }[] = [];
+
+    for (let r = 2; r <= ws.rowCount; r++) {
+      const row = ws.getRow(r);
+      const name = cell(row, '서비스명');
+      const category = cell(row, '카테고리');
+      const username = cell(row, '아이디');
+      const password = cell(row, '비밀번호');
+      if (!name && !category && !username && !password) continue; // 빈 행
+
+      const bad: string[] = [];
+      if (!name) bad.push('서비스명');
+      if (!category) bad.push('카테고리');
+      if (!username) bad.push('아이디');
+      if (!password) bad.push('비밀번호');
+      if (bad.length) { errors.push({ row: r, message: `${bad.join(', ')} 값 오류` }); continue; }
+
+      const totp = cell(row, '2FA');
+      valid.push({
+        user_id: userId,
+        name,
+        url: cell(row, 'URL') || null,
+        category,
+        username,
+        password_enc: this.crypto.encrypt(password),
+        totp_enc: totp ? this.crypto.encrypt(totp) : null,
+        memo: cell(row, '메모') || null,
+      });
+    }
+
+    const CHUNK = 1000;
+    for (let i = 0; i < valid.length; i += CHUNK) {
+      await this.prisma.credential.createMany({ data: valid.slice(i, i + CHUNK) });
+    }
+    return { imported: valid.length, failed: errors.length, errors };
   }
 
   // 계정 삭제 (soft delete)

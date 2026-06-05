@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 
-type SearchType = 'tx' | 'cred' | 'file' | 'note';
+type SearchType = 'tx' | 'note' | 'cred' | 'id' | 'env';
 
 interface SearchEntry {
   type: SearchType;
@@ -19,7 +19,7 @@ interface SearchEntry {
 }
 
 // 타입 코드 → 한글 라벨
-const TYPE_LABEL: Record<SearchType, string> = { tx: '가계부', cred: '계정', file: '파일', note: '메모' };
+const TYPE_LABEL: Record<SearchType, string> = { tx: '가계부', note: '메모', cred: '계정', id: '신원', env: 'ENV' };
 
 // 정규식 특수문자 이스케이프 (검색어를 안전하게 하이라이트하기 위함)
 function escapeRegExp(s: string) {
@@ -94,7 +94,7 @@ export default function GlobalSearch() {
         ref={inputRef}
         className="w-full h-[34px] bg-surface border border-border rounded-[var(--radius)] pl-8 pr-[70px] text-[0.82rem] text-primary outline-none transition-[border-color,box-shadow] placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-dim)]"
         type="text"
-        placeholder="통합 검색... (가계부, 계정, 파일, 메모)"
+        placeholder="통합 검색... (가계부·메모·계정·신원·ENV)"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setOpen(true)}
@@ -107,7 +107,7 @@ export default function GlobalSearch() {
         {isEmpty ? (
           <div className="p-6 text-center text-[0.855rem] text-muted">검색 결과가 없습니다.</div>
         ) : !query.trim() ? (
-          <div className="p-6 text-center text-[0.855rem] text-muted">가계부·메모를 검색하세요.</div>
+          <div className="p-6 text-center text-[0.855rem] text-muted">가계부·메모·계정·신원·ENV를 검색하세요.</div>
         ) : (
           Object.entries(groups).map(([type, items]) => (
             <div key={type}>
@@ -124,7 +124,7 @@ export default function GlobalSearch() {
 }
 
 const ICON_BG: Record<SearchType, string> = {
-  tx: 'bg-accent-dim', cred: 'bg-blue-dim', file: 'bg-amber-dim', note: 'bg-elevated',
+  tx: 'bg-accent-dim', note: 'bg-elevated', cred: 'bg-blue-dim', id: 'bg-amber-dim', env: 'bg-accent-dim',
 };
 
 // 검색 결과 한 줄

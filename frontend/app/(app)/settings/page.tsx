@@ -15,7 +15,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
 import { IconWon, IconBars, IconClock, IconZap, IconLock, IconCube, IconDrag } from '@/components/icons';
-import { api } from '@/lib/api';
+import { api, apiDownload } from '@/lib/api';
 import {
   BUDGET_LABEL, SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS, CLAUDE_MODEL_OPTIONS,
   type Settings, type Category, type WidgetPref,
@@ -59,6 +59,16 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<TabId>('profile');
   const [s, setS] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // 데이터 내보내기 — 인증 첨부 후 파일 다운로드
+  async function exportData(path: string, filename: string) {
+    try {
+      await apiDownload(path, filename);
+      notify.downloaded();
+    } catch {
+      notify.error('내보내기에 실패했습니다.');
+    }
+  }
 
   // 계정 영구 삭제 — 확인 후 전 데이터 제거 + 로그아웃
   async function deleteAccount() {
@@ -317,14 +327,14 @@ export default function SettingsPage() {
           {tab === 'data' && (
             <>
               <Group title="데이터 내보내기">
-                <Row label="가계부 데이터" desc="전체 거래 내역을 CSV로 다운로드">
-                  <Button variant="ghost" onClick={() => notify.comingSoon()}>CSV 다운로드</Button>
+                <Row label="가계부 데이터" desc="전체 거래 내역을 엑셀(.xlsx)로 다운로드">
+                  <Button variant="ghost" onClick={() => exportData('/transactions/export', '가계부.xlsx')}>엑셀 다운로드</Button>
                 </Row>
-                <Row label="계정 보관함" desc="암호화된 JSON 형태로 백업">
-                  <Button variant="ghost" onClick={() => notify.comingSoon()}>JSON 백업</Button>
+                <Row label="계정 보관함" desc="암호화된 JSON 형태로 백업 (동일 키 필요)">
+                  <Button variant="ghost" onClick={() => exportData('/export/credentials', '계정백업.json')}>JSON 백업</Button>
                 </Row>
-                <Row label="메모" desc="전체 메모를 마크다운 ZIP으로 다운로드">
-                  <Button variant="ghost" onClick={() => notify.comingSoon()}>ZIP 다운로드</Button>
+                <Row label="전체 백업" desc="모든 데이터·메모를 ZIP으로 다운로드">
+                  <Button variant="ghost" onClick={() => exportData('/export/backup', 'docnexus-백업.zip')}>ZIP 다운로드</Button>
                 </Row>
               </Group>
               <div className="bg-background border border-[rgba(240,68,56,0.2)] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">

@@ -484,6 +484,10 @@ export class TransactionService {
   // 내역 수정
   async update(userId: number, id: number, dto: UpdateTransactionDto) {
     const target = await this.findOwned(userId, id);
+    const isOccurrence = target.recurring_parent_id != null;
+    // 단일 범위로 회차(자동 생성분)를 직접 고치면 '개별 수정'으로 고정 → 이후 범위 수정에서 보존
+    const pinOverride = isOccurrence && (!dto.scope || dto.scope === 'one');
+
     const updated = await this.prisma.transaction.update({
       where: { id },
       data: {
@@ -498,16 +502,19 @@ export class TransactionService {
         recurring_rule: dto.isRecurring !== undefined
           ? (dto.isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull)
           : undefined,
+        recurring_overridden: pinOverride ? true : undefined,
       },
     });
 
-    // 반복 거래 범위 수정 — 날짜는 회차별 고유라 제외, 내용 필드만 전파
+    // 반복 거래 범위 수정 — 날짜는 회차별 고유라 제외, 내용 필드만 전파.
+    // 사용자가 개별 수정(override)한 회차는 덮어쓰지 않는다.
     if ((dto.scope === 'future' || dto.scope === 'all')) {
       const templateId = target.recurring_parent_id ?? target.id; // 템플릿 기준
       const where: Prisma.TransactionWhereInput = {
         user_id: userId,
         deleted_at: null,
         id: { not: id },
+        recurring_overridden: false,
         OR: [{ id: templateId }, { recurring_parent_id: templateId }],
       };
       if (dto.scope === 'future') where.date = { gte: target.date }; // 이번 회차 이후

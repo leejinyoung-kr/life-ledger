@@ -17,8 +17,9 @@ import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
   IconSearch, IconEdit, IconTrash, IconClose, IconCopy, IconEye,
+  IconDownload, IconFileBlank, IconUpload,
 } from '@/components/icons';
-import { api } from '@/lib/api';
+import { api, apiDownload } from '@/lib/api';
 import {
   CRED_CATEGORIES, fmtCredDate, pwStrength,
   type Credential, type CredentialSecret,
@@ -75,6 +76,34 @@ export default function CredentialsPage() {
     }
   }
 
+  // 엑셀 양식 다운로드
+  async function downloadTemplate() {
+    try { await apiDownload('/credentials/template', '계정양식.xlsx'); notify.excelDownloaded(); }
+    catch { notify.error('양식 다운로드에 실패했습니다.'); }
+  }
+
+  // 계정 데이터 엑셀 다운로드 — 비밀번호가 평문으로 포함되므로 확인
+  async function downloadData() {
+    if (!await confirm('비밀번호가 평문으로 포함된 엑셀을 다운로드할까요?', 'danger')) return;
+    try { await apiDownload('/credentials/export', '계정.xlsx'); notify.excelDownloaded(); }
+    catch { notify.error('다운로드에 실패했습니다.'); }
+  }
+
+  // 엑셀 업로드 → 일괄 추가
+  async function uploadExcel(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const r = await api.upload<{ imported: number; failed: number }>('/credentials/import', file);
+      if (r.failed) notify.excelPartial(r.imported, r.failed);
+      else notify.excelUploaded(r.imported);
+      load();
+    } catch (err) {
+      notify.error((err as Error).message);
+    }
+  }
+
   return (
     <AppShell activePath="/credentials" topbarLabel="계정 보관함">
       <div className="mb-7 flex items-center justify-between gap-4">
@@ -94,6 +123,18 @@ export default function CredentialsPage() {
           <span className="flex-1 text-secondary">2FA 미설정 계정이 <strong>{no2fa}건</strong> 있습니다. 2단계 인증 설정을 권장합니다.</span>
         </div>
       )}
+
+      {/* 엑셀 툴바 — 양식/업로드/데이터 */}
+      <div className="flex gap-2 flex-wrap items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
+        <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">엑셀</span>
+        <button type="button" className="excel-btn" onClick={downloadTemplate}><IconFileBlank />양식 다운로드</button>
+        <label className="excel-btn upload">
+          <IconUpload />엑셀 업로드
+          <input type="file" accept=".xlsx,.xls" hidden onChange={uploadExcel} />
+        </label>
+        <div className="w-px bg-border self-stretch mx-1 shrink-0" />
+        <button type="button" className="excel-btn" onClick={downloadData}><IconDownload />데이터 다운로드</button>
+      </div>
 
       {/* 검색 툴바 */}
       <div className="flex items-center gap-2.5 mb-4 flex-wrap">
