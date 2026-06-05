@@ -4,11 +4,15 @@
  * ENV 보관함 페이지.
  * 프로젝트별 환경변수를 dev/staging/prod 환경 탭으로 나눠 암호화 관리한다.
  * 값 마스킹·복사·.env 일괄 복사/다운로드·붙여넣기 파싱을 지원하며, 데이터는 더미로 채운다.
+ * 스타일: Tailwind + 공통 컴포넌트. env-table(그룹행 구조)은 공통 globals 유지.
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import { Field, ModalFooter } from '@/components/ui/Field';
 import {
   IconCode, IconFileBlank, IconEdit, IconPlus, IconCopy, IconEye,
   IconTrash, IconDownload, IconCheck,
@@ -18,6 +22,9 @@ type EnvKey = 'dev' | 'staging' | 'prod';
 
 interface EnvVar { group: string; key: string; value: string; masked: boolean; }
 interface Project { emoji: string; name: string; envs: Partial<Record<EnvKey, EnvVar[]>>; }
+
+// 환경 탭 점 색
+const ENV_DOT: Record<EnvKey, string> = { dev: 'bg-accent', staging: 'bg-warning', prod: 'bg-danger' };
 
 // ── 더미 데이터 (TODO: GET /api/v1/env-projects) ────────────────
 const PROJECTS: Project[] = [
@@ -111,13 +118,12 @@ function toEnvText(name: string, env: EnvKey, vars: EnvVar[]) {
 export default function EnvsPage() {
   const [projectIdx, setProjectIdx] = useState(0);
   const [env, setEnv] = useState<EnvKey>('dev');
-  const [visible, setVisible] = useState<Record<string, boolean>>({}); // uid → 값 표시 여부
+  const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [paste, setPaste] = useState('');
   const [projectModal, setProjectModal] = useState<{ open: boolean; mode: 'add' | 'edit' }>({ open: false, mode: 'add' });
   const [envModal, setEnvModal] = useState<{ open: boolean; mode: 'add' | 'edit' }>({ open: false, mode: 'add' });
   const hideTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  // 언마운트 시 모든 자동 숨김 타이머 정리
   useEffect(() => {
     const timers = hideTimers.current;
     return () => { Object.values(timers).forEach(clearTimeout); };
@@ -144,7 +150,6 @@ export default function EnvsPage() {
     });
   }
 
-  // 클립보드 복사. TODO: 복사 완료 토스트 등 피드백 추가
   function copy(text: string) {
     navigator.clipboard.writeText(text).catch(() => {});
   }
@@ -172,7 +177,6 @@ export default function EnvsPage() {
       })
       .filter((p) => p.key);
     if (!parsed.length) return;
-    // 실제 구현 시 서버에서 암호화 후 저장
     setPaste('');
   }
 
@@ -190,79 +194,70 @@ export default function EnvsPage() {
 
   return (
     <AppShell activePath="/envs" topbarLabel="ENV 보관함">
-      <div className="page-header">
+      <div className="mb-7 flex items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">ENV 보관함</h1>
-          <p className="page-subtitle">프로젝트별 환경변수를 암호화하여 관리합니다. (AES-256-GCM)</p>
+          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">ENV 보관함</h1>
+          <p className="text-sm text-secondary mt-1.5">프로젝트별 환경변수를 암호화하여 관리합니다. (AES-256-GCM)</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setProjectModal({ open: true, mode: 'add' })}>
-          <IconPlus width={14} height={14} />프로젝트 추가
-        </button>
+        <Button onClick={() => setProjectModal({ open: true, mode: 'add' })}>프로젝트 추가</Button>
       </div>
 
-      <div className="env-layout">
+      <div className="grid grid-cols-[280px_1fr] gap-5 items-start max-md:grid-cols-1">
         {/* 프로젝트 목록 */}
-        <div className="project-panel">
-          <div className="project-panel-header">
-            <span className="project-panel-title">프로젝트</span>
-            <span className="badge badge-neutral">{PROJECTS.length}개</span>
+        <div className="bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] overflow-hidden sticky top-[calc(var(--header-h)+24px)] max-md:static">
+          <div className="flex items-center justify-between px-4 py-3.5 border-b border-border bg-surface">
+            <span className="[font-family:var(--font-display)] text-[0.875rem] font-bold text-primary">프로젝트</span>
+            <Badge tone="neutral">{PROJECTS.length}개</Badge>
           </div>
-          <div className="project-list">
-            {PROJECTS.map((p, idx) => (
-              <button
-                type="button"
-                key={p.name}
-                className={`project-item${idx === projectIdx ? ' active' : ''}`}
-                onClick={() => selectProject(idx)}
-              >
-                <div className="project-icon">{p.emoji}</div>
-                <div>
-                  <div className="project-name">{p.name}</div>
-                  <div className="project-env-count">변수 {totalVarCount(p)}개 · {Object.keys(p.envs).join('/')}</div>
-                </div>
-              </button>
-            ))}
+          <div className="p-2">
+            {PROJECTS.map((p, idx) => {
+              const active = idx === projectIdx;
+              return (
+                <button type="button" key={p.name} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--radius)] cursor-pointer transition-colors border border-transparent w-full text-left hover:bg-surface ${active ? 'bg-accent-dim border-[rgba(0,192,127,0.2)]' : ''}`} onClick={() => selectProject(idx)}>
+                  <div className={`w-8 h-8 rounded-[var(--radius)] border flex items-center justify-center text-[0.9rem] shrink-0 ${active ? 'bg-accent-dim border-[rgba(0,192,127,0.3)]' : 'bg-elevated border-border'}`}>{p.emoji}</div>
+                  <div>
+                    <div className={`text-[0.855rem] font-semibold ${active ? 'text-accent' : 'text-primary'}`}>{p.name}</div>
+                    <div className="text-[0.72rem] text-muted mt-px">변수 {totalVarCount(p)}개 · {Object.keys(p.envs).join('/')}</div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-          <button type="button" className="project-add-btn" onClick={() => setProjectModal({ open: true, mode: 'add' })}>
+          <button type="button" className="flex items-center gap-2 px-3 py-2.5 rounded-[var(--radius)] cursor-pointer text-muted text-[0.82rem] transition-all border border-dashed border-border mx-2 mb-2 w-[calc(100%-16px)] hover:border-accent hover:text-accent hover:bg-accent-dim" onClick={() => setProjectModal({ open: true, mode: 'add' })}>
             <IconPlus width={14} height={14} />새 프로젝트
           </button>
         </div>
 
         {/* 환경변수 편집 패널 */}
-        <div className="env-editor-panel">
+        <div className="flex flex-col gap-4">
           {/* 프로젝트 헤더 + 액션 */}
-          <div className="proj-head">
-            <div className="proj-head-main">
-              <span className="proj-emoji">{project.emoji}</span>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5">
+              <span className="text-[1.4rem]">{project.emoji}</span>
               <div>
-                <div className="proj-name">{project.name}</div>
-                <div className="proj-sub">AES-256-GCM 암호화 · {totalVarCount(project)}개 변수</div>
+                <div className="[font-family:var(--font-display)] text-base font-bold text-primary">{project.name}</div>
+                <div className="text-[0.75rem] text-muted">AES-256-GCM 암호화 · {totalVarCount(project)}개 변수</div>
               </div>
             </div>
-            <div className="proj-actions">
-              {/* TODO: dev/prod 환경 diff 비교 기능 */}
-              <button type="button" className="btn btn-ghost"><IconCode width={13} height={13} />환경 비교</button>
-              {/* TODO: .env.example 생성 (값 비우고 키만) */}
-              <button type="button" className="btn btn-ghost"><IconFileBlank width={13} height={13} />.env.example</button>
-              <button type="button" className="btn btn-ghost" onClick={() => setProjectModal({ open: true, mode: 'edit' })}>
-                <IconEdit width={13} height={13} />수정
-              </button>
-              <button type="button" className="btn btn-danger" onClick={() => setEnvModal({ open: true, mode: 'add' })}>
-                <IconPlus width={13} height={13} />변수 추가
-              </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button variant="ghost" size="sm"><IconCode width={13} height={13} />환경 비교</Button>
+              <Button variant="ghost" size="sm"><IconFileBlank width={13} height={13} />.env.example</Button>
+              <Button variant="ghost" size="sm" onClick={() => setProjectModal({ open: true, mode: 'edit' })}><IconEdit width={13} height={13} />수정</Button>
+              <Button variant="danger" size="sm" onClick={() => setEnvModal({ open: true, mode: 'add' })}><IconPlus width={13} height={13} />변수 추가</Button>
             </div>
           </div>
 
           {/* 환경 탭 + 변수 테이블 + 전체 복사 바 */}
-          <div className="card flush">
-            <div className="env-tabs">
+          <div className="bg-background border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">
+            <div className="flex border-b border-border px-4 bg-surface">
               {ENV_TABS.map((t) => (
-                <button type="button" key={t.key} className={`env-tab${env === t.key ? ' active' : ''}`} onClick={() => { setEnv(t.key); setVisible({}); }}>
-                  <span className={`env-dot ${t.key}`} />{t.label}
+                <button type="button" key={t.key} className={`px-4 py-2 text-[0.82rem] font-medium cursor-pointer border-b-2 -mb-px transition-all flex items-center gap-1.5 ${env === t.key ? 'text-accent border-accent font-semibold' : 'text-muted border-transparent hover:text-secondary'}`} onClick={() => { setEnv(t.key); setVisible({}); }}>
+                  <span className={`w-[7px] h-[7px] rounded-full ${ENV_DOT[t.key]}`} />{t.label}
                 </button>
               ))}
             </div>
 
+            {/* env-table: 그룹행 구조라 공통 globals 유지 */}
             <table className="env-table">
               <thead>
                 <tr>
@@ -291,34 +286,28 @@ export default function EnvsPage() {
               </tbody>
             </table>
 
-            <div className="copy-all-bar">
-              <span className="copy-all-hint">.env 파일 형식으로 전체 복사</span>
-              <button type="button" className="btn btn-ghost" onClick={() => copy(toEnvText(project.name, env, vars))}>
-                <IconCopy width={13} height={13} />전체 복사
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={downloadEnv}>
-                <IconDownload width={13} height={13} />.env 다운로드
-              </button>
+            <div className="flex items-center gap-2.5 px-[18px] py-3 bg-surface border-t border-border">
+              <span className="text-[0.78rem] text-muted flex-1">.env 파일 형식으로 전체 복사</span>
+              <Button variant="ghost" size="sm" onClick={() => copy(toEnvText(project.name, env, vars))}><IconCopy width={13} height={13} />전체 복사</Button>
+              <Button variant="ghost" size="sm" onClick={downloadEnv}><IconDownload width={13} height={13} />.env 다운로드</Button>
             </div>
           </div>
 
           {/* 일괄 붙여넣기 */}
-          <div className="paste-zone">
-            <div className="paste-zone-label">
+          <div className="border-2 border-dashed border-border rounded-[var(--radius-lg)] p-5 flex flex-col gap-3">
+            <div className="text-[0.82rem] font-semibold text-secondary flex items-center gap-1.5">
               <IconCode width={14} height={14} />.env 파일 내용 붙여넣기 (일괄 저장)
             </div>
             <textarea
-              className="paste-textarea"
+              className="w-full min-h-[120px] bg-surface border border-border rounded-[var(--radius)] px-3.5 py-3 [font-family:var(--font-mono)] text-[0.82rem] text-primary resize-y outline-none leading-[1.7] transition-[border-color,box-shadow] focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-dim)] placeholder:text-muted"
               value={paste}
               onChange={(e) => setPaste(e.target.value)}
               placeholder={'# .env 내용을 그대로 붙여넣으세요\nDATABASE_URL=mysql://root:root@localhost:3306/doc_nexus\nJWT_SECRET=your_jwt_secret\nCLAUDE_API_KEY=sk-ant-...'}
               aria-label=".env 붙여넣기"
             />
-            <div className="paste-actions">
-              <button type="button" className="btn btn-ghost" onClick={() => setPaste('')}>초기화</button>
-              <button type="button" className="btn btn-primary" onClick={parsePaste}>
-                <IconCheck width={13} height={13} />파싱 후 저장
-              </button>
+            <div className="flex gap-2 justify-end">
+              <Button variant="ghost" onClick={() => setPaste('')}>초기화</Button>
+              <Button onClick={parsePaste}><IconCheck width={13} height={13} />파싱 후 저장</Button>
             </div>
           </div>
         </div>
@@ -331,7 +320,7 @@ export default function EnvsPage() {
   );
 }
 
-// 변수 그룹 헤더 + 변수 행들
+// 변수 그룹 헤더 + 변수 행들 (env-table 내부 — globals 스타일 유지)
 function EnvGroupRows({
   group, items, env, visible, onToggle, onCopy, onEdit,
 }: {
@@ -363,11 +352,11 @@ function EnvGroupRows({
               </div>
             </td>
             <td className="td-center">
-              <div className="row-actions">
-                <button type="button" className="btn btn-ghost btn-icon" onClick={onEdit} aria-label="수정">
+              <div className="flex justify-center gap-1">
+                <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center text-secondary border border-border transition-all hover:bg-surface hover:text-primary" onClick={onEdit} aria-label="수정">
                   <IconEdit width={14} height={14} />
                 </button>
-                <button type="button" className="btn btn-danger btn-icon" aria-label="삭제">
+                <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center bg-danger-dim text-danger transition-all hover:bg-[rgba(240,68,56,0.15)]" aria-label="삭제">
                   <IconTrash width={14} height={14} />
                 </button>
               </div>
@@ -380,12 +369,23 @@ function EnvGroupRows({
 }
 
 // 환경 적용 체크박스 그룹 (dev/staging/prod)
-function EnvFlags() {
+function EnvFlags({ labels }: { labels?: [string, string, string] }) {
+  const [dev, st, prod] = labels ?? ['dev', 'staging', 'prod'];
   return (
-    <div className="env-flags">
-      <label className="env-flag"><input type="checkbox" defaultChecked className="chk-dev" /> dev</label>
-      <label className="env-flag"><input type="checkbox" className="chk-staging" /> staging</label>
-      <label className="env-flag"><input type="checkbox" defaultChecked className="chk-prod" /> prod</label>
+    <div className="flex gap-2 flex-wrap mt-0.5 [&_label]:flex [&_label]:items-center [&_label]:gap-1.5 [&_label]:text-[0.855rem] [&_label]:cursor-pointer [&_input]:accent-accent">
+      <label><input type="checkbox" defaultChecked /> {dev}</label>
+      <label><input type="checkbox" /> {st}</label>
+      <label><input type="checkbox" defaultChecked /> {prod}</label>
+    </div>
+  );
+}
+
+// 환경 라벨 블록 (라벨 + flags)
+function FlagsField({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[0.8rem] font-medium text-secondary flex items-center gap-0.5">{label}{required && <span className="text-danger font-bold text-[0.85rem] leading-none">*</span>}</span>
+      {children}
     </div>
   );
 }
@@ -410,30 +410,15 @@ function ProjectModal({ state, onClose }: { state: { open: boolean; mode: 'add' 
   }
 
   return (
-    <Modal
-      open={state.open}
-      onClose={onClose}
-      title={state.mode === 'edit' ? '프로젝트 수정' : '프로젝트 추가'}
-      footer={
-        <>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>취소</button>
-          <button type="button" className="btn btn-primary" onClick={handleSave}>저장</button>
-        </>
-      }
-    >
-      <Field label="이모지"><input type="text" className="input w-emoji" placeholder="🚀" /></Field>
+    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '프로젝트 수정' : '프로젝트 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={false} />}>
+      <Field label="이모지"><input type="text" className="input w-[80px]" placeholder="🚀" /></Field>
       <Field label="프로젝트명" required error={errors.projectName}>
         <input type="text" className={`input${errors.projectName ? ' is-invalid' : ''}`} placeholder="예: my-project" value={projectName} onChange={(e) => { setProjectName(e.target.value); setErrors((p) => { const n = { ...p }; delete n.projectName; return n; }); }} />
       </Field>
       <Field label="설명 (선택)"><input type="text" className="input" placeholder="프로젝트 간단 설명" /></Field>
-      <div className="input-group">
-        <span className="input-label">환경<span className="required-mark">*</span></span>
-        <div className="env-flags">
-          <label className="env-flag"><input type="checkbox" defaultChecked className="chk-dev" /> development</label>
-          <label className="env-flag"><input type="checkbox" className="chk-staging" /> staging</label>
-          <label className="env-flag"><input type="checkbox" defaultChecked className="chk-prod" /> production</label>
-        </div>
-      </div>
+      <FlagsField label="환경" required>
+        <EnvFlags labels={['development', 'staging', 'production']} />
+      </FlagsField>
     </Modal>
   );
 }
@@ -460,17 +445,7 @@ function EnvModal({ state, onClose }: { state: { open: boolean; mode: 'add' | 'e
   }
 
   return (
-    <Modal
-      open={state.open}
-      onClose={onClose}
-      title={state.mode === 'edit' ? '변수 수정' : '변수 추가'}
-      footer={
-        <>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>취소</button>
-          <button type="button" className="btn btn-primary" onClick={handleSave}>저장 (암호화)</button>
-        </>
-      }
-    >
+    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '변수 수정' : '변수 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={false} saveLabel="저장 (암호화)" />}>
       <Field label="그룹 (선택)">
         <select className="input" aria-label="그룹">
           <option value="">없음</option>
@@ -484,22 +459,10 @@ function EnvModal({ state, onClose }: { state: { open: boolean; mode: 'add' | 'e
       <Field label="VALUE" required error={errors.envValue}>
         <input type="text" className={`input input-mono${errors.envValue ? ' is-invalid' : ''}`} placeholder="값 입력" value={envValue} onChange={(e) => { setEnvValue(e.target.value); setErrors((p) => { const n = { ...p }; delete n.envValue; return n; }); }} />
       </Field>
-      <div className="input-group">
-        <span className="input-label">적용 환경</span>
+      <FlagsField label="적용 환경">
         <EnvFlags />
-      </div>
+      </FlagsField>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="변수 설명" /></Field>
     </Modal>
-  );
-}
-
-// 입력 그룹 (라벨 + 입력요소). label 로 감싸 입력요소에 접근성 이름을 연결한다.
-function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
-  return (
-    <label className="input-group">
-      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
-      {children}
-      {error && <span className="field-error">{error}</span>}
-    </label>
   );
 }

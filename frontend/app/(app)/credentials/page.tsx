@@ -4,21 +4,28 @@
  * 계정 보관함 페이지.
  * 저장된 계정(아이디/비밀번호)을 표로 보고, 행 클릭 시 상세 모달에서 마스킹·복사한다.
  * 공통 레이아웃(AppShell)·모달(Modal)을 재사용하고 데이터는 더미로 채운다.
+ * 스타일: Tailwind + 공통 컴포넌트(Modal/Button/Badge/Field). 표+모바일카드 패턴.
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import AppShell from '@/components/AppShell';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Modal from '@/components/Modal';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import { Field, ModalFooter } from '@/components/ui/Field';
 import {
   IconDownload, IconFileBlank, IconUpload, IconSearch, IconEdit, IconTrash,
-  IconClose, IconCopy, IconEye, IconPlus,
+  IconClose, IconCopy, IconEye,
 } from '@/components/icons';
 
 interface Credential {
   name: string; emoji: string; url: string; id: string; pw: string;
   cat: string; memo: string; date: string;
 }
+
+// 상세 모달 아이콘 버튼
+const ICON_BTN = 'w-7 h-7 rounded-[5px] flex items-center justify-center text-muted transition-all shrink-0 hover:bg-elevated hover:text-accent';
 
 // ── 더미 데이터 (TODO: GET /api/v1/credentials) ─────────────────
 const CREDENTIALS: Credential[] = [
@@ -51,28 +58,26 @@ export default function CredentialsPage() {
 
   return (
     <AppShell activePath="/credentials" topbarLabel="계정 보관함">
-      <div className="page-header">
+      <div className="mb-7 flex items-center justify-between gap-4">
         <div>
-          <h1 className="page-title">계정 보관함</h1>
-          <p className="page-subtitle">행을 클릭하면 상세 정보를 확인할 수 있습니다. (AES-256-GCM 암호화)</p>
+          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">계정 보관함</h1>
+          <p className="text-sm text-secondary mt-1.5">행을 클릭하면 상세 정보를 확인할 수 있습니다. (AES-256-GCM 암호화)</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setEdit({ open: true, mode: 'add' })}>
-          <IconPlus width={13} height={13} />계정 추가
-        </button>
+        <Button onClick={() => setEdit({ open: true, mode: 'add' })}>계정 추가</Button>
       </div>
 
       {/* 보안 경고 배너 */}
-      <div className="cred-banner">
+      <div className="flex items-center gap-2.5 px-4 py-3 bg-warning-dim border border-[rgba(247,144,9,0.2)] rounded-[var(--radius)] mb-5 text-[0.82rem]">
         <span>🔁</span>
-        <span className="msg">재사용·취약 비밀번호 <strong>5건</strong>, 2FA 미설정 <strong>5건</strong>이 감지됐습니다.</span>
-        <a href="#" className="btn btn-ghost btn-sm">보안 센터</a>
+        <span className="flex-1 text-secondary">재사용·취약 비밀번호 <strong>5건</strong>, 2FA 미설정 <strong>5건</strong>이 감지됐습니다.</span>
+        <Button href="#" variant="ghost" size="sm">보안 센터</Button>
       </div>
 
       {/* 엑셀 툴바 — TODO: 다운로드/업로드 API 연동 */}
-      <div className="excel-toolbar">
-        <span className="excel-toolbar-label">엑셀</span>
+      <div className="flex gap-2 flex-wrap items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
+        <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">엑셀</span>
         <button type="button" className="excel-btn"><IconDownload />데이터 다운로드</button>
-        <div className="divider-v" />
+        <div className="w-px bg-border self-stretch mx-1 shrink-0" />
         <button type="button" className="excel-btn"><IconFileBlank />양식 다운로드</button>
         <label className="excel-btn upload">
           <IconUpload />엑셀 업로드
@@ -81,65 +86,49 @@ export default function CredentialsPage() {
       </div>
 
       {/* 검색 툴바 */}
-      <div className="toolbar">
-        <div className="search-wrap">
-          <IconSearch className="search-icon" />
-          <input
-            className="input"
-            type="text"
-            placeholder="서비스명, URL, 아이디 검색..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="계정 검색"
-          />
+      <div className="flex items-center gap-2.5 mb-4 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
+          <input className="input pl-[34px]" type="text" placeholder="서비스명, URL, 아이디 검색..." value={query} onChange={(e) => setQuery(e.target.value)} aria-label="계정 검색" />
         </div>
-        <select
-          className="input filter-select"
-          value={category}
-          onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-          aria-label="카테고리 필터"
-        >
+        <select className="input w-auto min-w-[130px] shrink-0" value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }} aria-label="카테고리 필터">
           {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
-        <div className="ml-auto flex-center gap-2">
-          <span className="text-muted toolbar-count">총 {rows.length}개</span>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-muted text-[0.82rem]">총 {rows.length}개</span>
           <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
         </div>
       </div>
 
-      {/* 테이블 */}
-      <div className="card flush">
-        <div className="table-wrap">
+      {/* 테이블 + 모바일 카드 */}
+      <div className="bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] overflow-hidden">
+        <div className="table-wrap max-md:hidden">
           <table>
             <thead>
               <tr>
-                <th>서비스</th><th>카테고리</th><th>아이디</th><th>수정일</th><th className="td-center">액션</th>
+                <th>서비스</th><th>카테고리</th><th>아이디</th><th>수정일</th><th>관리</th>
               </tr>
             </thead>
             <tbody>
+              {paged.length === 0 && <tr><td colSpan={5} className="td-center td-muted">저장된 계정이 없습니다.</td></tr>}
               {paged.map((c) => (
-                <tr key={c.name} className="cred-row" onClick={() => setDetail(c)}>
+                <tr key={c.name} className="cursor-pointer" onClick={() => setDetail(c)}>
                   <td>
-                    <div className="service-cell">
-                      <div className="favicon">{c.emoji}</div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-[30px] h-[30px] rounded-md bg-elevated border border-border flex items-center justify-center text-[0.9rem] shrink-0">{c.emoji}</div>
                       <div>
-                        <div className="service-name">{c.name}</div>
-                        <div className="service-url">{c.url}</div>
+                        <div className="font-medium text-[0.875rem] text-primary">{c.name}</div>
+                        <div className="text-[0.72rem] text-muted">{c.url}</div>
                       </div>
                     </div>
                   </td>
-                  <td><span className="badge badge-neutral">{c.cat}</span></td>
+                  <td className="td-center"><Badge tone="neutral">{c.cat}</Badge></td>
                   <td className="td-mono">{c.id}</td>
                   <td className="td-muted">{c.date}</td>
-                  {/* 액션 셀 클릭은 행 상세 열기로 전파되지 않도록 차단 */}
                   <td className="td-center" onClick={(e) => e.stopPropagation()}>
-                    <div className="row-actions">
-                      <button type="button" className="btn btn-ghost btn-icon" onClick={() => setEdit({ open: true, mode: 'edit' })} aria-label="수정">
-                        <IconEdit width={14} height={14} />
-                      </button>
-                      <button type="button" className="btn btn-danger btn-icon" aria-label="삭제">
-                        <IconTrash width={14} height={14} />
-                      </button>
+                    <div className="flex justify-center gap-1">
+                      <button type="button" className={`${ICON_BTN} border border-border hover:text-primary`} onClick={() => setEdit({ open: true, mode: 'edit' })} aria-label="수정"><IconEdit width={14} height={14} /></button>
+                      <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center bg-danger-dim text-danger transition-all hover:bg-[rgba(240,68,56,0.15)]" aria-label="삭제"><IconTrash width={14} height={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -147,6 +136,29 @@ export default function CredentialsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* 모바일 카드 */}
+        <div className="hidden max-md:flex flex-col gap-2.5 p-3">
+          {paged.length === 0 && <div className="text-center text-muted py-7">저장된 계정이 없습니다.</div>}
+          {paged.map((c) => (
+            <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={c.name} onClick={() => setDetail(c)}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-[30px] h-[30px] rounded-md bg-elevated border border-border flex items-center justify-center text-[0.9rem] shrink-0">{c.emoji}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-[0.95rem] text-primary truncate">{c.name}</div>
+                  <div className="text-[0.72rem] text-muted truncate">{c.url}</div>
+                </div>
+                <Badge tone="neutral">{c.cat}</Badge>
+              </div>
+              <div className="mt-2 text-[0.78rem] text-secondary [font-family:var(--font-mono)] truncate">{c.id}</div>
+              <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" className="flex-1" onClick={() => setEdit({ open: true, mode: 'edit' })}>수정</Button>
+                <Button variant="danger" className="flex-1">삭제</Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
       </div>
 
@@ -194,14 +206,14 @@ function DetailModal({ cred, onClose, onEdit }: { cred: Credential | null; onClo
   const maskedPw = '•'.repeat(Math.min(cred.pw.length, 16));
 
   const header = (
-    <div className="detail-header-info">
-      <div className="detail-favicon">{cred.emoji}</div>
-      <div className="detail-head">
-        <div className="detail-site-name">{cred.name}</div>
-        <div className="detail-site-url">{cred.url}</div>
+    <div className="flex items-center gap-3.5 px-6 pt-5 pb-4 border-b border-border">
+      <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-surface border border-border flex items-center justify-center text-[1.5rem] shrink-0">{cred.emoji}</div>
+      <div className="flex-1">
+        <div className="[font-family:var(--font-display)] text-base font-bold text-primary">{cred.name}</div>
+        <div className="text-[0.78rem] text-muted mt-0.5">{cred.url}</div>
       </div>
-      <span className="badge badge-neutral">{cred.cat}</span>
-      <button type="button" className="btn btn-ghost btn-icon" onClick={onClose} aria-label="닫기">
+      <Badge tone="neutral">{cred.cat}</Badge>
+      <button type="button" className="w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] text-secondary border border-border transition-all hover:bg-surface hover:text-primary" onClick={onClose} aria-label="닫기">
         <IconClose width={16} height={16} />
       </button>
     </div>
@@ -212,50 +224,48 @@ function DetailModal({ cred, onClose, onEdit }: { cred: Credential | null; onClo
       open={!!cred}
       onClose={onClose}
       title={cred.name}
-      className="detail-modal"
+      className="max-w-[440px]"
       header={header}
       footer={
         <>
           {/* TODO: API 연동 — 계정 삭제 처리 */}
-          <button type="button" className="btn btn-danger ml-auto">삭제</button>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>닫기</button>
-          <button type="button" className="btn btn-primary" onClick={onEdit}>수정</button>
+          <Button variant="danger" className="mr-auto">삭제</Button>
+          <Button variant="ghost" onClick={onClose}>닫기</Button>
+          <Button onClick={onEdit}>수정</Button>
         </>
       }
     >
       {/* 아이디 */}
-      <div className="detail-field">
-        <span className="detail-field-label">아이디</span>
-        <div className="detail-field-row">
-          <span className="detail-field-value">{cred.id}</span>
-          <button type="button" className="icon-btn" onClick={() => copy(cred.id)} aria-label="아이디 복사">
-            <IconCopy width={14} height={14} />
-          </button>
-        </div>
-      </div>
+      <DetailField label="아이디">
+        <span className="flex-1 [font-family:var(--font-mono)] text-[0.875rem] text-primary truncate">{cred.id}</span>
+        <button type="button" className={ICON_BTN} onClick={() => copy(cred.id)} aria-label="아이디 복사"><IconCopy width={14} height={14} /></button>
+      </DetailField>
 
       {/* 비밀번호 */}
-      <div className="detail-field">
-        <span className="detail-field-label">비밀번호</span>
-        <div className="detail-field-row">
-          <span className={`detail-field-value${pwVisible ? '' : ' masked'}`}>{pwVisible ? cred.pw : maskedPw}</span>
-          <button type="button" className="icon-btn" onClick={togglePw} aria-label="비밀번호 표시/숨김">
-            <IconEye width={14} height={14} />
-          </button>
-          <button type="button" className="icon-btn" onClick={() => copy(cred.pw)} aria-label="비밀번호 복사">
-            <IconCopy width={14} height={14} />
-          </button>
-        </div>
-      </div>
+      <DetailField label="비밀번호">
+        <span className={`flex-1 [font-family:var(--font-mono)] text-[0.875rem] truncate ${pwVisible ? 'text-primary' : 'tracking-[0.25em] text-muted'}`}>{pwVisible ? cred.pw : maskedPw}</span>
+        <button type="button" className={ICON_BTN} onClick={togglePw} aria-label="비밀번호 표시/숨김"><IconEye width={14} height={14} /></button>
+        <button type="button" className={ICON_BTN} onClick={() => copy(cred.pw)} aria-label="비밀번호 복사"><IconCopy width={14} height={14} /></button>
+      </DetailField>
 
       {/* 메모 */}
-      <div className="detail-field">
-        <span className="detail-field-label">메모</span>
-        <div className="detail-memo">{cred.memo || '—'}</div>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-muted">메모</span>
+        <div className="text-[0.855rem] text-secondary px-3 py-2.5 bg-surface border border-border rounded-[var(--radius)] min-h-[38px] leading-normal">{cred.memo || '—'}</div>
       </div>
 
-      <div className="detail-footer-info">수정일: {cred.date}</div>
+      <div className="text-[0.72rem] text-muted pt-1">수정일: {cred.date}</div>
     </Modal>
+  );
+}
+
+// 상세 필드 (라벨 + 값 행)
+function DetailField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-muted">{label}</span>
+      <div className="flex items-center gap-2 bg-surface border border-border rounded-[var(--radius)] px-3 py-2.5">{children}</div>
+    </div>
   );
 }
 
@@ -294,12 +304,7 @@ function EditModal({ state, onClose }: { state: { open: boolean; mode: 'add' | '
       open={state.open}
       onClose={onClose}
       title={state.mode === 'edit' ? '계정 수정' : '계정 추가'}
-      footer={
-        <>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>취소</button>
-          <button type="button" className="btn btn-primary" onClick={handleSave}>저장 (암호화)</button>
-        </>
-      }
+      footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={false} saveLabel="저장 (암호화)" />}
     >
       <Field label="서비스명" required error={errors.serviceName}>
         <input type="text" className={`input${errors.serviceName ? ' is-invalid' : ''}`} placeholder="예: GitHub" value={serviceName} onChange={(e) => { setServiceName(e.target.value); clearErr('serviceName'); }} />
@@ -315,28 +320,17 @@ function EditModal({ state, onClose }: { state: { open: boolean; mode: 'add' | '
         <input type="text" className={`input${errors.userId ? ' is-invalid' : ''}`} placeholder="아이디 또는 이메일" value={userId} onChange={(e) => { setUserId(e.target.value); clearErr('userId'); }} />
       </Field>
       <Field label="비밀번호" required error={errors.pw}>
-        <div className="pw-row">
+        <div className="flex gap-2">
           <input type="password" className={`input${errors.pw ? ' is-invalid' : ''}`} placeholder="비밀번호" value={pw} onChange={(e) => { setPw(e.target.value); clearErr('pw'); }} />
-          <button type="button" className="btn btn-ghost pw-gen">🎲 생성</button>
+          <Button variant="ghost" className="whitespace-nowrap">🎲 생성</Button>
         </div>
-        <div className="track"><div className="fill warning pw-strength-fill" /></div>
-        <span className="pw-strength-text">강도: 보통 — 12자 이상 + 특수문자 권장</span>
+        <div className="track"><div className="fill warning" style={{ width: '55%' }} /></div>
+        <span className="text-[0.72rem] text-warning">강도: 보통 — 12자 이상 + 특수문자 권장</span>
       </Field>
       <Field label="2단계 인증 (TOTP)">
         <input type="text" className="input input-mono" placeholder="otpauth:// 또는 시크릿 키 (선택)" />
       </Field>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 정보 (OTP 등)" /></Field>
     </Modal>
-  );
-}
-
-// 입력 그룹 (라벨 + 입력요소). label 로 감싸 입력요소에 접근성 이름을 연결한다.
-function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
-  return (
-    <label className="input-group">
-      <span className="input-label">{label}{required && <span className="required-mark">*</span>}</span>
-      {children}
-      {error && <span className="field-error">{error}</span>}
-    </label>
   );
 }
