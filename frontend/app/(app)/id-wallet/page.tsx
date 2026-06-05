@@ -3,149 +3,227 @@
 /**
  * 신원 지갑 페이지.
  * 여권·신분증·운전면허·자격증을 색상 카드로 보관하고 만료일(D-day)을 추적한다.
- * 번호는 기본 마스킹하고 토글로 표시하며, 데이터는 더미로 채운다. (AES-256-GCM)
- * 스타일: Tailwind + 공통 컴포넌트(Modal/Button/Field).
+ * 번호는 기본 마스킹하고 토글 시 reveal API 로 원문을 받아 표시한다. (AES-256-GCM)
+ * 데이터는 백엔드 API(/identities)와 연동한다. 스타일: Tailwind + 공통 컴포넌트.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import { Field, ModalFooter } from '@/components/ui/Field';
-import { IconAlertCircle, IconEye, IconDoc } from '@/components/icons';
-
-type IdVariant = 'passport' | 'idcard' | 'license' | 'cert';
-
-interface IdCard {
-  variant: IdVariant; typeLabel: string; name: string;
-  numMasked: string; numFull: string;
-  issue: string; expire: string; dday: string; ddayWarn?: boolean;
-}
-
-// 카드 유형별 그라데이션 배경
-const VARIANT_BG: Record<IdVariant, string> = {
-  passport: '[background:linear-gradient(135deg,#1e3a5f,#2d5986)]',
-  idcard: '[background:linear-gradient(135deg,#0f7a5a,#00a86d)]',
-  license: '[background:linear-gradient(135deg,#7a3a1e,#b8682d)]',
-  cert: '[background:linear-gradient(135deg,#3a2d6b,#5b4b9e)]',
-};
-
-// ── 더미 데이터 (TODO: GET /api/v1/identities) ──────────────────
-const ID_CARDS: IdCard[] = [
-  { variant: 'passport', typeLabel: 'PASSPORT · 여권',          name: '대한민국 여권', numMasked: 'M••••••88',     numFull: 'M1234567 88',     issue: '2015.07.30', expire: '2025.07.29', dday: 'D-58', ddayWarn: true },
-  { variant: 'idcard',   typeLabel: 'ID CARD · 주민등록증',     name: '김관리자',     numMasked: '••••••-1••••••', numFull: '900101-1234567', issue: '2010.03.15', expire: '—', dday: 'D-—' },
-  { variant: 'license',  typeLabel: 'DRIVER LICENSE · 운전면허', name: '1종 보통',     numMasked: '••-••-••••••-••', numFull: '11-22-334455-66', issue: '2021.05.01', expire: '2031.05.01', dday: 'D-2160' },
-  { variant: 'cert',     typeLabel: 'CERTIFICATE · 자격증',     name: '정보처리기사', numMasked: '••••-••••',      numFull: '2019-1234',      issue: '2019.11.20', expire: '—', dday: 'D-—' },
-];
+import { useConfirm } from '@/components/ConfirmModal';
+import { IconAlertCircle, IconEye, IconEdit, IconTrash } from '@/components/icons';
+import { api } from '@/lib/api';
+import {
+  ID_TYPE_LABEL, ID_TYPE_OPTIONS, ID_VARIANT_BG, fmtDate, ddayOf,
+  type IdCard, type IdType,
+} from '@/lib/identity';
 
 export default function IdWalletPage() {
-  const [revealed, setRevealed] = useState<Record<number, boolean>>({}); // 번호 표시 여부
-  const [addModal, setAddModal] = useState(false);
+  const [cards, setCards] = useState<IdCard[]>([]);
+  const [numbers, setNumbers] = useState<Record<number, string>>({}); // 복호화 캐시
+  const [shown, setShown] = useState<Set<number>>(new Set());          // 표시 중인 카드
+  const [error, setError] = useState<string | null>(null);
+  const [modal, setModal] = useState<{ open: boolean; editing: IdCard | null }>({ open: false, editing: null });
+  const { confirm, confirmElement } = useConfirm();
 
-  // 카드 번호 표시/숨김 토글
-  function toggleNum(idx: number) {
-    setRevealed((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  // 신원 문서 목록 조회
+  const load = useCallback(async () => {
+    try {
+      setCards(await api.get<IdCard[]>('/identities'));
+      setError(null);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // 번호 표시/숨김 토글 — 처음 표시할 때만 reveal API 로 원문을 받아 캐시
+  async function toggleNum(card: IdCard) {
+    const next = new Set(shown);
+    if (next.has(card.id)) {
+      next.delete(card.id);
+      setShown(next);
+      return;
+    }
+    if (!numbers[card.id]) {
+      try {
+        const { number } = await api.get<{ number: string }>(`/identities/${card.id}/reveal`);
+        setNumbers((p) => ({ ...p, [card.id]: number }));
+      } catch {
+        notify.error('번호를 불러오지 못했습니다.');
+        return;
+      }
+    }
+    next.add(card.id);
+    setShown(next);
   }
+
+  // 신원 문서 삭제
+  async function remove(card: IdCard) {
+    if (!await confirm(`'${card.name}'을(를) 삭제할까요?`, 'danger')) return;
+    try {
+      await api.del(`/identities/${card.id}`);
+      notify.deleted('신분증');
+      load();
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
+  // 만료 임박(60일 이내) 카드 중 가장 급한 것 — 경고 배너용
+  const soonest = cards
+    .map((c) => ({ card: c, dd: ddayOf(c.expireDate) }))
+    .filter((x) => x.dd.warn)
+    .sort((a, b) => (a.card.expireDate ?? '').localeCompare(b.card.expireDate ?? ''))[0];
 
   return (
     <AppShell activePath="/id-wallet" topbarLabel="신원 지갑">
       <div className="mb-7 flex items-center justify-between gap-4">
         <div>
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">신원 지갑</h1>
-          <p className="text-sm text-secondary mt-1.5">신분증·여권·자격증을 안전하게 보관하고 만료일을 추적합니다. (AES-256-GCM · 사본은 파일 보관함 연동)</p>
+          <p className="text-sm text-secondary mt-1.5">신분증·여권·자격증을 안전하게 보관하고 만료일을 추적합니다. (AES-256-GCM)</p>
         </div>
-        <Button onClick={() => setAddModal(true)}>신분증 추가</Button>
+        <Button onClick={() => setModal({ open: true, editing: null })}>신분증 추가</Button>
       </div>
 
-      {/* 여권 만료 임박 경고 */}
-      <div className="flex items-center gap-3 px-[18px] py-3.5 rounded-[var(--radius-lg)] bg-warning-dim border border-[rgba(247,144,9,0.2)] mb-6">
-        <IconAlertCircle width={20} height={20} className="text-warning shrink-0" />
-        <div className="flex-1">
-          <div className="font-semibold text-[0.875rem] text-primary">여권 만료 임박 — D-58</div>
-          <div className="text-[0.8rem] text-secondary">여권 유효기간이 6개월 미만이면 일부 국가 입국이 제한됩니다. 갱신을 준비하세요.</div>
+      {error && <p className="mb-4 text-[0.78rem] text-danger">⚠️ {error}</p>}
+
+      {/* 만료 임박 경고 */}
+      {soonest && (
+        <div className="flex items-center gap-3 px-[18px] py-3.5 rounded-[var(--radius-lg)] bg-warning-dim border border-[rgba(247,144,9,0.2)] mb-6">
+          <IconAlertCircle width={20} height={20} className="text-warning shrink-0" />
+          <div className="flex-1">
+            <div className="font-semibold text-[0.875rem] text-primary">{soonest.card.name} 만료 임박 — {soonest.dd.text}</div>
+            <div className="text-[0.8rem] text-secondary">유효기간이 얼마 남지 않았습니다. 갱신을 준비하세요.</div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {cards.length === 0 && !error && (
+        <div className="text-center text-muted py-16">저장된 신원 문서가 없습니다.</div>
+      )}
 
       {/* 신분증 카드 그리드 */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-4">
-        {ID_CARDS.map((card, idx) => (
-          <div className={`rounded-[var(--radius-lg)] p-5 text-white shadow-[var(--shadow-md)] relative overflow-hidden min-h-[180px] flex flex-col justify-between ${VARIANT_BG[card.variant]}`} key={card.typeLabel}>
-            <div>
-              <div className="text-[0.72rem] opacity-85 uppercase tracking-[0.08em] font-semibold">{card.typeLabel}</div>
-              <div className="[font-family:var(--font-display)] text-[1.2rem] font-bold mt-1">{card.name}</div>
-              <div className="[font-family:var(--font-mono)] text-base tracking-[0.1em] my-3.5">{revealed[idx] ? card.numFull : card.numMasked}</div>
-            </div>
-            <div className="flex justify-between items-end text-[0.75rem] opacity-90">
+        {cards.map((card) => {
+          const dd = ddayOf(card.expireDate);
+          const isShown = shown.has(card.id);
+          return (
+            <div className={`rounded-[var(--radius-lg)] p-5 text-white shadow-[var(--shadow-md)] relative overflow-hidden min-h-[180px] flex flex-col justify-between ${ID_VARIANT_BG[card.type]}`} key={card.id}>
               <div>
-                <div>발급 {card.issue}</div>
-                <div>만료 {card.expire}</div>
+                <div className="text-[0.72rem] opacity-85 uppercase tracking-[0.08em] font-semibold">{ID_TYPE_LABEL[card.type]}</div>
+                <div className="[font-family:var(--font-display)] text-[1.2rem] font-bold mt-1">{card.name}</div>
+                <div className="[font-family:var(--font-mono)] text-base tracking-[0.1em] my-3.5">{isShown ? numbers[card.id] : card.numberMasked}</div>
               </div>
-              <div className="flex flex-col gap-2 items-end">
-                <span className={`px-2 py-0.5 rounded-full text-[0.7rem] font-bold ${card.ddayWarn ? 'bg-warning text-white' : 'bg-white/20'}`}>{card.dday}</span>
-                <div className="flex gap-1.5">
-                  <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => toggleNum(idx)} aria-label="번호 표시/숨김">
-                    <IconEye width={14} height={14} />
-                  </button>
-                  <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => notify.comingSoon()} aria-label="사본 보기">
-                    <IconDoc width={14} height={14} />
-                  </button>
+              <div className="flex justify-between items-end text-[0.75rem] opacity-90">
+                <div>
+                  <div>발급 {fmtDate(card.issueDate)}</div>
+                  <div>만료 {fmtDate(card.expireDate)}</div>
+                </div>
+                <div className="flex flex-col gap-2 items-end">
+                  <span className={`px-2 py-0.5 rounded-full text-[0.7rem] font-bold ${dd.warn ? 'bg-warning text-white' : 'bg-white/20'}`}>{dd.text}</span>
+                  <div className="flex gap-1.5">
+                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => toggleNum(card)} aria-label="번호 표시/숨김">
+                      <IconEye width={14} height={14} />
+                    </button>
+                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => setModal({ open: true, editing: card })} aria-label="수정">
+                      <IconEdit width={14} height={14} />
+                    </button>
+                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => remove(card)} aria-label="삭제">
+                      <IconTrash width={14} height={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <AddIdModal open={addModal} onClose={() => setAddModal(false)} />
+      <IdModal
+        state={modal}
+        onClose={() => setModal((s) => ({ ...s, open: false }))}
+        onSaved={() => { setModal({ open: false, editing: null }); setShown(new Set()); setNumbers({}); load(); }}
+      />
+      {confirmElement}
     </AppShell>
   );
 }
 
-function AddIdModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [idName, setIdName] = useState('');
-  const [idNumber, setIdNumber] = useState('');
+// 신분증 추가·수정 모달 (수정 시 번호는 입력해야만 변경)
+function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing: IdCard | null }; onClose: () => void; onSaved: () => void }) {
+  const editing = state.editing;
+  const [type, setType] = useState<IdType>('passport');
+  const [name, setName] = useState('');
+  const [number, setNumber] = useState('');
   const [issueDate, setIssueDate] = useState('');
+  const [expireDate, setExpireDate] = useState('');
+  const [memo, setMemo] = useState('');
+  const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!open) return;
-    setErrors({}); setIdName(''); setIdNumber(''); setIssueDate('');
-  }, [open]);
+    if (!state.open) return;
+    setErrors({});
+    setType(editing?.type ?? 'passport');
+    setName(editing?.name ?? '');
+    setNumber('');
+    setIssueDate(editing?.issueDate ?? '');
+    setExpireDate(editing?.expireDate ?? '');
+    setMemo(editing?.memo ?? '');
+  }, [state.open, editing]);
 
   function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
-  function handleSave() {
+  async function handleSave() {
     const err: Record<string, string> = {};
-    if (!idName.trim()) err.idName = '명칭을 입력하세요.';
-    if (!idNumber.trim()) err.idNumber = '번호를 입력하세요.';
-    if (!issueDate) err.issueDate = '발급일을 선택하세요.';
+    if (!name.trim()) err.name = '명칭을 입력하세요.';
+    if (!editing && !number.trim()) err.number = '번호를 입력하세요.';
     setErrors(err);
     if (Object.keys(err).length) return;
-    notify.added('신분증');
-    onClose();
+
+    const body = {
+      type,
+      name: name.trim(),
+      ...(number.trim() ? { number: number.trim() } : {}),
+      issueDate: issueDate || undefined,
+      expireDate: expireDate || undefined,
+      memo: memo || undefined,
+    };
+    setSaving(true);
+    try {
+      if (editing) await api.put(`/identities/${editing.id}`, body);
+      else await api.post('/identities', body);
+      notify.upserted(editing ? 'edit' : 'add', '신분증');
+      onSaved();
+    } catch {
+      notify.saveFailed();
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="신분증 추가" footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={false} saveLabel="저장 (암호화)" />}>
+    <Modal open={state.open} onClose={onClose} title={editing ? '신분증 수정' : '신분증 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} saveLabel="저장 (암호화)" />}>
       <Field label="종류" required>
-        <select className="input" aria-label="종류">
-          <option>여권</option><option>주민등록증</option><option>운전면허</option><option>자격증</option><option>기타</option>
+        <select className="input" aria-label="종류" value={type} onChange={(e) => setType(e.target.value as IdType)}>
+          {ID_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </Field>
-      <Field label="명칭" required error={errors.idName}>
-        <input type="text" className={`input${errors.idName ? ' is-invalid' : ''}`} placeholder="예: 대한민국 여권" value={idName} onChange={(e) => { setIdName(e.target.value); clearErr('idName'); }} />
+      <Field label="명칭" required error={errors.name}>
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 대한민국 여권" value={name} onChange={(e) => { setName(e.target.value); clearErr('name'); }} />
       </Field>
-      <Field label="번호" required error={errors.idNumber}>
-        <input type="text" className={`input input-mono${errors.idNumber ? ' is-invalid' : ''}`} placeholder="문서 번호" value={idNumber} onChange={(e) => { setIdNumber(e.target.value); clearErr('idNumber'); }} />
+      <Field label={editing ? '번호 (변경 시에만 입력)' : '번호'} required={!editing} error={errors.number}>
+        <input type="text" className={`input input-mono${errors.number ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 번호 유지' : '문서 번호'} value={number} onChange={(e) => { setNumber(e.target.value); clearErr('number'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-        <Field label="발급일" required error={errors.issueDate}>
-          <input type="date" className={`input${errors.issueDate ? ' is-invalid' : ''}`} value={issueDate} onChange={(e) => { setIssueDate(e.target.value); clearErr('issueDate'); }} />
-        </Field>
-        <Field label="만료일 (선택)"><input type="date" className="input" /></Field>
+        <Field label="발급일 (선택)"><input type="date" className="input" aria-label="발급일" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} /></Field>
+        <Field label="만료일 (선택)"><input type="date" className="input" aria-label="만료일" value={expireDate} onChange={(e) => setExpireDate(e.target.value)} /></Field>
       </div>
-      <Field label="사본 (선택)"><input type="file" className="input" accept="image/*,.pdf" /></Field>
-      <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 메모" /></Field>
+      <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 메모" value={memo} onChange={(e) => setMemo(e.target.value)} /></Field>
     </Modal>
   );
 }

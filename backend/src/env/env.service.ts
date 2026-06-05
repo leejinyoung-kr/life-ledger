@@ -1,0 +1,226 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { EnvProject, EnvVar, EnvKind, Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { CryptoService } from '../common/crypto.service';
+import {
+  BulkEnvDto,
+  CreateEnvProjectDto,
+  CreateEnvVarDto,
+  EnvKindDto,
+  UpdateEnvProjectDto,
+  UpdateEnvVarDto,
+} from './dto/env.dto';
+
+@Injectable()
+export class EnvService {
+  constructor(
+    private prisma: PrismaService,
+    private crypto: CryptoService,
+  ) {}
+
+  // ── 프로젝트 ────────────────────────────────────────────────
+
+  // 프로젝트 → DTO. 환경별 변수 개수 요약 포함
+  private projectDto(p: EnvProject, counts: Record<EnvKind, number>) {
+    return {
+      id: p.id,
+      emoji: p.emoji,
+      name: p.name,
+      description: p.description,
+      counts,
+      totalVars: counts.dev + counts.staging + counts.prod,
+      updatedAt: p.updated_at.toISOString(),
+    };
+  }
+
+  // 프로젝트 목록 + 환경별 변수 개수 (최근 수정순)
+  async findProjects(userId: number) {
+    const projects = await this.prisma.envProject.findMany({
+      where: { user_id: userId, deleted_at: null },
+      orderBy: { updated_at: 'desc' },
+    });
+    const grouped = await this.prisma.envVar.groupBy({
+      by: ['project_id', 'env'],
+      where: { user_id: userId, deleted_at: null },
+      _count: { _all: true },
+    });
+    return projects.map((p) => {
+      const counts: Record<EnvKind, number> = { dev: 0, staging: 0, prod: 0 };
+      for (const g of grouped) {
+        if (g.project_id === p.id) counts[g.env] = g._count._all;
+      }
+      return this.projectDto(p, counts);
+    });
+  }
+
+  // 본인 소유 프로젝트 확인
+  private async findOwnedProject(userId: number, id: number): Promise<EnvProject> {
+    const row = await this.prisma.envProject.findFirst({
+      where: { id, user_id: userId, deleted_at: null },
+    });
+    if (!row) throw new NotFoundException('프로젝트를 찾을 수 없습니다.');
+    return row;
+  }
+
+  // 프로젝트 추가
+  async createProject(userId: number, dto: CreateEnvProjectDto) {
+    const created = await this.prisma.envProject.create({
+      data: {
+        user_id: userId,
+        emoji: dto.emoji || null,
+        name: dto.name.trim(),
+        description: dto.description || null,
+      },
+    });
+    return this.projectDto(created, { dev: 0, staging: 0, prod: 0 });
+  }
+
+  // 프로젝트 수정
+  async updateProject(userId: number, id: number, dto: UpdateEnvProjectDto) {
+    await this.findOwnedProject(userId, id);
+    await this.prisma.envProject.update({
+      where: { id },
+      data: {
+        emoji: dto.emoji === undefined ? undefined : dto.emoji || null,
+        name: dto.name?.trim(),
+        description: dto.description === undefined ? undefined : dto.description || null,
+      },
+    });
+    return { id };
+  }
+
+  // 프로젝트 삭제 (soft delete) — 하위 변수도 함께 삭제
+  async removeProject(userId: number, id: number) {
+    await this.findOwnedProject(userId, id);
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.envVar.updateMany({
+        where: { project_id: id, deleted_at: null },
+        data: { deleted_at: now },
+      }),
+      this.prisma.envProject.update({ where: { id }, data: { deleted_at: now } }),
+    ]);
+    return { id };
+  }
+
+  // ── 변수 ────────────────────────────────────────────────────
+
+  // 변수 → 목록 DTO. 값은 길이만큼 마스킹(원문은 reveal 로만)
+  private varDto(v: EnvVar) {
+    const plain = this.crypto.decrypt(v.value_enc);
+    return {
+      id: v.id,
+      env: v.env,
+      group: v.group,
+      key: v.key,
+      valueMasked: '•'.repeat(Math.min(plain.length, 20)),
+      memo: v.memo,
+    };
+  }
+
+  // 특정 프로젝트·환경의 변수 목록 (그룹·생성순)
+  async findVars(userId: number, projectId: number, env: EnvKindDto) {
+    await this.findOwnedProject(userId, projectId);
+    const rows = await this.prisma.envVar.findMany({
+      where: { user_id: userId, project_id: projectId, env, deleted_at: null },
+      orderBy: [{ group: 'asc' }, { id: 'asc' }],
+    });
+    return rows.map((r) => this.varDto(r));
+  }
+
+  // 특정 프로젝트·환경 변수를 원문 포함으로 내보내기 (.env 복사/다운로드용)
+  async exportVars(userId: number, projectId: number, env: EnvKindDto) {
+    await this.findOwnedProject(userId, projectId);
+    const rows = await this.prisma.envVar.findMany({
+      where: { user_id: userId, project_id: projectId, env, deleted_at: null },
+      orderBy: [{ group: 'asc' }, { id: 'asc' }],
+    });
+    return rows.map((r) => ({
+      key: r.key,
+      value: this.crypto.decrypt(r.value_enc),
+      group: r.group,
+    }));
+  }
+
+  // 본인 소유 변수 확인
+  private async findOwnedVar(userId: number, id: number): Promise<EnvVar> {
+    const row = await this.prisma.envVar.findFirst({
+      where: { id, user_id: userId, deleted_at: null },
+    });
+    if (!row) throw new NotFoundException('변수를 찾을 수 없습니다.');
+    return row;
+  }
+
+  // 변수 값 원문 복호화 (표시/복사)
+  async revealVar(userId: number, id: number) {
+    const row = await this.findOwnedVar(userId, id);
+    return { value: this.crypto.decrypt(row.value_enc) };
+  }
+
+  // 변수 추가 — 선택된 환경마다 행 생성 (값 암호화)
+  async createVar(userId: number, projectId: number, dto: CreateEnvVarDto) {
+    await this.findOwnedProject(userId, projectId);
+    const valueEnc = this.crypto.encrypt(dto.value);
+    await this.prisma.envVar.createMany({
+      data: dto.envs.map((env) => ({
+        user_id: userId,
+        project_id: projectId,
+        env,
+        group: dto.group || null,
+        key: dto.key.trim(),
+        value_enc: valueEnc,
+        memo: dto.memo || null,
+      })),
+    });
+    return { count: dto.envs.length };
+  }
+
+  // 변수 수정 (value 가 오면 재암호화)
+  async updateVar(userId: number, id: number, dto: UpdateEnvVarDto) {
+    await this.findOwnedVar(userId, id);
+    const updated = await this.prisma.envVar.update({
+      where: { id },
+      data: {
+        group: dto.group === undefined ? undefined : dto.group || null,
+        key: dto.key?.trim(),
+        value_enc: dto.value === undefined ? undefined : this.crypto.encrypt(dto.value),
+        memo: dto.memo === undefined ? undefined : dto.memo || null,
+      },
+    });
+    return this.varDto(updated);
+  }
+
+  // 변수 삭제 (soft delete)
+  async removeVar(userId: number, id: number) {
+    await this.findOwnedVar(userId, id);
+    await this.prisma.envVar.update({ where: { id }, data: { deleted_at: new Date() } });
+    return { id };
+  }
+
+  // .env 텍스트 일괄 파싱 후 저장 (KEY=VALUE 행만, 주석/빈줄 무시). 값은 암호화
+  async bulkUpsert(userId: number, projectId: number, dto: BulkEnvDto) {
+    await this.findOwnedProject(userId, projectId);
+    const parsed = dto.text
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#') && l.includes('='))
+      .map((l) => {
+        const eq = l.indexOf('=');
+        return { key: l.slice(0, eq).trim(), value: l.slice(eq + 1).trim() };
+      })
+      .filter((p) => p.key);
+    if (!parsed.length) return { count: 0 };
+
+    const data: Prisma.EnvVarCreateManyInput[] = parsed.map((p) => ({
+      user_id: userId,
+      project_id: projectId,
+      env: dto.env,
+      group: null,
+      key: p.key,
+      value_enc: this.crypto.encrypt(p.value),
+      memo: null,
+    }));
+    await this.prisma.envVar.createMany({ data });
+    return { count: data.length };
+  }
+}

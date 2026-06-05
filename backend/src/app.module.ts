@@ -21,6 +21,10 @@ import { TrashModule } from './trash/trash.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { SearchModule } from './search/search.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { CryptoModule } from './common/crypto.module';
+import { IdentityModule } from './identity/identity.module';
+import { CredentialModule } from './credential/credential.module';
+import { EnvModule } from './env/env.module';
 
 @Module({
   imports: [
@@ -42,6 +46,10 @@ import { DashboardModule } from './dashboard/dashboard.module';
     CategoryModule,
     SearchModule,
     DashboardModule,
+    CryptoModule,
+    IdentityModule,
+    CredentialModule,
+    EnvModule,
   ],
   controllers: [AppController],
   // 전역 JWT 가드 — 모든 엔드포인트 보호. @Public() 핸들러만 예외(로그인 등)

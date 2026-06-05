@@ -30,6 +30,10 @@ model User {
   securityRisks SecurityRisk[]
   loginSessions LoginSession[]
   categories    Category[]
+  identityCards IdentityCard[]
+  credentials   Credential[]
+  envProjects   EnvProject[]
+  envVars       EnvVar[]
 
   @@map("user")
 }
@@ -492,4 +496,106 @@ model LoginSession {
 
   @@index([user_id])
   @@map("login_session")
+}
+
+/// 신원 문서 종류: passport(여권) | idcard(주민등록증) | license(운전면허) | cert(자격증) | etc(기타)
+enum IdentityType {
+  passport
+  idcard
+  license
+  cert
+  etc
+
+  @@map("identity_type")
+}
+
+/// 신원 지갑 (신원 지갑 페이지) — 문서 번호는 AES-256-GCM 암호화 저장
+model IdentityCard {
+  id          Int          @id @default(autoincrement())
+  user_id     Int /// user.id FK
+  type        IdentityType
+  name        String       @db.VarChar(100)
+  number_enc  String       @db.Text /// 문서 번호(암호문)
+  issue_date  DateTime?    @db.Date
+  expire_date DateTime?    @db.Date
+  memo        String?      @db.VarChar(300)
+  deleted_at  DateTime?
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("identity_card")
+}
+
+/// 계정 보관함 (계정 보관함 페이지) — 비밀번호·TOTP 는 AES-256-GCM 암호화 저장
+model Credential {
+  id           Int       @id @default(autoincrement())
+  user_id      Int /// user.id FK
+  name         String    @db.VarChar(100)
+  emoji        String?   @db.VarChar(10)
+  url          String?   @db.VarChar(300)
+  category     String    @db.VarChar(50)
+  username     String    @db.VarChar(200)
+  password_enc String    @db.Text /// 비밀번호(암호문)
+  totp_enc     String?   @db.Text /// 2FA TOTP 시크릿(암호문)
+  memo         String?   @db.VarChar(300)
+  deleted_at   DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("credential")
+}
+
+/// ENV 환경 종류: dev(development) | staging | prod(production)
+enum EnvKind {
+  dev
+  staging
+  prod
+
+  @@map("env_kind")
+}
+
+/// ENV 프로젝트 (ENV 보관함 페이지) — 환경변수 묶음 단위
+model EnvProject {
+  id          Int       @id @default(autoincrement())
+  user_id     Int /// user.id FK
+  emoji       String?   @db.VarChar(10)
+  name        String    @db.VarChar(100)
+  description String?   @db.VarChar(300)
+  deleted_at  DateTime?
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  user User     @relation(fields: [user_id], references: [id])
+  vars EnvVar[]
+
+  @@index([user_id])
+  @@map("env_project")
+}
+
+/// ENV 변수 (ENV 보관함 페이지) — 값(value)은 AES-256-GCM 암호화 저장
+model EnvVar {
+  id         Int       @id @default(autoincrement())
+  user_id    Int /// user.id FK
+  project_id Int /// env_project.id FK
+  env        EnvKind
+  group      String?   @db.VarChar(50)
+  key        String    @db.VarChar(150)
+  value_enc  String    @db.Text /// 값(암호문)
+  memo       String?   @db.VarChar(300)
+  deleted_at DateTime?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+
+  user    User       @relation(fields: [user_id], references: [id])
+  project EnvProject @relation(fields: [project_id], references: [id])
+
+  @@index([user_id])
+  @@index([project_id, env])
+  @@map("env_var")
 }
