@@ -18,6 +18,12 @@ export class NotificationController {
     return this.service.findAll(user.id);
   }
 
+  // 미읽음 알림 수 (TopBar 벨 배지)
+  @Get('unread-count')
+  unreadCount(@CurrentUser() user: AuthUser) {
+    return this.service.unreadCount(user.id);
+  }
+
   // 전체 읽음 처리
   @Put('read-all')
   markAllRead(@CurrentUser() user: AuthUser) {

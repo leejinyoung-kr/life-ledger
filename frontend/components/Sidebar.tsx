@@ -5,7 +5,8 @@
  * 1차 메뉴 + 접이식 2차 메뉴 그룹, 하단 사용자 정보 + 로그아웃 버튼으로 구성된다.
  * 모바일에서는 오버레이와 함께 슬라이드 인/아웃 (open prop 으로 제어).
  */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { api } from '@/lib/api';
 import {
   IconLogo, IconGrid, IconChart, IconWon, IconRepeat, IconPie, IconFolder,
   IconLock, IconCode, IconIdCard, IconDoc, IconCheckSquare, IconCalendar,
@@ -93,7 +94,19 @@ interface SidebarProps {
   onLogout?: () => void;
 }
 
+interface MeUser { name: string; email: string }
+
 export default function Sidebar({ activePath = '/dashboard', open = false, onLogout }: SidebarProps) {
+  const [me, setMe] = useState<MeUser | null>(null);
+
+  // 로그인 사용자 정보 조회 (이름·이메일·아바타 이니셜)
+  useEffect(() => {
+    api.get<MeUser>('/auth/me').then(setMe).catch(() => {});
+  }, []);
+
+  const name = me?.name || '사용자';
+  const email = me?.email || '';
+
   return (
     <aside className={`w-[var(--sidebar-w)] min-h-screen bg-background border-r border-border flex flex-col fixed top-0 left-0 z-[100] transition-transform max-md:-translate-x-full ${open ? 'max-md:translate-x-0 max-md:shadow-[var(--shadow-lg)]' : ''}`}>
       {/* 로고 */}
@@ -114,13 +127,12 @@ export default function Sidebar({ activePath = '/dashboard', open = false, onLog
       </nav>
 
       {/* 하단 사용자 정보 + 로그아웃 */}
-      {/* TODO: API 연동 — GET /api/v1/users/me 로 이름·이메일·아바타 대체 */}
       <div className="p-3 border-t border-border">
         <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius)] cursor-pointer transition-colors hover:bg-surface">
-          <div className="w-8 h-8 rounded-full bg-accent-dim border-[1.5px] border-accent flex items-center justify-center [font-family:var(--font-display)] text-[0.75rem] font-bold text-accent shrink-0">K</div>
+          <div className="w-8 h-8 rounded-full bg-accent-dim border-[1.5px] border-accent flex items-center justify-center [font-family:var(--font-display)] text-[0.75rem] font-bold text-accent shrink-0">{name.charAt(0)}</div>
           <div className="overflow-hidden flex-1">
-            <div className="text-[0.82rem] font-semibold text-primary">김관리자</div>
-            <div className="text-[0.72rem] text-muted whitespace-nowrap overflow-hidden text-ellipsis">user@gmail.com</div>
+            <div className="text-[0.82rem] font-semibold text-primary">{name}</div>
+            <div className="text-[0.72rem] text-muted whitespace-nowrap overflow-hidden text-ellipsis">{email}</div>
           </div>
           <button type="button" className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--radius)] text-muted shrink-0 transition-colors hover:bg-danger-dim hover:text-danger [&_svg]:w-4 [&_svg]:h-4" onClick={onLogout} aria-label="로그아웃" title="로그아웃">
             <IconLogout />

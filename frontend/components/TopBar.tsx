@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react';
 import GlobalSearch from './GlobalSearch';
 import { IconBell } from './icons';
+import { api } from '@/lib/api';
 
 interface TopBarProps {
   /** 좌측 보조 라벨 (예: '2025년 5월') */
@@ -16,6 +17,7 @@ interface TopBarProps {
 
 export default function TopBar({ label }: TopBarProps) {
   const [dark, setDark] = useState(false);
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     const saved = localStorage.getItem('theme');
@@ -23,6 +25,10 @@ export default function TopBar({ label }: TopBarProps) {
       setDark(true);
       document.documentElement.setAttribute('data-theme', 'dark');
     }
+    // 미읽음 알림 수 조회
+    api.get<{ count: number }>('/notifications/unread-count')
+      .then((r) => setUnread(r.count))
+      .catch(() => {});
   }, []);
 
   const toggleDark = () => {
@@ -55,10 +61,11 @@ export default function TopBar({ label }: TopBarProps) {
         >
           {dark ? '☀️' : '🌙'}
         </button>
-        {/* TODO: API 연동 — 미읽음 알림 수 GET /api/v1/notifications/unread-count */}
-        <a href="#" className="relative w-9 h-9 flex items-center justify-center rounded-[var(--radius)] text-secondary transition-colors shrink-0 hover:bg-surface hover:text-primary" aria-label="알림">
+        <a href="/notifications" className="relative w-9 h-9 flex items-center justify-center rounded-[var(--radius)] text-secondary transition-colors shrink-0 hover:bg-surface hover:text-primary" aria-label="알림">
           <IconBell width={18} height={18} />
-          <span className="absolute top-1 right-1 min-w-4 h-4 bg-danger text-white text-[0.62rem] font-bold rounded-full flex items-center justify-center px-1 leading-none border-[1.5px] border-background">3</span>
+          {unread > 0 && (
+            <span className="absolute top-1 right-1 min-w-4 h-4 bg-danger text-white text-[0.62rem] font-bold rounded-full flex items-center justify-center px-1 leading-none border-[1.5px] border-background">{unread > 99 ? '99+' : unread}</span>
+          )}
         </a>
       </div>
     </div>

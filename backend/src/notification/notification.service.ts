@@ -20,6 +20,12 @@ export class NotificationService {
     };
   }
 
+  // 미읽음 알림 수 (read_at IS NULL)
+  async unreadCount(userId: number): Promise<{ count: number }> {
+    const count = await this.prisma.notification.count({ where: { user_id: userId, read_at: null } });
+    return { count };
+  }
+
   // 알림 목록 (최신순)
   async findAll(userId: number) {
     const rows = await this.prisma.notification.findMany({
