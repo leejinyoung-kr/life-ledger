@@ -20,6 +20,22 @@ export interface CredentialSecret {
   totp: string | null;
 }
 
+export interface TotpCode {
+  code: string;
+  period: number;
+  remaining: number;
+}
+
+// 랜덤 비밀번호 생성 — 영대소문자+숫자 기본, 옵션으로 특수문자 포함 (crypto 난수)
+export function generatePassword(length = 16, withSymbols = true): string {
+  const base = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const symbols = '!@#$%^&*()-_=+[]{}';
+  const pool = withSymbols ? base + symbols : base;
+  const arr = new Uint32Array(length);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, (n) => pool[n % pool.length]).join('');
+}
+
 export const CRED_CATEGORIES = ['개발', '금융', '소셜', '쇼핑', '구독', '기타'];
 
 // ISO → 'YYYY.MM.DD'

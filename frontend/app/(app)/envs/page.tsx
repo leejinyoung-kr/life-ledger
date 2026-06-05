@@ -15,12 +15,12 @@ import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
-  IconCode, IconEdit, IconPlus, IconCopy, IconEye, IconTrash, IconDownload, IconCheck,
+  IconCode, IconFileBlank, IconEdit, IconPlus, IconCopy, IconEye, IconTrash, IconDownload, IconCheck,
 } from '@/components/icons';
 import { api } from '@/lib/api';
 import {
-  ENV_TABS, ENV_DOT, ENV_GROUPS, groupVars, toEnvText,
-  type EnvKind, type EnvProject, type EnvVar, type ExportVar,
+  ENV_TABS, ENV_DOT, ENV_GROUPS, groupVars, toEnvText, toEnvExample,
+  type EnvKind, type EnvProject, type EnvVar, type ExportVar, type EnvDiff,
 } from '@/lib/env';
 
 export default function EnvsPage() {
@@ -33,6 +33,9 @@ export default function EnvsPage() {
   const [error, setError] = useState<string | null>(null);
   const [projectModal, setProjectModal] = useState<{ open: boolean; editing: EnvProject | null }>({ open: false, editing: null });
   const [varModal, setVarModal] = useState<{ open: boolean; editing: EnvVar | null }>({ open: false, editing: null });
+  const [diffOpen, setDiffOpen] = useState(false);
+  const [diffTarget, setDiffTarget] = useState<EnvKind>('prod');
+  const [diff, setDiff] = useState<EnvDiff | null>(null);
   const { confirm, confirmElement } = useConfirm();
 
   // 프로젝트 목록 조회 (선택 유지, 없으면 첫 항목)
@@ -144,6 +147,38 @@ export default function EnvsPage() {
     }
   }
 
+  // 환경 비교 실행 (현재 env=base, 선택 target)
+  const runDiff = useCallback(async (target: EnvKind) => {
+    if (!project) return;
+    setDiff(null);
+    try {
+      setDiff(await api.get<EnvDiff>(`/env-projects/${project.id}/diff?base=${env}&target=${target}`));
+    } catch {
+      notify.error('환경 비교에 실패했습니다.');
+    }
+  }, [project, env]);
+
+  // 환경 비교 모달 열기 — 현재 env 와 다른 환경을 기본 대상으로
+  function openDiff() {
+    const target: EnvKind = env === 'prod' ? 'dev' : 'prod';
+    setDiffTarget(target);
+    setDiffOpen(true);
+    runDiff(target);
+  }
+
+  // 현재 환경 키만 모아 .env.example 다운로드 (값 제외)
+  function downloadExample() {
+    if (!project) return;
+    const text = toEnvExample(project.name, vars);
+    const blob = new Blob([text], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '.env.example';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    notify.success('.env.example 을 다운로드했습니다.');
+  }
+
   // 프로젝트 삭제 (하위 변수 포함)
   async function deleteProject(p: EnvProject) {
     if (!await confirm(`'${p.name}' 프로젝트와 모든 변수를 삭제할까요?`, 'danger')) return;
@@ -223,6 +258,8 @@ export default function EnvsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
+                <Button variant="ghost" size="sm" onClick={openDiff}><IconCode width={13} height={13} />환경 비교</Button>
+                <Button variant="ghost" size="sm" onClick={downloadExample}><IconFileBlank width={13} height={13} />.env.example</Button>
                 <Button variant="ghost" size="sm" onClick={() => setProjectModal({ open: true, editing: project })}><IconEdit width={13} height={13} />수정</Button>
                 <Button variant="ghost" size="sm" onClick={() => deleteProject(project)}><IconTrash width={13} height={13} />삭제</Button>
                 <Button size="sm" onClick={() => setVarModal({ open: true, editing: null })}><IconPlus width={13} height={13} />변수 추가</Button>
@@ -300,10 +337,48 @@ export default function EnvsPage() {
       </div>
 
       {/* 모달 */}
+      {/* 환경 비교 모달 */}
+      <Modal open={diffOpen} onClose={() => setDiffOpen(false)} title="환경 비교" footer={<Button variant="ghost" onClick={() => setDiffOpen(false)}>닫기</Button>}>
+        <div className="flex items-center gap-2 mb-4 text-[0.84rem]">
+          <span className="px-2 py-1 rounded-[var(--radius)] bg-accent-dim text-accent font-semibold">{env}</span>
+          <span className="text-muted">vs</span>
+          <select className="input w-auto" aria-label="비교 대상 환경" value={diffTarget} onChange={(e) => { const t = e.target.value as EnvKind; setDiffTarget(t); runDiff(t); }}>
+            {ENV_TABS.filter((t) => t.key !== env).map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+          </select>
+        </div>
+        {!diff ? (
+          <div className="py-6 text-center text-muted text-[0.84rem]">비교 중...</div>
+        ) : diff.identical ? (
+          <div className="py-6 text-center text-accent text-[0.875rem]">두 환경의 변수가 동일합니다.</div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <DiffBlock title={`${env} 에만 있음`} tone="text-accent" keys={diff.onlyInBase} />
+            <DiffBlock title={`${diffTarget} 에만 있음`} tone="text-blue" keys={diff.onlyInTarget} />
+            <DiffBlock title="값 불일치" tone="text-warning" keys={diff.valueMismatch} />
+          </div>
+        )}
+      </Modal>
+
       <ProjectModal state={projectModal} onClose={() => setProjectModal((s) => ({ ...s, open: false }))} onSaved={() => { setProjectModal({ open: false, editing: null }); loadProjects(); }} />
       <VarModal state={varModal} projectId={selectedId} currentEnv={env} onClose={() => setVarModal((s) => ({ ...s, open: false }))} onSaved={() => { setVarModal({ open: false, editing: null }); loadVars(); loadProjects(); }} />
       {confirmElement}
     </AppShell>
+  );
+}
+
+// 환경 비교 결과 블록 (키 목록)
+function DiffBlock({ title, tone, keys }: { title: string; tone: string; keys: string[] }) {
+  return (
+    <div>
+      <div className={`text-[0.78rem] font-semibold mb-1.5 ${tone}`}>{title} <span className="text-muted font-normal">{keys.length}</span></div>
+      {keys.length === 0 ? (
+        <div className="text-[0.78rem] text-muted">없음</div>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {keys.map((k) => <span key={k} className="[font-family:var(--font-mono)] text-[0.75rem] px-2 py-0.5 rounded-[var(--radius)] bg-surface border border-border">{k}</span>)}
+        </div>
+      )}
+    </div>
   );
 }
 

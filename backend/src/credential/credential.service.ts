@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Credential, Prisma } from '@prisma/client';
 import * as ExcelJS from 'exceljs';
+import { authenticator } from 'otplib';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto.service';
 import { CreateCredentialDto } from './dto/create-credential.dto';
@@ -95,6 +96,27 @@ export class CredentialService {
       password: this.crypto.decrypt(row.password_enc),
       totp: row.totp_enc ? this.crypto.decrypt(row.totp_enc) : null,
     };
+  }
+
+  // 저장된 TOTP 시크릿으로 현재 6자리 코드 생성 (otpauth:// URI 면 secret 파라미터 추출)
+  async totpCode(userId: number, id: number) {
+    const row = await this.findOwned(userId, id);
+    if (!row.totp_enc) throw new BadRequestException('2FA 시크릿이 없습니다.');
+    let secret = this.crypto.decrypt(row.totp_enc).trim();
+    if (secret.startsWith('otpauth://')) {
+      const m = /[?&]secret=([^&]+)/i.exec(secret);
+      if (m) secret = decodeURIComponent(m[1]);
+    }
+    secret = secret.replace(/\s/g, '').toUpperCase();
+    try {
+      return {
+        code: authenticator.generate(secret),
+        period: 30,
+        remaining: authenticator.timeRemaining(),
+      };
+    } catch {
+      throw new BadRequestException('유효하지 않은 2FA 시크릿입니다.');
+    }
   }
 
   // 계정 수정 (password/totp 가 오면 재암호화. totp 빈 문자열이면 해제)

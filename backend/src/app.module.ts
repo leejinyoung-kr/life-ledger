@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -26,10 +27,12 @@ import { IdentityModule } from './identity/identity.module';
 import { CredentialModule } from './credential/credential.module';
 import { EnvModule } from './env/env.module';
 import { ExportModule } from './export/export.module';
+import { MaintenanceModule } from './maintenance/maintenance.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     TransactionModule,
@@ -52,6 +55,7 @@ import { ExportModule } from './export/export.module';
     CredentialModule,
     EnvModule,
     ExportModule,
+    MaintenanceModule,
   ],
   controllers: [AppController],
   // 전역 JWT 가드 — 모든 엔드포인트 보호. @Public() 핸들러만 예외(로그인 등)

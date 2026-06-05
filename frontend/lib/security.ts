@@ -23,6 +23,7 @@ export interface SecurityRisk {
   title: string;
   description: string;
   actionLabel: string;
+  href: string; // 조치 페이지 (실시간 분석 결과는 직접 해결 대신 해당 페이지로 이동)
 }
 
 export interface LoginSession {

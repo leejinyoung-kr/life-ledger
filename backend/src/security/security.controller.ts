@@ -30,12 +30,6 @@ export class SecurityController {
     return this.service.sessions(user.id);
   }
 
-  // 위험 요소 해결
-  @Post('risks/:id/resolve')
-  resolveRisk(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
-    return this.service.resolveRisk(user.id, id);
-  }
-
   // 전체 세션 로그아웃 (현재 기기 제외)
   @Post('sessions/revoke-all')
   revokeAll(@CurrentUser() user: AuthUser) {

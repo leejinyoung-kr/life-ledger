@@ -48,12 +48,6 @@ export default function SecurityPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // 위험 요소 해결
-  async function resolveRisk(id: number) {
-    try { await api.post(`/security/risks/${id}/resolve`, {}); load(); }
-    catch (e) { setError((e as Error).message); }
-  }
-
   // 단일 세션 로그아웃/차단
   async function revokeSession(id: number) {
     try { await api.post(`/security/sessions/${id}/revoke`, {}); load(); }
@@ -127,7 +121,7 @@ export default function SecurityPage() {
                   <div className="text-[0.78rem] text-muted">{r.description}</div>
                 </div>
                 <Badge tone={sev.tone as 'danger' | 'warning' | 'blue'}>{sev.label}</Badge>
-                <Button variant="ghost" size="sm" onClick={() => resolveRisk(r.id)}>{r.actionLabel}</Button>
+                <Button href={r.href} variant="ghost" size="sm">{r.actionLabel}</Button>
               </div>
             );
           })}

@@ -69,6 +69,17 @@ export class EnvController {
     return this.service.findVars(user.id, id, env);
   }
 
+  // 두 환경 변수 비교(diff)
+  @Get('env-projects/:id/diff')
+  diff(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Query('base') base: EnvKindDto,
+    @Query('target') target: EnvKindDto,
+  ) {
+    return this.service.diff(user.id, id, base, target);
+  }
+
   // 프로젝트·환경 변수 원문 내보내기 (.env 복사/다운로드)
   @Get('env-projects/:id/export')
   exportVars(

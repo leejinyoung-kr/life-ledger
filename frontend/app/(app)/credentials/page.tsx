@@ -21,8 +21,8 @@ import {
 } from '@/components/icons';
 import { api, apiDownload } from '@/lib/api';
 import {
-  CRED_CATEGORIES, fmtCredDate, pwStrength,
-  type Credential, type CredentialSecret,
+  CRED_CATEGORIES, fmtCredDate, pwStrength, generatePassword,
+  type Credential, type CredentialSecret, type TotpCode,
 } from '@/lib/credential';
 
 const ICON_BTN = 'w-7 h-7 rounded-[5px] flex items-center justify-center text-muted transition-all shrink-0 hover:bg-elevated hover:text-accent';
@@ -231,6 +231,7 @@ export default function CredentialsPage() {
 // 계정 상세 모달 — 열릴 때 reveal 로 원문을 받아 비밀번호 마스킹/표시/복사 (표시 시 10초 후 자동 숨김)
 function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | null; onClose: () => void; onEdit: () => void; onDelete: () => void }) {
   const [secret, setSecret] = useState<CredentialSecret | null>(null);
+  const [totp, setTotp] = useState<TotpCode | null>(null);
   const [pwVisible, setPwVisible] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -242,6 +243,23 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
     if (!cred) return;
     api.get<CredentialSecret>(`/credentials/${cred.id}/reveal`).then(setSecret).catch(() => {});
     return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
+  }, [cred]);
+
+  // 2FA 계정이면 현재 TOTP 코드를 받아 1초마다 카운트다운, 만료 시 재요청
+  useEffect(() => {
+    setTotp(null);
+    if (!cred?.has2fa) return;
+    let active = true;
+    const fetchCode = () => api.get<TotpCode>(`/credentials/${cred.id}/totp`).then((t) => { if (active) setTotp(t); }).catch(() => {});
+    fetchCode();
+    const iv = setInterval(() => {
+      setTotp((prev) => {
+        if (!prev) return prev;
+        if (prev.remaining <= 1) { fetchCode(); return { ...prev, remaining: 0 }; }
+        return { ...prev, remaining: prev.remaining - 1 };
+      });
+    }, 1000);
+    return () => { active = false; clearInterval(iv); };
   }, [cred]);
 
   if (!cred) return null;
@@ -305,11 +323,12 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
         <button type="button" className={ICON_BTN} onClick={() => copy(pw)} aria-label="비밀번호 복사" disabled={!secret}><IconCopy width={14} height={14} /></button>
       </DetailField>
 
-      {/* 2FA */}
-      {secret?.totp && (
+      {/* 2FA — 실시간 6자리 코드 + 남은 시간 */}
+      {cred.has2fa && (
         <DetailField label="2FA (TOTP)">
-          <span className="flex-1 [font-family:var(--font-mono)] text-[0.78rem] text-secondary truncate">{secret.totp}</span>
-          <button type="button" className={ICON_BTN} onClick={() => copy(secret.totp ?? '')} aria-label="TOTP 복사"><IconCopy width={14} height={14} /></button>
+          <span className="flex-1 [font-family:var(--font-mono)] text-[1.1rem] font-bold tracking-[0.2em] text-primary">{totp ? totp.code : '••••••'}</span>
+          {totp && <span className="text-[0.72rem] text-muted shrink-0">{totp.remaining}s</span>}
+          <button type="button" className={ICON_BTN} onClick={() => totp && copy(totp.code)} aria-label="TOTP 복사" disabled={!totp}><IconCopy width={14} height={14} /></button>
         </DetailField>
       )}
 
@@ -424,7 +443,10 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
         <input type="text" className={`input${errors.username ? ' is-invalid' : ''}`} placeholder="아이디 또는 이메일" value={username} onChange={(e) => { setUsername(e.target.value); clearErr('username'); }} />
       </Field>
       <Field label={editing ? '비밀번호 (변경 시에만 입력)' : '비밀번호'} required={!editing} error={errors.pw}>
-        <input type="password" className={`input${errors.pw ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearErr('pw'); }} />
+        <div className="flex gap-2">
+          <input type="text" className={`input${errors.pw ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearErr('pw'); }} />
+          <Button variant="ghost" className="whitespace-nowrap" onClick={() => { setPw(generatePassword()); clearErr('pw'); }}>🎲 생성</Button>
+        </div>
         {pw && (
           <>
             <div className="track"><div className={`fill ${STRENGTH_FILL[strength.tone]}`} style={{ width: `${strength.pct}%` }} /></div>

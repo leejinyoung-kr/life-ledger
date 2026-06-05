@@ -75,6 +75,12 @@ export class CredentialController {
     return this.service.reveal(user.id, id);
   }
 
+  // 현재 TOTP 6자리 코드 + 남은 시간
+  @Get(':id/totp')
+  totp(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.service.totpCode(user.id, id);
+  }
+
   // 계정 추가
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateCredentialDto) {

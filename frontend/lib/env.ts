@@ -30,6 +30,15 @@ export interface ExportVar {
   group: string | null;
 }
 
+export interface EnvDiff {
+  base: EnvKind;
+  target: EnvKind;
+  onlyInBase: string[];
+  onlyInTarget: string[];
+  valueMismatch: string[];
+  identical: boolean;
+}
+
 export const ENV_TABS: { key: EnvKind; label: string }[] = [
   { key: 'dev', label: 'development' },
   { key: 'staging', label: 'staging' },
@@ -52,6 +61,18 @@ export function groupVars(vars: EnvVar[]): { group: string; items: EnvVar[] }[] 
     else acc.push({ group: g, items: [v] });
     return acc;
   }, []);
+}
+
+// 변수 목록(마스킹된 키만 사용)을 .env.example 텍스트로 직렬화 (값 비움)
+export function toEnvExample(name: string, vars: EnvVar[]): string {
+  let text = `# ${name} - .env.example (값 제외)\n`;
+  let lastGroup = '';
+  for (const v of vars) {
+    const g = v.group || '';
+    if (g && g !== lastGroup) { text += `\n# ${g}\n`; lastGroup = g; }
+    text += `${v.key}=\n`;
+  }
+  return text;
 }
 
 // export 변수 목록을 .env 텍스트로 직렬화 (그룹별 주석 포함)

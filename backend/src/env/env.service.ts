@@ -190,6 +190,35 @@ export class EnvService {
     return this.varDto(updated);
   }
 
+  // 두 환경 변수 비교(diff) — 누락(한쪽에만 있음) + 값 불일치(양쪽 있으나 값 다름)
+  async diff(userId: number, projectId: number, base: EnvKindDto, target: EnvKindDto) {
+    await this.findOwnedProject(userId, projectId);
+    const load = async (env: EnvKindDto) => {
+      const rows = await this.prisma.envVar.findMany({
+        where: { user_id: userId, project_id: projectId, env, deleted_at: null },
+      });
+      return new Map(rows.map((r) => [r.key, this.crypto.decrypt(r.value_enc)]));
+    };
+    const [b, t] = await Promise.all([load(base), load(target)]);
+
+    const onlyInBase: string[] = [];
+    const onlyInTarget: string[] = [];
+    const valueMismatch: string[] = [];
+    for (const k of b.keys()) {
+      if (!t.has(k)) onlyInBase.push(k);
+      else if (t.get(k) !== b.get(k)) valueMismatch.push(k);
+    }
+    for (const k of t.keys()) if (!b.has(k)) onlyInTarget.push(k);
+
+    return {
+      base, target,
+      onlyInBase: onlyInBase.sort(),
+      onlyInTarget: onlyInTarget.sort(),
+      valueMismatch: valueMismatch.sort(),
+      identical: !onlyInBase.length && !onlyInTarget.length && !valueMismatch.length,
+    };
+  }
+
   // 변수 삭제 (soft delete)
   async removeVar(userId: number, id: number) {
     await this.findOwnedVar(userId, id);
