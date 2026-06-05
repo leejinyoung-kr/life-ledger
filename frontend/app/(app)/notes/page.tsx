@@ -172,7 +172,7 @@ export default function NotesPage() {
             </div>
             <div className="relative">
               <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-              <input className="input pl-icon" type="text" placeholder="메모 검색..." value={search} onChange={(e) => setSearch(e.target.value)} aria-label="메모 검색" />
+              <input className="input pl-icon" type="text" placeholder="메모 검색..." value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} aria-label="메모 검색" />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-2">

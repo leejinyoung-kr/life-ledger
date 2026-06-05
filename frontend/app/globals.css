@@ -99,20 +99,22 @@
   --color-amber-dim: var(--amber-dim);
 }
 
-*, *::before, *::after { box-sizing: border-box; }
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
 
-body {
-  font-family: var(--font-body);
-  background: var(--bg-base);
-  color: var(--text-primary);
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
+  body {
+    font-family: var(--font-body);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  ul, ol { list-style: none; }
+  button { cursor: pointer; border: none; background: none; font: inherit; }
+  input, select, textarea { font: inherit; }
 }
-
-a { color: inherit; text-decoration: none; }
-ul, ol { list-style: none; }
-button { cursor: pointer; border: none; background: none; font: inherit; }
-input, select, textarea { font: inherit; }
 
 /* ════════════════════════════════════════
    APP SHELL / LAYOUT (공통 — 모든 페이지 공유)

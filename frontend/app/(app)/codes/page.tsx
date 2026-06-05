@@ -253,7 +253,7 @@ export default function CodesPage() {
                 <SortableRow
                   key={item.id}
                   item={item}
-                  idx={idx}
+                  idx={(page - 1) * limit + idx}
                   editingId={editingId}
                   editLabel={editLabel}
                   onEditLabelChange={setEditLabel}

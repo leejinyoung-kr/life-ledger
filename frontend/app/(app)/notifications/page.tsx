@@ -114,6 +114,7 @@ export default function NotificationsPage() {
 
       {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
 
+      {/* 필터 탭 + 검색 + 페이지당 항목 수 */}
       {/* 필터 탭 + 페이지당 항목 수 */}
       <div className="flex items-center justify-between gap-2.5 mb-5 max-md:flex-wrap">
         <div className="flex gap-1 flex-wrap">

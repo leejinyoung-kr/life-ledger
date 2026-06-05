@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fmtDate, ddayOf } from './identity';
+import { fmtDate, ddayOf } from '../../lib/identity';
 
 // 오늘 기준 n일 뒤의 YYYY-MM-DD (로컬)
 function isoInDays(n: number): string {

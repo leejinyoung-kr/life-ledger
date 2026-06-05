@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pwStrength, fmtCredDate } from './credential';
+import { pwStrength, fmtCredDate } from '../../lib/credential';
 
 describe('pwStrength', () => {
   it('빈 값 → 0% danger', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupVars, toEnvText, type EnvVar } from './env';
+import { groupVars, toEnvText, type EnvVar } from '../../lib/env';
 
 const v = (id: number, key: string, group: string | null): EnvVar => ({
   id, env: 'dev', group, key, valueMasked: '••', memo: null,

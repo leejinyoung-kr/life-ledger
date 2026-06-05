@@ -97,6 +97,7 @@ export default function GlobalSearch() {
         placeholder="통합 검색... (가계부·메모·계정·신원·ENV)"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setOpen(true); } }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
         autoComplete="off"

@@ -15,7 +15,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
-import { IconCheck } from '@/components/icons';
+import { IconCheck, IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
 import {
   PRIORITY_OPTIONS, formatDue, isSoon, formatGoalValue,
@@ -26,6 +26,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [addModal, setAddModal] = useState(false);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -61,9 +62,10 @@ export default function TasksPage() {
     }
   }
 
+  const searchedTasks = search.trim() ? tasks.filter((t) => t.text.toLowerCase().includes(search.toLowerCase())) : tasks;
   const doneCount = tasks.filter((t) => t.done).length;
-  const totalPages = Math.ceil(tasks.length / limit);
-  const pagedTasks = tasks.slice((page - 1) * limit, page * limit);
+  const totalPages = Math.ceil(searchedTasks.length / limit);
+  const pagedTasks = searchedTasks.slice((page - 1) * limit, page * limit);
 
   return (
     <AppShell activePath="/tasks" topbarLabel="할일 / 목표">
@@ -82,7 +84,11 @@ export default function TasksPage() {
         <Card>
           <CardHeader>
             <CardTitle>할 일</CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
+                <input className="input pl-icon w-40" type="text" placeholder="할일 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="할일 검색" />
+              </div>
               <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
               <Badge tone="neutral">{doneCount} / {tasks.length} 완료</Badge>
             </div>

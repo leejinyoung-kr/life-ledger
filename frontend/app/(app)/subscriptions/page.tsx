@@ -17,7 +17,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
-import { IconRepeat, IconAlertTriangle } from '@/components/icons';
+import { IconRepeat, IconAlertTriangle, IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
 import { won, dotDate, daysUntil } from '@/lib/finance';
 import {
@@ -43,6 +43,7 @@ export default function SubscriptionsPage() {
   const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
   const [unused, setUnused] = useState<UnusedSubscription[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const { confirm, confirmElement } = useConfirm();
@@ -87,8 +88,11 @@ export default function SubscriptionsPage() {
       ]
     : [];
 
-  const totalPages = Math.ceil(subs.length / limit);
-  const paged = subs.slice((page - 1) * limit, page * limit);
+  const searchFiltered = search.trim()
+    ? subs.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()) || (SUB_CATEGORY_LABEL[s.category] ?? s.category).toLowerCase().includes(search.toLowerCase()))
+    : subs;
+  const totalPages = Math.ceil(searchFiltered.length / limit);
+  const paged = searchFiltered.slice((page - 1) * limit, page * limit);
 
   return (
     <AppShell activePath="/subscriptions" topbarLabel="구독 관리">
@@ -126,6 +130,12 @@ export default function SubscriptionsPage() {
           <Button variant="ghost" size="sm" onClick={() => cancel(trial.id)}>지금 해지</Button>
         </div>
       )}
+
+      {/* 검색 */}
+      <div className="relative mb-4 max-w-90">
+        <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
+        <input className="input pl-icon" type="text" placeholder="서비스명, 카테고리 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="구독 검색" />
+      </div>
 
       {/* 구독 카드 그리드 (도메인 특성상 카드형 유지) */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4 mb-7">

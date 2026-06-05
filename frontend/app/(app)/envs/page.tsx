@@ -15,7 +15,7 @@ import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
-  IconCode, IconFileBlank, IconEdit, IconPlus, IconCopy, IconEye, IconTrash, IconDownload, IconCheck,
+  IconCode, IconFileBlank, IconEdit, IconPlus, IconCopy, IconEye, IconTrash, IconDownload, IconCheck, IconSearch,
 } from '@/components/icons';
 import { api } from '@/lib/api';
 import {
@@ -33,6 +33,7 @@ export default function EnvsPage() {
   const [error, setError] = useState<string | null>(null);
   const [projectModal, setProjectModal] = useState<{ open: boolean; editing: EnvProject | null }>({ open: false, editing: null });
   const [varModal, setVarModal] = useState<{ open: boolean; editing: EnvVar | null }>({ open: false, editing: null });
+  const [varSearch, setVarSearch] = useState('');
   const [diffOpen, setDiffOpen] = useState(false);
   const [diffTarget, setDiffTarget] = useState<EnvKind>('prod');
   const [diff, setDiff] = useState<EnvDiff | null>(null);
@@ -58,6 +59,7 @@ export default function EnvsPage() {
     try {
       setVars(await api.get<EnvVar[]>(`/env-projects/${selectedId}/vars?env=${env}`));
       setRevealed({});
+      setVarSearch('');
     } catch (e) {
       setError((e as Error).message);
     }
@@ -204,7 +206,8 @@ export default function EnvsPage() {
     }
   }
 
-  const grouped = groupVars(vars);
+  const filteredVars = varSearch.trim() ? vars.filter((v) => v.key.toLowerCase().includes(varSearch.toLowerCase())) : vars;
+  const grouped = groupVars(filteredVars);
 
   return (
     <AppShell activePath="/envs" topbarLabel="ENV 보관함">
@@ -275,6 +278,14 @@ export default function EnvsPage() {
                     <span className="text-[0.7rem] text-muted">{project.counts[t.key]}</span>
                   </button>
                 ))}
+              </div>
+
+              {/* 변수 검색 */}
+              <div className="px-4 py-2.5 border-b border-border bg-surface">
+                <div className="relative max-w-72">
+                  <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
+                  <input className="input pl-icon" type="text" placeholder="KEY 검색..." value={varSearch} onChange={(e) => setVarSearch(e.target.value)} aria-label="변수 검색" />
+                </div>
               </div>
 
               {/* env-table: 그룹행 구조라 공통 globals 유지 */}

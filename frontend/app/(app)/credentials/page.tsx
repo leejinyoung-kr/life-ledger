@@ -140,7 +140,7 @@ export default function CredentialsPage() {
       <div className="flex items-center gap-2.5 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-          <input className="input pl-icon" type="text" placeholder="서비스명, URL, 아이디 검색..." value={query} onChange={(e) => setQuery(e.target.value)} aria-label="계정 검색" />
+          <input className="input pl-icon" type="text" placeholder="서비스명, URL, 아이디 검색..." value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} aria-label="계정 검색" />
         </div>
         <select className="input w-auto min-w-[130px] shrink-0" value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }} aria-label="카테고리 필터">
           {FILTER_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
