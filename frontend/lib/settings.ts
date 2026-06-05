@@ -34,6 +34,25 @@ export interface Settings {
   budgets: Record<string, number>;
   categories: Category[];
   widgets: WidgetPref[];
+  menuOrder: string[] | null; // 사이드바 1차 메뉴 순서 (key 배열). null=기본
+}
+
+// 사이드바 1차 메뉴 키 ↔ 라벨 (기본 순서 = 배열 순서). Sidebar·설정 공유
+export const MENU_ITEMS: { key: string; label: string }[] = [
+  { key: 'dashboard', label: '대시보드' },
+  { key: 'finance', label: '금융' },
+  { key: 'vault', label: '보관함' },
+  { key: 'tools', label: '도구' },
+  { key: 'insight', label: '인사이트' },
+  { key: 'system', label: '시스템' },
+];
+export const DEFAULT_MENU_ORDER = MENU_ITEMS.map((m) => m.key);
+
+// 저장된 순서를 기본 순서에 맞춰 정규화 — 알 수 없는 키 제거 + 누락 키는 기본 위치로 보강
+export function normalizeMenuOrder(order: string[] | null | undefined): string[] {
+  const valid = (order ?? []).filter((k) => DEFAULT_MENU_ORDER.includes(k));
+  const missing = DEFAULT_MENU_ORDER.filter((k) => !valid.includes(k));
+  return [...valid, ...missing];
 }
 
 // 예산 카테고리 코드 → 라벨 (렌더 순서 = 키 순서)

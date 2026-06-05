@@ -18,8 +18,12 @@ import { IconWon, IconBars, IconClock, IconZap, IconLock, IconCube, IconDrag } f
 import { api, apiDownload } from '@/lib/api';
 import {
   BUDGET_LABEL, SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS, CLAUDE_MODEL_OPTIONS,
+  MENU_ITEMS, DEFAULT_MENU_ORDER, normalizeMenuOrder,
   type Settings, type Category, type WidgetPref,
 } from '@/lib/settings';
+
+// 메뉴 key → 라벨
+const MENU_LABEL: Record<string, string> = Object.fromEntries(MENU_ITEMS.map((m) => [m.key, m.label]));
 
 type TabId = 'profile' | 'budget' | 'security' | 'api' | 'widgets' | 'data';
 const TABS: { id: TabId; label: string }[] = [
@@ -92,6 +96,8 @@ export default function SettingsPage() {
   const [newCatEmoji, setNewCatEmoji] = useState('');
   const [widgets, setWidgets] = useState<WidgetPref[]>(DEFAULT_WIDGETS);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [menuOrder, setMenuOrder] = useState<string[]>(DEFAULT_MENU_ORDER);
+  const [menuDragId, setMenuDragId] = useState<string | null>(null);
 
   // 설정 조회 후 로컬 상태 초기화
   const load = useCallback(async () => {
@@ -102,6 +108,7 @@ export default function SettingsPage() {
       setBudgets(data.budgets);
       setClaudeModel(data.claudeModel);
       setWidgets(data.widgets.length ? data.widgets : DEFAULT_WIDGETS);
+      setMenuOrder(normalizeMenuOrder(data.menuOrder));
       setError(null);
     } catch (e) {
       setError((e as Error).message);
@@ -171,6 +178,32 @@ export default function SettingsPage() {
       return arr;
     });
     setDragId(null);
+  }
+
+  // 드래그한 1차 메뉴를 대상 위치로 재배치 (로컬)
+  function onMenuDrop(targetKey: string) {
+    if (!menuDragId || menuDragId === targetKey) return;
+    setMenuOrder((prev) => {
+      const arr = [...prev];
+      const from = arr.indexOf(menuDragId);
+      const to = arr.indexOf(targetKey);
+      const [moved] = arr.splice(from, 1);
+      arr.splice(to, 0, moved);
+      return arr;
+    });
+    setMenuDragId(null);
+  }
+
+  // 메뉴 순서 저장 → 사이드바 즉시 반영(window 이벤트)
+  async function saveMenuOrder() {
+    await patch({ menuOrder });
+    window.dispatchEvent(new Event('menu-order-changed'));
+    notify.success('메뉴 순서를 저장했습니다.');
+  }
+
+  // 메뉴 순서 기본값으로 초기화 (로컬)
+  function resetMenuOrder() {
+    setMenuOrder([...DEFAULT_MENU_ORDER]);
   }
 
   return (
@@ -319,6 +352,28 @@ export default function SettingsPage() {
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={resetWidgets}>초기화</Button>
                 <Button onClick={() => patch({ widgets })}>저장</Button>
+              </div>
+
+              <Group title="사이드바 메뉴 순서">
+                <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">1차 메뉴(그룹)의 표시 순서를 드래그로 변경합니다. 저장 시 사이드바에 즉시 반영됩니다.</p>
+                {menuOrder.map((key) => (
+                  <div
+                    key={key}
+                    className="flex items-center gap-3.5 px-5 py-3 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface"
+                    draggable
+                    onDragStart={() => setMenuDragId(key)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => onMenuDrop(key)}
+                  >
+                    <span className="text-muted cursor-grab active:cursor-grabbing shrink-0 flex"><IconDrag width={14} height={14} /></span>
+                    <div className="flex-1 text-[0.875rem] font-medium text-primary">{MENU_LABEL[key] ?? key}</div>
+                  </div>
+                ))}
+              </Group>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={resetMenuOrder}>초기화</Button>
+                <Button onClick={saveMenuOrder}>메뉴 순서 저장</Button>
               </div>
             </>
           )}

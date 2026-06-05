@@ -7,6 +7,7 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { api } from '@/lib/api';
+import { normalizeMenuOrder, type Settings } from '@/lib/settings';
 import {
   IconLogo, IconGrid, IconChart, IconWon, IconRepeat, IconPie, IconFolder,
   IconLock, IconCode, IconIdCard, IconDoc, IconCheckSquare, IconCalendar,
@@ -22,6 +23,7 @@ interface NavLeaf {
 }
 
 interface NavGroup {
+  key: string;
   label: string;
   icon: ReactNode;
   children: NavLeaf[];
@@ -29,11 +31,12 @@ interface NavGroup {
 
 const GROUP_IC = 'w-[17px] h-[17px] shrink-0';
 
-// 대시보드(단일) + 그룹 메뉴 정의.
-const TOP_LINK: NavLeaf = { label: '대시보드', href: '/dashboard', icon: <IconGrid /> };
+// 대시보드(단일) + 그룹 메뉴 정의. key 는 1차 메뉴 순서 식별자(lib/settings MENU_ITEMS 와 일치).
+const TOP_LINK: NavLeaf & { key: string } = { key: 'dashboard', label: '대시보드', href: '/dashboard', icon: <IconGrid /> };
 
 const NAV_GROUPS: NavGroup[] = [
   {
+    key: 'finance',
     label: '금융',
     icon: <IconChart className={GROUP_IC} />,
     children: [
@@ -43,6 +46,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: 'vault',
     label: '보관함',
     icon: <IconFolder className={GROUP_IC} />,
     children: [
@@ -53,6 +57,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: 'tools',
     label: '도구',
     icon: <IconDoc className={GROUP_IC} />,
     children: [
@@ -62,6 +67,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: 'insight',
     label: '인사이트',
     icon: <IconCube className={GROUP_IC} />,
     children: [
@@ -70,6 +76,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: 'system',
     label: '시스템',
     icon: <IconSettings className={GROUP_IC} />,
     children: [
@@ -81,6 +88,8 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
+
+const GROUP_BY_KEY: Record<string, NavGroup> = Object.fromEntries(NAV_GROUPS.map((g) => [g.key, g]));
 
 // nav-link 공통 클래스 (leaf 아이콘 17px 자동 사이즈)
 const NAV_LINK = 'flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius)] text-[0.875rem] font-medium transition-colors [&_svg]:w-[17px] [&_svg]:h-[17px] [&_svg]:shrink-0';
@@ -98,10 +107,20 @@ interface MeUser { name: string; email: string }
 
 export default function Sidebar({ activePath = '/dashboard', open = false, onLogout }: SidebarProps) {
   const [me, setMe] = useState<MeUser | null>(null);
+  const [menuOrder, setMenuOrder] = useState<string[]>(normalizeMenuOrder(null));
 
   // 로그인 사용자 정보 조회 (이름·이메일·아바타 이니셜)
   useEffect(() => {
     api.get<MeUser>('/auth/me').then(setMe).catch(() => {});
+  }, []);
+
+  // 1차 메뉴 순서 조회 + 설정에서 변경 시(window 이벤트) 즉시 재적용
+  useEffect(() => {
+    const fetchOrder = () =>
+      api.get<Settings>('/settings').then((s) => setMenuOrder(normalizeMenuOrder(s.menuOrder))).catch(() => {});
+    fetchOrder();
+    window.addEventListener('menu-order-changed', fetchOrder);
+    return () => window.removeEventListener('menu-order-changed', fetchOrder);
   }, []);
 
   const name = me?.name || '사용자';
@@ -115,15 +134,20 @@ export default function Sidebar({ activePath = '/dashboard', open = false, onLog
         Doc<span className="text-accent">Nexus</span>
       </div>
 
-      {/* 네비게이션 */}
+      {/* 네비게이션 — menuOrder 순서대로 1차 메뉴 렌더 (대시보드=링크, 나머지=접이식 그룹) */}
       <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-y-auto">
-        <a href={TOP_LINK.href} className={`${NAV_LINK} ${activePath === TOP_LINK.href ? 'bg-accent-dim text-accent font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`}>
-          {TOP_LINK.icon}
-          {TOP_LINK.label}
-        </a>
-        {NAV_GROUPS.map((group) => (
-          <NavGroupItem key={group.label} group={group} activePath={activePath} />
-        ))}
+        {menuOrder.map((key) => {
+          if (key === TOP_LINK.key) {
+            return (
+              <a key={key} href={TOP_LINK.href} className={`${NAV_LINK} ${activePath === TOP_LINK.href ? 'bg-accent-dim text-accent font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`}>
+                {TOP_LINK.icon}
+                {TOP_LINK.label}
+              </a>
+            );
+          }
+          const group = GROUP_BY_KEY[key];
+          return group ? <NavGroupItem key={key} group={group} activePath={activePath} /> : null;
+        })}
       </nav>
 
       {/* 하단 사용자 정보 + 로그아웃 */}

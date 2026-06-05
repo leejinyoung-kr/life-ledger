@@ -44,6 +44,7 @@ export class SettingsService {
       budgets: s.budgets,
       categories: s.categories,
       widgets: s.widgets,
+      menuOrder: s.menu_order ?? null,
     };
   }
 
@@ -68,6 +69,7 @@ export class SettingsService {
       budgets: dto.budgets as Prisma.InputJsonValue,
       categories: dto.categories as Prisma.InputJsonValue,
       widgets: dto.widgets as Prisma.InputJsonValue,
+      menu_order: dto.menuOrder as Prisma.InputJsonValue,
     };
     // 새 키가 입력됐을 때만 교체 (빈 문자열/미전송 시 기존 유지)
     if (dto.claudeApiKey) data.claude_api_key = dto.claudeApiKey;

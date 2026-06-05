@@ -61,4 +61,10 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsArray()
   widgets?: { id: string; on: boolean }[];
+
+  // 사이드바 1차 메뉴 순서 (key 배열)
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  menuOrder?: string[];
 }
