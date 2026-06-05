@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
+import { api } from '@/lib/api';
 
 interface AppShellProps {
   /** 현재 경로 (사이드바 active 표시) */
@@ -39,9 +40,9 @@ export default function AppShell({
   // 오버레이 클릭/링크 이동 시 사이드바 닫기
   const closeSidebar = () => setSidebarOpen(false);
 
-  // 기본 로그아웃 — 토큰 제거 후 로그인 페이지로. onLogout 지정 시 그것을 우선
-  const handleLogout = onLogout ?? (() => {
-    localStorage.removeItem('auth_token');
+  // 기본 로그아웃 — 서버 refresh 쿠키 + 로컬 토큰 제거 후 로그인 페이지로. onLogout 지정 시 그것을 우선
+  const handleLogout = onLogout ?? (async () => {
+    await api.logout();
     router.push('/login');
   });
 

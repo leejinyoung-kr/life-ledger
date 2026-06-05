@@ -12,8 +12,12 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /auth/google/callback | OAuth 콜백, JWT 발급 후 프론트엔드로 리다이렉트 (`@Public`) |
 | GET | /auth/me | 현재 로그인 사용자 정보 (name/email/picture) |
 | DELETE | /auth/me | 계정 영구 삭제 (전 도메인 데이터 + user 삭제) |
+| POST | /auth/refresh | refresh 쿠키로 새 access 발급 (`@Public`) |
+| POST | /auth/logout | refresh 쿠키 제거 (`@Public`) |
 
-> 전역 JWT 가드 적용 — 로그인 관련(`@Public()`) 외 **모든** 엔드포인트는 `Authorization: Bearer <access_token>` 헤더 필수. 누락/만료 시 401.
+> 토큰: **Access(15분)** 는 `?token=` 으로 전달 → localStorage → `Authorization: Bearer`.
+> **Refresh(7일)** 는 httpOnly 쿠키(`refresh_token`)로만 저장. access 만료(401) 시 프론트가 `/auth/refresh` 1회 호출해 갱신·재요청.
+> 전역 JWT 가드 — 로그인 관련(`@Public()`) 외 **모든** 엔드포인트는 access 토큰 필수.
 
 ## 가계부 — 수입/지출
 
