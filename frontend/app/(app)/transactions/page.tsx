@@ -12,7 +12,9 @@ import StatCard from '@/components/StatCard';
 import {
   IconWon, IconBank, IconTrendUp, IconDownload, IconFileBlank, IconUpload,
   IconSearch, IconEdit, IconTrash, IconChart, IconAlertTriangle,
+  IconHome, IconCreditCard,
 } from '@/components/icons';
+import { ASSET_TYPE_LABEL, type Asset } from '@/lib/networth';
 
 import { notify } from '@/lib/toast';
 import { useConfirm } from '@/components/ConfirmModal';
@@ -32,12 +34,14 @@ import {
   type RecurringCycle, type WeekendAdjust,
 } from '@/lib/finance';
 
-type TabId = 'ledger' | 'savings' | 'invest';
+type TabId = 'ledger' | 'savings' | 'invest' | 'realestate' | 'debt';
 
 const ADD_LABELS: Record<TabId, string> = {
   ledger: '항목 추가',
   savings: '예적금 추가',
   invest: '투자 항목 추가',
+  realestate: '부동산 추가',
+  debt: '부채 추가',
 };
 
 // 테이블/모바일 카드 공용 Tailwind 클래스 (3개 탭 공유)
@@ -54,12 +58,14 @@ const AMT_COLOR: Record<TransactionType, string> = { income: 'text-accent', expe
 
 export default function TransactionsPage() {
   const [tab, setTab] = useState<TabId>('ledger');
-  const [reload, setReload] = useState({ ledger: 0, savings: 0, invest: 0 });
+  const [reload, setReload] = useState({ ledger: 0, savings: 0, invest: 0, realestate: 0, debt: 0 });
   const bump = (k: TabId) => setReload((s) => ({ ...s, [k]: s[k] + 1 }));
 
   const [ledgerModal, setLedgerModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Transaction }>({ open: false, mode: 'add' });
   const [savingsModal, setSavingsModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Saving }>({ open: false, mode: 'add' });
   const [investModal, setInvestModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Investment }>({ open: false, mode: 'add' });
+  const [realestateModal, setRealestateModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Asset }>({ open: false, mode: 'add' });
+  const [debtModal, setDebtModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Asset }>({ open: false, mode: 'add' });
 
   // 도메인별 카테고리 — 마운트 시 한 번만 조회
   const [txCats, setTxCats] = useState<Category[]>([]);
@@ -82,14 +88,16 @@ export default function TransactionsPage() {
     if (tab === 'ledger') setLedgerModal({ open: true, mode: 'add' });
     if (tab === 'savings') setSavingsModal({ open: true, mode: 'add' });
     if (tab === 'invest') setInvestModal({ open: true, mode: 'add' });
+    if (tab === 'realestate') setRealestateModal({ open: true, mode: 'add' });
+    if (tab === 'debt') setDebtModal({ open: true, mode: 'add' });
   }
 
   return (
-    <AppShell activePath="/transactions" topbarLabel="가계부">
+    <AppShell activePath="/transactions" topbarLabel="자산 관리">
       <div className="mb-7 flex items-center justify-between gap-4">
         <div>
-          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">가계부</h1>
-          <p className="text-sm text-secondary mt-1.5">수입/지출, 예적금, 투자를 한 곳에서 관리하세요.</p>
+          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">자산 관리</h1>
+          <p className="text-sm text-secondary mt-1.5">수입/지출, 예적금, 투자, 부동산, 부채를 한 곳에서 관리하세요.</p>
         </div>
       </div>
 
@@ -97,6 +105,8 @@ export default function TransactionsPage() {
         <Tab active={tab === 'ledger'} onClick={() => setTab('ledger')} icon={<IconWon />}>수입 / 지출</Tab>
         <Tab active={tab === 'savings'} onClick={() => setTab('savings')} icon={<IconBank />}>예적금</Tab>
         <Tab active={tab === 'invest'} onClick={() => setTab('invest')} icon={<IconTrendUp />}>투자</Tab>
+        <Tab active={tab === 'realestate'} onClick={() => setTab('realestate')} icon={<IconHome />}>부동산</Tab>
+        <Tab active={tab === 'debt'} onClick={() => setTab('debt')} icon={<IconCreditCard />}>부채</Tab>
         <Button className="ml-auto mb-2.5" onClick={openAddModal}>{ADD_LABELS[tab]}</Button>
       </div>
 
@@ -126,6 +136,20 @@ export default function TransactionsPage() {
           onDeleted={() => bump('invest')}
         />
       )}
+      {tab === 'realestate' && (
+        <RealEstateTab
+          reloadKey={reload.realestate}
+          onEdit={(a) => setRealestateModal({ open: true, mode: 'edit', editing: a })}
+          onDeleted={() => bump('realestate')}
+        />
+      )}
+      {tab === 'debt' && (
+        <DebtTab
+          reloadKey={reload.debt}
+          onEdit={(a) => setDebtModal({ open: true, mode: 'edit', editing: a })}
+          onDeleted={() => bump('debt')}
+        />
+      )}
 
       <LedgerModal
         state={ledgerModal}
@@ -142,6 +166,18 @@ export default function TransactionsPage() {
         state={investModal}
         onClose={() => setInvestModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setInvestModal((s) => ({ ...s, open: false })); bump('invest'); }}
+      />
+      <AssetModal
+        assetType="realestate"
+        state={realestateModal}
+        onClose={() => setRealestateModal((s) => ({ ...s, open: false }))}
+        onSaved={() => { setRealestateModal((s) => ({ ...s, open: false })); bump('realestate'); }}
+      />
+      <AssetModal
+        assetType="debt"
+        state={debtModal}
+        onClose={() => setDebtModal((s) => ({ ...s, open: false }))}
+        onSaved={() => { setDebtModal((s) => ({ ...s, open: false })); bump('debt'); }}
       />
     </AppShell>
   );
@@ -1148,6 +1184,273 @@ function InvestModal({ state, onClose, onSaved }: { state: { open: boolean; mode
       </div>
       <Field label="최초 매수일"><input type="date" className="input" aria-label="최초 매수일" value={purchaseDate} onChange={(ev) => setPurchaseDate(ev.target.value)} /></Field>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="투자 전략, 목표가 등" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
+    </Modal>
+  );
+}
+
+// ── 탭 4: 부동산 ───────────────────────────────────────────────
+function RealEstateTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit: (a: Asset) => void; onDeleted: () => void }) {
+  const [rows, setRows] = useState<Asset[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const { confirm, confirmElement } = useConfirm();
+
+  useEffect(() => {
+    api.get<Asset[]>('/assets?type=realestate').then((list) => {
+      setRows(list);
+      setTotal(list.reduce((s, r) => s + r.amount, 0));
+    });
+  }, [reloadKey]);
+
+  async function remove(id: number) {
+    if (!await confirm('이 부동산 항목을 삭제할까요?', 'danger')) return;
+    try {
+      await api.del(`/assets/${id}`);
+      notify.deleted('부동산 항목');
+      onDeleted();
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
+  const totalPages = Math.ceil(rows.length / limit);
+  const paged = rows.slice((page - 1) * limit, page * limit);
+
+  return (
+    <>
+      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
+        <StatCard icon={<IconHome />} tone="blue" value={won(total)} label="총 부동산" change={`${rows.length}건`} changeDir="neutral" />
+      </div>
+
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[0.78rem] text-secondary">총 {rows.length}건</span>
+        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+      </div>
+
+      <div className={`${TABLE_CARD} mb-4`}>
+        <div className="table-wrap max-md:hidden">
+          <table>
+            <colgroup>
+              <col style={{ width: '64px' }} /><col /><col style={{ width: '160px' }} />
+              <col style={{ width: '220px' }} /><col style={{ width: '72px' }} />
+            </colgroup>
+            <thead>
+              <tr><th>번호</th><th>자산명</th><th>현재가</th><th>메모</th><th>관리</th></tr>
+            </thead>
+            <tbody>
+              {paged.length === 0 && <tr><td colSpan={5} className="td-center td-muted">부동산 항목이 없습니다.</td></tr>}
+              {paged.map((row, i) => (
+                <tr key={row.id}>
+                  <td className="td-center td-muted">{rows.length - (page - 1) * limit - i}</td>
+                  <td className="td-strong">{row.name}</td>
+                  <td className="td-mono td-right">{won(row.amount)}</td>
+                  <td className="td-center td-muted">{row.memo ?? '-'}</td>
+                  <td className="td-center"><RowActions onEdit={() => onEdit(row)} onDelete={() => remove(row.id)} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className={TXCARDS}>
+          {paged.length === 0 && <div className={TXCARD_EMPTY}>부동산 항목이 없습니다.</div>}
+          {paged.map((row) => (
+            <div className={TXCARD} key={row.id}>
+              <div className={TXCARD_TOP}>
+                <span className={TXCARD_TITLE}>{row.name}</span>
+                <span className={TXCARD_AMT}>{won(row.amount)}</span>
+              </div>
+              {row.memo && <div className={TXCARD_SUB}>{row.memo}</div>}
+              <CardActions onEdit={() => onEdit(row)} onDelete={() => remove(row.id)} />
+            </div>
+          ))}
+        </div>
+        <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
+      </div>
+      {confirmElement}
+    </>
+  );
+}
+
+// ── 탭 5: 부채 ────────────────────────────────────────────────
+function DebtTab({ reloadKey, onEdit, onDeleted }: { reloadKey: number; onEdit: (a: Asset) => void; onDeleted: () => void }) {
+  const [rows, setRows] = useState<Asset[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const { confirm, confirmElement } = useConfirm();
+
+  useEffect(() => {
+    api.get<Asset[]>('/assets?type=debt').then((list) => {
+      setRows(list);
+      setTotal(list.reduce((s, r) => s + r.amount, 0));
+    });
+  }, [reloadKey]);
+
+  async function remove(id: number) {
+    if (!await confirm('이 부채 항목을 삭제할까요?', 'danger')) return;
+    try {
+      await api.del(`/assets/${id}`);
+      notify.deleted('부채 항목');
+      onDeleted();
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
+  const totalPages = Math.ceil(rows.length / limit);
+  const paged = rows.slice((page - 1) * limit, page * limit);
+
+  return (
+    <>
+      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
+        <StatCard icon={<IconCreditCard />} tone="red" value={won(total)} label="총 부채" change={`${rows.length}건`} changeDir="down" />
+      </div>
+
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[0.78rem] text-secondary">총 {rows.length}건</span>
+        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+      </div>
+
+      <div className={`${TABLE_CARD} mb-4`}>
+        <div className="table-wrap max-md:hidden">
+          <table>
+            <colgroup>
+              <col style={{ width: '64px' }} /><col /><col style={{ width: '160px' }} />
+              <col style={{ width: '80px' }} /><col style={{ width: '220px' }} /><col style={{ width: '72px' }} />
+            </colgroup>
+            <thead>
+              <tr><th>번호</th><th>항목명</th><th>잔액</th><th>금리</th><th>메모</th><th>관리</th></tr>
+            </thead>
+            <tbody>
+              {paged.length === 0 && <tr><td colSpan={6} className="td-center td-muted">부채 항목이 없습니다.</td></tr>}
+              {paged.map((row, i) => (
+                <tr key={row.id}>
+                  <td className="td-center td-muted">{rows.length - (page - 1) * limit - i}</td>
+                  <td className="td-strong">{row.name}</td>
+                  <td className="td-mono td-right">{won(row.amount)}</td>
+                  <td className="td-right">{row.interestRate !== null ? `${row.interestRate}%` : '-'}</td>
+                  <td className="td-center td-muted">{row.memo ?? '-'}</td>
+                  <td className="td-center"><RowActions onEdit={() => onEdit(row)} onDelete={() => remove(row.id)} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className={TXCARDS}>
+          {paged.length === 0 && <div className={TXCARD_EMPTY}>부채 항목이 없습니다.</div>}
+          {paged.map((row) => (
+            <div className={TXCARD} key={row.id}>
+              <div className={TXCARD_TOP}>
+                <span className={TXCARD_TITLE}>{row.name}</span>
+                <span className={`${TXCARD_AMT} text-danger`}>{won(row.amount)}</span>
+              </div>
+              <div className={TXCARD_SUB}>
+                {row.interestRate !== null && <span>금리 {row.interestRate}%</span>}
+                {row.memo && <span>{row.memo}</span>}
+              </div>
+              <CardActions onEdit={() => onEdit(row)} onDelete={() => remove(row.id)} />
+            </div>
+          ))}
+        </div>
+        <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
+      </div>
+      {confirmElement}
+    </>
+  );
+}
+
+// ── 모달: 부동산·부채 공용 ──────────────────────────────────────
+function AssetModal({ assetType, state, onClose, onSaved }: {
+  assetType: 'realestate' | 'debt';
+  state: { open: boolean; mode: 'add' | 'edit'; editing?: Asset };
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const e = state.editing;
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
+  const [interestRate, setInterestRate] = useState('');
+  const [memo, setMemo] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const typeLabel = ASSET_TYPE_LABEL[assetType];
+
+  useEffect(() => {
+    if (!state.open) return;
+    setErrors({});
+    setName(e?.name ?? '');
+    setAmount(e ? String(e.amount) : '');
+    setInterestRate(e?.interestRate != null ? String(e.interestRate) : '');
+    setMemo(e?.memo ?? '');
+  }, [state.open, e]);
+
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!name.trim()) err.name = '항목명을 입력하세요.';
+    if (!amount || Number(amount) < 0) err.amount = '금액을 입력하세요.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
+
+  async function save() {
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      const payload = {
+        type: assetType,
+        name,
+        amount: Number(amount),
+        interestRate: interestRate !== '' ? Number(interestRate) : undefined,
+        memo: memo || undefined,
+      };
+      if (state.mode === 'edit' && e) await api.put(`/assets/${e.id}`, payload);
+      else await api.post('/assets', payload);
+      notify.upserted(state.mode, typeLabel);
+      onSaved();
+    } catch {
+      notify.saveFailed();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal
+      open={state.open}
+      onClose={onClose}
+      title={state.mode === 'edit' ? `${typeLabel} 수정` : `${typeLabel} 추가`}
+      footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}
+    >
+      <Field label="항목명" required error={errors.name}>
+        <input
+          type="text"
+          className={`input${errors.name ? ' is-invalid' : ''}`}
+          placeholder={assetType === 'realestate' ? '예: 전세보증금' : '예: 전세자금대출'}
+          value={name}
+          onChange={(ev) => { setName(ev.target.value); clearErr('name'); }}
+        />
+      </Field>
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <Field label={assetType === 'realestate' ? '현재가 (원)' : '잔액 (원)'} required error={errors.amount}>
+          <input
+            type="number"
+            className={`input${errors.amount ? ' is-invalid' : ''}`}
+            placeholder="0"
+            value={amount}
+            onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }}
+          />
+        </Field>
+        <Field label="금리 (%, 선택)">
+          <input type="number" className="input" placeholder="3.2" step="0.1" value={interestRate} onChange={(ev) => setInterestRate(ev.target.value)} />
+        </Field>
+      </div>
+      <Field label="메모 (선택)">
+        <input type="text" className="input" placeholder="추가 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} />
+      </Field>
     </Modal>
   );
 }

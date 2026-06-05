@@ -7,9 +7,11 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { AssetType } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
@@ -36,10 +38,10 @@ export class AssetController {
     return this.service.trend(user.id);
   }
 
-  // 자산/부채 목록
+  // 자산/부채 목록 (type 쿼리로 필터 — 없으면 realestate+debt 반환)
   @Get()
-  findAll(@CurrentUser() user: AuthUser) {
-    return this.service.findAll(user.id);
+  findAll(@CurrentUser() user: AuthUser, @Query('type') type?: AssetType) {
+    return this.service.findAll(user.id, type);
   }
 
   // 자산/부채 추가

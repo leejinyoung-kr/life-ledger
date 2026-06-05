@@ -40,7 +40,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: '금융',
     icon: <IconChart className={GROUP_IC} />,
     children: [
-      { label: '가계부', href: '/transactions', icon: <IconWon /> },
+      { label: '자산 관리', href: '/transactions', icon: <IconWon /> },
       { label: '구독 관리', href: '/subscriptions', icon: <IconRepeat /> },
       { label: '자산 종합', href: '/networth', icon: <IconPie /> },
     ],

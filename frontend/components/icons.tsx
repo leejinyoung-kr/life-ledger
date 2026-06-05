@@ -366,6 +366,18 @@ export const IconAlertTriangle = (p: IconProps) => (
   </Stroke>
 );
 
+export const IconHome = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10.5z" /><path d="M9 21V13h6v8" />
+  </svg>
+);
+
+export const IconCreditCard = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /><line x1="6" y1="15" x2="10" y2="15" />
+  </svg>
+);
+
 // DocNexus 로고(2x2 사각형) 아이콘
 export const IconLogo = (p: IconProps) => (
   <svg viewBox="0 0 22 22" fill="none" {...p}>
