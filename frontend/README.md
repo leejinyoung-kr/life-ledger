@@ -38,12 +38,12 @@ frontend/
 │   │   ├── security/      # 보안
 │   │   ├── settings/      # 설정
 │   │   ├── trash/         # 휴지통
-│   │   ├── credentials/   # 자격증명 (UI 완료, 백엔드 미구현)
-│   │   ├── envs/          # ENV 파일 (UI 완료, 백엔드 미구현)
-│   │   ├── files/         # 파일 보관함 (UI 완료, 백엔드 미구현)
-│   │   ├── id-wallet/     # 신원 지갑 (UI 완료, 백엔드 미구현)
-│   │   ├── ai-report/     # AI 리포트 (UI 완료, 백엔드 미구현)
-│   │   └── assistant/     # AI 어시스턴트 (UI 완료, 백엔드 미구현)
+│   │   ├── credentials/   # 계정 보관함 (백엔드 연동 — AES 암호화)
+│   │   ├── envs/          # ENV 보관함 (백엔드 연동 — AES 암호화)
+│   │   ├── id-wallet/     # 신원 지갑 (백엔드 연동 — AES 암호화)
+│   │   ├── files/         # 파일 보관함 (UI 완료, 백엔드 미구현 — R2)
+│   │   ├── ai-report/     # AI 리포트 (UI 완료, 백엔드 미구현 — Claude API)
+│   │   └── assistant/     # AI 어시스턴트 (UI 완료, 백엔드 미구현 — Claude API)
 │   ├── auth/callback/     # OAuth 콜백 처리
 │   └── login/             # 로그인 페이지
 ├── components/

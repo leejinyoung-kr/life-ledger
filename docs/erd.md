@@ -20,6 +20,10 @@
 | SecurityRisk | 보안 위험 항목 | 구현 완료 |
 | LoginSession | 로그인 세션 | 구현 완료 |
 | Category | 카테고리 관리 | 구현 완료 |
+| IdentityCard | 신원 지갑 (번호 암호화) | 구현 완료 |
+| Credential | 계정 보관함 (비번/TOTP 암호화) | 구현 완료 |
+| EnvProject | ENV 프로젝트 | 구현 완료 |
+| EnvVar | ENV 변수 (값 암호화) | 구현 완료 |
 
 ## 주요 관계
 
@@ -39,6 +43,11 @@ User 1 ─── N CalendarEvent
 User 1 ─── N SecurityRisk
 User 1 ─── N LoginSession
 User 1 ─── N Category
+User 1 ─── N IdentityCard
+User 1 ─── N Credential
+User 1 ─── N EnvProject
+User 1 ─── N EnvVar
+EnvProject 1 ─── N EnvVar
 ```
 
 ## 스키마 (Prisma)
@@ -114,3 +123,20 @@ model User {
 - `LoginSession` — `device`, `browser`, `ip`, `location`, `revoked_at`
 
 마이그레이션: `migrations/20260602220000_security/`
+
+### IdentityCard / Credential / EnvProject / EnvVar (보관함)
+
+민감 필드는 AES-256-GCM 암호문(`v1:iv:tag:cipher`)으로 저장하며, 목록은 마스킹, 원문은 reveal 엔드포인트로만 제공한다.
+
+- `IdentityCard` — 신원 지갑. `type`(passport/idcard/license/cert/etc), `name`, `number_enc`(암호문), `issue_date`, `expire_date`
+- `Credential` — 계정 보관함. `name`, `emoji`, `url`, `category`, `username`, `password_enc`(암호문), `totp_enc`(암호문, 선택)
+- `EnvProject` — ENV 프로젝트. `emoji`, `name`, `description`
+- `EnvVar` — ENV 변수. `project_id`(FK), `env`(dev/staging/prod), `group`, `key`, `value_enc`(암호문)
+
+마이그레이션: `migrations/20260606000000_credential_vault/`
+
+### Transaction 반복 (회차)
+
+`Transaction` 에 반복 자동 생성용 컬럼 추가: `recurring_parent_id`(원본 FK), `recurring_period`(회차 식별), `recurring_overridden`(개별 수정 보존 플래그).
+
+마이그레이션: `migrations/20260605000000_transaction_recurring_occurrence/`, `migrations/20260607000000_transaction_recurring_overridden/`

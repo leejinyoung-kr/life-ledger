@@ -47,6 +47,10 @@ GOOGLE_CALLBACK_URL=http://localhost:8000/api/v1/auth/google/callback
 # JWT
 JWT_SECRET=your_super_secret_jwt_key_change_this
 
+# 보관함 암호화 (AES-256-GCM) — 계정 비밀번호·신원 번호·ENV 값 암호화 키
+# 한 번 정하면 변경 금지(기존 암호문 복호화 불가). 미설정 시 보관함 호출 500.
+CREDENTIAL_SECRET=change_this_to_a_long_random_secret
+
 # App
 FRONTEND_URL=http://localhost:3000
 CORS_ORIGINS=http://localhost:3000
@@ -70,6 +74,13 @@ src/
 ├── settings/      # 사용자 설정
 ├── category/      # 카테고리 관리
 ├── trash/         # 휴지통
+├── search/        # 통합 검색
+├── dashboard/     # 대시보드 요약
+├── identity/      # 신원 지갑 (AES 암호화)
+├── credential/    # 계정 보관함 (AES 암호화 + 엑셀)
+├── env/           # ENV 보관함 (AES 암호화)
+├── export/        # 데이터 내보내기 (JSON/ZIP)
+├── common/        # CryptoService(AES-256-GCM) 등 공용
 └── prisma/        # PrismaService / PrismaModule
 ```
 

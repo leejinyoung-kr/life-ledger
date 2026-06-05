@@ -17,8 +17,9 @@
 pnpm install
 
 # 환경 변수 설정
-cp .env.example backend/.env
-# backend/.env 파일 편집
+cp backend/.env.example backend/.env
+# backend/.env 편집 — DATABASE_URL, Google OAuth, JWT_SECRET,
+#   CREDENTIAL_SECRET(보관함 암호화 키, 긴 랜덤값) 필수
 
 # DB 시작
 pnpm run db
@@ -41,6 +42,7 @@ pnpm run dev
 
 - **Frontend**: Next.js 16.2, React 19, TypeScript, Tailwind CSS v4
 - **Backend**: NestJS 11, Prisma, MariaDB
-- **인증**: Google OAuth 2.0 + JWT
+- **인증**: Google OAuth 2.0 + JWT (전역 가드 — 로그인 외 전 엔드포인트 토큰 필수)
+- **암호화**: AES-256-GCM (계정·신원·ENV 보관함 민감 필드)
 - **스토리지**: Cloudflare R2 (미구현)
 - **AI**: Claude API (미구현)

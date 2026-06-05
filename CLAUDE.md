@@ -3,16 +3,18 @@
 ## 이 프로젝트가 무엇인가
 
 개인 문서·자산·계정 통합 보안 관리 플랫폼.
-민감한 자격증명(계정, ENV, 신원 문서)을 AES-256 암호화로 저장하고, Google OAuth로만 접근한다.
+민감한 자격증명(계정, ENV, 신원 문서)을 AES-256-GCM 암호화로 저장하고, Google OAuth로만 접근한다.
+전 엔드포인트는 전역 JWT 가드로 보호되며, 로그인(`@Public()`)만 예외다.
 
-기능 목록 (예정):
+기능 목록:
 
-- 자격증명 관리 (계정·API키·ENV 파일 암호화 저장)
-- 파일 보관함 (Cloudflare R2 — 신원 문서·파일 업로드)
-- 자산 현황 (금융 자산 요약·월별 추이)
-- AI 리포트 (Claude API 기반 분석)
-- 캘린더 / 할 일
-- 보안 감사 로그
+- 자격증명 관리 (계정·신원 번호·ENV 값 AES-256-GCM 암호화 저장) — **구현 완료**
+- 파일 보관함 (Cloudflare R2 — 신원 문서·파일 업로드) — 미구현
+- 자산 현황 (금융 자산 요약·월별 추이) — 구현 완료
+- AI 리포트 (Claude API 기반 분석) — 미구현
+- 캘린더 / 할 일 — 구현 완료
+- 보안 감사 로그 — 구현 완료
+- 통합 검색 / 데이터 내보내기(JSON·ZIP) — 구현 완료
 
 ---
 
@@ -38,6 +40,13 @@ doc-nexus/
 │       ├── settings/      # 사용자 설정
 │       ├── category/      # 카테고리 관리
 │       ├── trash/         # 휴지통
+│       ├── search/        # 통합 검색 (거래·메모·계정·신원·ENV)
+│       ├── dashboard/     # 대시보드 요약
+│       ├── identity/      # 신원 지갑 (번호 AES 암호화)
+│       ├── credential/    # 계정 보관함 (비번·TOTP AES 암호화 + 엑셀)
+│       ├── env/           # ENV 보관함 (값 AES 암호화)
+│       ├── export/        # 데이터 내보내기 (계정 JSON·전체 ZIP)
+│       ├── common/        # CryptoService(AES-256-GCM) 등 공용
 │       └── prisma/        # PrismaService / PrismaModule
 ├── docs/              # 설계 문서
 └── docker-compose.yml
@@ -54,9 +63,12 @@ doc-nexus/
 | ORM | Prisma |
 | DB | MariaDB (docker-compose, 포트 3308) |
 | 인증 | Google OAuth 2.0 + JWT |
+| 암호화 | AES-256-GCM (`CREDENTIAL_SECRET` 키, 보관함 민감필드) |
 | 스토리지 | Cloudflare R2 (예정) |
 | AI | Claude API `claude-sonnet-4-6` (예정) |
 | 패키지 매니저 | pnpm (모노레포) |
+
+> 보관함 동작 전제: `backend/.env` 에 `CREDENTIAL_SECRET`(긴 랜덤값) 필수. 한 번 정하면 변경 금지(기존 암호문 복호화 불가).
 
 ---
 
@@ -80,6 +92,10 @@ doc-nexus/
 | SecurityRisk | user_id, type, description, resolved_at | 구현 완료 |
 | LoginSession | user_id, device, ip, created_at, revoked_at | 구현 완료 |
 | Category | user_id, domain, code, label, sort_order, is_active | 구현 완료 |
+| IdentityCard | user_id, type, name, number_enc(암호문), issue/expire_date | 구현 완료 |
+| Credential | user_id, name, category, username, password_enc, totp_enc(암호문) | 구현 완료 |
+| EnvProject | user_id, emoji, name, description | 구현 완료 |
+| EnvVar | user_id, project_id, env, group, key, value_enc(암호문) | 구현 완료 |
 
 > DB: MariaDB, 문자셋: utf8mb4_uca1400_ai_ci  
 > 상세 스키마: [docs/erd.md](docs/erd.md)
@@ -102,13 +118,18 @@ doc-nexus/
 | Frontend — 보안 | 구현 완료 |
 | Frontend — 설정 | 구현 완료 |
 | Frontend — 휴지통 | 구현 완료 |
-| Frontend — 자격증명 / ENV / 파일 / 신원지갑 | UI 완료 (백엔드 미구현) |
-| Frontend — AI 리포트 / 어시스턴트 | UI 완료 (백엔드 미구현) |
-| Backend — Google OAuth + JWT | 구현 완료 |
+| Frontend — 자격증명 / ENV / 신원지갑 | 구현 완료 (백엔드 연동) |
+| Frontend — 파일 보관함 | UI 완료 (백엔드 미구현 — R2) |
+| Frontend — AI 리포트 / 어시스턴트 | UI 완료 (백엔드 미구현 — Claude API) |
+| Backend — Google OAuth + JWT (전역 가드) | 구현 완료 |
 | Backend — 가계부 API (transaction/saving/investment) | 구현 완료 |
 | Backend — 구독/자산/메모/캘린더/할 일/목표 | 구현 완료 |
 | Backend — 알림/보안/설정/휴지통 | 구현 완료 |
-| DB | 16개 테이블 구현 완료 |
+| Backend — 통합검색/대시보드 | 구현 완료 |
+| Backend — 보관함 (신원/계정/ENV, AES 암호화) | 구현 완료 |
+| Backend — 데이터 내보내기 (계정 JSON·전체 ZIP) | 구현 완료 |
+| Backend — 파일(R2) / AI(Claude API) | 미구현 |
+| DB | 20개 테이블 구현 완료 |
 
 ---
 
