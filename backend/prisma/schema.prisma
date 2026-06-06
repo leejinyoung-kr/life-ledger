@@ -29,11 +29,12 @@ model User {
   calendarEvents CalendarEvent[]
   securityRisks SecurityRisk[]
   loginSessions LoginSession[]
-  categories    Category[]
-  identityCards IdentityCard[]
-  credentials   Credential[]
-  envProjects   EnvProject[]
-  envVars       EnvVar[]
+  categories     Category[]
+  identityCards  IdentityCard[]
+  credentials    Credential[]
+  envProjects    EnvProject[]
+  envVars        EnvVar[]
+  monthlyBudgets MonthlyBudget[]
 
   @@map("user")
 }
@@ -575,6 +576,24 @@ model EnvProject {
 
   @@index([user_id])
   @@map("env_project")
+}
+
+/// 월별 예산 오버라이드 — 기본 예산(UserSettings.budgets) 대신 특정 달에만 다른 금액 적용. 이월 금액도 여기에 보관
+model MonthlyBudget {
+  id                  Int      @id @default(autoincrement())
+  user_id             Int      /// user.id FK
+  year_month          String   @db.VarChar(7)  /// YYYY-MM
+  category            String   @db.VarChar(50) /// 카테고리 코드 (food, transport...)
+  amount              Int      /// 이 달 오버라이드 예산 (0 = 기본값 유지)
+  carried_over_amount Int      @default(0)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, year_month, category])
+  @@index([user_id, year_month])
+  @@map("monthly_budget")
 }
 
 /// ENV 변수 (ENV 보관함 페이지) — 값(value)은 AES-256-GCM 암호화 저장

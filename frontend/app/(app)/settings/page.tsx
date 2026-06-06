@@ -21,6 +21,7 @@ import {
   MENU_ITEMS, DEFAULT_MENU_ORDER, normalizeMenuOrder,
   type Settings, type Category, type WidgetPref,
 } from '@/lib/settings';
+import { budgetApi, currentMonth, fmtMoney, type BudgetMonthStatus } from '@/lib/budget';
 
 // 메뉴 key → 라벨
 const MENU_LABEL: Record<string, string> = Object.fromEntries(MENU_ITEMS.map((m) => [m.key, m.label]));
@@ -99,6 +100,12 @@ export default function SettingsPage() {
   const [menuOrder, setMenuOrder] = useState<string[]>(DEFAULT_MENU_ORDER);
   const [menuDragId, setMenuDragId] = useState<string | null>(null);
 
+  // 월별 예산 현황
+  const [budgetMonth, setBudgetMonth] = useState<string>(currentMonth());
+  const [monthStatus, setMonthStatus] = useState<BudgetMonthStatus | null>(null);
+  const [budgetStatusLoading, setBudgetStatusLoading] = useState(false);
+  const [monthOverrides, setMonthOverrides] = useState<Record<string, number>>({});
+
   // 설정 조회 후 로컬 상태 초기화
   const load = useCallback(async () => {
     try {
@@ -116,6 +123,24 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // 월별 예산 현황 로드
+  const loadMonthStatus = useCallback(async (month: string) => {
+    setBudgetStatusLoading(true);
+    try {
+      const data = await budgetApi.getStatus(month);
+      setMonthStatus(data);
+      const overMap: Record<string, number> = {};
+      data.categories.forEach((c) => { if (c.isOverridden) overMap[c.category] = c.budget - c.carriedOver; });
+      setMonthOverrides(overMap);
+    } catch {
+      setMonthStatus(null);
+    } finally {
+      setBudgetStatusLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { if (tab === 'budget') loadMonthStatus(budgetMonth); }, [tab, budgetMonth, loadMonthStatus]);
 
   // 부분 저장 — 변경 필드만 PUT, 응답으로 서버 상태 동기화
   // successMsg: null이면 알림 없음, 생략 시 기본 문구
@@ -267,22 +292,139 @@ export default function SettingsPage() {
 
           {/* ── 예산 설정 ── */}
           {tab === 'budget' && (
-            <Group title="월 예산 설정">
-              {Object.keys(BUDGET_LABEL).map((code) => (
-                <Row key={code} label={BUDGET_LABEL[code]}>
+            <>
+              {/* 기본 월 예산 */}
+              <Group title="기본 월 예산">
+                <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">매달 기본으로 적용되는 예산입니다. 특정 달만 바꾸려면 아래 월별 설정을 사용하세요.</p>
+                {Object.keys(BUDGET_LABEL).map((code) => (
+                  <Row key={code} label={BUDGET_LABEL[code]}>
+                    <input
+                      type="number" className="input w-35"
+                      value={budgets[code] ?? 0}
+                      onChange={(e) => setBudgets((b) => ({ ...b, [code]: Number(e.target.value) }))}
+                      aria-label={`${BUDGET_LABEL[code]} 예산`}
+                    />
+                    <span className="text-muted">원</span>
+                  </Row>
+                ))}
+                <div className="flex items-center justify-end px-5 py-3.5">
+                  <Button onClick={() => patch({ budgets })}>저장</Button>
+                </div>
+              </Group>
+
+              {/* 월별 예산 현황 + 오버라이드 */}
+              <Group title="월별 예산 현황">
+                <div className="px-5 pt-4 pb-3 flex items-center gap-3 flex-wrap">
                   <input
-                    type="number" className="input w-35"
-                    value={budgets[code] ?? 0}
-                    onChange={(e) => setBudgets((b) => ({ ...b, [code]: Number(e.target.value) }))}
-                    aria-label={`${BUDGET_LABEL[code]} 예산`}
+                    type="month" className="input w-auto font-mono text-[0.875rem]"
+                    value={budgetMonth}
+                    onChange={(e) => setBudgetMonth(e.target.value)}
+                    aria-label="조회 월"
                   />
-                  <span className="text-muted">원</span>
-                </Row>
-              ))}
-              <div className="flex items-center justify-end px-5 py-3.5">
-                <Button onClick={() => patch({ budgets })}>저장</Button>
-              </div>
-            </Group>
+                  <Button
+                    variant="ghost"
+                    onClick={async () => {
+                      try {
+                        await budgetApi.applyCarryover(budgetMonth);
+                        notify.success('이월이 적용됐습니다.');
+                        loadMonthStatus(budgetMonth);
+                      } catch { notify.error('이월 적용에 실패했습니다.'); }
+                    }}
+                  >전달 잔액 이월</Button>
+                  <Button
+                    variant="ghost"
+                    onClick={async () => {
+                      try {
+                        await budgetApi.resetCarryover(budgetMonth);
+                        notify.success('이월이 초기화됐습니다.');
+                        loadMonthStatus(budgetMonth);
+                      } catch { notify.error('이월 초기화에 실패했습니다.'); }
+                    }}
+                  >이월 초기화</Button>
+                </div>
+
+                {budgetStatusLoading && <p className="px-5 pb-4 text-[0.82rem] text-muted">불러오는 중...</p>}
+
+                {monthStatus && !budgetStatusLoading && (
+                  <>
+                    {/* 요약 */}
+                    <div className="grid grid-cols-3 gap-px bg-border mx-5 mb-3 rounded-(--radius) overflow-hidden text-center text-[0.82rem]">
+                      <div className="bg-background py-2.5 px-3">
+                        <div className="text-muted">총 예산</div>
+                        <div className="font-semibold text-primary mt-0.5">{fmtMoney(monthStatus.summary.totalBudget)}원</div>
+                      </div>
+                      <div className="bg-background py-2.5 px-3">
+                        <div className="text-muted">지출</div>
+                        <div className="font-semibold text-primary mt-0.5">{fmtMoney(monthStatus.summary.totalSpent)}원</div>
+                      </div>
+                      <div className="bg-background py-2.5 px-3">
+                        <div className="text-muted">잔여</div>
+                        <div className={`font-semibold mt-0.5 ${monthStatus.summary.totalRemaining < 0 ? 'text-danger' : 'text-accent'}`}>
+                          {fmtMoney(monthStatus.summary.totalRemaining)}원
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 카테고리별 바 */}
+                    {monthStatus.categories.map((cat) => (
+                      <div key={cat.category} className="px-5 py-3 border-b border-border-subtle last:border-b-0">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[0.875rem] font-medium text-primary">{cat.label}</span>
+                            {cat.isOverridden && <span className="text-[0.7rem] bg-accent-dim text-accent px-1.5 py-0.5 rounded font-medium">오버라이드</span>}
+                            {cat.carriedOver > 0 && <span className="text-[0.7rem] bg-amber-dim text-amber px-1.5 py-0.5 rounded font-medium">+이월 {fmtMoney(cat.carriedOver)}원</span>}
+                          </div>
+                          <span className={`text-[0.78rem] font-medium ${cat.isOver ? 'text-danger' : 'text-muted'}`}>
+                            {fmtMoney(cat.spent)} / {fmtMoney(cat.budget)}원
+                          </span>
+                        </div>
+                        <div className="h-1.5 bg-surface rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${cat.isOver ? 'bg-danger' : cat.percent >= 80 ? 'bg-amber' : 'bg-accent'}`}
+                            style={{ width: `${Math.min(cat.percent, 100)}%` }}
+                          />
+                        </div>
+                        <div className="text-[0.75rem] text-muted mt-1">{cat.percent}% 소비 · 잔여 {fmtMoney(cat.remaining)}원</div>
+                      </div>
+                    ))}
+
+                    {/* 이 달 오버라이드 편집 */}
+                    <div className="px-5 pt-4 pb-2 border-t border-border mt-1">
+                      <p className="text-[0.82rem] font-medium text-primary mb-3">이 달 예산 직접 설정 <span className="text-muted font-normal">(비워두면 기본값 적용)</span></p>
+                      {monthStatus.categories.map((cat) => (
+                        <div key={cat.category} className="flex items-center gap-2.5 mb-2">
+                          <span className="text-[0.875rem] text-secondary w-16 shrink-0">{cat.label}</span>
+                          <input
+                            type="number"
+                            className="input w-35"
+                            placeholder={String(cat.defaultBudget)}
+                            value={monthOverrides[cat.category] ?? ''}
+                            onChange={(e) => setMonthOverrides((o) => ({ ...o, [cat.category]: Number(e.target.value) }))}
+                            aria-label={`${cat.label} 이달 예산`}
+                          />
+                          <span className="text-muted text-[0.875rem]">원</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-end pt-2">
+                        <Button
+                          onClick={async () => {
+                            const items = monthStatus.categories.map((cat) => ({
+                              category: cat.category,
+                              amount: monthOverrides[cat.category] ?? 0,
+                            }));
+                            try {
+                              await budgetApi.upsert(budgetMonth, items);
+                              notify.success('이달 예산이 저장됐습니다.');
+                              loadMonthStatus(budgetMonth);
+                            } catch { notify.error('저장에 실패했습니다.'); }
+                          }}
+                        >이달 예산 저장</Button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </Group>
+            </>
           )}
 
           {/* ── 보안 ── */}

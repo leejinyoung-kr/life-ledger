@@ -26,6 +26,7 @@ import { seedCalendar } from './seeds/calendar.seed';
 import { seedTrash } from './seeds/trash.seed';
 import { seedSecurity } from './seeds/security.seed';
 import { seedCategories } from './seeds/categories.seed';
+import { seedMonthlyBudget } from './seeds/monthly-budget.seed';
 
 const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
@@ -44,6 +45,7 @@ const SEEDS: { name: string; run: SeedFn }[] = [
   { name: '캘린더', run: seedCalendar },
   { name: '보안센터', run: seedSecurity },
   { name: '카테고리', run: seedCategories },
+  { name: '월별예산', run: seedMonthlyBudget },
   // 휴지통: 도메인 시드(전체 wipe) 이후 삭제 더미를 심어야 하므로 반드시 마지막
   { name: '휴지통', run: seedTrash },
 ];

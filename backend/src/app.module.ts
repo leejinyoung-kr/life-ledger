@@ -28,6 +28,7 @@ import { CredentialModule } from './credential/credential.module';
 import { EnvModule } from './env/env.module';
 import { ExportModule } from './export/export.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
+import { BudgetModule } from './budget/budget.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
     EnvModule,
     ExportModule,
     MaintenanceModule,
+    BudgetModule,
   ],
   controllers: [AppController],
   // 전역 JWT 가드 — 모든 엔드포인트 보호. @Public() 핸들러만 예외(로그인 등)
