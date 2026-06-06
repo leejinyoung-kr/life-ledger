@@ -50,7 +50,7 @@ export class ExportService {
       this.prisma.goal.findMany(where),
       this.prisma.calendarEvent.findMany(where),
       this.prisma.notification.findMany({ where: { user_id: userId } }),
-      this.prisma.securityRisk.findMany(where),
+      this.prisma.securityRisk.findMany({ where: { user_id: userId } }),
       this.prisma.category.findMany({ where: { user_id: userId } }),
       this.prisma.identityCard.findMany(where),
       this.prisma.credential.findMany(where),
