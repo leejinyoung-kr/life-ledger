@@ -52,6 +52,12 @@ export class InvestmentController {
     return this.service.update(user.id, id, dto);
   }
 
+  // 투자 일괄 삭제
+  @Delete('bulk')
+  removeMany(@CurrentUser() user: AuthUser, @Body('ids') ids: number[]) {
+    return this.service.removeMany(user.id, ids);
+  }
+
   // 투자 삭제
   @Delete(':id')
   remove(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {

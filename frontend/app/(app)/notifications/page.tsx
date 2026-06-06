@@ -13,6 +13,7 @@ import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import Pagination, { LimitSelect } from '@/components/Pagination';
+import { useConfirm } from '@/components/ConfirmModal';
 import { IconAlertTriangle, IconCube, IconLock, IconFolder } from '@/components/icons';
 import { api } from '@/lib/api';
 import { NOTI_TABS, relativeTime, type Noti, type NotiTone } from '@/lib/notification';
@@ -41,11 +42,13 @@ function iconFor(n: Noti): ReactNode {
 export default function NotificationsPage() {
   const [items, setItems] = useState<Noti[]>([]);
   const [tab, setTab] = useState<typeof NOTI_TABS[number]['kind']>('all');
-  const changeTab = (t: typeof tab) => { setTab(t); setPage(1); };
+  const changeTab = (t: typeof tab) => { setTab(t); setPage(1); setSelected(new Set()); };
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<Noti | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const { confirm, confirmElement } = useConfirm();
 
   // 알림 목록 조회
   const load = useCallback(async () => {
@@ -72,6 +75,51 @@ export default function NotificationsPage() {
     } catch (e) {
       setError((e as Error).message);
       load();
+    }
+  }
+
+  // 체크박스 토글
+  function toggleSelect(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll(pagedItems: Noti[]) {
+    if (selected.size === pagedItems.length && pagedItems.length > 0) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(pagedItems.map((n) => n.id)));
+    }
+  }
+
+  // 선택삭제
+  async function removeSelected() {
+    if (!selected.size) return;
+    if (!await confirm(`선택한 알림 ${selected.size}건을 삭제할까요?`, 'danger')) return;
+    try {
+      await api.del('/notifications/bulk', { ids: [...selected] });
+      notify.deleted(`알림 ${selected.size}건`);
+      setSelected(new Set());
+      load();
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
+  // 전체삭제
+  async function removeAll() {
+    if (!items.length) return;
+    if (!await confirm('모든 알림을 삭제할까요?', 'danger')) return;
+    try {
+      await api.del('/notifications');
+      notify.deleted('모든 알림');
+      setSelected(new Set());
+      load();
+    } catch {
+      notify.deleteFailed();
     }
   }
 
@@ -108,7 +156,13 @@ export default function NotificationsPage() {
             {unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개가 있습니다.` : '모든 알림을 읽었습니다.'}
           </p>
         </div>
-        <Button variant="ghost" onClick={markAllRead}>모두 읽음</Button>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {selected.size > 0 && (
+            <Button variant="danger" onClick={removeSelected}>{selected.size}건 삭제</Button>
+          )}
+          <Button variant="ghost" onClick={removeAll}>전체삭제</Button>
+          <Button variant="ghost" onClick={markAllRead}>모두 읽음</Button>
+        </div>
       </div>
 
       {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
@@ -128,6 +182,20 @@ export default function NotificationsPage() {
 
       {/* 알림 리스트 — 리스트에서는 desc 미노출, 클릭 시 상세 모달 */}
       <div className="bg-background border border-border rounded-lg shadow-(--shadow-sm) overflow-hidden">
+        {paged.length > 0 && (
+          <div className="flex items-center gap-3.5 px-5 py-2.5 border-b border-border-subtle bg-surface">
+            <input
+              type="checkbox"
+              className="w-4 h-4 cursor-pointer accent-accent"
+              checked={selected.size === paged.length}
+              onChange={() => toggleSelectAll(paged)}
+              aria-label="전체선택"
+            />
+            <span className="text-[0.78rem] text-muted">
+              {selected.size > 0 ? `${selected.size}건 선택됨` : '전체선택'}
+            </span>
+          </div>
+        )}
         {paged.length === 0 && <p className="text-secondary text-center py-5">알림이 없습니다.</p>}
         {paged.map((n) => (
           <div
@@ -135,6 +203,14 @@ export default function NotificationsPage() {
             className={`flex gap-3.5 px-5 py-4 border-b border-border-subtle last:border-b-0 transition-colors cursor-pointer hover:bg-surface ${n.read ? '' : 'bg-[rgba(0,192,127,0.04)]'}`}
             onClick={() => openDetail(n)}
           >
+            <input
+              type="checkbox"
+              className="w-4 h-4 cursor-pointer accent-accent shrink-0 mt-1"
+              checked={selected.has(n.id)}
+              onChange={() => toggleSelect(n.id)}
+              onClick={(e) => e.stopPropagation()}
+              aria-label="선택"
+            />
             <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${n.read ? 'bg-transparent border-[1.5px] border-border' : 'bg-accent'}`} />
             <div className={`w-9 h-9 rounded-(--radius) shrink-0 flex items-center justify-center ${ICON_TONE[n.tone]}`}>{iconFor(n)}</div>
             <div className="flex-1">
@@ -166,6 +242,7 @@ export default function NotificationsPage() {
           </div>
         </Modal>
       )}
+      {confirmElement}
     </AppShell>
   );
 }

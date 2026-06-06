@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Notification } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -52,5 +52,26 @@ export class NotificationService {
       data: { read_at: new Date() },
     });
     return { updated: res.count };
+  }
+
+  // 단일 알림 삭제
+  async remove(userId: number, id: number) {
+    const row = await this.prisma.notification.findFirst({ where: { id, user_id: userId } });
+    if (!row) throw new NotFoundException('알림을 찾을 수 없습니다.');
+    await this.prisma.notification.delete({ where: { id } });
+    return { id };
+  }
+
+  // 선택 알림 삭제
+  async removeSelected(userId: number, ids: number[]) {
+    if (!ids.length) throw new BadRequestException('삭제할 알림을 선택하세요.');
+    const res = await this.prisma.notification.deleteMany({ where: { id: { in: ids }, user_id: userId } });
+    return { deleted: res.count };
+  }
+
+  // 전체 알림 삭제
+  async removeAll(userId: number) {
+    const res = await this.prisma.notification.deleteMany({ where: { user_id: userId } });
+    return { deleted: res.count };
   }
 }

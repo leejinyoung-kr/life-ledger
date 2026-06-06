@@ -126,6 +126,12 @@ export class EnvController {
     return this.service.updateVar(user.id, id, dto);
   }
 
+  // 변수 일괄 삭제
+  @Delete('env-vars/bulk')
+  removeVarMany(@CurrentUser() user: AuthUser, @Body('ids') ids: number[]) {
+    return this.service.removeVarMany(user.id, ids);
+  }
+
   // 변수 삭제
   @Delete('env-vars/:id')
   removeVar(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {

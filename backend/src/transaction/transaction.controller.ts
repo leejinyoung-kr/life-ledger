@@ -104,6 +104,12 @@ export class TransactionController {
     return this.service.update(user.id, id, dto);
   }
 
+  // 내역 일괄 삭제
+  @Delete('bulk')
+  removeMany(@CurrentUser() user: AuthUser, @Body('ids') ids: number[]) {
+    return this.service.removeMany(user.id, ids);
+  }
+
   // 내역 삭제
   @Delete(':id')
   remove(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {

@@ -19,7 +19,7 @@ export interface Task {
 export interface Goal {
   id: number;
   name: string;
-  unit: string; // won|percent
+  unit: 'won' | 'percent';
   currentVal: number;
   targetVal: number;
   pct: number;
@@ -58,6 +58,6 @@ export function isSoon(task: Task): boolean {
 }
 
 // 단위별 값 표기 (won → ₩1,000,000 / percent → 38%)
-export function formatGoalValue(unit: string, val: number): string {
+export function formatGoalValue(unit: 'won' | 'percent', val: number): string {
   return unit === 'percent' ? `${val}%` : `₩${val.toLocaleString('ko-KR')}`;
 }

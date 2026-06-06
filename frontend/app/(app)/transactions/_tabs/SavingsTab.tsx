@@ -30,6 +30,7 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
   const [reloadKey, setReloadKey] = useState(0);
   const { confirm, confirmElement } = useConfirm();
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const [pendingType, setPendingType] = useState('');
   const [pendingName, setPendingName] = useState('');
@@ -61,6 +62,34 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
     try {
       await api.del(`/savings/${id}`);
       notify.deleted('예적금');
+      setSelected(new Set());
+      setReloadKey((k) => k + 1);
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
+  function toggleSelect(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const ids = paged.map((r) => r.id);
+    const allSelected = ids.length > 0 && ids.every((id) => selected.has(id));
+    setSelected(allSelected ? new Set() : new Set(ids));
+  }
+
+  async function removeSelected() {
+    if (selected.size === 0) return;
+    if (!await confirm(`선택한 ${selected.size}건을 삭제할까요?`, 'danger')) return;
+    try {
+      await api.del('/savings/bulk', { ids: [...selected] });
+      notify.deleted(`${selected.size}건`);
+      setSelected(new Set());
       setReloadKey((k) => k + 1);
     } catch {
       notify.deleteFailed();
@@ -100,7 +129,10 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
+          {selected.size > 0 && <Button variant="danger" size="sm" onClick={removeSelected}>{selected.size}건 삭제</Button>}
+        </div>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
@@ -108,6 +140,7 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
         <div className="table-wrap max-md:hidden">
           <table>
             <colgroup>
+              <col style={{ width: '40px' }} />
               <col style={{ width: '64px' }} />
               <col style={{ width: '88px' }} />
               <col style={{ width: '140px' }} />
@@ -121,6 +154,7 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
             </colgroup>
             <thead>
               <tr>
+                <th className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={paged.length > 0 && paged.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>유형</th><th>은행/기관</th><th>상품명</th>
                 <th>잔액</th><th>월 납입</th>
                 <th>금리</th><th>가입일</th><th>만기일</th>
@@ -128,12 +162,13 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && <tr><td colSpan={10} className="td-center td-muted">예적금 내역이 없습니다.</td></tr>}
+              {paged.length === 0 && <tr><td colSpan={11} className="td-center td-muted">예적금 내역이 없습니다.</td></tr>}
               {paged.map((c, i) => {
                 const dleft = daysUntil(c.maturityDate);
                 const near = dleft !== null && dleft >= 0 && dleft <= 30;
                 return (
                   <tr key={c.id}>
+                    <td className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} aria-label="선택" /></td>
                     <td className="td-center td-muted">{filtered.length - (page - 1) * limit - i}</td>
                     <td className="td-center"><span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span></td>
                     <td className="td-center td-muted">{c.bank}</td>
@@ -159,9 +194,12 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
             const near = dleft !== null && dleft >= 0 && dleft <= 30;
             return (
               <div className={TXCARD} key={c.id}>
-                <div className={TXCARD_TOP}>
-                  <span className={TXCARD_TITLE}>{c.name}</span>
-                  <span className={TXCARD_AMT}>{won(c.balance)}</span>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer shrink-0" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} aria-label="선택" />
+                  <div className="flex-1 flex justify-between items-baseline gap-2.5">
+                    <span className={TXCARD_TITLE}>{c.name}</span>
+                    <span className={TXCARD_AMT}>{won(c.balance)}</span>
+                  </div>
                 </div>
                 <div className={TXCARD_SUB}>
                   <span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span>

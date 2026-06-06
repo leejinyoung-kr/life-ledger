@@ -37,6 +37,7 @@ export default function CredentialsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
   const { confirm, confirmElement } = useConfirm();
 
   // 계정 목록 조회
@@ -70,6 +71,34 @@ export default function CredentialsPage() {
       await api.del(`/credentials/${c.id}`);
       notify.deleted('계정');
       setDetail(null);
+      setSelected(new Set());
+      load();
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
+  function toggleSelect(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const ids = paged.map((r) => r.id);
+    const allSelected = ids.length > 0 && ids.every((id) => selected.has(id));
+    setSelected(allSelected ? new Set() : new Set(ids));
+  }
+
+  async function removeSelected() {
+    if (selected.size === 0) return;
+    if (!await confirm(`선택한 ${selected.size}건을 삭제할까요?`, 'danger')) return;
+    try {
+      await api.del('/credentials/bulk', { ids: [...selected] });
+      notify.deleted(`${selected.size}건`);
+      setSelected(new Set());
       load();
     } catch {
       notify.deleteFailed();
@@ -146,6 +175,7 @@ export default function CredentialsPage() {
           {FILTER_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
         <div className="ml-auto flex items-center gap-2">
+          {selected.size > 0 && <Button variant="danger" size="sm" onClick={removeSelected}>{selected.size}건 삭제</Button>}
           <span className="text-muted text-[0.82rem]">총 {rows.length}개</span>
           <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
         </div>
@@ -157,13 +187,15 @@ export default function CredentialsPage() {
           <table>
             <thead>
               <tr>
+                <th className="td-center" style={{ width: '40px' }}><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={paged.length > 0 && paged.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
                 <th>서비스</th><th>카테고리</th><th>아이디</th><th>수정일</th><th>관리</th>
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && <tr><td colSpan={5} className="td-center td-muted">저장된 계정이 없습니다.</td></tr>}
+              {paged.length === 0 && <tr><td colSpan={6} className="td-center td-muted">저장된 계정이 없습니다.</td></tr>}
               {paged.map((c) => (
                 <tr key={c.id} className="cursor-pointer" onClick={() => setDetail(c)}>
+                  <td className="td-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} aria-label="선택" /></td>
                   <td className="td-center">
                     <div className="font-medium text-[0.875rem] text-primary">{c.name}</div>
                     <div className="text-[0.72rem] text-muted">{c.url ?? '—'}</div>
@@ -189,6 +221,7 @@ export default function CredentialsPage() {
           {paged.map((c) => (
             <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={c.id} onClick={() => setDetail(c)}>
               <div className="flex items-center gap-2.5">
+                <input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer shrink-0" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} onClick={(e) => e.stopPropagation()} aria-label="선택" />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-[0.95rem] text-primary truncate">{c.name}</div>
                   <div className="text-[0.72rem] text-muted truncate">{c.url ?? '—'}</div>

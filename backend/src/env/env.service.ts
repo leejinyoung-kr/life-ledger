@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EnvProject, EnvVar, EnvKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto.service';
@@ -221,6 +221,16 @@ export class EnvService {
     await this.findOwnedVar(userId, id);
     await this.prisma.envVar.update({ where: { id }, data: { deleted_at: new Date() } });
     return { id };
+  }
+
+  // 변수 일괄 삭제 (soft delete)
+  async removeVarMany(userId: number, ids: number[]) {
+    if (!ids.length) throw new BadRequestException('삭제할 항목이 없습니다.');
+    const { count } = await this.prisma.envVar.updateMany({
+      where: { id: { in: ids }, project: { user_id: userId }, deleted_at: null },
+      data: { deleted_at: new Date() },
+    });
+    return { count };
   }
 
   // .env 텍스트 일괄 파싱 후 저장 (KEY=VALUE 행만, 주석/빈줄 무시). 값은 암호화

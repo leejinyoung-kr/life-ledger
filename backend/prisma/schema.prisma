@@ -335,7 +335,6 @@ model Goal {
   target_val   Decimal  @db.Decimal(15, 2)
   pct          Int /// 진행률(%)
   tone         GoalTone @default(green)
-  deleted_at   DateTime?
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 

@@ -487,4 +487,14 @@ export class TransactionService {
     });
     return { id };
   }
+
+  // 내역 일괄 삭제 (soft delete)
+  async removeMany(userId: number, ids: number[]) {
+    if (!ids.length) throw new BadRequestException('삭제할 항목이 없습니다.');
+    const { count } = await this.prisma.transaction.updateMany({
+      where: { id: { in: ids }, user_id: userId, deleted_at: null },
+      data: { deleted_at: new Date() },
+    });
+    return { count };
+  }
 }

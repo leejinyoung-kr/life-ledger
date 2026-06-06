@@ -31,6 +31,18 @@ export class TrashController {
     return this.service.purge(user.id, dto.kind, dto.id);
   }
 
+  // 선택 복구
+  @Post('bulk-restore')
+  bulkRestore(@CurrentUser() user: AuthUser, @Body('items') items: { kind: string; id: number }[]) {
+    return this.service.bulkRestore(user.id, items);
+  }
+
+  // 선택 영구 삭제
+  @Post('bulk-purge')
+  bulkPurge(@CurrentUser() user: AuthUser, @Body('items') items: { kind: string; id: number }[]) {
+    return this.service.bulkPurge(user.id, items);
+  }
+
   // 전체 복구
   @Post('restore-all')
   restoreAll(@CurrentUser() user: AuthUser) {

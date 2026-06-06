@@ -23,6 +23,7 @@ export default function TrashPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const { confirm, confirmElement } = useConfirm();
 
   // 삭제 항목 통합 목록 조회
@@ -53,6 +54,50 @@ export default function TrashPage() {
     try {
       await api.post('/trash/purge', { kind: it.kind, id: it.id });
       notify.purged();
+      load();
+    } catch (e) { setError((e as Error).message); }
+  }
+
+  function toggleSelect(key: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const keys = paged.map((it) => `${it.kind}-${it.id}`);
+    const allSelected = keys.length > 0 && keys.every((k) => selected.has(k));
+    setSelected(allSelected ? new Set() : new Set(keys));
+  }
+
+  async function bulkRestoreSelected() {
+    if (selected.size === 0) return;
+    if (!await confirm(`선택한 ${selected.size}건을 복구할까요?`, 'primary')) return;
+    const items = [...selected].map((key) => {
+      const [kind, idStr] = key.split('-');
+      return { kind, id: Number(idStr) };
+    });
+    try {
+      await api.post('/trash/bulk-restore', { items });
+      notify.success(`${selected.size}건을 복구했습니다.`);
+      setSelected(new Set());
+      load();
+    } catch (e) { setError((e as Error).message); }
+  }
+
+  async function bulkPurgeSelected() {
+    if (selected.size === 0) return;
+    if (!await confirm(`선택한 ${selected.size}건을 영구 삭제할까요? 되돌릴 수 없습니다.`, 'danger')) return;
+    const items = [...selected].map((key) => {
+      const [kind, idStr] = key.split('-');
+      return { kind, id: Number(idStr) };
+    });
+    try {
+      await api.post('/trash/bulk-purge', { items });
+      notify.purged();
+      setSelected(new Set());
       load();
     } catch (e) { setError((e as Error).message); }
   }
@@ -115,6 +160,8 @@ export default function TrashPage() {
         <select className="input w-auto min-w-[120px] shrink-0" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }} aria-label="유형 필터">
           {types.map((t) => <option key={t}>{t}</option>)}
         </select>
+        {selected.size > 0 && <Button variant="ghost" onClick={bulkRestoreSelected}>{selected.size}건 복구</Button>}
+        {selected.size > 0 && <Button variant="danger" onClick={bulkPurgeSelected}>{selected.size}건 영구삭제</Button>}
         <Button variant="ghost" onClick={restoreAll}>전체 복구</Button>
         <Button variant="danger" onClick={emptyTrash}>휴지통 비우기</Button>
       </div>
@@ -129,6 +176,7 @@ export default function TrashPage() {
         <div className="table-wrap max-md:hidden">
           <table>
             <colgroup>
+              <col style={{ width: '40px' }} />
               <col style={{ width: '64px' }} />
               <col />
               <col style={{ width: '120px' }} />
@@ -138,15 +186,17 @@ export default function TrashPage() {
             </colgroup>
             <thead>
               <tr>
+                <th className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={paged.length > 0 && paged.every((it) => selected.has(`${it.kind}-${it.id}`))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>이름</th><th>유형</th><th>삭제일</th><th>남은 기간</th><th>관리</th>
               </tr>
             </thead>
             <tbody>
               {paged.length === 0 && (
-                <tr><td colSpan={6} className="td-center td-muted">휴지통이 비어 있습니다.</td></tr>
+                <tr><td colSpan={7} className="td-center td-muted">휴지통이 비어 있습니다.</td></tr>
               )}
               {paged.map((it, i) => (
                 <tr key={`${it.kind}-${it.id}`}>
+                  <td className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={selected.has(`${it.kind}-${it.id}`)} onChange={() => toggleSelect(`${it.kind}-${it.id}`)} aria-label="선택" /></td>
                   <td className="td-center td-muted">{filtered.length - (page - 1) * limit - i}</td>
                   <td className="td-name">{it.name}</td>
                   <td className="td-center"><span className="type-chip">{it.chip}</span></td>
@@ -169,8 +219,11 @@ export default function TrashPage() {
           {paged.length === 0 && <div className="text-center text-muted py-7">휴지통이 비어 있습니다.</div>}
           {paged.map((it) => (
             <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={`${it.kind}-${it.id}`}>
-              <div className="flex justify-between items-baseline gap-2.5">
-                <span className="font-semibold text-[0.95rem] break-all">{it.name}</span>
+              <div className="flex items-baseline gap-2 justify-between">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer shrink-0 self-center" checked={selected.has(`${it.kind}-${it.id}`)} onChange={() => toggleSelect(`${it.kind}-${it.id}`)} aria-label="선택" />
+                  <span className="font-semibold text-[0.95rem] break-all">{it.name}</span>
+                </div>
                 <span className={`text-[0.82rem] whitespace-nowrap ${it.daysLeft <= 2 ? 'text-danger font-semibold' : 'text-muted'}`}>{it.daysLeft}일 남음</span>
               </div>
               <div className="mt-2 text-[0.78rem] text-secondary flex flex-wrap items-center gap-1.5">

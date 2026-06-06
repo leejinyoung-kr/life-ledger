@@ -24,7 +24,7 @@ export class GoalService {
   // 목표 목록
   async findAll(userId: number) {
     const rows = await this.prisma.goal.findMany({
-      where: { user_id: userId, deleted_at: null },
+      where: { user_id: userId },
       orderBy: { created_at: 'desc' },
     });
     return rows.map((r) => this.toDto(r));
@@ -46,10 +46,10 @@ export class GoalService {
     return this.toDto(created);
   }
 
-  // 본인 소유 + 미삭제 확인
+  // 본인 소유 확인
   private async findOwned(userId: number, id: number): Promise<Goal> {
     const row = await this.prisma.goal.findFirst({
-      where: { id, user_id: userId, deleted_at: null },
+      where: { id, user_id: userId },
     });
     if (!row) throw new NotFoundException('목표를 찾을 수 없습니다.');
     return row;
@@ -72,10 +72,10 @@ export class GoalService {
     return this.toDto(updated);
   }
 
-  // 목표 삭제 (soft delete)
+  // 목표 삭제 (hard delete)
   async remove(userId: number, id: number) {
     await this.findOwned(userId, id);
-    await this.prisma.goal.update({ where: { id }, data: { deleted_at: new Date() } });
+    await this.prisma.goal.delete({ where: { id } });
     return { id };
   }
 }

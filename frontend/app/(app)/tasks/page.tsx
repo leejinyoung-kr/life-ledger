@@ -15,11 +15,12 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
-import { IconCheck, IconSearch } from '@/components/icons';
+import { useConfirm } from '@/components/ConfirmModal';
+import { IconCheck, IconEdit, IconSearch, IconTrash } from '@/components/icons';
 import { api } from '@/lib/api';
 import {
   PRIORITY_OPTIONS, formatDue, isSoon, formatGoalValue,
-  type Task, type Goal, type TaskPriority,
+  type Task, type Goal, type TaskPriority, type GoalTone,
 } from '@/lib/task';
 
 export default function TasksPage() {
@@ -28,8 +29,11 @@ export default function TasksPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [addModal, setAddModal] = useState(false);
+  const [goalModal, setGoalModal] = useState<{ open: boolean; editing?: Goal }>({ open: false });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set());
+  const { confirm, confirmElement } = useConfirm();
 
   // 할일/목표 조회
   const load = useCallback(async () => {
@@ -63,6 +67,58 @@ export default function TasksPage() {
     }
   }
 
+  // 할일 삭제 (soft delete)
+  async function removeTask(id: number) {
+    if (!await confirm('이 할일을 삭제할까요?', 'danger')) return;
+    try {
+      await api.del(`/tasks/${id}`);
+      notify.deleted('할일');
+      setSelectedTasks(new Set());
+      load();
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
+  function toggleSelectTask(id: number) {
+    setSelectedTasks((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllTasks() {
+    const ids = pagedTasks.map((t) => t.id);
+    const allSelected = ids.length > 0 && ids.every((id) => selectedTasks.has(id));
+    setSelectedTasks(allSelected ? new Set() : new Set(ids));
+  }
+
+  async function removeSelectedTasks() {
+    if (selectedTasks.size === 0) return;
+    if (!await confirm(`선택한 ${selectedTasks.size}건을 삭제할까요?`, 'danger')) return;
+    try {
+      await api.del('/tasks/bulk', { ids: [...selectedTasks] });
+      notify.deleted(`${selectedTasks.size}건`);
+      setSelectedTasks(new Set());
+      load();
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
+  // 목표 삭제
+  async function removeGoal(id: number) {
+    if (!await confirm('이 목표를 삭제할까요?', 'danger')) return;
+    try {
+      await api.del(`/goals/${id}`);
+      notify.deleted('목표');
+      load();
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
   const searchedTasks = search.trim() ? tasks.filter((t) => t.text.toLowerCase().includes(search.toLowerCase())) : tasks;
   const doneCount = tasks.filter((t) => t.done).length;
   const totalPages = Math.ceil(searchedTasks.length / limit);
@@ -92,22 +148,25 @@ export default function TasksPage() {
               </div>
               <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
               <Badge tone="neutral">{doneCount} / {tasks.length} 완료</Badge>
+              {selectedTasks.size > 0 && <Button variant="danger" size="sm" onClick={removeSelectedTasks}>{selectedTasks.size}건 삭제</Button>}
             </div>
           </CardHeader>
           <div>
             {pagedTasks.length === 0 && <div className="px-4 py-3 text-[0.875rem] text-muted">할 일이 없습니다.</div>}
             {pagedTasks.map((task) => (
-              <div className="flex items-start gap-3 px-4 py-3 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface" key={task.id}>
+              <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface" key={task.id}>
+                <input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer shrink-0" checked={selectedTasks.has(task.id)} onChange={() => toggleSelectTask(task.id)} aria-label="선택" />
                 <button
                   type="button"
-                  className={`w-[18px] h-[18px] border-2 rounded-[5px] shrink-0 mt-px cursor-pointer flex items-center justify-center text-white ${task.done ? 'bg-accent border-accent' : 'border-border bg-transparent'}`}
+                  className={`w-[18px] h-[18px] border-2 rounded-[5px] shrink-0 cursor-pointer flex items-center justify-center text-white ${task.done ? 'bg-accent border-accent' : 'border-border bg-transparent'}`}
                   onClick={() => toggleTask(task.id)}
                   aria-label="완료 토글"
                 >
                   {task.done && <IconCheck width={11} height={11} />}
                 </button>
                 <div className={`flex-1 text-[0.875rem] ${task.done ? 'text-muted line-through' : 'text-primary'}`}>{task.text}</div>
-                <div className={`text-[0.72rem] ${isSoon(task) ? 'text-warning font-semibold' : 'text-muted'}`}>{formatDue(task)}</div>
+                <div className={`text-[0.72rem] shrink-0 ${isSoon(task) ? 'text-warning font-semibold' : 'text-muted'}`}>{formatDue(task)}</div>
+                <button type="button" className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-(--radius) bg-danger-dim text-danger hover:bg-[rgba(240,68,56,0.15)] transition-all" onClick={() => removeTask(task.id)} aria-label="할일 삭제"><IconTrash width={12} height={12} /></button>
               </div>
             ))}
           </div>
@@ -118,15 +177,22 @@ export default function TasksPage() {
         <Card>
           <CardHeader>
             <CardTitle>목표</CardTitle>
-            <Badge tone="success">{goals.length}건 진행중</Badge>
+            <div className="flex items-center gap-2">
+              <Badge tone="success">{goals.length}건 진행중</Badge>
+              <Button size="sm" onClick={() => setGoalModal({ open: true })}>목표 추가</Button>
+            </div>
           </CardHeader>
-          <div>
+          <div className="max-h-[504px] overflow-y-auto">
             {goals.length === 0 && <div className="px-5 py-4 text-[0.875rem] text-muted">목표가 없습니다.</div>}
             {goals.map((goal) => (
               <div className="px-5 py-4 border-b border-border-subtle last:border-b-0" key={goal.id}>
-                <div className="flex justify-between items-baseline mb-2">
+                <div className="flex justify-between items-center mb-2">
                   <span className="font-semibold text-[0.9rem] text-primary">{goal.name}</span>
-                  <span className="[font-family:var(--font-display)] font-bold text-accent">{goal.pct}%</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="[font-family:var(--font-display)] font-bold text-accent mr-1">{goal.pct}%</span>
+                    <button type="button" className="w-7.5 h-7.5 inline-flex items-center justify-center rounded-(--radius) text-secondary border border-border hover:bg-surface hover:text-primary transition-all" onClick={() => setGoalModal({ open: true, editing: goal })} aria-label="수정"><IconEdit width={13} height={13} /></button>
+                    <button type="button" className="w-7.5 h-7.5 inline-flex items-center justify-center rounded-(--radius) bg-danger-dim text-danger hover:bg-[rgba(240,68,56,0.15)] transition-all" onClick={() => removeGoal(goal.id)} aria-label="삭제"><IconTrash width={13} height={13} /></button>
+                  </div>
                 </div>
                 <div className="track"><div className={`fill ${goal.tone}`} style={{ width: `${goal.pct}%` }} /></div>
                 <div className="flex justify-between text-[0.78rem] text-muted mt-1.5">
@@ -141,7 +207,99 @@ export default function TasksPage() {
 
       {/* 할일 추가 모달 */}
       <AddTaskModal open={addModal} onClose={() => setAddModal(false)} onSaved={() => { setAddModal(false); load(); }} />
+
+      {/* 목표 추가/수정 모달 */}
+      <GoalModal
+        open={goalModal.open}
+        editing={goalModal.editing}
+        onClose={() => setGoalModal({ open: false })}
+        onSaved={() => { setGoalModal({ open: false }); load(); }}
+      />
+
+      {confirmElement}
     </AppShell>
+  );
+}
+
+// 목표 추가/수정 모달
+function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing?: Goal; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState('');
+  const [unit, setUnit] = useState<'won' | 'percent'>('won');
+  const [currentVal, setCurrentVal] = useState('');
+  const [targetVal, setTargetVal] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!open) return;
+    setErrors({});
+    setName(editing?.name ?? '');
+    setUnit(editing?.unit ?? 'won');
+    setCurrentVal(editing ? String(editing.currentVal) : '');
+    setTargetVal(editing ? String(editing.targetVal) : '');
+  }, [open, editing]);
+
+  function calcTone(pct: number): GoalTone {
+    if (pct >= 75) return 'green';
+    if (pct >= 40) return 'warning';
+    return 'danger';
+  }
+
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!name.trim()) err.name = '목표명을 입력하세요.';
+    if (!currentVal || isNaN(Number(currentVal))) err.currentVal = '현재값을 입력하세요.';
+    if (!targetVal || isNaN(Number(targetVal)) || Number(targetVal) <= 0) err.targetVal = '목표값을 입력하세요.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  function clearErr(f: string) { setErrors((p) => { const n = { ...p }; delete n[f]; return n; }); }
+
+  async function save() {
+    if (!validate()) return;
+    setSaving(true);
+    const cur = Number(currentVal);
+    const tgt = Number(targetVal);
+    const pct = Math.min(100, Math.round((cur / tgt) * 100));
+    const tone = calcTone(pct);
+    const body = { name: name.trim(), unit, currentVal: cur, targetVal: tgt, pct, tone };
+    try {
+      if (editing) {
+        await api.put(`/goals/${editing.id}`, body);
+        notify.success('목표를 수정했습니다.');
+      } else {
+        await api.post('/goals', body);
+        notify.added('목표');
+      }
+      onSaved();
+    } catch {
+      notify.saveFailed();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={editing ? '목표 수정' : '목표 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
+      <Field label="목표명" required error={errors.name}>
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 비상금 적립" value={name} onChange={(e) => { setName(e.target.value); clearErr('name'); }} />
+      </Field>
+      <Field label="단위" required>
+        <select className="input" aria-label="단위" value={unit} onChange={(e) => setUnit(e.target.value as 'won' | 'percent')}>
+          <option value="won">금액 (원)</option>
+          <option value="percent">비율 (%)</option>
+        </select>
+      </Field>
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <Field label="현재값" required error={errors.currentVal}>
+          <input type="number" className={`input${errors.currentVal ? ' is-invalid' : ''}`} placeholder="0" value={currentVal} onChange={(e) => { setCurrentVal(e.target.value); clearErr('currentVal'); }} />
+        </Field>
+        <Field label="목표값" required error={errors.targetVal}>
+          <input type="number" className={`input${errors.targetVal ? ' is-invalid' : ''}`} placeholder="0" value={targetVal} onChange={(e) => { setTargetVal(e.target.value); clearErr('targetVal'); }} />
+        </Field>
+      </div>
+    </Modal>
   );
 }
 

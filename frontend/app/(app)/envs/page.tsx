@@ -37,6 +37,7 @@ export default function EnvsPage() {
   const [diffOpen, setDiffOpen] = useState(false);
   const [diffTarget, setDiffTarget] = useState<EnvKind>('prod');
   const [diff, setDiff] = useState<EnvDiff | null>(null);
+  const [selectedVars, setSelectedVars] = useState<Set<number>>(new Set());
   const { confirm, confirmElement } = useConfirm();
 
   // 프로젝트 목록 조회 (선택 유지, 없으면 첫 항목)
@@ -200,6 +201,34 @@ export default function EnvsPage() {
     try {
       await api.del(`/env-vars/${v.id}`);
       notify.deleted('변수');
+      setSelectedVars(new Set());
+      loadVars(); loadProjects();
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
+  function toggleSelectVar(id: number) {
+    setSelectedVars((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllVars() {
+    const ids = filteredVars.map((v) => v.id);
+    const allSelected = ids.length > 0 && ids.every((id) => selectedVars.has(id));
+    setSelectedVars(allSelected ? new Set() : new Set(ids));
+  }
+
+  async function removeSelectedVars() {
+    if (selectedVars.size === 0) return;
+    if (!await confirm(`선택한 ${selectedVars.size}개 변수를 삭제할까요?`, 'danger')) return;
+    try {
+      await api.del('/env-vars/bulk', { ids: [...selectedVars] });
+      notify.deleted(`${selectedVars.size}개 변수`);
+      setSelectedVars(new Set());
       loadVars(); loadProjects();
     } catch {
       notify.deleteFailed();
@@ -287,6 +316,7 @@ export default function EnvsPage() {
               <table className="env-table">
                 <thead>
                   <tr>
+                    <th style={{ width: '36px' }} className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={filteredVars.length > 0 && filteredVars.every((v) => selectedVars.has(v.id))} onChange={toggleSelectAllVars} aria-label="전체선택" /></th>
                     <th className="env-th-key">KEY</th>
                     <th>VALUE</th>
                     <th className="env-th-action">액션</th>
@@ -294,7 +324,7 @@ export default function EnvsPage() {
                 </thead>
                 <tbody>
                   {vars.length === 0 ? (
-                    <tr><td colSpan={3} className="env-empty">이 환경에 변수가 없습니다.</td></tr>
+                    <tr><td colSpan={4} className="env-empty">이 환경에 변수가 없습니다.</td></tr>
                   ) : (
                     grouped.map((g) => (
                       <EnvGroupRows
@@ -302,10 +332,12 @@ export default function EnvsPage() {
                         group={g.group}
                         items={g.items}
                         revealed={revealed}
+                        selected={selectedVars}
                         onToggle={toggleValue}
                         onCopy={copyVarValue}
                         onEdit={(v) => setVarModal({ open: true, editing: v })}
                         onDelete={deleteVar}
+                        onSelect={toggleSelectVar}
                       />
                     ))
                   )}
@@ -314,6 +346,7 @@ export default function EnvsPage() {
 
               <div className="flex items-center gap-2.5 px-[18px] py-3 bg-surface border-t border-border">
                 <span className="text-[0.78rem] text-muted flex-1">.env 파일 형식으로 전체 복사</span>
+                {selectedVars.size > 0 && <Button variant="danger" size="sm" onClick={removeSelectedVars}>{selectedVars.size}개 삭제</Button>}
                 <Button variant="ghost" size="sm" onClick={copyAll}><IconCopy width={13} height={13} />전체 복사</Button>
                 <Button variant="ghost" size="sm" onClick={downloadEnv}><IconDownload width={13} height={13} />.env 다운로드</Button>
               </div>
@@ -390,21 +423,24 @@ function DiffBlock({ title, tone, keys }: { title: string; tone: string; keys: s
 
 // 변수 그룹 헤더 + 변수 행들 (env-table 내부 — globals 스타일 유지)
 function EnvGroupRows({
-  group, items, revealed, onToggle, onCopy, onEdit, onDelete,
+  group, items, revealed, selected, onToggle, onCopy, onEdit, onDelete, onSelect,
 }: {
   group: string; items: EnvVar[];
   revealed: Record<number, string>;
+  selected: Set<number>;
   onToggle: (v: EnvVar) => void; onCopy: (v: EnvVar) => void;
   onEdit: (v: EnvVar) => void; onDelete: (v: EnvVar) => void;
+  onSelect: (id: number) => void;
 }) {
   return (
     <>
-      <tr><td colSpan={3} className="env-group-label">{group}</td></tr>
+      <tr><td colSpan={4} className="env-group-label">{group}</td></tr>
       {items.map((item) => {
         const shown = revealed[item.id] !== undefined;
         const display = shown ? revealed[item.id] : item.valueMasked;
         return (
           <tr key={item.id}>
+            <td className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={selected.has(item.id)} onChange={() => onSelect(item.id)} aria-label="선택" /></td>
             <td><span className="env-key">{item.key}</span></td>
             <td>
               <div className="env-value-wrap">

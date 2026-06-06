@@ -46,6 +46,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
   const [activePreset, setActivePreset] = useState<number | null>(1);
   const [reloadKey, setReloadKey] = useState(0);
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
+  const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const mountTrigger = useRef(addTrigger);
   useEffect(() => {
@@ -109,6 +110,34 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
     try {
       await api.del(`/transactions/${id}`);
       notify.deleted('내역');
+      setSelected(new Set());
+      setReloadKey((k) => k + 1);
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
+  function toggleSelect(id: number) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const ids = pagedRows.map((r) => r.id);
+    const allSelected = ids.length > 0 && ids.every((id) => selected.has(id));
+    setSelected(allSelected ? new Set() : new Set(ids));
+  }
+
+  async function removeSelected() {
+    if (selected.size === 0) return;
+    if (!await confirm(`선택한 ${selected.size}건을 삭제할까요?`, 'danger')) return;
+    try {
+      await api.del('/transactions/bulk', { ids: [...selected] });
+      notify.deleted(`${selected.size}건`);
+      setSelected(new Set());
       setReloadKey((k) => k + 1);
     } catch {
       notify.deleteFailed();
@@ -261,7 +290,10 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {rows.length}건</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[0.78rem] text-secondary">총 {rows.length}건</span>
+          {selected.size > 0 && <Button variant="danger" size="sm" onClick={removeSelected}>{selected.size}건 삭제</Button>}
+        </div>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
@@ -269,6 +301,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
         <div className="table-wrap max-md:hidden">
           <table>
             <colgroup>
+              <col style={{ width: '40px' }} />
               <col style={{ width: '64px' }} />
               <col style={{ width: '88px' }} />
               <col style={{ width: '100px' }} />
@@ -281,15 +314,17 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
             </colgroup>
             <thead>
               <tr>
+                <th className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={pagedRows.length > 0 && pagedRows.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>유형</th><th>카테고리</th><th>내역</th>
                 <th>결제수단</th><th>금액</th><th>메모</th>
                 <th>날짜</th><th>관리</th>
               </tr>
             </thead>
             <tbody>
-              {pagedRows.length === 0 && <tr><td colSpan={9} className="td-center td-muted">내역이 없습니다.</td></tr>}
+              {pagedRows.length === 0 && <tr><td colSpan={10} className="td-center td-muted">내역이 없습니다.</td></tr>}
               {pagedRows.map((row, i) => (
                 <tr key={row.id}>
+                  <td className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" /></td>
                   <td className="td-center td-muted">{rows.length - (page - 1) * limit - i}</td>
                   <td className="td-center"><span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span></td>
                   <td className="td-center"><span className="cat-chip">{catMap[row.category] ?? row.category}</span></td>
@@ -308,9 +343,12 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
           {pagedRows.length === 0 && <div className={TXCARD_EMPTY}>내역이 없습니다.</div>}
           {pagedRows.map((row) => (
             <div className={TXCARD} key={row.id}>
-              <div className={TXCARD_TOP}>
-                <span className={TXCARD_TITLE}>{(row.isRecurring || row.recurringParentId) && '🔁 '}{row.title}</span>
-                <span className={`${TXCARD_AMT} ${AMT_COLOR[row.type]}`}>{signedWon(row.type, row.amount)}</span>
+              <div className="flex items-center gap-2 mb-1.5">
+                <input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer shrink-0" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" />
+                <div className="flex-1 flex justify-between items-baseline gap-2.5">
+                  <span className={TXCARD_TITLE}>{(row.isRecurring || row.recurringParentId) && '🔁 '}{row.title}</span>
+                  <span className={`${TXCARD_AMT} ${AMT_COLOR[row.type]}`}>{signedWon(row.type, row.amount)}</span>
+                </div>
               </div>
               <div className={TXCARD_SUB}>
                 <span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span>

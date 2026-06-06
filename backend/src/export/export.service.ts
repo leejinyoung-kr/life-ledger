@@ -47,7 +47,7 @@ export class ExportService {
       this.prisma.subscription.findMany(where),
       this.prisma.asset.findMany(where),
       this.prisma.task.findMany(where),
-      this.prisma.goal.findMany(where),
+      this.prisma.goal.findMany({ where: { user_id: userId } }),
       this.prisma.calendarEvent.findMany(where),
       this.prisma.notification.findMany({ where: { user_id: userId } }),
       this.prisma.securityRisk.findMany({ where: { user_id: userId } }),

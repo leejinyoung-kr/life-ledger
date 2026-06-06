@@ -7,12 +7,14 @@
  * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Field).
  */
 import { useCallback, useEffect, useState } from 'react';
+import { IconTrash } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
+import { useConfirm } from '@/components/ConfirmModal';
 import { api } from '@/lib/api';
 import {
   EV_TYPE_LABEL, EV_TYPE_OPTIONS, EV_LEGEND, ddLabel,
@@ -63,6 +65,8 @@ export default function CalendarPage() {
   const [upcoming, setUpcoming] = useState<UpcomingEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [addModal, setAddModal] = useState(false);
+  const [detailEvent, setDetailEvent] = useState<CalEvent | null>(null);
+  const { confirm, confirmElement } = useConfirm();
 
   useEffect(() => {
     const now = new Date();
@@ -96,6 +100,19 @@ export default function CalendarPage() {
       const d = new Date(v.year, v.month + delta, 1);
       return { year: d.getFullYear(), month: d.getMonth() };
     });
+  }
+
+  // 일정 삭제
+  async function removeEvent(id: number) {
+    if (!await confirm('이 일정을 삭제할까요?', 'danger')) return;
+    try {
+      await api.del(`/calendar/${id}`);
+      notify.deleted('일정');
+      setDetailEvent(null);
+      load();
+    } catch {
+      notify.deleteFailed();
+    }
   }
 
   // 오늘이 속한 달로 이동
@@ -141,7 +158,13 @@ export default function CalendarPage() {
                 <div key={cell.key} className={`min-h-[92px] max-md:min-h-[64px] p-1.5 flex flex-col gap-[3px] ${cell.dim ? 'bg-surface text-muted' : 'bg-background'}`}>
                   <span className={isToday ? 'bg-accent text-white w-[22px] h-[22px] rounded-full flex items-center justify-center text-[0.78rem] font-semibold' : 'text-[0.78rem] font-semibold text-secondary'}>{cell.day}</span>
                   {events?.map((ev) => (
-                    <span key={ev.id} className={`text-[0.65rem] px-[5px] py-px rounded-[4px] whitespace-nowrap overflow-hidden text-ellipsis ${EV_BG[ev.type]}`}>{ev.title}</span>
+                    <span
+                      key={ev.id}
+                      className={`text-[0.65rem] px-1.25 py-px rounded-sm whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer hover:opacity-75 transition-opacity ${EV_BG[ev.type]}`}
+                      onClick={() => setDetailEvent(ev)}
+                    >
+                      {ev.title}
+                    </span>
                   ))}
                 </div>
               );
@@ -158,13 +181,19 @@ export default function CalendarPage() {
               {upcoming.map((u) => {
                 const [, m, d] = u.date.split('-');
                 return (
-                  <div className="flex gap-2.5 py-2.5 border-b border-border-subtle last:border-b-0" key={u.id}>
+                  <div className="flex gap-2.5 py-2.5 border-b border-border-subtle last:border-b-0 items-center" key={u.id}>
                     <div className="[font-family:var(--font-display)] font-bold text-[0.78rem] text-primary w-[42px] shrink-0 text-center">{Number(m)}/{d}</div>
-                    <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${DOT_BG[u.type]}`} />
-                    <div>
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${DOT_BG[u.type]}`} />
+                    <div className="flex-1">
                       <div className="text-[0.84rem] font-medium">{u.title}</div>
                       <div className="text-[0.72rem] text-muted">{EV_TYPE_LABEL[u.type]} · {ddLabel(u.daysUntil)}</div>
                     </div>
+                    <button
+                      type="button"
+                      className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-(--radius) bg-danger-dim text-danger hover:bg-[rgba(240,68,56,0.15)] transition-all"
+                      onClick={() => removeEvent(u.id)}
+                      aria-label="일정 삭제"
+                    ><IconTrash width={12} height={12} /></button>
                   </div>
                 );
               })}
@@ -186,7 +215,34 @@ export default function CalendarPage() {
 
       {/* 일정 추가 모달 */}
       <AddEventModal open={addModal} onClose={() => setAddModal(false)} onSaved={() => { setAddModal(false); load(); }} />
+
+      {/* 일정 상세/삭제 모달 */}
+      <EventDetailModal event={detailEvent} onClose={() => setDetailEvent(null)} onDelete={removeEvent} />
+
+      {confirmElement}
     </AppShell>
+  );
+}
+
+// 일정 상세 / 삭제 모달
+function EventDetailModal({ event, onClose, onDelete }: { event: CalEvent | null; onClose: () => void; onDelete: (id: number) => void }) {
+  if (!event) return null;
+  const [, m, d] = event.date.split('-');
+  return (
+    <Modal open={!!event} onClose={onClose} title="일정 상세">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className={`text-[0.75rem] px-2 py-0.5 rounded-sm ${EV_BG[event.type]}`}>{EV_TYPE_LABEL[event.type]}</span>
+          <span className="text-[0.84rem] text-secondary">{Number(m)}월 {d}일</span>
+        </div>
+        <p className="text-[1rem] font-semibold text-primary">{event.title}</p>
+        {event.memo && <p className="text-[0.875rem] text-secondary bg-surface border border-border-subtle rounded-(--radius) px-3 py-2">{event.memo}</p>}
+      </div>
+      <div className="flex justify-between mt-5">
+        <Button variant="danger" size="sm" onClick={() => onDelete(event.id)}>삭제</Button>
+        <Button variant="ghost" size="sm" onClick={onClose}>닫기</Button>
+      </div>
+    </Modal>
   );
 }
 

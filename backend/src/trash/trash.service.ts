@@ -97,6 +97,38 @@ export class TrashService {
     return { kind, id };
   }
 
+  // 선택 복구
+  async bulkRestore(userId: number, items: { kind: string; id: number }[]) {
+    if (!items.length) throw new BadRequestException('복구할 항목이 없습니다.');
+    let restored = 0;
+    for (const { kind, id } of items) {
+      const src = this.sourceOf(kind);
+      const res = await src.delegate.updateMany({
+        where: { id, user_id: userId, deleted_at: { not: null } },
+        data: { deleted_at: null },
+      });
+      restored += res.count;
+    }
+    return { restored };
+  }
+
+  // 선택 영구 삭제
+  async bulkPurge(userId: number, items: { kind: string; id: number }[]) {
+    if (!items.length) throw new BadRequestException('삭제할 항목이 없습니다.');
+    let purged = 0;
+    for (const { kind, id } of items) {
+      const src = this.sourceOf(kind);
+      const rows = await src.delegate.findMany({
+        where: { id, user_id: userId, deleted_at: { not: null } },
+      });
+      if (rows.length) {
+        await src.delegate.delete({ where: { id } });
+        purged++;
+      }
+    }
+    return { purged };
+  }
+
   // 전체 복구 (모든 종류의 삭제 항목 복원)
   async restoreAll(userId: number) {
     const sources = this.sources();
