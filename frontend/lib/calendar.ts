@@ -4,6 +4,7 @@
  */
 
 export type EvType = 'pay' | 'due' | 'exp' | 'task';
+export type VirtSource = 'subscription' | 'saving' | 'identity' | 'task';
 
 export interface CalEvent {
   id: number;
@@ -11,7 +12,17 @@ export interface CalEvent {
   type: EvType;
   title: string;
   memo: string | null;
+  virtual: boolean;       // true = 다른 테이블에서 연동된 가상 이벤트
+  sourceType?: VirtSource; // 연동 원본 테이블
 }
+
+// sourceType → 한글 라벨 + 원본 페이지 경로
+export const VIRT_SOURCE_META: Record<VirtSource, { label: string; path: string }> = {
+  subscription: { label: '구독',     path: '/subscriptions' },
+  saving:       { label: '예적금',   path: '/transactions' },
+  identity:     { label: '신원지갑', path: '/id-wallet' },
+  task:         { label: '할일',     path: '/tasks' },
+};
 
 export interface UpcomingEvent extends CalEvent {
   daysUntil: number;

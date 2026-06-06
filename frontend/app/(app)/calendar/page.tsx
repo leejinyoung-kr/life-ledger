@@ -17,7 +17,7 @@ import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import { api } from '@/lib/api';
 import {
-  EV_TYPE_LABEL, EV_TYPE_OPTIONS, EV_LEGEND, ddLabel,
+  EV_TYPE_LABEL, EV_TYPE_OPTIONS, EV_LEGEND, VIRT_SOURCE_META, ddLabel,
   type CalEvent, type UpcomingEvent, type EvType,
 } from '@/lib/calendar';
 
@@ -102,12 +102,16 @@ export default function CalendarPage() {
     });
   }
 
-  // 일정 삭제
-  async function removeEvent(id: number) {
-    if (!await confirm('이 일정을 삭제할까요?', 'danger')) return;
+  // 일정 삭제 (가상 이벤트면 원본 테이블에서도 삭제)
+  async function removeEvent(ev: CalEvent) {
+    const label = ev.virtual && ev.sourceType ? `${VIRT_SOURCE_META[ev.sourceType].label} 항목` : '일정';
+    const msg = ev.virtual
+      ? `이 ${label}을(를) 삭제할까요? 해당 페이지에서도 삭제됩니다.`
+      : '이 일정을 삭제할까요?';
+    if (!await confirm(msg, 'danger')) return;
     try {
-      await api.del(`/calendar/${id}`);
-      notify.deleted('일정');
+      await api.del(`/calendar/${ev.id}`);
+      notify.deleted(label);
       setDetailEvent(null);
       load();
     } catch {
@@ -133,6 +137,10 @@ export default function CalendarPage() {
         </div>
         <Button onClick={() => setAddModal(true)}>일정 추가</Button>
       </div>
+
+      <p className="text-[0.8rem] text-muted bg-surface border border-border-subtle rounded-(--radius) px-3.5 py-2 mb-5">
+        ◈ 표시 항목(구독·예적금·신원지갑·할일)은 연동된 데이터입니다. 수정은 각 페이지에서, 삭제 시 원본에서도 삭제됩니다.
+      </p>
 
       {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
 
@@ -160,10 +168,10 @@ export default function CalendarPage() {
                   {events?.map((ev) => (
                     <span
                       key={ev.id}
-                      className={`text-[0.65rem] px-1.25 py-px rounded-sm whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer hover:opacity-75 transition-opacity ${EV_BG[ev.type]}`}
+                      className={`text-[0.65rem] px-1.25 py-px rounded-sm whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer hover:opacity-75 transition-opacity ${EV_BG[ev.type]} ${ev.virtual ? 'opacity-75 border border-current border-dashed' : ''}`}
                       onClick={() => setDetailEvent(ev)}
                     >
-                      {ev.title}
+                      {ev.virtual ? '◈ ' : ''}{ev.title}
                     </span>
                   ))}
                 </div>
@@ -191,7 +199,7 @@ export default function CalendarPage() {
                     <button
                       type="button"
                       className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-(--radius) bg-danger-dim text-danger hover:bg-[rgba(240,68,56,0.15)] transition-all"
-                      onClick={() => removeEvent(u.id)}
+                      onClick={() => removeEvent(u)}
                       aria-label="일정 삭제"
                     ><IconTrash width={12} height={12} /></button>
                   </div>
@@ -217,7 +225,7 @@ export default function CalendarPage() {
       <AddEventModal open={addModal} onClose={() => setAddModal(false)} onSaved={() => { setAddModal(false); load(); }} />
 
       {/* 일정 상세/삭제 모달 */}
-      <EventDetailModal event={detailEvent} onClose={() => setDetailEvent(null)} onDelete={removeEvent} />
+      <EventDetailModal event={detailEvent} onClose={() => setDetailEvent(null)} onDelete={(ev) => removeEvent(ev)} />
 
       {confirmElement}
     </AppShell>
@@ -225,21 +233,23 @@ export default function CalendarPage() {
 }
 
 // 일정 상세 / 삭제 모달
-function EventDetailModal({ event, onClose, onDelete }: { event: CalEvent | null; onClose: () => void; onDelete: (id: number) => void }) {
+function EventDetailModal({ event, onClose, onDelete }: { event: CalEvent | null; onClose: () => void; onDelete: (ev: CalEvent) => void }) {
   if (!event) return null;
   const [, m, d] = event.date.split('-');
+  const sourceMeta = event.virtual && event.sourceType ? VIRT_SOURCE_META[event.sourceType] : null;
   return (
     <Modal open={!!event} onClose={onClose} title="일정 상세">
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className={`text-[0.75rem] px-2 py-0.5 rounded-sm ${EV_BG[event.type]}`}>{EV_TYPE_LABEL[event.type]}</span>
+          {sourceMeta && <span className="text-[0.72rem] px-2 py-0.5 rounded-sm bg-surface border border-border-subtle text-muted">◈ {sourceMeta.label} 연동</span>}
           <span className="text-[0.84rem] text-secondary">{Number(m)}월 {d}일</span>
         </div>
         <p className="text-[1rem] font-semibold text-primary">{event.title}</p>
         {event.memo && <p className="text-[0.875rem] text-secondary bg-surface border border-border-subtle rounded-(--radius) px-3 py-2">{event.memo}</p>}
       </div>
       <div className="flex justify-between mt-5">
-        <Button variant="danger" size="sm" onClick={() => onDelete(event.id)}>삭제</Button>
+        <Button variant="danger" size="sm" onClick={() => onDelete(event)}>삭제</Button>
         <Button variant="ghost" size="sm" onClick={onClose}>닫기</Button>
       </div>
     </Modal>
