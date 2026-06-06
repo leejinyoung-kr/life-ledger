@@ -63,12 +63,9 @@ export default function NetworthPage() {
 
   return (
     <AppShell activePath="/networth" topbarLabel="자산 종합">
-      <div className="mb-7 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">자산 종합</h1>
-          <p className="text-sm text-secondary mt-1.5">순자산 = 자산 − 부채. 현금·예적금·투자·부동산을 합산해 추적합니다.</p>
-        </div>
-        <Link href="/transactions" className="text-[0.82rem] text-accent font-medium hover:underline">자산 관리에서 수정 →</Link>
+      <div className="mb-7">
+        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">자산 종합</h1>
+        <p className="text-sm text-secondary mt-1.5">순자산 = 자산 − 부채. 현금·예적금·투자·부동산을 합산해 추적합니다.</p>
       </div>
 
       {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
@@ -173,7 +170,7 @@ export default function NetworthPage() {
               ))}
             </div>
             <div className="px-4 py-2.5 border-t border-border-subtle">
-              <Link href="/transactions" className="text-[0.78rem] text-accent hover:underline">자산 관리에서 수정 →</Link>
+              <Link href="/transactions?tab=debt" className="text-[0.78rem] text-accent hover:underline">자산 관리에서 수정 →</Link>
             </div>
           </CardBody>
         </Card>

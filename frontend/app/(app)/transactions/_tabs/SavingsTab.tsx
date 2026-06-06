@@ -1,0 +1,287 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import StatCard from '@/components/StatCard';
+import Modal from '@/components/Modal';
+import Pagination, { LimitSelect } from '@/components/Pagination';
+import Button from '@/components/ui/Button';
+import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
+import { Field, ModalFooter } from '@/components/ui/Field';
+import { useConfirm } from '@/components/ConfirmModal';
+import { IconBank, IconWon, IconTrendUp, IconAlertTriangle, IconSearch } from '@/components/icons';
+import { notify } from '@/lib/toast';
+import { api } from '@/lib/api';
+import {
+  SAVING_TYPE_LABEL, won, dotDate, daysUntil,
+  type Category, type Saving, type SavingSummary, type SavingType,
+} from '@/lib/finance';
+import {
+  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TOP, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
+  RowActions, CardActions,
+} from '../_shared';
+
+type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Saving };
+
+export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Category[]; addTrigger: number }) {
+  const [rows, setRows] = useState<Saving[]>([]);
+  const [summary, setSummary] = useState<SavingSummary | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [reloadKey, setReloadKey] = useState(0);
+  const { confirm, confirmElement } = useConfirm();
+  const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
+
+  const [pendingType, setPendingType] = useState('');
+  const [pendingName, setPendingName] = useState('');
+  const [applied, setApplied] = useState({ type: '', name: '' });
+
+  const mountTrigger = useRef(addTrigger);
+  useEffect(() => {
+    if (addTrigger !== mountTrigger.current) {
+      mountTrigger.current = addTrigger;
+      setModal({ open: true, mode: 'add' });
+    }
+  }, [addTrigger]);
+
+  function search() { setApplied({ type: pendingType, name: pendingName }); setPage(1); }
+  function reset() { setPendingType(''); setPendingName(''); setApplied({ type: '', name: '' }); setPage(1); }
+
+  useEffect(() => {
+    (async () => {
+      const [list, s] = await Promise.all([
+        api.get<Saving[]>('/savings'),
+        api.get<SavingSummary>('/savings/summary'),
+      ]);
+      setRows(list); setSummary(s);
+    })();
+  }, [reloadKey]);
+
+  async function remove(id: number) {
+    if (!await confirm('이 예적금을 삭제할까요?', 'danger')) return;
+    try {
+      await api.del(`/savings/${id}`);
+      notify.deleted('예적금');
+      setReloadKey((k) => k + 1);
+    } catch {
+      notify.deleteFailed();
+    }
+  }
+
+  const filtered = rows
+    .filter((c) => !applied.type || c.type === applied.type)
+    .filter((c) => !applied.name || c.name.includes(applied.name));
+  const totalPages = Math.ceil(filtered.length / limit);
+  const paged = filtered.slice((page - 1) * limit, page * limit);
+
+  return (
+    <>
+      {summary && (
+        <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
+          <StatCard icon={<IconBank />} tone="green" value={won(summary.totalBalance)} label="총 예적금" change="전체 잔액 합계" changeDir="neutral" />
+          <StatCard icon={<IconWon />} tone="blue" value={won(summary.monthlyDeposit)} label="이번 달 납입" change="월 납입액 합계" changeDir="neutral" />
+          <StatCard icon={<IconTrendUp />} tone="amber" value={`${summary.avgRate}%`} label="평균 금리" change="보유 상품 평균" changeDir="up" />
+          <StatCard icon={<IconAlertTriangle />} tone={summary.maturityNear > 0 ? 'red' : 'green'} value={`${summary.maturityNear}건`} label="만기 임박" change={summary.maturityNear > 0 ? '30일 이내 만기' : '이상 없음'} changeDir={summary.maturityNear > 0 ? 'down' : 'neutral'} />
+        </div>
+      )}
+
+      <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex flex-col gap-3 mb-4">
+        <div className="flex gap-2 items-center max-md:flex-wrap">
+          <select className="input w-auto min-w-[120px] shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+            <option value="">전체 유형</option>
+            {savingCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+          </select>
+          <div className="relative flex-1 min-w-[160px]">
+            <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
+            <input className="input pl-icon" type="text" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && search()} aria-label="상품명 검색" />
+          </div>
+          <Button onClick={search}>조회</Button>
+          <Button variant="ghost" onClick={reset}>초기화</Button>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
+        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+      </div>
+
+      <div className={`${TABLE_CARD} mb-4`}>
+        <div className="table-wrap max-md:hidden">
+          <table>
+            <colgroup>
+              <col style={{ width: '64px' }} />
+              <col style={{ width: '88px' }} />
+              <col style={{ width: '140px' }} />
+              <col />
+              <col style={{ width: '120px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '80px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '150px' }} />
+              <col style={{ width: '72px' }} />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>번호</th><th>유형</th><th>은행/기관</th><th>상품명</th>
+                <th>잔액</th><th>월 납입</th>
+                <th>금리</th><th>가입일</th><th>만기일</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paged.length === 0 && <tr><td colSpan={10} className="td-center td-muted">예적금 내역이 없습니다.</td></tr>}
+              {paged.map((c, i) => {
+                const dleft = daysUntil(c.maturityDate);
+                const near = dleft !== null && dleft >= 0 && dleft <= 30;
+                return (
+                  <tr key={c.id}>
+                    <td className="td-center td-muted">{filtered.length - (page - 1) * limit - i}</td>
+                    <td className="td-center"><span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span></td>
+                    <td className="td-center td-muted">{c.bank}</td>
+                    <td className="td-name">{c.name}</td>
+                    <td className="td-mono td-right">{won(c.balance)}</td>
+                    <td className="td-mono td-right">{c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-'}</td>
+                    <td className="td-right"><span className="savings-meta-value accent">{c.interestRate}%</span></td>
+                    <td className="td-center td-muted">{dotDate(c.startDate)}</td>
+                    <td className={`td-center ${near ? 'savings-meta-value warning' : 'td-muted'}`}>
+                      {c.maturityDate ? `${dotDate(c.maturityDate)}${near ? ` ⚠️ D-${dleft}` : ''}` : '-'}
+                    </td>
+                    <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => remove(c.id)} /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className={TXCARDS}>
+          {paged.length === 0 && <div className={TXCARD_EMPTY}>예적금 내역이 없습니다.</div>}
+          {paged.map((c) => {
+            const dleft = daysUntil(c.maturityDate);
+            const near = dleft !== null && dleft >= 0 && dleft <= 30;
+            return (
+              <div className={TXCARD} key={c.id}>
+                <div className={TXCARD_TOP}>
+                  <span className={TXCARD_TITLE}>{c.name}</span>
+                  <span className={TXCARD_AMT}>{won(c.balance)}</span>
+                </div>
+                <div className={TXCARD_SUB}>
+                  <span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span>
+                  <span>{c.bank}</span>
+                  <span className="savings-meta-value accent">{c.interestRate}%</span>
+                  {c.monthlyAmount > 0 && <span>월 {won(c.monthlyAmount)}</span>}
+                  <span>{dotDate(c.startDate)} 가입</span>
+                  {c.maturityDate && (
+                    <span className={near ? 'savings-meta-value warning' : undefined}>
+                      만기 {dotDate(c.maturityDate)}{near ? ` ⚠️ D-${dleft}` : ''}
+                    </span>
+                  )}
+                </div>
+                <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => remove(c.id)} />
+              </div>
+            );
+          })}
+        </div>
+        <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
+      </div>
+
+      <SavingsModal
+        state={modal}
+        onClose={() => setModal((s) => ({ ...s, open: false }))}
+        onSaved={() => { setModal((s) => ({ ...s, open: false })); setReloadKey((k) => k + 1); }}
+      />
+      {confirmElement}
+    </>
+  );
+}
+
+function SavingsModal({ state, onClose, onSaved }: { state: ModalState; onClose: () => void; onSaved: () => void }) {
+  const e = state.editing;
+  const [bank, setBank] = useState('');
+  const [name, setName] = useState('');
+  const [type, setType] = useState<SavingType>('savings');
+  const [interestRate, setInterestRate] = useState('');
+  const [monthlyAmount, setMonthlyAmount] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [maturityDate, setMaturityDate] = useState('');
+  const [balance, setBalance] = useState('');
+  const [memo, setMemo] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!state.open) return;
+    setErrors({});
+    setBank(e?.bank ?? '');
+    setName(e?.name ?? '');
+    setType(e?.type ?? 'savings');
+    setInterestRate(e ? String(e.interestRate) : '');
+    setMonthlyAmount(e ? String(e.monthlyAmount) : '');
+    setStartDate(e?.startDate ?? '');
+    setMaturityDate(e?.maturityDate ?? '');
+    setBalance(e ? String(e.balance) : '');
+    setMemo(e?.memo ?? '');
+  }, [state.open, e]);
+
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!bank.trim()) err.bank = '은행/기관을 입력하세요.';
+    if (!name.trim()) err.name = '상품명을 입력하세요.';
+    if (!startDate) err.startDate = '가입일을 선택하세요.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
+
+  async function save() {
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      const payload = {
+        bank, name, type,
+        interestRate: interestRate ? Number(interestRate) : undefined,
+        monthlyAmount: monthlyAmount ? Number(monthlyAmount) : undefined,
+        startDate, maturityDate: maturityDate || undefined,
+        balance: balance ? Number(balance) : undefined,
+        memo: memo || undefined,
+      };
+      if (state.mode === 'edit' && e) await api.put(`/savings/${e.id}`, payload);
+      else await api.post('/savings', payload);
+      notify.upserted(state.mode, '예적금');
+      onSaved();
+    } catch {
+      notify.saveFailed();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '예적금 수정' : '예적금 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
+      <Field label="은행/기관" required error={errors.bank}>
+        <input type="text" className={`input${errors.bank ? ' is-invalid' : ''}`} placeholder="예: 카카오뱅크" value={bank} onChange={(ev) => { setBank(ev.target.value); clearErr('bank'); }} />
+      </Field>
+      <Field label="상품명" required error={errors.name}>
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 26주 적금" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />
+      </Field>
+      <Field label="유형" required>
+        <select className="input" value={type} onChange={(ev) => setType(ev.target.value as SavingType)}>
+          <option value="savings">적금</option><option value="deposit">예금</option><option value="subscription">청약</option><option value="etc">기타</option>
+        </select>
+      </Field>
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <Field label="금리 (%)">
+          <input type="number" className="input" placeholder="3.5" step="0.1" value={interestRate} onChange={(ev) => setInterestRate(ev.target.value)} />
+        </Field>
+        <Field label="월 납입액 (원)"><input type="number" className="input" placeholder="200000" value={monthlyAmount} onChange={(ev) => setMonthlyAmount(ev.target.value)} /></Field>
+      </div>
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <Field label="가입일" required error={errors.startDate}>
+          <input type="date" className={`input${errors.startDate ? ' is-invalid' : ''}`} aria-label="가입일" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearErr('startDate'); }} />
+        </Field>
+        <Field label="만기일"><input type="date" className="input" aria-label="만기일" value={maturityDate} onChange={(ev) => setMaturityDate(ev.target.value)} /></Field>
+      </div>
+      <Field label="현재 잔액 (원)"><input type="number" className="input" placeholder="0" value={balance} onChange={(ev) => setBalance(ev.target.value)} /></Field>
+      <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
+    </Modal>
+  );
+}
