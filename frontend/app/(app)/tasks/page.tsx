@@ -55,6 +55,7 @@ export default function TasksPage() {
     try {
       await api.put(`/tasks/${id}`, { done: next });
       if (next) notify.success('할일을 완료했습니다.');
+      else notify.success('할일을 미완료로 변경했습니다.');
       load();
     } catch (e) {
       setError((e as Error).message);

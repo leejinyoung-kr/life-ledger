@@ -25,9 +25,8 @@ export const TONE_CLASS: Record<NotiTone, string> = {
 };
 
 // 필터 탭 (kind 로 필터링)
-export const NOTI_TABS: { label: string; kind: 'all' | 'unread' | NotiGroup }[] = [
+export const NOTI_TABS: { label: string; kind: 'all' | NotiGroup }[] = [
   { label: '전체', kind: 'all' },
-  { label: '읽지 않음', kind: 'unread' },
   { label: '가계부', kind: 'ledger' },
   { label: '시스템', kind: 'system' },
 ];

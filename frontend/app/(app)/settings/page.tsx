@@ -118,14 +118,17 @@ export default function SettingsPage() {
   useEffect(() => { load(); }, [load]);
 
   // 부분 저장 — 변경 필드만 PUT, 응답으로 서버 상태 동기화
-  const patch = useCallback(async (partial: Record<string, unknown>) => {
+  // successMsg: null이면 알림 없음, 생략 시 기본 문구
+  const patch = useCallback(async (partial: Record<string, unknown>, successMsg?: string | null) => {
     try {
       const data = await api.put<Settings>('/settings', partial);
       setS(data);
       setError(null);
+      if (successMsg !== null) notify.success(successMsg ?? '저장됐습니다.');
       return data;
     } catch (e) {
       setError((e as Error).message);
+      notify.error('저장에 실패했습니다.');
       throw e;
     }
   }, []);
@@ -139,9 +142,18 @@ export default function SettingsPage() {
     );
   }
 
+  const NOTIF_LABEL: Record<string, string> = {
+    notifBudget: '예산 초과 알림',
+    notifMonthly: '월간 리포트 자동 생성',
+    notifUpload: '파일 업로드 완료 알림',
+  };
+
   // 알림 토글 — 즉시 저장
-  const toggleNotif = (key: 'notifBudget' | 'notifMonthly' | 'notifUpload') =>
-    patch({ [key]: !s[key] });
+  const toggleNotif = (key: 'notifBudget' | 'notifMonthly' | 'notifUpload') => {
+    const next = !s[key];
+    const label = NOTIF_LABEL[key];
+    patch({ [key]: next }, `${label}을(를) ${next ? '켰습니다.' : '껐습니다.'}`);
+  };
 
   // 카테고리 삭제 — 즉시 저장
   function removeCategory(idx: number) {
@@ -156,14 +168,13 @@ export default function SettingsPage() {
     patch({ categories: next }).then(() => { setNewCatName(''); setNewCatEmoji(''); });
   }
 
-  // 위젯 표시 토글 (로컬 — 저장 버튼으로 커밋)
-  function toggleWidget(id: string) {
-    setWidgets((prev) => prev.map((w) => (w.id === id ? { ...w, on: !w.on } : w)));
-  }
-
-  // 위젯을 기본값으로 초기화 (로컬)
-  function resetWidgets() {
-    setWidgets(DEFAULT_WIDGETS.map((w) => ({ ...w })));
+  // 위젯 표시 토글 — 즉시 저장
+  async function toggleWidget(id: string) {
+    const next = widgets.map((w) => (w.id === id ? { ...w, on: !w.on } : w));
+    setWidgets(next);
+    const toggled = next.find((w) => w.id === id);
+    const label = WIDGET_META[id]?.name ?? '위젯';
+    await patch({ widgets: next }, `${label}을(를) ${toggled?.on ? '켰습니다.' : '껐습니다.'}`);
   }
 
   // 드래그한 위젯을 대상 위치로 재배치 (로컬)
@@ -198,7 +209,6 @@ export default function SettingsPage() {
   async function saveMenuOrder() {
     await patch({ menuOrder });
     window.dispatchEvent(new Event('menu-order-changed'));
-    notify.success('메뉴 순서를 저장했습니다.');
   }
 
   // 메뉴 순서 기본값으로 초기화 (로컬)
@@ -217,9 +227,9 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-[192px_1fr] gap-7 items-start max-md:grid-cols-1">
         {/* 탭 네비 */}
-        <div className="bg-background border border-border rounded-[var(--radius-lg)] p-2.5 flex flex-col gap-0.5 sticky top-[calc(var(--header-h)+28px)] shadow-[var(--shadow-sm)] max-md:static max-md:flex-row max-md:flex-wrap">
+        <div className="bg-background border border-border rounded-lg p-2.5 flex flex-col gap-0.5 sticky top-[calc(var(--header-h)+28px)] shadow-(--shadow-sm) max-md:static max-md:flex-row max-md:flex-wrap">
           {TABS.map((t) => (
-            <button key={t.id} type="button" className={`px-3 py-2 rounded-[var(--radius)] text-[0.855rem] cursor-pointer transition-all font-medium text-left ${tab === t.id ? 'bg-accent-dim text-accent font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`} onClick={() => setTab(t.id)}>{t.label}</button>
+            <button key={t.id} type="button" className={`px-3 py-2 rounded-(--radius) text-[0.855rem] cursor-pointer transition-all font-medium text-left ${tab === t.id ? 'bg-accent-dim text-accent font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`} onClick={() => setTab(t.id)}>{t.label}</button>
           ))}
         </div>
 
@@ -229,7 +239,7 @@ export default function SettingsPage() {
             <>
               <Group title="내 계정">
                 <div className="flex items-center gap-5 p-5">
-                  <div className="w-[60px] h-[60px] rounded-full bg-accent-dim border-2 border-accent flex items-center justify-center [font-family:var(--font-display)] text-[1.4rem] font-extrabold text-accent shrink-0">{(s.displayName || s.user.name || '?').charAt(0)}</div>
+                  <div className="w-15 h-15 rounded-full bg-accent-dim border-2 border-accent flex items-center justify-center [font-family:var(--font-display)] text-[1.4rem] font-extrabold text-accent shrink-0">{(s.displayName || s.user.name || '?').charAt(0)}</div>
                   <div>
                     <div className="font-semibold text-primary text-[0.95rem]">{s.displayName}</div>
                     <div className="text-[0.82rem] text-muted mt-0.5">{s.user.email}</div>
@@ -237,7 +247,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <Row label="표시 이름" desc="대시보드 상단에 표시되는 이름">
-                  <input type="text" className="input w-[180px]" value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="표시 이름" />
+                  <input type="text" className="input w-45" value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="표시 이름" />
                   <Button variant="ghost" onClick={() => patch({ displayName })}>저장</Button>
                 </Row>
               </Group>
@@ -261,7 +271,7 @@ export default function SettingsPage() {
               {Object.keys(BUDGET_LABEL).map((code) => (
                 <Row key={code} label={BUDGET_LABEL[code]}>
                   <input
-                    type="number" className="input w-[140px]"
+                    type="number" className="input w-35"
                     value={budgets[code] ?? 0}
                     onChange={(e) => setBudgets((b) => ({ ...b, [code]: Number(e.target.value) }))}
                     aria-label={`${BUDGET_LABEL[code]} 예산`}
@@ -298,11 +308,11 @@ export default function SettingsPage() {
           {tab === 'api' && (
             <Group title="Claude API">
               <Row label="API 키" desc={s.claudeApiKeySet ? `저장됨 (${s.claudeApiKeyMasked})` : 'AI 리포트 생성에 사용됩니다.'}>
-                <input type="password" className="input w-[200px] [font-family:var(--font-mono)]" placeholder={s.claudeApiKeySet ? '변경하려면 입력' : 'sk-ant-api...'} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} aria-label="API 키" />
+                <input type="password" className="input w-50 font-mono" placeholder={s.claudeApiKeySet ? '변경하려면 입력' : 'sk-ant-api...'} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} aria-label="API 키" />
                 <Button variant="ghost" onClick={() => patch({ claudeApiKey: apiKeyInput || undefined }).then(() => setApiKeyInput(''))}>저장</Button>
               </Row>
               <Row label="모델" desc="리포트 생성에 사용할 Claude 모델">
-                <select className="input w-[200px] [font-family:var(--font-mono)]" aria-label="모델" value={claudeModel} onChange={(e) => { setClaudeModel(e.target.value); patch({ claudeModel: e.target.value }); }}>
+                <select className="input w-50 font-mono" aria-label="모델" value={claudeModel} onChange={(e) => { setClaudeModel(e.target.value); patch({ claudeModel: e.target.value }); }}>
                   {CLAUDE_MODEL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </Row>
@@ -330,7 +340,7 @@ export default function SettingsPage() {
                       <div className={`w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 ${WIDGET_ICON_BG[meta.tone]}`}>{meta.icon}</div>
                       <div className="flex-1">
                         <div className="text-[0.875rem] font-medium text-primary">{meta.name}</div>
-                        <div className="text-[0.775rem] text-muted mt-0.5">{meta.desc}</div>
+                        <div className={`text-[0.775rem] mt-0.5 ${w.on ? 'text-muted' : 'text-danger'}`}>{w.on ? meta.desc : '숨겨짐 · 대시보드에 표시되지 않습니다'}</div>
                       </div>
                       <Toggle on={w.on} onToggle={() => toggleWidget(w.id)} />
                     </div>
@@ -339,20 +349,11 @@ export default function SettingsPage() {
               </Group>
 
               <Group title="위젯 미리보기">
-                <div className="grid grid-cols-2 gap-2.5 px-5 py-4">
-                  {widgets.map((w) => {
-                    const meta = WIDGET_META[w.id];
-                    if (!meta) return null;
-                    return <div key={w.id} className={`bg-background border border-border rounded-[var(--radius)] px-3 py-2.5 flex items-center gap-2 text-[0.78rem] text-secondary transition-all ${w.on ? '' : 'opacity-35 line-through'}`}>{meta.emoji} {meta.short}</div>;
-                  })}
+                <div className="px-5 py-4">
+                  <WidgetPreview widgets={widgets} />
                 </div>
-                <div className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">실제 구현 시 대시보드에 즉시 반영됩니다.</div>
+                <div className="px-5 pt-2 pb-3 text-[0.82rem] text-muted">토글 변경 시 대시보드에 즉시 반영됩니다.</div>
               </Group>
-
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={resetWidgets}>초기화</Button>
-                <Button onClick={() => patch({ widgets })}>저장</Button>
-              </div>
 
               <Group title="사이드바 메뉴 순서">
                 <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">1차 메뉴(그룹)의 표시 순서를 드래그로 변경합니다. 저장 시 사이드바에 즉시 반영됩니다.</p>
@@ -426,6 +427,37 @@ function Row({ label, desc, labelClass, children }: { label: string; desc?: stri
         {desc && <div className="text-[0.78rem] text-muted mt-0.5">{desc}</div>}
       </div>
       <div className="shrink-0 flex items-center gap-2.5">{children}</div>
+    </div>
+  );
+}
+
+// 대시보드 실제 레이아웃을 그대로 미니맵으로 표현
+function WidgetPreview({ widgets }: { widgets: WidgetPref[] }) {
+  const wp = Object.fromEntries(widgets.map((w) => [w.id, w.on]));
+  const cell = 'bg-background border border-border-subtle rounded-[var(--radius)] px-2 py-2 text-[0.65rem] text-muted transition-opacity';
+  return (
+    <div className="border border-border rounded-[var(--radius-lg)] bg-surface p-3 flex flex-col gap-1.5 select-none">
+      {/* stat-cards: 4열 그리드 */}
+      <div className={`grid grid-cols-4 gap-1.5 transition-opacity ${wp['stat-cards'] ? 'opacity-100' : 'opacity-25'}`}>
+        {['지출', '수입', '순자산', '구독'].map((l) => (
+          <div key={l} className={`${cell} text-center`}>{l}</div>
+        ))}
+      </div>
+      {/* budget-bars + recent-activity: 2열 */}
+      <div className="grid grid-cols-2 gap-1.5">
+        <div className={`${cell} ${wp['budget-bars'] ? 'opacity-100' : 'opacity-25'}`}>📉 카테고리 지출</div>
+        <div className={`${cell} ${wp['recent-activity'] ? 'opacity-100' : 'opacity-25'}`}>🕐 최근 활동</div>
+      </div>
+      {/* ai-summary: 풀 너비 */}
+      <div className={`${cell} ${wp['ai-summary'] ? 'opacity-100' : 'opacity-25'}`}>🤖 AI 리포트 요약</div>
+      {/* 다가오는 일정: 항상 표시 */}
+      <div className={cell}>📅 다가오는 일정 <span className="opacity-50">(항상 표시)</span></div>
+      {/* quick-actions: 4열 그리드 */}
+      <div className={`grid grid-cols-4 gap-1.5 transition-opacity ${wp['quick-actions'] ? 'opacity-100' : 'opacity-25'}`}>
+        {['지출 기록', '계정 추가', '파일 업로드', 'AI 리포트'].map((l) => (
+          <div key={l} className={`${cell} text-center`}>{l}</div>
+        ))}
+      </div>
     </div>
   );
 }

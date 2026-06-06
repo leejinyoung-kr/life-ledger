@@ -39,6 +39,7 @@ export default function TrashPage() {
 
   // 단일 복구
   async function restore(it: TrashItem) {
+    if (!await confirm(`'${it.name}'을(를) 복구할까요?`, 'primary')) return;
     try {
       await api.post('/trash/restore', { kind: it.kind, id: it.id });
       notify.success(`'${it.name}'을(를) 복구했습니다.`);

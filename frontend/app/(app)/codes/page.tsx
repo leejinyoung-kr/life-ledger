@@ -356,7 +356,10 @@ function SortableRow({
         </div>
       ) : (
         <>
-          <span className="flex-1 text-[0.875rem] text-primary font-medium min-w-0">{item.label}</span>
+          <div className="flex-1 flex items-center gap-2 min-w-0">
+            <span className={`text-[0.875rem] font-medium truncate ${item.isActive ? 'text-primary' : 'text-muted line-through'}`}>{item.label}</span>
+            {!item.isActive && <span className="text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-warning-dim text-warning shrink-0">비활성</span>}
+          </div>
           <span className="text-[0.72rem] text-muted [font-family:var(--font-mono)] bg-elevated px-[7px] py-0.5 rounded-[4px] whitespace-nowrap shrink-0">{item.code}</span>
           <div className="flex gap-1.5 shrink-0">
             <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>수정</Button>

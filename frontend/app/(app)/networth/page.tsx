@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import StatCard from '@/components/StatCard';
 import Badge from '@/components/ui/Badge';
@@ -66,6 +65,7 @@ export default function NetworthPage() {
       <div className="mb-7">
         <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">자산 종합</h1>
         <p className="text-sm text-secondary mt-1.5">순자산 = 자산 − 부채. 현금·예적금·투자·부동산을 합산해 추적합니다.</p>
+        <p className="text-[0.78rem] text-muted mt-1">자산·부채 항목은 자산 관리에서 추가·수정할 수 있습니다.</p>
       </div>
 
       {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
@@ -168,9 +168,6 @@ export default function NetworthPage() {
                   <div className="mt-2 text-[0.78rem] text-secondary">금리 {d.interestRate !== null ? `${d.interestRate}%` : '-'}</div>
                 </div>
               ))}
-            </div>
-            <div className="px-4 py-2.5 border-t border-border-subtle">
-              <Link href="/transactions?tab=debt" className="text-[0.78rem] text-accent hover:underline">자산 관리에서 수정 →</Link>
             </div>
           </CardBody>
         </Card>

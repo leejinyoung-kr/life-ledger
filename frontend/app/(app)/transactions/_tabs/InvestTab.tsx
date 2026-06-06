@@ -108,7 +108,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
           <table>
             <colgroup>
               <col style={{ width: '64px' }} />
-              <col style={{ width: '96px' }} />
+              <col style={{ width: '130px' }} />
               <col />
               <col style={{ width: '120px' }} />
               <col style={{ width: '120px' }} />

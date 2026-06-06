@@ -93,7 +93,6 @@ export default function NotificationsPage() {
   // 탭 기준 필터링
   const filtered = items.filter((n) => {
     if (tab === 'all') return true;
-    if (tab === 'unread') return !n.read;
     return n.group === tab;
   });
 
@@ -128,7 +127,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* 알림 리스트 — 리스트에서는 desc 미노출, 클릭 시 상세 모달 */}
-      <div className="bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] overflow-hidden">
+      <div className="bg-background border border-border rounded-lg shadow-(--shadow-sm) overflow-hidden">
         {paged.length === 0 && <p className="text-secondary text-center py-5">알림이 없습니다.</p>}
         {paged.map((n) => (
           <div
@@ -137,7 +136,7 @@ export default function NotificationsPage() {
             onClick={() => openDetail(n)}
           >
             <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${n.read ? 'bg-transparent border-[1.5px] border-border' : 'bg-accent'}`} />
-            <div className={`w-9 h-9 rounded-[var(--radius)] shrink-0 flex items-center justify-center ${ICON_TONE[n.tone]}`}>{iconFor(n)}</div>
+            <div className={`w-9 h-9 rounded-(--radius) shrink-0 flex items-center justify-center ${ICON_TONE[n.tone]}`}>{iconFor(n)}</div>
             <div className="flex-1">
               <div className={`text-[0.875rem] font-medium ${n.read ? 'text-secondary' : 'text-primary'}`}>{n.title}</div>
               <div className="text-[0.72rem] text-muted mt-1">{relativeTime(n.occurredAt)} · {n.source}</div>
@@ -151,14 +150,11 @@ export default function NotificationsPage() {
       {detail && (
         <Modal open={!!detail} title="알림 상세" onClose={() => setDetail(null)}>
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className={`w-[60px] h-[60px] rounded-full shrink-0 flex items-center justify-center mb-1 ${DETAIL_TONE[detail.tone]}`}>
+            <div className={`w-15 h-15 rounded-full shrink-0 flex items-center justify-center mb-1 ${DETAIL_TONE[detail.tone]}`}>
               {iconFor(detail)}
             </div>
 
-            <div className="flex flex-col items-center gap-1.5">
-              <p className="text-base font-bold text-primary leading-[1.45] break-keep">{detail.title}</p>
-              {!detail.read && <span className="inline-block text-[0.7rem] font-semibold px-2 py-0.5 rounded-full bg-danger-dim text-danger">읽지 않음</span>}
-            </div>
+            <p className="text-base font-bold text-primary leading-[1.45] break-keep">{detail.title}</p>
 
             <p className="flex items-center gap-1.5 text-[0.78rem] text-muted">
               <span>{detail.source}</span>
@@ -166,7 +162,7 @@ export default function NotificationsPage() {
               <span>{relativeTime(detail.occurredAt)}</span>
             </p>
 
-            <p className="w-full text-left text-[0.875rem] text-secondary leading-[1.7] break-keep px-4 py-3.5 mt-1 bg-surface rounded-[var(--radius)] border border-border-subtle">{detail.desc}</p>
+            <p className="w-full text-left text-[0.875rem] text-secondary leading-[1.7] break-keep px-4 py-3.5 mt-1 bg-surface rounded-(--radius) border border-border-subtle">{detail.desc}</p>
           </div>
         </Modal>
       )}

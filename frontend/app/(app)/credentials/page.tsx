@@ -164,13 +164,13 @@ export default function CredentialsPage() {
               {paged.length === 0 && <tr><td colSpan={5} className="td-center td-muted">저장된 계정이 없습니다.</td></tr>}
               {paged.map((c) => (
                 <tr key={c.id} className="cursor-pointer" onClick={() => setDetail(c)}>
-                  <td>
+                  <td className="td-center">
                     <div className="font-medium text-[0.875rem] text-primary">{c.name}</div>
                     <div className="text-[0.72rem] text-muted">{c.url ?? '—'}</div>
                   </td>
                   <td className="td-center"><Badge tone="neutral">{c.category}</Badge></td>
-                  <td className="td-mono">{c.username}</td>
-                  <td className="td-muted">{fmtCredDate(c.updatedAt)}</td>
+                  <td className="td-mono td-center">{c.username}</td>
+                  <td className="td-muted td-center">{fmtCredDate(c.updatedAt)}</td>
                   <td className="td-center" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-center gap-1">
                       <button type="button" className={`${ICON_BTN} border border-border hover:text-primary`} onClick={() => setEdit({ open: true, editing: c })} aria-label="수정"><IconEdit width={14} height={14} /></button>

@@ -242,9 +242,6 @@ export default function EnvsPage() {
               );
             })}
           </div>
-          <button type="button" className="flex items-center gap-2 px-3 py-2.5 rounded-[var(--radius)] cursor-pointer text-muted text-[0.82rem] transition-all border border-dashed border-border mx-2 mb-2 w-[calc(100%-16px)] hover:border-accent hover:text-accent hover:bg-accent-dim" onClick={() => setProjectModal({ open: true, editing: null })}>
-            <IconPlus width={14} height={14} />새 프로젝트
-          </button>
         </div>
 
         {/* 환경변수 편집 패널 */}
