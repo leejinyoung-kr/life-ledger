@@ -15,7 +15,7 @@ import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
-  IconCode, IconFileBlank, IconEdit, IconPlus, IconCopy, IconEye, IconTrash, IconDownload, IconCheck, IconSearch,
+  IconCode, IconEdit, IconCopy, IconEye, IconTrash, IconSearch,
 } from '@/components/icons';
 import { api } from '@/lib/api';
 import {
@@ -285,11 +285,11 @@ export default function EnvsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <Button variant="ghost" size="sm" onClick={openDiff}><IconCode width={13} height={13} />환경 비교</Button>
-                <Button variant="ghost" size="sm" onClick={downloadExample}><IconFileBlank width={13} height={13} />.env.example</Button>
-                <Button variant="ghost" size="sm" onClick={() => setProjectModal({ open: true, editing: project })}><IconEdit width={13} height={13} />수정</Button>
-                <Button variant="ghost" size="sm" onClick={() => deleteProject(project)}><IconTrash width={13} height={13} />삭제</Button>
-                <Button size="sm" onClick={() => setVarModal({ open: true, editing: null })}><IconPlus width={13} height={13} />변수 추가</Button>
+                <Button variant="ghost" size="sm" onClick={openDiff}>환경 비교</Button>
+                <Button variant="ghost" size="sm" onClick={downloadExample}>.env.example</Button>
+                <Button variant="ghost" size="sm" onClick={() => setProjectModal({ open: true, editing: project })}>수정</Button>
+                <Button variant="ghost" size="sm" onClick={() => deleteProject(project)}>삭제</Button>
+                <Button size="sm" onClick={() => setVarModal({ open: true, editing: null })}>변수 추가</Button>
               </div>
             </div>
 
@@ -316,7 +316,7 @@ export default function EnvsPage() {
               <table className="env-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '36px' }} className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={filteredVars.length > 0 && filteredVars.every((v) => selectedVars.has(v.id))} onChange={toggleSelectAllVars} aria-label="전체선택" /></th>
+                    <th style={{ width: '36px' }} className="td-center"><input type="checkbox" className="checkbox" checked={filteredVars.length > 0 && filteredVars.every((v) => selectedVars.has(v.id))} onChange={toggleSelectAllVars} aria-label="전체선택" /></th>
                     <th className="env-th-key">KEY</th>
                     <th>VALUE</th>
                     <th className="env-th-action">액션</th>
@@ -346,9 +346,9 @@ export default function EnvsPage() {
 
               <div className="flex items-center gap-2.5 px-[18px] py-3 bg-surface border-t border-border">
                 <span className="text-[0.78rem] text-muted flex-1">.env 파일 형식으로 전체 복사</span>
-                {selectedVars.size > 0 && <Button variant="danger" size="sm" onClick={removeSelectedVars}>{selectedVars.size}개 삭제</Button>}
-                <Button variant="ghost" size="sm" onClick={copyAll}><IconCopy width={13} height={13} />전체 복사</Button>
-                <Button variant="ghost" size="sm" onClick={downloadEnv}><IconDownload width={13} height={13} />.env 다운로드</Button>
+                <Button variant="danger" disabled={selectedVars.size === 0} onClick={removeSelectedVars}>선택삭제</Button>
+                <Button variant="ghost" size="sm" onClick={copyAll}>전체 복사</Button>
+                <Button variant="ghost" size="sm" onClick={downloadEnv}>.env 다운로드</Button>
               </div>
             </div>
 
@@ -366,7 +366,7 @@ export default function EnvsPage() {
               />
               <div className="flex gap-2 justify-end">
                 <Button variant="ghost" onClick={() => setPaste('')}>초기화</Button>
-                <Button onClick={parsePaste}><IconCheck width={13} height={13} />파싱 후 저장</Button>
+                <Button onClick={parsePaste}>파싱 후 저장</Button>
               </div>
             </div>
           </div>
@@ -440,7 +440,7 @@ function EnvGroupRows({
         const display = shown ? revealed[item.id] : item.valueMasked;
         return (
           <tr key={item.id}>
-            <td className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={selected.has(item.id)} onChange={() => onSelect(item.id)} aria-label="선택" /></td>
+            <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(item.id)} onChange={() => onSelect(item.id)} aria-label="선택" /></td>
             <td><span className="env-key">{item.key}</span></td>
             <td>
               <div className="env-value-wrap">

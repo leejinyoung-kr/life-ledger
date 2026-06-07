@@ -10,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
-  IconWon, IconBank, IconChart, IconFileBlank, IconUpload, IconDownload, IconSearch,
+  IconWon, IconBank, IconChart, IconSearch,
 } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
@@ -251,13 +251,13 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
 
       <div className="flex gap-2 flex-wrap items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
         <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">엑셀</span>
-        <button type="button" className="excel-btn" onClick={downloadTemplate}><IconFileBlank />양식 다운로드</button>
+        <button type="button" className="excel-btn" onClick={downloadTemplate}>양식 다운로드</button>
         <label className="excel-btn upload">
-          <IconUpload />엑셀 업로드
+          엑셀 업로드
           <input type="file" accept=".xlsx,.xls,.csv" hidden aria-label="엑셀 업로드" onChange={handleUpload} />
         </label>
         <div className="w-px bg-border self-stretch mx-1 shrink-0" />
-        <button type="button" className="excel-btn" onClick={downloadData}><IconDownload />데이터 다운로드</button>
+        <button type="button" className="excel-btn" onClick={downloadData}>데이터 다운로드</button>
       </div>
 
       <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex flex-col gap-3 mb-4">
@@ -290,11 +290,11 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
       </div>
 
       <div className="flex items-center justify-between mb-2">
+        <span className="text-[0.78rem] text-secondary">총 {rows.length}건</span>
         <div className="flex items-center gap-2">
-          <span className="text-[0.78rem] text-secondary">총 {rows.length}건</span>
-          {selected.size > 0 && <Button variant="danger" size="sm" onClick={removeSelected}>{selected.size}건 삭제</Button>}
+          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
+          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
         </div>
-        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
       <div className={TABLE_CARD}>
@@ -314,7 +314,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
             </colgroup>
             <thead>
               <tr>
-                <th className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={pagedRows.length > 0 && pagedRows.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
+                <th className="td-center"><input type="checkbox" className="checkbox" checked={pagedRows.length > 0 && pagedRows.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>유형</th><th>카테고리</th><th>내역</th>
                 <th>결제수단</th><th>금액</th><th>메모</th>
                 <th>날짜</th><th>관리</th>
@@ -324,7 +324,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
               {pagedRows.length === 0 && <tr><td colSpan={10} className="td-center td-muted">내역이 없습니다.</td></tr>}
               {pagedRows.map((row, i) => (
                 <tr key={row.id}>
-                  <td className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" /></td>
+                  <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" /></td>
                   <td className="td-center td-muted">{rows.length - (page - 1) * limit - i}</td>
                   <td className="td-center"><span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span></td>
                   <td className="td-center"><span className="cat-chip">{catMap[row.category] ?? row.category}</span></td>
@@ -344,7 +344,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
           {pagedRows.map((row) => (
             <div className={TXCARD} key={row.id}>
               <div className="flex items-center gap-2 mb-1.5">
-                <input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer shrink-0" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" />
+                <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" />
                 <div className="flex-1 flex justify-between items-baseline gap-2.5">
                   <span className={TXCARD_TITLE}>{(row.isRecurring || row.recurringParentId) && '🔁 '}{row.title}</span>
                   <span className={`${TXCARD_AMT} ${AMT_COLOR[row.type]}`}>{signedWon(row.type, row.amount)}</span>

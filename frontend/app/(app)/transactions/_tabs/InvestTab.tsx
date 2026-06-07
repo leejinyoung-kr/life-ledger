@@ -128,11 +128,11 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
       </div>
 
       <div className="flex items-center justify-between mb-2">
+        <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
         <div className="flex items-center gap-2">
-          <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
-          {selected.size > 0 && <Button variant="danger" size="sm" onClick={removeSelected}>{selected.size}건 삭제</Button>}
+          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
+          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
         </div>
-        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
       <div className={`${TABLE_CARD} mb-6`}>
@@ -152,7 +152,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
             </colgroup>
             <thead>
               <tr>
-                <th className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={paged.length > 0 && paged.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
+                <th className="td-center"><input type="checkbox" className="checkbox" checked={paged.length > 0 && paged.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>유형</th><th>종목</th>
                 <th>투자원금</th><th>평가금액</th>
                 <th>수익</th><th>수익률</th>
@@ -165,7 +165,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                 const up = row.profit >= 0;
                 return (
                   <tr key={row.id}>
-                    <td className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" /></td>
+                    <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" /></td>
                     <td className="td-center td-muted">{filtered.length - (page - 1) * limit - i}</td>
                     <td className="td-center"><span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span></td>
                     <td className="td-strong">{row.name}</td>
@@ -188,7 +188,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
             return (
               <div className={TXCARD} key={row.id}>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer shrink-0" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" />
+                  <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" />
                   <div className="flex-1 flex justify-between items-baseline gap-2.5">
                     <span className={TXCARD_TITLE}>{row.name}</span>
                     <span className={TXCARD_AMT}>{won(row.currentValue)}</span>

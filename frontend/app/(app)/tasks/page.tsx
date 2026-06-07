@@ -147,15 +147,21 @@ export default function TasksPage() {
                 <input className="input pl-icon w-40" type="text" placeholder="할일 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="할일 검색" />
               </div>
               <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+              <Button variant="danger" disabled={selectedTasks.size === 0} onClick={removeSelectedTasks}>선택삭제</Button>
               <Badge tone="neutral">{doneCount} / {tasks.length} 완료</Badge>
-              {selectedTasks.size > 0 && <Button variant="danger" size="sm" onClick={removeSelectedTasks}>{selectedTasks.size}건 삭제</Button>}
             </div>
           </CardHeader>
           <div>
+            {pagedTasks.length > 0 && (
+              <div className="flex items-center gap-2.5 px-4 py-2 border-b border-border-subtle bg-surface">
+                <input type="checkbox" className="checkbox" checked={pagedTasks.every((t) => selectedTasks.has(t.id))} onChange={toggleSelectAllTasks} aria-label="전체선택" />
+                <span className="text-[0.78rem] text-muted">{selectedTasks.size > 0 ? `${selectedTasks.size}건 선택됨` : '전체선택'}</span>
+              </div>
+            )}
             {pagedTasks.length === 0 && <div className="px-4 py-3 text-[0.875rem] text-muted">할 일이 없습니다.</div>}
             {pagedTasks.map((task) => (
               <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface" key={task.id}>
-                <input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer shrink-0" checked={selectedTasks.has(task.id)} onChange={() => toggleSelectTask(task.id)} aria-label="선택" />
+                <input type="checkbox" className="checkbox" checked={selectedTasks.has(task.id)} onChange={() => toggleSelectTask(task.id)} aria-label="선택" />
                 <button
                   type="button"
                   className={`w-[18px] h-[18px] border-2 rounded-[5px] shrink-0 cursor-pointer flex items-center justify-center text-white ${task.done ? 'bg-accent border-accent' : 'border-border bg-transparent'}`}

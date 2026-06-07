@@ -129,11 +129,11 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
       </div>
 
       <div className="flex items-center justify-between mb-2">
+        <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
         <div className="flex items-center gap-2">
-          <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
-          {selected.size > 0 && <Button variant="danger" size="sm" onClick={removeSelected}>{selected.size}건 삭제</Button>}
+          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
+          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
         </div>
-        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
       <div className={`${TABLE_CARD} mb-4`}>
@@ -154,7 +154,7 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
             </colgroup>
             <thead>
               <tr>
-                <th className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={paged.length > 0 && paged.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
+                <th className="td-center"><input type="checkbox" className="checkbox" checked={paged.length > 0 && paged.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>유형</th><th>은행/기관</th><th>상품명</th>
                 <th>잔액</th><th>월 납입</th>
                 <th>금리</th><th>가입일</th><th>만기일</th>
@@ -168,7 +168,7 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
                 const near = dleft !== null && dleft >= 0 && dleft <= 30;
                 return (
                   <tr key={c.id}>
-                    <td className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} aria-label="선택" /></td>
+                    <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} aria-label="선택" /></td>
                     <td className="td-center td-muted">{filtered.length - (page - 1) * limit - i}</td>
                     <td className="td-center"><span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span></td>
                     <td className="td-center td-muted">{c.bank}</td>
@@ -195,7 +195,7 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
             return (
               <div className={TXCARD} key={c.id}>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer shrink-0" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} aria-label="선택" />
+                  <input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} aria-label="선택" />
                   <div className="flex-1 flex justify-between items-baseline gap-2.5">
                     <span className={TXCARD_TITLE}>{c.name}</span>
                     <span className={TXCARD_AMT}>{won(c.balance)}</span>

@@ -8,7 +8,7 @@ type Variant = 'primary' | 'ghost' | 'danger' | 'solid-danger';
 type Size = 'md' | 'sm';
 
 const BASE =
-  'inline-flex items-center justify-center gap-1.5 rounded-[var(--radius)] font-semibold whitespace-nowrap transition-all [&_svg]:w-[15px] [&_svg]:h-[15px]';
+  'inline-flex items-center justify-center gap-1.5 rounded-[var(--radius)] font-semibold whitespace-nowrap transition-all cursor-pointer [&_svg]:w-[15px] [&_svg]:h-[15px] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none';
 
 const VARIANT: Record<Variant, string> = {
   primary: 'bg-accent text-white hover:bg-accent-dark hover:shadow-[0_0_0_3px_var(--accent-dim)]',

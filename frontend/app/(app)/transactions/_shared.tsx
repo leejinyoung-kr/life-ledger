@@ -36,8 +36,8 @@ export function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete:
 export function CardActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
     <div className="flex gap-2 mt-3">
-      <Button variant="ghost" className="flex-1" onClick={onEdit}><IconEdit width={14} height={14} /> 수정</Button>
-      <Button variant="danger" className="flex-1" onClick={onDelete}><IconTrash width={14} height={14} /> 삭제</Button>
+      <Button variant="ghost" className="flex-1" onClick={onEdit}>수정</Button>
+      <Button variant="danger" className="flex-1" onClick={onDelete}>삭제</Button>
     </div>
   );
 }

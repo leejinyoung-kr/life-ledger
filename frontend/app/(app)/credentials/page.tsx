@@ -17,7 +17,6 @@ import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
   IconSearch, IconEdit, IconTrash, IconClose, IconCopy, IconEye,
-  IconDownload, IconFileBlank, IconUpload,
 } from '@/components/icons';
 import { api, apiDownload } from '@/lib/api';
 import {
@@ -156,13 +155,13 @@ export default function CredentialsPage() {
       {/* 엑셀 툴바 — 양식/업로드/데이터 */}
       <div className="flex gap-2 flex-wrap items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
         <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">엑셀</span>
-        <button type="button" className="excel-btn" onClick={downloadTemplate}><IconFileBlank />양식 다운로드</button>
+        <button type="button" className="excel-btn" onClick={downloadTemplate}>양식 다운로드</button>
         <label className="excel-btn upload">
-          <IconUpload />엑셀 업로드
+          엑셀 업로드
           <input type="file" accept=".xlsx,.xls" hidden onChange={uploadExcel} />
         </label>
         <div className="w-px bg-border self-stretch mx-1 shrink-0" />
-        <button type="button" className="excel-btn" onClick={downloadData}><IconDownload />데이터 다운로드</button>
+        <button type="button" className="excel-btn" onClick={downloadData}>데이터 다운로드</button>
       </div>
 
       {/* 검색 툴바 */}
@@ -175,8 +174,8 @@ export default function CredentialsPage() {
           {FILTER_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
         <div className="ml-auto flex items-center gap-2">
-          {selected.size > 0 && <Button variant="danger" size="sm" onClick={removeSelected}>{selected.size}건 삭제</Button>}
           <span className="text-muted text-[0.82rem]">총 {rows.length}개</span>
+          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
         </div>
       </div>
@@ -187,7 +186,7 @@ export default function CredentialsPage() {
           <table>
             <thead>
               <tr>
-                <th className="td-center" style={{ width: '40px' }}><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={paged.length > 0 && paged.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
+                <th className="td-center" style={{ width: '40px' }}><input type="checkbox" className="checkbox" checked={paged.length > 0 && paged.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
                 <th>서비스</th><th>카테고리</th><th>아이디</th><th>수정일</th><th>관리</th>
               </tr>
             </thead>
@@ -195,7 +194,7 @@ export default function CredentialsPage() {
               {paged.length === 0 && <tr><td colSpan={6} className="td-center td-muted">저장된 계정이 없습니다.</td></tr>}
               {paged.map((c) => (
                 <tr key={c.id} className="cursor-pointer" onClick={() => setDetail(c)}>
-                  <td className="td-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} aria-label="선택" /></td>
+                  <td className="td-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} aria-label="선택" /></td>
                   <td className="td-center">
                     <div className="font-medium text-[0.875rem] text-primary">{c.name}</div>
                     <div className="text-[0.72rem] text-muted">{c.url ?? '—'}</div>
@@ -219,9 +218,9 @@ export default function CredentialsPage() {
         <div className="hidden max-md:flex flex-col gap-2.5 p-3">
           {paged.length === 0 && <div className="text-center text-muted py-7">저장된 계정이 없습니다.</div>}
           {paged.map((c) => (
-            <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={c.id} onClick={() => setDetail(c)}>
+            <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background cursor-pointer" key={c.id} onClick={() => setDetail(c)}>
               <div className="flex items-center gap-2.5">
-                <input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer shrink-0" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} onClick={(e) => e.stopPropagation()} aria-label="선택" />
+                <input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} onClick={(e) => e.stopPropagation()} aria-label="선택" />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-[0.95rem] text-primary truncate">{c.name}</div>
                   <div className="text-[0.72rem] text-muted truncate">{c.url ?? '—'}</div>
@@ -465,7 +464,7 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
       <Field label={editing ? '비밀번호 (변경 시에만 입력)' : '비밀번호'} required={!editing} error={errors.pw}>
         <div className="flex gap-2">
           <input type="text" className={`input${errors.pw ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearErr('pw'); }} />
-          <Button variant="ghost" className="whitespace-nowrap" onClick={() => { setPw(generatePassword()); clearErr('pw'); }}>🎲 생성</Button>
+          <Button variant="ghost" className="whitespace-nowrap" onClick={() => { setPw(generatePassword()); clearErr('pw'); }}>생성</Button>
         </div>
         {pw && (
           <>

@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "pnpm run db && concurrently -n \"backend,frontend\" -c \"blue,green\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
     "dev:backend": "pnpm --filter backend start:dev",
-    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:frontend": "node -e \"require('fs').rmSync('frontend/.next',{recursive:true,force:true})\" && pnpm --filter frontend dev",
     "db": "docker compose up db -d",
     "db:stop": "docker compose stop db",
     "docker:up": "docker compose up -d",

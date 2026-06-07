@@ -186,7 +186,7 @@ export default function TrashPage() {
             </colgroup>
             <thead>
               <tr>
-                <th className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={paged.length > 0 && paged.every((it) => selected.has(`${it.kind}-${it.id}`))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
+                <th className="td-center"><input type="checkbox" className="checkbox" checked={paged.length > 0 && paged.every((it) => selected.has(`${it.kind}-${it.id}`))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>이름</th><th>유형</th><th>삭제일</th><th>남은 기간</th><th>관리</th>
               </tr>
             </thead>
@@ -196,7 +196,7 @@ export default function TrashPage() {
               )}
               {paged.map((it, i) => (
                 <tr key={`${it.kind}-${it.id}`}>
-                  <td className="td-center"><input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer" checked={selected.has(`${it.kind}-${it.id}`)} onChange={() => toggleSelect(`${it.kind}-${it.id}`)} aria-label="선택" /></td>
+                  <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(`${it.kind}-${it.id}`)} onChange={() => toggleSelect(`${it.kind}-${it.id}`)} aria-label="선택" /></td>
                   <td className="td-center td-muted">{filtered.length - (page - 1) * limit - i}</td>
                   <td className="td-name">{it.name}</td>
                   <td className="td-center"><span className="type-chip">{it.chip}</span></td>
@@ -221,7 +221,7 @@ export default function TrashPage() {
             <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={`${it.kind}-${it.id}`}>
               <div className="flex items-baseline gap-2 justify-between">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <input type="checkbox" className="w-[15px] h-[15px] accent-accent cursor-pointer shrink-0 self-center" checked={selected.has(`${it.kind}-${it.id}`)} onChange={() => toggleSelect(`${it.kind}-${it.id}`)} aria-label="선택" />
+                  <input type="checkbox" className="checkbox self-center" checked={selected.has(`${it.kind}-${it.id}`)} onChange={() => toggleSelect(`${it.kind}-${it.id}`)} aria-label="선택" />
                   <span className="font-semibold text-[0.95rem] break-all">{it.name}</span>
                 </div>
                 <span className={`text-[0.82rem] whitespace-nowrap ${it.daysLeft <= 2 ? 'text-danger font-semibold' : 'text-muted'}`}>{it.daysLeft}일 남음</span>

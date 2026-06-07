@@ -549,4 +549,3 @@ CREATE TRIGGER `tr_storage_folder_bu`    BEFORE UPDATE ON `storage_folder`    FO
 
 CREATE TRIGGER `tr_storage_file_bi`      BEFORE INSERT ON `storage_file`      FOR EACH ROW SET NEW.created_at = NOW(), NEW.updated_at = NOW();
 CREATE TRIGGER `tr_storage_file_bu`      BEFORE UPDATE ON `storage_file`      FOR EACH ROW SET NEW.updated_at = NOW();
-CREATE TRIGGER `tr_env_var_bu`           BEFORE UPDATE ON `env_var`           FOR EACH ROW SET NEW.updated_at = NOW();

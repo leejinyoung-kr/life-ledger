@@ -157,9 +157,7 @@ export default function NotificationsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          {selected.size > 0 && (
-            <Button variant="danger" onClick={removeSelected}>{selected.size}건 삭제</Button>
-          )}
+          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
           <Button variant="ghost" onClick={removeAll}>전체삭제</Button>
           <Button variant="ghost" onClick={markAllRead}>모두 읽음</Button>
         </div>
@@ -186,7 +184,7 @@ export default function NotificationsPage() {
           <div className="flex items-center gap-3.5 px-5 py-2.5 border-b border-border-subtle bg-surface">
             <input
               type="checkbox"
-              className="w-4 h-4 cursor-pointer accent-accent"
+              className="checkbox"
               checked={selected.size === paged.length}
               onChange={() => toggleSelectAll(paged)}
               aria-label="전체선택"
@@ -205,7 +203,7 @@ export default function NotificationsPage() {
           >
             <input
               type="checkbox"
-              className="w-4 h-4 cursor-pointer accent-accent shrink-0 mt-1"
+              className="checkbox mt-1"
               checked={selected.has(n.id)}
               onChange={() => toggleSelect(n.id)}
               onClick={(e) => e.stopPropagation()}

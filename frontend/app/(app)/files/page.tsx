@@ -13,7 +13,7 @@ import { useConfirm } from '@/components/ConfirmModal';
 import Button, { buttonClasses } from '@/components/ui/Button';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import {
-  IconFolderPlus, IconUpload, IconDownload, IconEye, IconFolder, IconTrash,
+  IconFolderPlus, IconUpload, IconFolder, IconTrash,
   IconDoc, IconImage, IconClose, IconSearch,
 } from '@/components/icons';
 
@@ -208,9 +208,9 @@ export default function FilesPage() {
           <p className="text-sm text-secondary mt-1.5">폴더를 생성하여 파일을 정리하거나, 바로 업로드할 수 있습니다.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={() => setFolderModal(true)}><IconFolderPlus width={14} height={14} />폴더 생성</Button>
+          <Button variant="ghost" onClick={() => setFolderModal(true)}>폴더 생성</Button>
           <label className={buttonClasses('primary') + (uploading ? ' opacity-60 pointer-events-none' : '')}>
-            <IconUpload width={13} height={13} />{uploading ? '업로드 중…' : '파일 업로드'}
+            {uploading ? '업로드 중…' : '파일 업로드'}
             <input ref={fileInputRef} type="file" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
           </label>
         </div>
@@ -349,9 +349,9 @@ export default function FilesPage() {
                     <div className="text-[0.7rem] text-muted">{formatBytes(file.size)} · {new Date(file.createdAt).toLocaleDateString('ko-KR')}</div>
                   </div>
                   <div className="flex border-t border-border-subtle" onClick={(e) => e.stopPropagation()}>
-                    <button type="button" className={FILE_BTN} onClick={() => setViewer(file)}><IconEye width={11} height={11} />보기</button>
-                    <button type="button" className={FILE_BTN} onClick={() => downloadFile(file)}><IconDownload width={11} height={11} />다운</button>
-                    <button type="button" className={`${FILE_BTN} hover:text-danger`} onClick={() => deleteFile(file)}><IconTrash width={11} height={11} />삭제</button>
+                    <button type="button" className={FILE_BTN} onClick={() => setViewer(file)}>보기</button>
+                    <button type="button" className={FILE_BTN} onClick={() => downloadFile(file)}>다운</button>
+                    <button type="button" className={`${FILE_BTN} hover:text-danger`} onClick={() => deleteFile(file)}>삭제</button>
                   </div>
                 </div>
               ))}
@@ -436,7 +436,7 @@ function ViewerModal({
       <span className="text-[1.2rem]">{fileEmoji(file.mimeType)}</span>
       <span className="text-[0.875rem] font-semibold text-primary flex-1 truncate">{file.name}</span>
       <div className="flex gap-1.5 items-center">
-        <Button variant="ghost" size="sm" onClick={() => onDownload(file)}><IconDownload width={13} height={13} />다운로드</Button>
+        <Button variant="ghost" size="sm" onClick={() => onDownload(file)}>다운로드</Button>
         <button
           type="button"
           className="w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] text-secondary border border-border transition-all hover:bg-surface hover:text-primary"

@@ -390,6 +390,20 @@
 /* 좌측 돋보기 아이콘용 패딩 — .input 의 shorthand padding 을 명시도로 덮어쓴다 */
 .input.pl-icon { padding-left: 34px; }
 select.input option { background: var(--bg-base); }
+
+/* 공통 체크박스 — 네이티브 스타일 대신 앱 톤(둥근 사각형 + 강조색)에 맞춤 */
+.checkbox {
+  appearance: none; -webkit-appearance: none; flex-shrink: 0;
+  width: 16px; height: 16px; border: 1.5px solid var(--border); border-radius: 4px;
+  background: var(--bg-base); cursor: pointer; position: relative;
+  transition: background var(--ease), border-color var(--ease);
+}
+.checkbox:hover { border-color: var(--accent); }
+.checkbox:checked { background: var(--accent); border-color: var(--accent); }
+.checkbox:checked::after {
+  content: ''; position: absolute; left: 6px; top: 3px; width: 4px; height: 8px;
+  border: solid #fff; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+}
 .input-group { display: flex; flex-direction: column; gap: 6px; }
 
 .table-wrap { width: 100%; overflow-x: auto; }
@@ -421,8 +435,6 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
   cursor: pointer; transition: all var(--ease); white-space: nowrap;
 }
 .excel-btn:hover { background: var(--bg-surface); color: var(--text-primary); border-color: var(--accent); }
-.excel-btn svg { width: 14px; height: 14px; color: #1D6F42; flex-shrink: 0; }
-.excel-btn.upload svg { color: var(--blue); }
 
 /* ── 공통 애니메이션 ── */
 @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
