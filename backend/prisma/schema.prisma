@@ -35,6 +35,8 @@ model User {
   envProjects    EnvProject[]
   envVars        EnvVar[]
   monthlyBudgets MonthlyBudget[]
+  storageFolders StorageFolder[]
+  storageFiles   StorageFile[]
 
   @@map("user")
 }
@@ -595,6 +597,47 @@ model MonthlyBudget {
   @@unique([user_id, year_month, category])
   @@index([user_id, year_month])
   @@map("monthly_budget")
+}
+
+/// 파일 보관함 폴더 — parent_id 로 무한 중첩 지원
+model StorageFolder {
+  id         Int           @id @default(autoincrement())
+  user_id    Int /// user.id FK
+  parent_id  Int? /// storage_folder.id FK (null = 루트)
+  name       String        @db.VarChar(200)
+  deleted_at DateTime?
+  created_at DateTime      @default(now())
+  updated_at DateTime      @updatedAt
+
+  user     User            @relation(fields: [user_id], references: [id])
+  parent   StorageFolder?  @relation("FolderTree", fields: [parent_id], references: [id])
+  children StorageFolder[] @relation("FolderTree")
+  files    StorageFile[]
+
+  @@index([user_id])
+  @@index([parent_id])
+  @@map("storage_folder")
+}
+
+/// 파일 보관함 파일 메타데이터 — B2 오브젝트 키 + 크기·MIME 저장
+model StorageFile {
+  id          Int            @id @default(autoincrement())
+  user_id     Int /// user.id FK
+  folder_id   Int? /// storage_folder.id FK
+  object_key  String         @db.VarChar(500) /// B2 오브젝트 키 (users/{userId}/{uuid}/{filename})
+  name        String         @db.VarChar(300) /// 원본 파일명
+  size        BigInt         @default(0) /// 바이트 단위
+  mime_type   String         @db.VarChar(100)
+  deleted_at  DateTime?
+  created_at  DateTime       @default(now())
+  updated_at  DateTime       @updatedAt
+
+  user   User           @relation(fields: [user_id], references: [id])
+  folder StorageFolder? @relation(fields: [folder_id], references: [id])
+
+  @@index([user_id])
+  @@index([folder_id])
+  @@map("storage_file")
 }
 
 /// ENV 변수 (ENV 보관함 페이지) — 값(value)은 AES-256-GCM 암호화 저장

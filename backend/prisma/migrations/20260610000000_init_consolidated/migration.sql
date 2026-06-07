@@ -422,6 +422,38 @@ CREATE TABLE `env_var` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT='ENV 변수';
 
 
+CREATE TABLE `storage_folder` (
+    `id`         INTEGER      NOT NULL AUTO_INCREMENT COMMENT '고유번호',
+    `user_id`    INTEGER      NOT NULL                COMMENT 'user.id FK',
+    `parent_id`  INTEGER      NULL                    COMMENT 'storage_folder.id FK (null=루트)',
+    `name`       VARCHAR(200) NOT NULL                COMMENT '폴더명',
+    `deleted_at` DATETIME(3)  NULL                    COMMENT '삭제일(KST)',
+    `created_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
+    `updated_at` DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+
+    INDEX `storage_folder_user_id_idx`(`user_id`),
+    INDEX `storage_folder_parent_id_idx`(`parent_id`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT='파일 보관함 폴더';
+
+CREATE TABLE `storage_file` (
+    `id`         INTEGER      NOT NULL AUTO_INCREMENT COMMENT '고유번호',
+    `user_id`    INTEGER      NOT NULL                COMMENT 'user.id FK',
+    `folder_id`  INTEGER      NULL                    COMMENT 'storage_folder.id FK (null=루트)',
+    `object_key` VARCHAR(500) NOT NULL                COMMENT 'B2 오브젝트 키',
+    `name`       VARCHAR(300) NOT NULL                COMMENT '원본 파일명',
+    `size`       BIGINT       NOT NULL DEFAULT 0       COMMENT '파일 크기(바이트)',
+    `mime_type`  VARCHAR(100) NOT NULL                COMMENT 'MIME 타입',
+    `deleted_at` DATETIME(3)  NULL                    COMMENT '삭제일(KST)',
+    `created_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
+    `updated_at` DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+
+    INDEX `storage_file_user_id_idx`(`user_id`),
+    INDEX `storage_file_folder_id_idx`(`folder_id`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT='파일 보관함 파일';
+
+
 -- ============================================================
 -- Foreign Keys
 -- ============================================================
@@ -446,6 +478,10 @@ ALTER TABLE `credential`       ADD CONSTRAINT `credential_user_id_fkey`         
 ALTER TABLE `env_project`      ADD CONSTRAINT `env_project_user_id_fkey`           FOREIGN KEY (`user_id`)     REFERENCES `user`(`id`)         ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE `env_var`          ADD CONSTRAINT `env_var_user_id_fkey`               FOREIGN KEY (`user_id`)     REFERENCES `user`(`id`)         ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE `env_var`          ADD CONSTRAINT `env_var_project_id_fkey`            FOREIGN KEY (`project_id`)  REFERENCES `env_project`(`id`)  ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `storage_folder`   ADD CONSTRAINT `storage_folder_user_id_fkey`         FOREIGN KEY (`user_id`)     REFERENCES `user`(`id`)         ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `storage_folder`   ADD CONSTRAINT `storage_folder_parent_id_fkey`        FOREIGN KEY (`parent_id`)   REFERENCES `storage_folder`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `storage_file`     ADD CONSTRAINT `storage_file_user_id_fkey`            FOREIGN KEY (`user_id`)     REFERENCES `user`(`id`)         ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `storage_file`     ADD CONSTRAINT `storage_file_folder_id_fkey`          FOREIGN KEY (`folder_id`)   REFERENCES `storage_folder`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 
 -- ============================================================
@@ -506,4 +542,11 @@ CREATE TRIGGER `tr_env_project_bi`       BEFORE INSERT ON `env_project`       FO
 CREATE TRIGGER `tr_env_project_bu`       BEFORE UPDATE ON `env_project`       FOR EACH ROW SET NEW.updated_at = NOW();
 
 CREATE TRIGGER `tr_env_var_bi`           BEFORE INSERT ON `env_var`           FOR EACH ROW SET NEW.created_at = NOW(), NEW.updated_at = NOW();
+CREATE TRIGGER `tr_env_var_bu`           BEFORE UPDATE ON `env_var`           FOR EACH ROW SET NEW.updated_at = NOW();
+
+CREATE TRIGGER `tr_storage_folder_bi`    BEFORE INSERT ON `storage_folder`    FOR EACH ROW SET NEW.created_at = NOW(), NEW.updated_at = NOW();
+CREATE TRIGGER `tr_storage_folder_bu`    BEFORE UPDATE ON `storage_folder`    FOR EACH ROW SET NEW.updated_at = NOW();
+
+CREATE TRIGGER `tr_storage_file_bi`      BEFORE INSERT ON `storage_file`      FOR EACH ROW SET NEW.created_at = NOW(), NEW.updated_at = NOW();
+CREATE TRIGGER `tr_storage_file_bu`      BEFORE UPDATE ON `storage_file`      FOR EACH ROW SET NEW.updated_at = NOW();
 CREATE TRIGGER `tr_env_var_bu`           BEFORE UPDATE ON `env_var`           FOR EACH ROW SET NEW.updated_at = NOW();

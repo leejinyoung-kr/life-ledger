@@ -2,14 +2,14 @@
 
 /**
  * 파일 보관함 페이지.
- * 폴더/파일을 그리드로 보고 드래그·업로드, 폴더 생성, 문서 뷰어(PDF/이미지 목업)를 제공한다.
- * 공통 레이아웃(AppShell)·모달(Modal)을 재사용하고 데이터는 더미로 채운다. (Cloudflare R2)
- * 스타일: Tailwind + 공통 컴포넌트(Modal/Button/Field).
+ * 중첩 폴더 탐색(브레드크럼), 업로드, 다운로드, 삭제를 B2 백엔드 API와 연동한다.
  */
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { notify } from '@/lib/toast';
+import { api, apiUpload } from '@/lib/api';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
+import { useConfirm } from '@/components/ConfirmModal';
 import Button, { buttonClasses } from '@/components/ui/Button';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import {
@@ -17,74 +17,214 @@ import {
   IconDoc, IconImage, IconClose, IconSearch,
 } from '@/components/icons';
 
-interface FileItem { type: 'pdf' | 'image'; name: string; ext: string; emoji: string; meta: string; }
+// ── 타입 ────────────────────────────────────────────────────────────────────
 
-// ── 더미 데이터 (TODO: GET /api/v1/files) ───────────────────────
-const FOLDERS = [
-  { icon: '📁', name: '보험 서류', count: 8 },
-  { icon: '📁', name: '신분증 사본', count: 3 },
-  { icon: '📁', name: '계약서', count: 12 },
-  { icon: '🖼️', name: '사진', count: 28 },
-];
+interface FolderItem {
+  id: number;
+  name: string;
+  parentId: number | null;
+  fileCount: number;
+  childFolderCount: number;
+  createdAt: string;
+}
 
-const FILES: FileItem[] = [
-  { type: 'pdf', name: '보험증권_2025.pdf', ext: 'PDF', emoji: '📄', meta: '1.2 MB · 2025.05.29' },
-  { type: 'image', name: '영수증_20250530.jpg', ext: 'JPG', emoji: '🖼️', meta: '320 KB · 2025.05.30' },
-];
+interface FileItem {
+  id: number;
+  name: string;
+  size: number;
+  mimeType: string;
+  folderId: number | null;
+  createdAt: string;
+}
+
+interface BreadcrumbItem { id: number; name: string; }
+
+interface ListResponse {
+  breadcrumb: BreadcrumbItem[];
+  folders: FolderItem[];
+  files: FileItem[];
+  totalBytes: number;
+}
+
+// ── 유틸 ────────────────────────────────────────────────────────────────────
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+}
+
+function fileEmoji(mime: string) {
+  if (mime.startsWith('image/')) return '🖼️';
+  if (mime === 'application/pdf') return '📄';
+  return '📎';
+}
+
+function fileExt(name: string) {
+  return name.split('.').pop()?.toUpperCase() ?? '';
+}
+
+const FREE_BYTES = 10 * 1024 ** 3; // 10GB
 
 const SECTION = '[font-family:var(--font-display)] text-[0.9rem] font-bold text-primary mb-3 flex items-center gap-2';
 const FILE_BTN = 'flex-1 flex items-center justify-center gap-[3px] py-1.5 text-[0.72rem] text-muted transition-all border-r border-border-subtle last:border-r-0 hover:bg-surface hover:text-primary [&_svg]:w-[11px] [&_svg]:h-[11px]';
 
+// ── 페이지 ───────────────────────────────────────────────────────────────────
+
 export default function FilesPage() {
+  const [data, setData] = useState<ListResponse>({ breadcrumb: [], folders: [], files: [], totalBytes: 0 });
+  const [currentFolderId, setCurrentFolderId] = useState<number | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
   const [dragOver, setDragOver] = useState(false);
-  const [folder, setFolder] = useState('루트');          // 현재 브레드크럼 위치
   const [folderModal, setFolderModal] = useState(false);
   const [folderName, setFolderName] = useState('');
-  const [viewer, setViewer] = useState<FileItem | null>(null); // 뷰어 대상 파일
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [viewer, setViewer] = useState<FileItem | null>(null);
+  const [search, setSearch] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { confirm, confirmElement } = useConfirm();
 
-  // 드롭존에 파일을 떨어뜨렸을 때. TODO: R2 업로드 API 연동
+  const load = useCallback(async (folderId?: number) => {
+    setLoading(true);
+    try {
+      const qs = folderId !== undefined ? `?folderId=${folderId}` : '';
+      const res = await api.get<ListResponse>(`/files${qs}`);
+      setData(res);
+    } catch {
+      notify.error('파일 목록을 불러오지 못했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(currentFolderId); }, [load, currentFolderId]);
+
+  // 폴더 클릭 — 해당 폴더로 진입
+  function enterFolder(id: number) {
+    setCurrentFolderId(id);
+    setSearch('');
+  }
+
+  // 브레드크럼 클릭 — 루트 또는 상위 폴더로 이동
+  function navigateTo(id?: number) {
+    setCurrentFolderId(id);
+    setSearch('');
+  }
+
+  // 파일 업로드
+  async function handleFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    setUploading(true);
+    try {
+      const qs = currentFolderId !== undefined ? `?folderId=${currentFolderId}` : '';
+      for (const f of Array.from(fileList)) {
+        await apiUpload(`/files/upload${qs}`, f);
+      }
+      notify.success('업로드 완료');
+      load(currentFolderId);
+    } catch {
+      notify.error('업로드에 실패했습니다.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
+    handleFiles(e.dataTransfer.files);
   }
 
-  // 폴더 생성. TODO: POST /api/v1/folders
-  function createFolder() {
+  // 폴더 생성
+  async function createFolder() {
     if (!folderName.trim()) return;
-    setFolderModal(false);
-    setFolderName('');
+    setSaving(true);
+    try {
+      await api.post('/files/folders', { name: folderName.trim(), parentId: currentFolderId ?? null });
+      notify.success('폴더가 생성되었습니다.');
+      setFolderModal(false);
+      setFolderName('');
+      load(currentFolderId);
+    } catch {
+      notify.error('폴더 생성에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
   }
+
+  // 파일 다운로드
+  async function downloadFile(file: FileItem) {
+    try {
+      const { url } = await api.get<{ url: string }>(`/files/${file.id}/url`);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      a.click();
+    } catch {
+      notify.error('다운로드 URL 발급에 실패했습니다.');
+    }
+  }
+
+  // 파일 삭제
+  async function deleteFile(file: FileItem) {
+    if (!await confirm(`"${file.name}" 파일을 삭제할까요?`, 'danger')) return;
+    try {
+      await api.del(`/files/${file.id}`);
+      notify.success('삭제되었습니다.');
+      load(currentFolderId);
+    } catch {
+      notify.error('삭제에 실패했습니다.');
+    }
+  }
+
+  // 폴더 삭제
+  async function deleteFolder(folder: FolderItem) {
+    if (!await confirm(`"${folder.name}" 폴더를 삭제할까요?`, 'danger')) return;
+    try {
+      await api.del(`/files/folders/${folder.id}`);
+      notify.success('폴더가 삭제되었습니다.');
+      load(currentFolderId);
+    } catch {
+      notify.error('폴더 삭제에 실패했습니다.');
+    }
+  }
+
+  const usagePct = Math.min((data.totalBytes / FREE_BYTES) * 100, 100);
+
+  const filteredFolders = data.folders.filter((f) =>
+    f.name.toLowerCase().includes(search.toLowerCase()),
+  );
+  const filteredFiles = data.files.filter((f) =>
+    f.name.toLowerCase().includes(search.toLowerCase()),
+  );
 
   return (
     <AppShell activePath="/files" topbarLabel="파일 보관함">
       <div className="mb-7 flex items-center justify-between gap-4">
         <div>
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">파일 보관함</h1>
-          <p className="text-sm text-secondary mt-1.5">폴더를 생성하여 파일을 정리하거나, 바로 업로드할 수 있습니다. (Cloudflare R2)</p>
+          <p className="text-sm text-secondary mt-1.5">폴더를 생성하여 파일을 정리하거나, 바로 업로드할 수 있습니다.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => setFolderModal(true)}><IconFolderPlus width={14} height={14} />폴더 생성</Button>
-          <label className={buttonClasses('primary')}>
-            <IconUpload width={13} height={13} />파일 업로드
-            <input ref={fileInputRef} type="file" multiple hidden />
+          <label className={buttonClasses('primary') + (uploading ? ' opacity-60 pointer-events-none' : '')}>
+            <IconUpload width={13} height={13} />{uploading ? '업로드 중…' : '파일 업로드'}
+            <input ref={fileInputRef} type="file" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
           </label>
         </div>
       </div>
 
-      {/* 스토리지 사용량 — TODO: GET /api/v1/files/storage */}
+      {/* 스토리지 사용량 */}
       <div className="mb-5">
         <div className="flex justify-between text-[0.8rem] mb-1.5 text-secondary [&_strong]:text-accent">
-          <span>24.51 MB 사용 중</span>
-          <span>1 GB 중 <strong>2.4%</strong></span>
+          <span>{formatBytes(data.totalBytes)} 사용 중</span>
+          <span>10 GB 중 <strong>{usagePct.toFixed(1)}%</strong></span>
         </div>
-        <div className="h-1.5 bg-elevated rounded-[3px] overflow-hidden"><div className="h-full rounded-[3px] bg-accent w-[2.4%]" /></div>
-      </div>
-
-      {/* 내보내기 */}
-      <div className="flex gap-2 flex-wrap items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
-        <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">내보내기</span>
-        <button type="button" className="excel-btn" onClick={() => notify.comingSoon()}><IconDownload />파일 목록 다운로드</button>
+        <div className="h-1.5 bg-elevated rounded-[3px] overflow-hidden">
+          <div className="h-full rounded-[3px] bg-accent transition-all" style={{ width: `${usagePct}%` }} />
+        </div>
       </div>
 
       {/* 업로드 드롭존 */}
@@ -102,97 +242,207 @@ export default function FilesPage() {
         </div>
       </div>
 
-      {/* OCR 안내 배너 */}
-      <div className="flex items-center gap-2.5 px-4 py-3 bg-accent-dim border border-[rgba(0,192,127,0.2)] rounded-[var(--radius)] mb-5 text-[0.82rem]">
-        <span>🧾</span>
-        <span className="flex-1 text-secondary">영수증 이미지를 올리면 <strong>OCR</strong>로 금액·날짜를 읽어 가계부에 자동 등록 제안합니다.</span>
-        <Button href="/transactions" variant="ghost" size="sm">가계부</Button>
-      </div>
-
       {/* 브레드크럼 */}
       <div className="flex items-center gap-1.5 text-[0.82rem] text-muted mb-4 flex-wrap">
-        <a href="#" className="text-accent hover:opacity-70" onClick={() => setFolder('루트')}>📁 전체</a>
-        <span className="text-border">/</span>
-        <span className="text-primary font-medium">{folder}</span>
+        <button type="button" className="text-accent hover:opacity-70" onClick={() => navigateTo(undefined)}>
+          📁 전체
+        </button>
+        {data.breadcrumb.map((crumb) => (
+          <span key={crumb.id} className="flex items-center gap-1.5">
+            <span className="text-border">/</span>
+            <button type="button" className="text-accent hover:opacity-70" onClick={() => navigateTo(crumb.id)}>
+              {crumb.name}
+            </button>
+          </span>
+        ))}
+        {currentFolderId === undefined && (
+          <span className="text-border ml-1">— 루트</span>
+        )}
       </div>
 
-      {/* 필터 */}
+      {/* 검색 + 필터 */}
       <div className="flex items-center gap-2.5 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-          <input className="input pl-icon" type="text" placeholder="파일/폴더명 검색..." aria-label="파일 검색" />
+          <input className="input pl-icon" type="text" placeholder="파일/폴더명 검색..." value={search} onChange={(e) => setSearch(e.target.value)} aria-label="파일 검색" />
         </div>
-        <select className="input w-auto min-w-[110px] shrink-0" defaultValue="전체" aria-label="유형 필터">
-          <option>전체</option><option>이미지</option><option>PDF</option><option>문서</option>
-        </select>
-        <select className="input w-auto min-w-[110px] shrink-0" defaultValue="최신순" aria-label="정렬">
-          <option>최신순</option><option>이름순</option><option>크기순</option>
-        </select>
-        <span className="text-muted ml-auto text-[0.82rem]">폴더 {FOLDERS.length} · 파일 51</span>
+        <span className="text-muted ml-auto text-[0.82rem]">
+          폴더 {filteredFolders.length} · 파일 {filteredFiles.length}
+        </span>
       </div>
 
-      {/* 폴더 섹션 */}
-      <div className={SECTION}><IconFolder width={16} height={16} />폴더</div>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 mb-7">
-        {FOLDERS.map((f) => (
-          <div className="flex flex-col items-center gap-2 px-3 pt-5 pb-3.5 bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] cursor-pointer transition-all text-center hover:border-accent hover:bg-accent-dim hover:-translate-y-px" key={f.name} onClick={() => setFolder(f.name)}>
-            <div className="text-[2rem] leading-none">{f.icon}</div>
-            <div className="text-[0.82rem] font-semibold text-primary break-all">{f.name}</div>
-            <div className="text-[0.72rem] text-muted">파일 {f.count}개</div>
-          </div>
-        ))}
-        <div className="flex flex-col items-center justify-center gap-2 px-3 py-5 border border-dashed border-border rounded-[var(--radius-lg)] text-muted cursor-pointer transition-all hover:border-accent hover:text-accent hover:bg-accent-dim" onClick={() => setFolderModal(true)}>
-          <IconFolderPlus width={24} height={24} />
-          <div className="text-[0.82rem] font-medium">새 폴더</div>
-        </div>
-      </div>
+      {loading ? (
+        <div className="text-center py-16 text-muted text-sm">불러오는 중…</div>
+      ) : (
+        <>
+          {/* 폴더 섹션 */}
+          {filteredFolders.length > 0 && (
+            <>
+              <div className={SECTION}><IconFolder width={16} height={16} />폴더</div>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 mb-7">
+                {filteredFolders.map((f) => (
+                  <div
+                    key={f.id}
+                    className="flex flex-col items-center gap-2 px-3 pt-5 pb-3.5 bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] cursor-pointer transition-all text-center hover:border-accent hover:bg-accent-dim hover:-translate-y-px group relative"
+                    onClick={() => enterFolder(f.id)}
+                  >
+                    <div className="text-[2rem] leading-none">📁</div>
+                    <div className="text-[0.82rem] font-semibold text-primary break-all">{f.name}</div>
+                    <div className="text-[0.72rem] text-muted">
+                      파일 {f.fileCount}개{f.childFolderCount > 0 ? ` · 폴더 ${f.childFolderCount}개` : ''}
+                    </div>
+                    <button
+                      type="button"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded text-muted hover:text-danger hover:bg-surface transition-all"
+                      onClick={(e) => { e.stopPropagation(); deleteFolder(f); }}
+                      aria-label="폴더 삭제"
+                    >
+                      <IconTrash width={12} height={12} />
+                    </button>
+                  </div>
+                ))}
+                <div
+                  className="flex flex-col items-center justify-center gap-2 px-3 py-5 border border-dashed border-border rounded-[var(--radius-lg)] text-muted cursor-pointer transition-all hover:border-accent hover:text-accent hover:bg-accent-dim"
+                  onClick={() => setFolderModal(true)}
+                >
+                  <IconFolderPlus width={24} height={24} />
+                  <div className="text-[0.82rem] font-medium">새 폴더</div>
+                </div>
+              </div>
+            </>
+          )}
 
-      {/* 파일 섹션 */}
-      <div className={SECTION}><IconDoc width={16} height={16} />미분류 파일</div>
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
-        {FILES.map((file) => (
-          <div className="bg-background border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)] transition-all cursor-pointer hover:border-accent hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]" key={file.name} onClick={() => setViewer(file)}>
-            <div className="h-[100px] bg-surface flex items-center justify-center text-[2rem] border-b border-border relative">
-              {file.emoji}<span className="absolute top-[7px] right-[7px] px-1.5 py-px rounded-full text-[0.6rem] [font-family:var(--font-mono)] bg-[rgba(15,25,35,0.5)] text-white uppercase">{file.ext}</span>
+          {/* 폴더가 없을 때 새 폴더 버튼만 */}
+          {filteredFolders.length === 0 && !search && (
+            <div className="mb-7">
+              <div className={SECTION}><IconFolder width={16} height={16} />폴더</div>
+              <div
+                className="inline-flex flex-col items-center justify-center gap-2 px-6 py-5 border border-dashed border-border rounded-[var(--radius-lg)] text-muted cursor-pointer transition-all hover:border-accent hover:text-accent hover:bg-accent-dim"
+                onClick={() => setFolderModal(true)}
+              >
+                <IconFolderPlus width={24} height={24} />
+                <div className="text-[0.82rem] font-medium">새 폴더</div>
+              </div>
             </div>
-            <div className="px-3 py-2.5">
-              <div className="text-[0.8rem] font-medium text-primary truncate mb-0.5">{file.name}</div>
-              <div className="text-[0.7rem] text-muted">{file.meta}</div>
+          )}
+
+          {/* 파일 섹션 */}
+          <div className={SECTION}><IconDoc width={16} height={16} />파일</div>
+          {filteredFiles.length === 0 ? (
+            <div className="text-center py-10 text-muted text-sm">파일이 없습니다.</div>
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
+              {filteredFiles.map((file) => (
+                <div
+                  key={file.id}
+                  className="bg-background border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)] transition-all cursor-pointer hover:border-accent hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
+                  onClick={() => setViewer(file)}
+                >
+                  <div className="h-[100px] bg-surface flex items-center justify-center text-[2rem] border-b border-border relative">
+                    {fileEmoji(file.mimeType)}
+                    <span className="absolute top-[7px] right-[7px] px-1.5 py-px rounded-full text-[0.6rem] [font-family:var(--font-mono)] bg-[rgba(15,25,35,0.5)] text-white uppercase">
+                      {fileExt(file.name)}
+                    </span>
+                  </div>
+                  <div className="px-3 py-2.5">
+                    <div className="text-[0.8rem] font-medium text-primary truncate mb-0.5">{file.name}</div>
+                    <div className="text-[0.7rem] text-muted">{formatBytes(file.size)} · {new Date(file.createdAt).toLocaleDateString('ko-KR')}</div>
+                  </div>
+                  <div className="flex border-t border-border-subtle" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" className={FILE_BTN} onClick={() => setViewer(file)}><IconEye width={11} height={11} />보기</button>
+                    <button type="button" className={FILE_BTN} onClick={() => downloadFile(file)}><IconDownload width={11} height={11} />다운</button>
+                    <button type="button" className={`${FILE_BTN} hover:text-danger`} onClick={() => deleteFile(file)}><IconTrash width={11} height={11} />삭제</button>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex border-t border-border-subtle" onClick={(e) => e.stopPropagation()}>
-              <button type="button" className={FILE_BTN} onClick={() => setViewer(file)}><IconEye width={11} height={11} />보기</button>
-              <button type="button" className={FILE_BTN} onClick={() => notify.comingSoon()}><IconDownload width={11} height={11} />다운</button>
-              <button type="button" className={FILE_BTN} onClick={() => notify.comingSoon()}><IconFolder width={11} height={11} />이동</button>
-              <button type="button" className={`${FILE_BTN} hover:text-danger`} onClick={() => notify.comingSoon()}><IconTrash width={11} height={11} />삭제</button>
-            </div>
-          </div>
-        ))}
-      </div>
+          )}
+        </>
+      )}
 
       {/* 폴더 생성 모달 */}
-      <Modal open={folderModal} onClose={() => setFolderModal(false)} title="새 폴더 생성" footer={<ModalFooter onClose={() => setFolderModal(false)} onSave={createFolder} saving={false} saveLabel="생성" />}>
+      <Modal
+        open={folderModal}
+        onClose={() => { setFolderModal(false); setFolderName(''); }}
+        title="새 폴더 생성"
+        footer={
+          <ModalFooter
+            onClose={() => { setFolderModal(false); setFolderName(''); }}
+            onSave={createFolder}
+            saving={saving}
+            saveLabel="생성"
+          />
+        }
+      >
         <Field label="폴더 이름">
-          <input type="text" className="input" placeholder="예: 보험 서류" value={folderName} onChange={(e) => setFolderName(e.target.value)} />
+          <input
+            type="text"
+            className="input"
+            placeholder="예: 보험 서류"
+            value={folderName}
+            onChange={(e) => setFolderName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && createFolder()}
+            autoFocus
+          />
         </Field>
+        {currentFolderId !== undefined && (
+          <p className="text-[0.78rem] text-muted mt-2">
+            현재 폴더 안에 생성됩니다.
+          </p>
+        )}
       </Modal>
 
-      {/* 문서 뷰어 모달 */}
-      <ViewerModal file={viewer} onClose={() => setViewer(null)} />
+      {/* 파일 뷰어 모달 */}
+      <ViewerModal file={viewer} onClose={() => setViewer(null)} onDownload={downloadFile} />
+
+      {confirmElement}
     </AppShell>
   );
 }
 
-// 문서 뷰어 모달 — PDF/이미지 목업 렌더링
-function ViewerModal({ file, onClose }: { file: FileItem | null; onClose: () => void }) {
+// ── 뷰어 모달 ────────────────────────────────────────────────────────────────
+
+function ViewerModal({
+  file,
+  onClose,
+  onDownload,
+}: {
+  file: FileItem | null;
+  onClose: () => void;
+  onDownload: (f: FileItem) => void;
+}) {
+  const [loadedPreview, setLoadedPreview] = useState<{ id: number; url: string } | null>(null);
+
+  useEffect(() => {
+    if (!file) return;
+    const isPreviewable = file.mimeType.startsWith('image/') || file.mimeType === 'application/pdf';
+    if (!isPreviewable) return;
+    let cancelled = false;
+    api.get<{ url: string }>(`/files/${file.id}/url?disposition=inline`).then(({ url }) => {
+      if (!cancelled) setLoadedPreview({ id: file.id, url });
+    }).catch(() => {
+      if (!cancelled) notify.error('미리보기 URL 발급에 실패했습니다.');
+    });
+    return () => { cancelled = true; };
+  }, [file]);
+
   if (!file) return null;
+  const previewUrl = loadedPreview?.id === file.id ? loadedPreview.url : null;
+  const isImage = file.mimeType.startsWith('image/');
+  const isPdf = file.mimeType === 'application/pdf';
 
   const header = (
     <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border shrink-0">
-      <span className="text-[1.2rem]">{file.type === 'pdf' ? '📄' : '🖼️'}</span>
+      <span className="text-[1.2rem]">{fileEmoji(file.mimeType)}</span>
       <span className="text-[0.875rem] font-semibold text-primary flex-1 truncate">{file.name}</span>
       <div className="flex gap-1.5 items-center">
-        <Button variant="ghost" size="sm" onClick={() => notify.comingSoon()}><IconDownload width={13} height={13} />다운로드</Button>
-        <button type="button" className="w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] text-secondary border border-border transition-all hover:bg-surface hover:text-primary" onClick={onClose} aria-label="닫기">
+        <Button variant="ghost" size="sm" onClick={() => onDownload(file)}><IconDownload width={13} height={13} />다운로드</Button>
+        <button
+          type="button"
+          className="w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] text-secondary border border-border transition-all hover:bg-surface hover:text-primary"
+          onClick={onClose}
+          aria-label="닫기"
+        >
           <IconClose width={16} height={16} />
         </button>
       </div>
@@ -200,28 +450,35 @@ function ViewerModal({ file, onClose }: { file: FileItem | null; onClose: () => 
   );
 
   return (
-    <Modal
-      open={!!file}
-      onClose={onClose}
-      title={file.name}
-      className="max-w-[860px]"
-      header={header}
-      footer={<span className="text-[0.78rem] text-muted">{file.type === 'pdf' ? 'PDF 문서 · 실제 구현 시 PDF.js 사용' : '이미지 · 실제 구현 시 R2 presigned URL 사용'}</span>}
-    >
-      <div className="bg-elevated flex items-center justify-center min-h-[400px] rounded-[var(--radius)] -m-6">
-        {file.type === 'pdf' ? (
-          <div className="text-center px-6 py-12 flex flex-col items-center gap-4 [&>svg]:text-muted">
-            <IconDoc width={64} height={64} />
-            <div className="[font-family:var(--font-display)] text-base font-bold text-primary">{file.name}</div>
-            <div className="text-[0.855rem] text-secondary max-w-[320px] leading-relaxed">실제 구현 시 <strong>PDF.js</strong>로 브라우저 내 렌더링됩니다. 현재는 목업 상태입니다.</div>
-          </div>
-        ) : (
-          <div className="text-center px-6 py-12 flex flex-col items-center gap-4">
+    <Modal open={!!file} onClose={onClose} title={file.name} className="max-w-[860px]" header={header} footer={
+      <span className="text-[0.78rem] text-muted">{formatBytes(file.size)} · {file.mimeType}</span>
+    }>
+      <div className="bg-elevated flex items-center justify-center min-h-[400px] rounded-[var(--radius)] -m-6 overflow-hidden">
+        {isImage ? (
+          previewUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={previewUrl} alt={file.name} className="max-w-full max-h-[70vh] object-contain" />
+          ) : (
             <div className="w-full max-w-[480px] aspect-[4/3] bg-[linear-gradient(135deg,var(--bg-surface)_0%,var(--bg-elevated)_100%)] border border-border rounded-[var(--radius)] flex flex-col items-center justify-center gap-3 [&>svg]:text-muted">
               <IconImage width={48} height={48} />
-              <span className="text-[0.78rem] text-muted">{file.name}</span>
+              <span className="text-[0.78rem] text-muted">불러오는 중…</span>
             </div>
-            <div className="text-[0.855rem] text-secondary max-w-[320px] leading-relaxed">실제 구현 시 Cloudflare R2 presigned URL로 이미지를 로드합니다.</div>
+          )
+        ) : isPdf ? (
+          previewUrl ? (
+            <iframe src={previewUrl} title={file.name} className="w-full h-[70vh] border-0" />
+          ) : (
+            <div className="text-center px-6 py-12 flex flex-col items-center gap-4 [&>svg]:text-muted">
+              <IconDoc width={64} height={64} />
+              <div className="[font-family:var(--font-display)] text-base font-bold text-primary">{file.name}</div>
+              <span className="text-[0.78rem] text-muted">불러오는 중…</span>
+            </div>
+          )
+        ) : (
+          <div className="text-center px-6 py-12 flex flex-col items-center gap-4 [&>svg]:text-muted">
+            <IconDoc width={64} height={64} />
+            <div className="text-[0.855rem] text-secondary">{file.name}</div>
+            <Button variant="ghost" size="sm" onClick={() => onDownload(file)}>다운로드</Button>
           </div>
         )}
       </div>
