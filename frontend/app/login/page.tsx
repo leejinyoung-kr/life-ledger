@@ -2,8 +2,14 @@
  * 로그인 페이지 (독립 풀스크린, AppShell 미사용).
  * Google OAuth 로그인 진입점. 스타일: Tailwind (토큰 var() 활용).
  */
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000';
+  // 허용되지 않은 계정 로그인 시 백엔드가 ?error=not_allowed 로 리다이렉트
+  const isNotAllowed = (await searchParams).error === 'not_allowed';
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-surface p-6 relative">
@@ -26,6 +32,21 @@ export default function LoginPage() {
 
         <h1 className="text-[clamp(1rem,3vw,1.15rem)] font-bold tracking-[-0.03em] text-primary mb-1.5">DocNexus가 지켜드리는 것</h1>
         <p className="text-[0.8rem] text-secondary leading-relaxed mb-6">로그인하고 나만의 보안 관리 허브를 시작하세요.</p>
+
+        {/* 접근 거부 안내 — 허용되지 않은 구글 계정 */}
+        {isNotAllowed && (
+          <div className="flex items-start gap-2.5 px-3.5 py-3 mb-6 rounded-[var(--radius)] border border-[rgba(220,38,38,0.3)] bg-[rgba(220,38,38,0.08)]" role="alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" className="shrink-0 mt-px" aria-hidden>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <div className="flex-1">
+              <strong className="block text-[0.82rem] font-semibold text-[#dc2626] mb-0.5">허용되지 않은 계정</strong>
+              <span className="text-[0.76rem] text-secondary leading-normal">이 계정은 접근 권한이 없습니다. 등록된 계정으로 로그인하세요.</span>
+            </div>
+          </div>
+        )}
 
         {/* Feature list */}
         <ul className="list-none border border-border rounded-[var(--radius)] overflow-hidden mb-6">

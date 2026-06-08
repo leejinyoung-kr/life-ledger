@@ -5,6 +5,7 @@ import { ApiExcludeController } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
 import type { AuthUser } from './strategies/jwt.strategy';
 import { AuthService, GoogleUser } from './auth.service';
 
@@ -49,8 +50,15 @@ export class AuthController {
 
   @Public()
   @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleCallback(@Req() req: Request & { user: GoogleUser }, @Res() res: Response) {
+  @UseGuards(GoogleAuthGuard)
+  async googleCallback(@Req() req: Request & { user?: GoogleUser }, @Res() res: Response) {
+    const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
+
+    // 화이트리스트 외 계정 등 인증 실패 — 프론트 로그인으로 에러 리다이렉트
+    if (!req.user) {
+      return res.redirect(`${frontendUrl}/login?error=not_allowed`);
+    }
+
     // 기기/IP 추출 — 신규 기기 로그인 감지용
     const fwd = req.headers['x-forwarded-for'];
     const ip = (Array.isArray(fwd) ? fwd[0] : fwd?.split(',')[0]) ?? req.ip;
@@ -60,7 +68,6 @@ export class AuthController {
     });
     // refresh 는 httpOnly 쿠키로만, access 는 쿼리로 프론트에 전달
     res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions());
-    const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
     res.redirect(`${frontendUrl}/auth/callback?token=${access}`);
   }
 
