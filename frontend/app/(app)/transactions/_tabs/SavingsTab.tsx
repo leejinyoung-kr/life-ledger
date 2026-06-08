@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
@@ -11,6 +11,8 @@ import { useConfirm } from '@/components/ConfirmModal';
 import { IconBank, IconWon, IconTrendUp, IconAlertTriangle, IconSearch } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import {
   SAVING_TYPE_LABEL, won, dotDate, daysUntil,
   type Category, type Saving, type SavingSummary, type SavingType,
@@ -23,14 +25,12 @@ import {
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Saving };
 
 export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Category[]; addTrigger: number }) {
-  const [rows, setRows] = useState<Saving[]>([]);
-  const [summary, setSummary] = useState<SavingSummary | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [reloadKey, setReloadKey] = useState(0);
   const { confirm, confirmElement } = useConfirm();
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const invalidate = useInvalidate();
 
   const [pendingType, setPendingType] = useState('');
   const [pendingName, setPendingName] = useState('');
@@ -47,15 +47,12 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
   function search() { setApplied({ type: pendingType, name: pendingName }); setPage(1); }
   function reset() { setPendingType(''); setPendingName(''); setApplied({ type: '', name: '' }); setPage(1); }
 
-  useEffect(() => {
-    (async () => {
-      const [list, s] = await Promise.all([
-        api.get<Saving[]>('/savings'),
-        api.get<SavingSummary>('/savings/summary'),
-      ]);
-      setRows(list); setSummary(s);
-    })();
-  }, [reloadKey]);
+  // 예적금 목록 + 요약 (React Query 캐시)
+  const rowsQuery = useApiQuery<Saving[]>(qk.savings.list(), '/savings');
+  const summaryQuery = useApiQuery<SavingSummary>(['savings', 'summary'], '/savings/summary');
+  const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
+  const summary = summaryQuery.data ?? null;
+  const reload = () => invalidate(qk.savings.all);
 
   async function remove(id: number) {
     if (!await confirm('이 예적금을 삭제할까요?', 'danger')) return;
@@ -63,7 +60,7 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
       await api.del(`/savings/${id}`);
       notify.deleted('예적금');
       setSelected(new Set());
-      setReloadKey((k) => k + 1);
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -90,7 +87,7 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
       await api.del('/savings/bulk', { ids: [...selected] });
       notify.deleted(`${selected.size}건`);
       setSelected(new Set());
-      setReloadKey((k) => k + 1);
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -224,7 +221,7 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
       <SavingsModal
         state={modal}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
-        onSaved={() => { setModal((s) => ({ ...s, open: false })); setReloadKey((k) => k + 1); }}
+        onSaved={() => { setModal((s) => ({ ...s, open: false })); reload(); }}
       />
       {confirmElement}
     </>

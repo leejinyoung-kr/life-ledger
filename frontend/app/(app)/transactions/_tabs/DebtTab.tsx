@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import StatCard from '@/components/StatCard';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import { useConfirm } from '@/components/ConfirmModal';
 import { IconCreditCard } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import { won } from '@/lib/finance';
 import { type Asset } from '@/lib/networth';
 import {
@@ -16,13 +18,11 @@ import {
 import { AssetModal, type AssetModalState } from './AssetModal';
 
 export default function DebtTab({ addTrigger }: { addTrigger: number }) {
-  const [rows, setRows] = useState<Asset[]>([]);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [reloadKey, setReloadKey] = useState(0);
   const { confirm, confirmElement } = useConfirm();
   const [modal, setModal] = useState<AssetModalState>({ open: false, mode: 'add' });
+  const invalidate = useInvalidate();
 
   const mountTrigger = useRef(addTrigger);
   useEffect(() => {
@@ -32,19 +32,18 @@ export default function DebtTab({ addTrigger }: { addTrigger: number }) {
     }
   }, [addTrigger]);
 
-  useEffect(() => {
-    api.get<Asset[]>('/assets?type=debt').then((list) => {
-      setRows(list);
-      setTotal(list.reduce((s, r) => s + r.amount, 0));
-    });
-  }, [reloadKey]);
+  // 부채 목록 (React Query 캐시)
+  const rowsQuery = useApiQuery<Asset[]>(['assets', 'debt'], '/assets?type=debt');
+  const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
+  const total = useMemo(() => rows.reduce((s, r) => s + r.amount, 0), [rows]);
+  const reload = () => invalidate(qk.assets.all);
 
   async function remove(id: number) {
     if (!await confirm('이 부채 항목을 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/assets/${id}`);
       notify.deleted('부채 항목');
-      setReloadKey((k) => k + 1);
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -112,7 +111,7 @@ export default function DebtTab({ addTrigger }: { addTrigger: number }) {
         assetType="debt"
         state={modal}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
-        onSaved={() => { setModal((s) => ({ ...s, open: false })); setReloadKey((k) => k + 1); }}
+        onSaved={() => { setModal((s) => ({ ...s, open: false })); reload(); }}
       />
       {confirmElement}
     </>

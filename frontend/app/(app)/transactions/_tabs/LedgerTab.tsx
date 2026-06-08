@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
@@ -14,6 +14,8 @@ import {
 } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import { downloadTransactionTemplate } from '@/lib/excel';
 import {
   CATEGORY_LABEL, PAY_METHODS, TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL,
@@ -38,15 +40,10 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const { confirm, confirmElement } = useConfirm();
-  const [rows, setRows] = useState<Transaction[]>([]);
-  const [summary, setSummary] = useState<TransactionSummary | null>(null);
-  const [trend, setTrend] = useState<TrendBucket[]>([]);
-  const [recurring, setRecurring] = useState<Transaction[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [activePreset, setActivePreset] = useState<number | null>(1);
-  const [reloadKey, setReloadKey] = useState(0);
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const invalidate = useInvalidate();
 
   const mountTrigger = useRef(addTrigger);
   useEffect(() => {
@@ -73,37 +70,28 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
     setActivePreset(months);
   }
 
-  const loadRows = useCallback(async () => {
+  // 거래 목록 — 필터(applied) 별 캐시
+  const listQs = useMemo(() => {
     const params = new URLSearchParams();
     if (applied.from) params.set('from', applied.from);
     if (applied.to) params.set('to', applied.to);
     if (applied.type) params.set('type', applied.type);
     if (applied.cat) params.set('category', applied.cat);
     if (applied.q) params.set('q', applied.q);
-    try {
-      setRows(await api.get<Transaction[]>(`/transactions?${params.toString()}`));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    return params.toString();
   }, [applied]);
+  const month = applied.to.slice(0, 7);
 
-  const loadAside = useCallback(async () => {
-    const month = applied.to.slice(0, 7);
-    try {
-      const [s, t, r] = await Promise.all([
-        api.get<TransactionSummary>(`/transactions/summary?month=${month}`),
-        api.get<TrendBucket[]>(`/transactions/monthly-trend?month=${month}`),
-        api.get<Transaction[]>('/transactions/recurring'),
-      ]);
-      setSummary(s); setTrend(t); setRecurring(r);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [applied.to]);
-
-  useEffect(() => { loadRows(); }, [loadRows, reloadKey]);
-  useEffect(() => { loadAside(); }, [loadAside, reloadKey]);
+  const rowsQuery = useApiQuery<Transaction[]>(qk.transactions.list(applied), `/transactions?${listQs}`);
+  const summaryQuery = useApiQuery<TransactionSummary>(qk.transactions.summary(month), `/transactions/summary?month=${month}`);
+  const trendQuery = useApiQuery<TrendBucket[]>(qk.transactions.monthlyTrend(month), `/transactions/monthly-trend?month=${month}`);
+  const recurringQuery = useApiQuery<Transaction[]>(qk.transactions.recurring(), '/transactions/recurring');
+  const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
+  const summary = summaryQuery.data ?? null;
+  const trend = trendQuery.data ?? [];
+  const recurring = recurringQuery.data ?? [];
+  const error = (rowsQuery.error ?? summaryQuery.error)?.message ?? null;
+  const reload = () => invalidate(qk.transactions.all);
 
   async function remove(id: number) {
     if (!await confirm('이 내역을 삭제할까요?', 'danger')) return;
@@ -111,7 +99,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
       await api.del(`/transactions/${id}`);
       notify.deleted('내역');
       setSelected(new Set());
-      setReloadKey((k) => k + 1);
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -138,7 +126,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
       await api.del('/transactions/bulk', { ids: [...selected] });
       notify.deleted(`${selected.size}건`);
       setSelected(new Set());
-      setReloadKey((k) => k + 1);
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -164,7 +152,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
       } else {
         notify.excelUploaded(res.imported);
       }
-      setReloadKey((k) => k + 1);
+      reload();
     } catch (err) {
       notify.error((err as Error).message || '업로드에 실패했습니다.');
     }
@@ -368,7 +356,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
         state={modal}
         categories={categories}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
-        onSaved={() => { setModal((s) => ({ ...s, open: false })); setReloadKey((k) => k + 1); }}
+        onSaved={() => { setModal((s) => ({ ...s, open: false })); reload(); }}
       />
       {confirmElement}
     </>

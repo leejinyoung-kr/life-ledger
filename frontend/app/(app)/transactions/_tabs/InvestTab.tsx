@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
@@ -10,6 +10,8 @@ import { useConfirm } from '@/components/ConfirmModal';
 import { IconTrendUp, IconWon, IconChart, IconSearch } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import {
   INVEST_TYPE_LABEL, won,
   type Category, type Investment, type InvestmentSummary, type InvestmentType,
@@ -22,14 +24,12 @@ import {
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Investment };
 
 export default function InvestTab({ investCats, addTrigger }: { investCats: Category[]; addTrigger: number }) {
-  const [rows, setRows] = useState<Investment[]>([]);
-  const [summary, setSummary] = useState<InvestmentSummary | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [reloadKey, setReloadKey] = useState(0);
   const { confirm, confirmElement } = useConfirm();
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const invalidate = useInvalidate();
 
   const [pendingName, setPendingName] = useState('');
   const [pendingType, setPendingType] = useState('');
@@ -46,15 +46,12 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   function search() { setApplied({ name: pendingName, type: pendingType }); setPage(1); }
   function reset() { setPendingName(''); setPendingType(''); setApplied({ name: '', type: '' }); setPage(1); }
 
-  useEffect(() => {
-    (async () => {
-      const [list, s] = await Promise.all([
-        api.get<Investment[]>('/investments'),
-        api.get<InvestmentSummary>('/investments/summary'),
-      ]);
-      setRows(list); setSummary(s);
-    })();
-  }, [reloadKey]);
+  // 투자 목록 + 요약 (React Query 캐시)
+  const rowsQuery = useApiQuery<Investment[]>(qk.investments.list(), '/investments');
+  const summaryQuery = useApiQuery<InvestmentSummary>(['investments', 'summary'], '/investments/summary');
+  const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
+  const summary = summaryQuery.data ?? null;
+  const reload = () => invalidate(qk.investments.all);
 
   async function remove(id: number) {
     if (!await confirm('이 투자 항목을 삭제할까요?', 'danger')) return;
@@ -62,7 +59,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
       await api.del(`/investments/${id}`);
       notify.deleted('투자 항목');
       setSelected(new Set());
-      setReloadKey((k) => k + 1);
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -89,7 +86,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
       await api.del('/investments/bulk', { ids: [...selected] });
       notify.deleted(`${selected.size}건`);
       setSelected(new Set());
-      setReloadKey((k) => k + 1);
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -212,7 +209,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
       <InvestModal
         state={modal}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
-        onSaved={() => { setModal((s) => ({ ...s, open: false })); setReloadKey((k) => k + 1); }}
+        onSaved={() => { setModal((s) => ({ ...s, open: false })); reload(); }}
       />
       {confirmElement}
     </>
