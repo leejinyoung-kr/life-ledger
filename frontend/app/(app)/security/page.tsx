@@ -14,10 +14,12 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { api } from '@/lib/api';
+import { clearVaultToken } from '@/lib/vault';
 import { relativeTime } from '@/lib/notification';
 import {
-  RISK_CATEGORY_ICON, SEVERITY_BADGE, STAT_META, DEVICE_ICON, SCORE_COLOR,
+  RISK_CATEGORY_ICON, SEVERITY_BADGE, STAT_META, DEVICE_ICON, SCORE_COLOR, ACCESS_ACTION_META,
   type SecuritySummary, type SecurityRisk, type LoginSession,
+  type ScoreTrendPoint, type AccessLogEntry, type VaultStatus,
 } from '@/lib/security';
 
 // 위험/세션 아이콘 배경색 (tone → Tailwind)
@@ -29,24 +31,36 @@ export default function SecurityPage() {
   const [summary, setSummary] = useState<SecuritySummary | null>(null);
   const [risks, setRisks] = useState<SecurityRisk[]>([]);
   const [sessions, setSessions] = useState<LoginSession[]>([]);
+  const [trend, setTrend] = useState<ScoreTrendPoint[]>([]);
+  const [logs, setLogs] = useState<AccessLogEntry[]>([]);
+  const [vault, setVault] = useState<VaultStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { confirm, confirmElement } = useConfirm();
 
-  // 요약/위험/세션 조회
+  // 요약/위험/세션 + 점수추이/접근로그/마스터잠금 상태 조회
   const load = useCallback(async () => {
     try {
-      const [s, r, ses] = await Promise.all([
+      const [s, r, ses, tr, lg, v] = await Promise.all([
         api.get<SecuritySummary>('/security/summary'),
         api.get<SecurityRisk[]>('/security/risks'),
         api.get<LoginSession[]>('/security/sessions'),
+        api.get<ScoreTrendPoint[]>('/security/score-trend?days=30'),
+        api.get<AccessLogEntry[]>('/security/access-logs?limit=20'),
+        api.get<VaultStatus>('/security/vault'),
       ]);
-      setSummary(s); setRisks(r); setSessions(ses); setError(null);
+      setSummary(s); setRisks(r); setSessions(ses); setTrend(tr); setLogs(lg); setVault(v); setError(null);
     } catch (e) {
       setError((e as Error).message);
     }
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // 보관함 즉시 잠그기 (vault 토큰 폐기)
+  function lockNow() {
+    clearVaultToken();
+    setError(null);
+  }
 
   // 단일 세션 로그아웃/차단
   async function revokeSession(id: number) {
@@ -103,6 +117,54 @@ export default function SecurityPage() {
         </>
       )}
 
+      {/* 마스터 잠금 + 보안 점수 추이 */}
+      <div className="grid gap-4 mb-6 min-[900px]:grid-cols-2">
+        {/* 마스터 잠금 상태 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>보관함 마스터 잠금</CardTitle>
+            <Badge tone={vault?.enabled ? 'success' : 'warning'}>{vault?.enabled ? '사용 중' : '미설정'}</Badge>
+          </CardHeader>
+          <div className="px-5 py-4 flex items-center gap-3.5">
+            <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-accent-dim">{vault?.enabled ? '🔒' : '🔓'}</div>
+            <div className="flex-1">
+              <div className="text-[0.82rem] text-secondary leading-relaxed [word-break:keep-all]">
+                {vault?.enabled
+                  ? `비밀번호·신원번호·ENV 값 열람 시 마스터 비밀번호가 필요합니다. 자동잠금 ${vault.timeoutMin > 0 ? `${vault.timeoutMin}분` : '수동'}.`
+                  : 'Google 로그인만으로 모든 민감정보가 열람됩니다. 마스터 잠금으로 2차 보호를 권장합니다.'}
+              </div>
+            </div>
+            {vault?.enabled
+              ? <Button variant="ghost" size="sm" onClick={lockNow}>지금 잠그기</Button>
+              : <Button href="/settings" variant="ghost" size="sm">설정</Button>}
+          </div>
+        </Card>
+
+        {/* 보안 점수 추이 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>보안 점수 추이</CardTitle>
+            <Badge tone="blue">최근 {trend.length}일</Badge>
+          </CardHeader>
+          <div className="px-5 py-4">
+            {trend.length === 0 ? (
+              <div className="text-[0.82rem] text-muted py-3">아직 기록이 없습니다. 매일 점수가 1건씩 쌓입니다.</div>
+            ) : (
+              <div className="flex items-end gap-1 h-[90px]">
+                {trend.map((p) => (
+                  <div
+                    key={p.date}
+                    title={`${p.date} · ${p.score}점`}
+                    className="flex-1 rounded-t-[3px] bg-accent/70 hover:bg-accent transition-colors min-h-[2px]"
+                    style={{ height: `${Math.max(p.score, 2)}%` }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+
       {/* 위험 요소 */}
       <Card className="mb-6">
         <CardHeader>
@@ -122,6 +184,30 @@ export default function SecurityPage() {
                 </div>
                 <Badge tone={sev.tone as 'danger' | 'warning' | 'blue'}>{sev.label}</Badge>
                 <Button href={r.href} variant="ghost" size="sm">{r.actionLabel}</Button>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* 최근 열람 (접근 감사 로그) */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>최근 열람</CardTitle>
+          <Badge tone="blue">{logs.length}건</Badge>
+        </CardHeader>
+        <div>
+          {logs.length === 0 && <div className="px-5 py-3.5 text-secondary">열람 기록이 없습니다.</div>}
+          {logs.map((l) => {
+            const meta = ACCESS_ACTION_META[l.action];
+            return (
+              <div className="flex items-center gap-3.5 px-5 py-3 border-b border-border-subtle last:border-b-0" key={l.id}>
+                <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-elevated">{meta?.icon ?? '🔓'}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-[0.85rem] truncate">{l.targetName}</div>
+                  <div className="text-[0.76rem] text-muted">{meta?.label ?? l.action}{l.ip ? ` · ${l.ip}` : ''}</div>
+                </div>
+                <div className="text-[0.74rem] text-muted shrink-0">{relativeTime(l.at)}</div>
               </div>
             );
           })}

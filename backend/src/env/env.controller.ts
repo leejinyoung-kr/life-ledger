@@ -13,7 +13,9 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { VaultGuard } from '../security/vault.guard';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { Client, type ClientInfo } from '../common/client-info.decorator';
 import {
   BulkEnvDto,
   CreateEnvProjectDto,
@@ -110,10 +112,11 @@ export class EnvController {
     return this.service.bulkUpsert(user.id, id, dto);
   }
 
-  // 변수 값 원문 조회 (표시/복사)
+  // 변수 값 원문 조회 (표시/복사). 마스터 잠금 시 VaultGuard 통과 필요
   @Get('env-vars/:id/reveal')
-  revealVar(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
-    return this.service.revealVar(user.id, id);
+  @UseGuards(VaultGuard)
+  revealVar(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Client() client: ClientInfo) {
+    return this.service.revealVar(user.id, id, client);
   }
 
   // 변수 수정

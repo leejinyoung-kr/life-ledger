@@ -37,6 +37,8 @@ model User {
   monthlyBudgets MonthlyBudget[]
   storageFolders StorageFolder[]
   storageFiles   StorageFile[]
+  accessLogs     AccessLog[]
+  scoreSnapshots SecurityScoreSnapshot[]
 
   @@map("user")
 }
@@ -242,6 +244,9 @@ model UserSettings {
   pw_auto_hide   String   @default("10s") @db.VarChar(10) /// 10s|30s|1m|none
   claude_api_key String?  @db.VarChar(200)
   claude_model   String   @default("claude-sonnet-4-6") @db.VarChar(50)
+  master_lock_enabled Boolean @default(false) /// 보관함 마스터 잠금 사용 여부 (Google 로그인 외 2차 잠금)
+  master_lock_hash    String? @db.VarChar(200) /// 마스터 비번 해시 (scrypt: saltHex:hashHex)
+  master_lock_timeout Int     @default(5) /// 자동잠금 시간(분). 0=수동 잠금만
   budgets        Json /// {카테고리코드: 금액}
   categories     Json /// [{emoji, name}]
   widgets        Json /// [{id, on}] (배열 순서 = 표시 순서)
@@ -544,6 +549,8 @@ model Credential {
   username     String    @db.VarChar(200)
   password_enc String    @db.Text /// 비밀번호(암호문)
   totp_enc     String?   @db.Text /// 2FA TOTP 시크릿(암호문)
+  backup_codes_enc String? @db.Text /// 2FA 백업코드 목록(JSON 배열 암호문)
+  password_changed_at DateTime? /// 비밀번호 마지막 변경 시각(KST) — 90일 회전 알림용
   memo         String?   @db.VarChar(300)
   deleted_at   DateTime?
   created_at   DateTime  @default(now())
@@ -660,4 +667,51 @@ model EnvVar {
   @@index([user_id])
   @@index([project_id, env])
   @@map("env_var")
+}
+
+/// 보관함 열람 동작: cred_reveal(계정 비번/2FA) | cred_totp(TOTP 코드) | cred_backup(백업코드) | identity_reveal(신원번호) | env_reveal(ENV 값)
+enum AccessAction {
+  cred_reveal
+  cred_totp
+  cred_backup
+  identity_reveal
+  env_reveal
+
+  @@map("access_action")
+}
+
+/// 보관함 접근 감사 로그 (보안 센터 - 최근 열람) — 민감정보 복호화 호출의 주체·시각·대상 기록
+model AccessLog {
+  id          Int          @id @default(autoincrement())
+  user_id     Int /// user.id FK
+  action      AccessAction
+  target_type String       @db.VarChar(20) /// 대상 종류 (credential|identity|env)
+  target_id   Int /// 대상 레코드 id
+  target_name String       @db.VarChar(200) /// 대상 표시명(열람 시점 스냅샷)
+  ip          String?      @db.VarChar(60)
+  user_agent  String?      @db.VarChar(300)
+  created_at  DateTime     @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, created_at])
+  @@map("access_log")
+}
+
+/// 보안 점수 일별 스냅샷 (보안 센터 - 점수 추이 차트) — 크론이 매일 1건 적재
+model SecurityScoreSnapshot {
+  id         Int      @id @default(autoincrement())
+  user_id    Int /// user.id FK
+  date       String   @db.VarChar(10) /// YYYY-MM-DD (KST 기준 1일 1건)
+  score      Int /// 보안 점수 0~100
+  reuse      Int      @default(0) /// 재사용 비밀번호 건수
+  weak       Int      @default(0) /// 취약 비밀번호 건수
+  no2fa      Int      @default(0) /// 2FA 미설정 건수
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, date])
+  @@index([user_id])
+  @@map("security_score_snapshot")
 }

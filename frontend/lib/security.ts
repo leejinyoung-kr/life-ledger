@@ -36,6 +36,42 @@ export interface LoginSession {
   lastActiveAt: string; // ISO
 }
 
+// 접근 감사 로그 동작
+export type AccessAction = 'cred_reveal' | 'cred_totp' | 'cred_backup' | 'identity_reveal' | 'env_reveal';
+
+export interface AccessLogEntry {
+  id: number;
+  action: AccessAction;
+  targetType: string;
+  targetId: number;
+  targetName: string;
+  ip: string | null;
+  userAgent: string | null;
+  at: string; // ISO
+}
+
+export interface ScoreTrendPoint {
+  date: string; // YYYY-MM-DD
+  score: number;
+  reuse: number;
+  weak: number;
+  no2fa: number;
+}
+
+export interface VaultStatus {
+  enabled: boolean;
+  timeoutMin: number;
+}
+
+// 접근 동작 → 라벨/아이콘
+export const ACCESS_ACTION_META: Record<AccessAction, { label: string; icon: string }> = {
+  cred_reveal: { label: '비밀번호 열람', icon: '🔑' },
+  cred_totp: { label: '2FA 코드 생성', icon: '🔢' },
+  cred_backup: { label: '백업코드 열람', icon: '🧾' },
+  identity_reveal: { label: '신원번호 열람', icon: '🪪' },
+  env_reveal: { label: 'ENV 값 열람', icon: '🔧' },
+};
+
 // 위험 종류 → 아이콘
 export const RISK_CATEGORY_ICON: Record<RiskCategory, string> = {
   reuse: '🔁',

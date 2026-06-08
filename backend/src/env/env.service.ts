@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { EnvProject, EnvVar, EnvKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto.service';
+import { AccessLogService } from '../access-log/access-log.service';
+import type { ClientInfo } from '../common/client-info.decorator';
 import {
   BulkEnvDto,
   CreateEnvProjectDto,
@@ -16,6 +18,7 @@ export class EnvService {
   constructor(
     private prisma: PrismaService,
     private crypto: CryptoService,
+    private accessLog: AccessLogService,
   ) {}
 
   // ── 프로젝트 ────────────────────────────────────────────────
@@ -148,9 +151,10 @@ export class EnvService {
     return row;
   }
 
-  // 변수 값 원문 복호화 (표시/복사)
-  async revealVar(userId: number, id: number) {
+  // 변수 값 원문 복호화 (표시/복사). 열람 사실을 감사 로그에 기록
+  async revealVar(userId: number, id: number, client?: ClientInfo) {
     const row = await this.findOwnedVar(userId, id);
+    await this.accessLog.log(userId, 'env_reveal', { type: 'env', id, name: row.key }, client);
     return { value: this.crypto.decrypt(row.value_enc) };
   }
 

@@ -1,16 +1,23 @@
-import { Controller, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { AccessLogService } from '../access-log/access-log.service';
 import { SecurityService } from './security.service';
+import { VaultService } from './vault.service';
+import { SetupVaultDto, VaultPasswordDto } from './dto/vault.dto';
 
 @ApiTags('보안 센터')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('security')
 export class SecurityController {
-  constructor(private readonly service: SecurityService) {}
+  constructor(
+    private readonly service: SecurityService,
+    private readonly accessLog: AccessLogService,
+    private readonly vault: VaultService,
+  ) {}
 
   // 요약 (점수 + 카테고리별 건수)
   @Get('summary')
@@ -40,5 +47,41 @@ export class SecurityController {
   @Post('sessions/:id/revoke')
   revokeSession(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
     return this.service.revokeSession(user.id, id);
+  }
+
+  // 보안 점수 추이 (최근 days 일)
+  @Get('score-trend')
+  scoreTrend(@CurrentUser() user: AuthUser, @Query('days') days?: string) {
+    return this.service.scoreTrend(user.id, days ? Number(days) : 30);
+  }
+
+  // 최근 보관함 열람 기록
+  @Get('access-logs')
+  accessLogs(@CurrentUser() user: AuthUser, @Query('limit') limit?: string) {
+    return this.accessLog.recent(user.id, limit ? Number(limit) : 50);
+  }
+
+  // 마스터 잠금 상태
+  @Get('vault')
+  vaultStatus(@CurrentUser() user: AuthUser) {
+    return this.vault.status(user.id);
+  }
+
+  // 마스터 잠금 설정/변경
+  @Post('vault/setup')
+  vaultSetup(@CurrentUser() user: AuthUser, @Body() dto: SetupVaultDto) {
+    return this.vault.setup(user.id, dto.password, dto.timeoutMin ?? 5);
+  }
+
+  // 마스터 잠금 해제(비활성화)
+  @Post('vault/disable')
+  vaultDisable(@CurrentUser() user: AuthUser, @Body() dto: VaultPasswordDto) {
+    return this.vault.disable(user.id, dto.password);
+  }
+
+  // 잠금 해제 — vault 토큰 발급
+  @Post('vault/unlock')
+  vaultUnlock(@CurrentUser() user: AuthUser, @Body() dto: VaultPasswordDto) {
+    return this.vault.unlock(user.id, dto.password);
   }
 }

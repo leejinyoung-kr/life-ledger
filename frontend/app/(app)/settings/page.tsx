@@ -16,11 +16,22 @@ import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
 import { IconWon, IconBars, IconClock, IconZap, IconLock, IconCube, IconDrag } from '@/components/icons';
 import { api, apiDownload } from '@/lib/api';
+import { clearVaultToken } from '@/lib/vault';
 import {
   BUDGET_LABEL, SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS, CLAUDE_MODEL_OPTIONS,
   MENU_ITEMS, DEFAULT_MENU_ORDER, normalizeMenuOrder,
   type Settings, type Category, type WidgetPref,
 } from '@/lib/settings';
+import type { VaultStatus } from '@/lib/security';
+
+// 자동잠금 시간 옵션 (분)
+const VAULT_TIMEOUT_OPTIONS = [
+  { value: 0, label: '수동 잠금만' },
+  { value: 5, label: '5분' },
+  { value: 15, label: '15분' },
+  { value: 30, label: '30분' },
+  { value: 60, label: '1시간' },
+];
 import { budgetApi, currentMonth, fmtMoney, type BudgetMonthStatus } from '@/lib/budget';
 
 // 메뉴 key → 라벨
@@ -64,6 +75,11 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<TabId>('profile');
   const [s, setS] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 마스터 잠금
+  const [vault, setVault] = useState<VaultStatus | null>(null);
+  const [vaultPw, setVaultPw] = useState('');
+  const [vaultTimeout, setVaultTimeout] = useState(5);
+  const [vaultBusy, setVaultBusy] = useState(false);
 
   // 데이터 내보내기 — 인증 첨부 후 파일 다운로드
   async function exportData(path: string, filename: string) {
@@ -157,6 +173,43 @@ export default function SettingsPage() {
       throw e;
     }
   }, []);
+
+  // 마스터 잠금 상태 로드 (보안 탭 진입 시)
+  const loadVault = useCallback(async () => {
+    try {
+      const v = await api.get<VaultStatus>('/security/vault');
+      setVault(v);
+      setVaultTimeout(v.timeoutMin);
+    } catch { /* 무시 */ }
+  }, []);
+  useEffect(() => { if (tab === 'security') loadVault(); }, [tab, loadVault]);
+
+  // 마스터 잠금 설정/변경
+  async function setupVault() {
+    if (!vaultPw || vaultBusy) return;
+    setVaultBusy(true);
+    try {
+      await api.post('/security/vault/setup', { password: vaultPw, timeoutMin: vaultTimeout });
+      setVaultPw('');
+      notify.success('마스터 잠금을 설정했습니다.');
+      loadVault();
+    } catch (e) { notify.error((e as Error).message); }
+    finally { setVaultBusy(false); }
+  }
+
+  // 마스터 잠금 해제(비활성화) — 현재 비번 확인
+  async function disableVault() {
+    if (!vaultPw || vaultBusy) return;
+    setVaultBusy(true);
+    try {
+      await api.post('/security/vault/disable', { password: vaultPw });
+      setVaultPw('');
+      clearVaultToken();
+      notify.success('마스터 잠금을 해제했습니다.');
+      loadVault();
+    } catch (e) { notify.error((e as Error).message); }
+    finally { setVaultBusy(false); }
+  }
 
   if (!s) {
     return (
@@ -443,6 +496,38 @@ export default function SettingsPage() {
                   {PW_AUTO_HIDE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </Row>
+
+              {/* 마스터 잠금 — Google 로그인 외 보관함 2차 잠금 */}
+              <div className="mt-6 pt-5 border-t border-border-subtle">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[0.9rem] font-semibold text-primary">보관함 마스터 잠금</span>
+                  <Badge tone={vault?.enabled ? 'success' : 'warning'}>{vault?.enabled ? '사용 중' : '미설정'}</Badge>
+                </div>
+                <p className="text-[0.78rem] text-secondary leading-relaxed mb-3 [word-break:keep-all]">
+                  켜두면 비밀번호·신원번호·ENV 값을 열람할 때마다 마스터 비밀번호가 필요합니다. 설정한 시간 동안 비활성 시 자동으로 다시 잠깁니다.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="password"
+                    className="input w-50"
+                    placeholder={vault?.enabled ? '현재 마스터 비밀번호' : '새 마스터 비밀번호 (4자 이상)'}
+                    value={vaultPw}
+                    onChange={(e) => setVaultPw(e.target.value)}
+                    aria-label="마스터 비밀번호"
+                  />
+                  {!vault?.enabled && (
+                    <select className="input w-auto" aria-label="자동잠금 시간" value={vaultTimeout} onChange={(e) => setVaultTimeout(Number(e.target.value))}>
+                      {VAULT_TIMEOUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  )}
+                  {vault?.enabled
+                    ? <Button variant="danger" disabled={vaultBusy || !vaultPw} onClick={disableVault}>잠금 해제</Button>
+                    : <Button disabled={vaultBusy || !vaultPw} onClick={setupVault}>잠금 설정</Button>}
+                </div>
+                {vault?.enabled && (
+                  <p className="text-[0.74rem] text-muted mt-2">자동잠금: {vault.timeoutMin > 0 ? `${vault.timeoutMin}분` : '수동'} · 변경하려면 해제 후 다시 설정하세요.</p>
+                )}
+              </div>
             </Group>
           )}
 

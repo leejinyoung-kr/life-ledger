@@ -117,6 +117,19 @@ export class NotificationCronService {
       });
     }
 
+    // 6) 비밀번호 회전 — 마지막 변경 90일 경과 계정
+    const rotateBefore = addDays(today, -90);
+    const stale = await this.prisma.credential.findMany({
+      where: { user_id: userId, deleted_at: null, password_changed_at: { lt: rotateBefore } },
+      select: { name: true },
+    });
+    for (const c of stale) {
+      n += await this.emit(userId, {
+        group: 'system', tone: 'warning',
+        title: `'${c.name}' 비밀번호 교체 권장`, description: '비밀번호를 변경한 지 90일이 지났습니다.', source: '계정 보관함',
+      });
+    }
+
     return n;
   }
 }

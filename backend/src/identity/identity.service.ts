@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { IdentityCard } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto.service';
+import { AccessLogService } from '../access-log/access-log.service';
+import type { ClientInfo } from '../common/client-info.decorator';
 import { maskTail, toDateOrNull, toDateStr } from '../common/vault.util';
 import { CreateIdentityDto } from './dto/create-identity.dto';
 import { UpdateIdentityDto } from './dto/update-identity.dto';
@@ -11,6 +13,7 @@ export class IdentityService {
   constructor(
     private prisma: PrismaService,
     private crypto: CryptoService,
+    private accessLog: AccessLogService,
   ) {}
 
   // 엔티티 → 목록 DTO. 번호는 끝자리만 남긴 마스킹값으로 노출(원문은 reveal 로만)
@@ -61,9 +64,10 @@ export class IdentityService {
     return row;
   }
 
-  // 번호 원문 복호화 (표시 토글 시 호출)
-  async reveal(userId: number, id: number) {
+  // 번호 원문 복호화 (표시 토글 시 호출). 열람 사실을 감사 로그에 기록
+  async reveal(userId: number, id: number, client?: ClientInfo) {
     const row = await this.findOwned(userId, id);
+    await this.accessLog.log(userId, 'identity_reveal', { type: 'identity', id, name: row.name }, client);
     return { number: this.crypto.decrypt(row.number_enc) };
   }
 

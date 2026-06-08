@@ -30,12 +30,14 @@ import { ExportModule } from './export/export.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { BudgetModule } from './budget/budget.module';
 import { FileModule } from './file/file.module';
+import { AccessLogModule } from './access-log/access-log.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    AccessLogModule,
     AuthModule,
     TransactionModule,
     SavingModule,

@@ -84,11 +84,16 @@ export class SecurityService {
     };
   }
 
+  // 카테고리별 건수 → 보안 점수(0~100). summary·snapshot 공용
+  private scoreOf(counts: Record<RiskCategory, number>): number {
+    const deduction = counts.reuse * 8 + counts.weak * 5 + counts.no2fa * 3;
+    return Math.max(0, Math.min(100, 100 - deduction));
+  }
+
   // 요약 — 실시간 분석 기반 보안 점수 + 카테고리별 건수
   async summary(userId: number) {
     const { risks, counts } = await this.analyze(userId);
-    const deduction = counts.reuse * 8 + counts.weak * 5 + counts.no2fa * 3;
-    const score = Math.max(0, Math.min(100, 100 - deduction));
+    const score = this.scoreOf(counts);
     const label = score >= 80 ? '양호' : score >= 60 ? '보통' : '취약';
     return {
       score,
@@ -97,6 +102,30 @@ export class SecurityService {
       riskCount: risks.length,
       stats: counts,
     };
+  }
+
+  // 오늘(KST) 보안 점수 1건 적재 — 크론에서 매일 호출(같은 날 재호출 시 갱신)
+  async snapshot(userId: number): Promise<void> {
+    const { counts } = await this.analyze(userId);
+    const score = this.scoreOf(counts);
+    const date = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10); // KST 날짜
+    await this.prisma.securityScoreSnapshot.upsert({
+      where: { user_id_date: { user_id: userId, date } },
+      create: { user_id: userId, date, score, reuse: counts.reuse, weak: counts.weak, no2fa: counts.no2fa },
+      update: { score, reuse: counts.reuse, weak: counts.weak, no2fa: counts.no2fa },
+    });
+  }
+
+  // 보안 점수 추이 (최근 days 일, 오래된→최신순)
+  async scoreTrend(userId: number, days = 30) {
+    const rows = await this.prisma.securityScoreSnapshot.findMany({
+      where: { user_id: userId },
+      orderBy: { date: 'desc' },
+      take: Math.min(Math.max(days, 1), 365),
+    });
+    return rows
+      .reverse()
+      .map((r) => ({ date: r.date, score: r.score, reuse: r.reuse, weak: r.weak, no2fa: r.no2fa }));
   }
 
   // 위험 요소 목록 (심각도순) — 실시간 분석 결과

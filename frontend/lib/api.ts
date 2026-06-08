@@ -5,6 +5,8 @@
  * 갱신도 실패하면 토큰 제거 후 로그인 페이지로 보낸다.
  */
 
+import { getVaultToken, requestVaultUnlock } from './vault';
+
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
 
@@ -50,11 +52,13 @@ export async function apiFetch<T>(
   retried = false,
 ): Promise<T> {
   const token = getToken();
+  const vault = getVaultToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(vault ? { 'x-vault-token': vault } : {}),
       ...options.headers,
     },
   });
@@ -66,6 +70,15 @@ export async function apiFetch<T>(
     }
     toLogin();
     throw new Error('인증이 필요합니다.');
+  }
+
+  // 423 보관함 잠김 → 잠금해제 모달 1회 시도 후 재요청
+  if (res.status === 423) {
+    if (!retried && (await requestVaultUnlock())) {
+      return apiFetch<T>(path, options, true);
+    }
+    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? '보관함이 잠겨 있습니다.');
   }
 
   if (!res.ok) {

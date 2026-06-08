@@ -11,12 +11,18 @@ export interface Credential {
   username: string;
   memo: string | null;
   has2fa: boolean;
+  hasBackupCodes: boolean;
+  passwordChangedAt: string | null; // ISO
   updatedAt: string; // ISO
 }
 
 export interface CredentialSecret {
   password: string;
   totp: string | null;
+}
+
+export interface BackupCodes {
+  codes: string[];
 }
 
 export interface TotpCode {

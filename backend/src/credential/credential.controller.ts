@@ -18,7 +18,9 @@ import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { VaultGuard } from '../security/vault.guard';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { Client, type ClientInfo } from '../common/client-info.decorator';
 import { CreateCredentialDto } from './dto/create-credential.dto';
 import { UpdateCredentialDto } from './dto/update-credential.dto';
 import { CredentialService } from './credential.service';
@@ -69,16 +71,38 @@ export class CredentialController {
     return this.service.importExcel(user.id, file.buffer);
   }
 
-  // 비밀번호·TOTP 원문 조회 (표시/복사)
+  // 비밀번호·TOTP 원문 조회 (표시/복사). 마스터 잠금 시 VaultGuard 통과 필요
   @Get(':id/reveal')
-  reveal(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
-    return this.service.reveal(user.id, id);
+  @UseGuards(VaultGuard)
+  reveal(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Client() client: ClientInfo) {
+    return this.service.reveal(user.id, id, client);
   }
 
   // 현재 TOTP 6자리 코드 + 남은 시간
   @Get(':id/totp')
-  totp(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
-    return this.service.totpCode(user.id, id);
+  @UseGuards(VaultGuard)
+  totp(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Client() client: ClientInfo) {
+    return this.service.totpCode(user.id, id, client);
+  }
+
+  // 2FA 백업코드 생성 (기존 코드 덮어씀) — 평문 코드 1회 반환
+  @Post(':id/backup-codes')
+  @UseGuards(VaultGuard)
+  generateBackupCodes(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.service.generateBackupCodes(user.id, id);
+  }
+
+  // 저장된 2FA 백업코드 조회
+  @Get(':id/backup-codes')
+  @UseGuards(VaultGuard)
+  revealBackupCodes(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Client() client: ClientInfo) {
+    return this.service.revealBackupCodes(user.id, id, client);
+  }
+
+  // 2FA 백업코드 삭제
+  @Delete(':id/backup-codes')
+  clearBackupCodes(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.service.clearBackupCodes(user.id, id);
   }
 
   // 계정 추가

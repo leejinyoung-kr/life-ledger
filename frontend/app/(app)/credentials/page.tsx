@@ -21,7 +21,7 @@ import {
 import { api, apiDownload } from '@/lib/api';
 import {
   CRED_CATEGORIES, fmtCredDate, pwStrength, generatePassword,
-  type Credential, type CredentialSecret, type TotpCode,
+  type Credential, type CredentialSecret, type TotpCode, type BackupCodes,
 } from '@/lib/credential';
 
 const ICON_BTN = 'w-7 h-7 rounded-[5px] flex items-center justify-center text-muted transition-all shrink-0 hover:bg-elevated hover:text-accent';
@@ -259,12 +259,15 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
   const [secret, setSecret] = useState<CredentialSecret | null>(null);
   const [totp, setTotp] = useState<TotpCode | null>(null);
   const [pwVisible, setPwVisible] = useState(false);
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const [backupBusy, setBackupBusy] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 모달이 바뀌면 원문을 새로 받아오고 비밀번호는 다시 가린다
   useEffect(() => {
     setPwVisible(false);
     setSecret(null);
+    setBackupCodes(null);
     if (hideTimer.current) clearTimeout(hideTimer.current);
     if (!cred) return;
     api.get<CredentialSecret>(`/credentials/${cred.id}/reveal`).then(setSecret).catch(() => {});
@@ -302,6 +305,29 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
 
   function copy(text: string) {
     navigator.clipboard.writeText(text).then(() => notify.copied()).catch(() => {});
+  }
+
+  // 백업코드 생성(기존 덮어씀) — 평문은 이 응답에서만 노출
+  async function genBackup() {
+    if (!cred || backupBusy) return;
+    setBackupBusy(true);
+    try {
+      const r = await api.post<{ codes: string[] }>(`/credentials/${cred.id}/backup-codes`, {});
+      setBackupCodes(r.codes);
+      notify.success('백업코드를 생성했습니다. 안전한 곳에 보관하세요.');
+    } catch (e) { notify.error((e as Error).message); }
+    finally { setBackupBusy(false); }
+  }
+
+  // 저장된 백업코드 조회
+  async function viewBackup() {
+    if (!cred || backupBusy) return;
+    setBackupBusy(true);
+    try {
+      const r = await api.get<BackupCodes>(`/credentials/${cred.id}/backup-codes`);
+      setBackupCodes(r.codes);
+    } catch (e) { notify.error((e as Error).message); }
+    finally { setBackupBusy(false); }
   }
 
   const pw = secret?.password ?? '';
@@ -355,6 +381,33 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
           {totp && <span className="text-[0.72rem] text-muted shrink-0">{totp.remaining}s</span>}
           <button type="button" className={ICON_BTN} onClick={() => totp && copy(totp.code)} aria-label="TOTP 복사" disabled={!totp}><IconCopy width={14} height={14} /></button>
         </DetailField>
+      )}
+
+      {/* 2FA 백업코드 — 분실 대비 일회용 코드 */}
+      {cred.has2fa && (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-muted">2FA 백업코드</span>
+          {backupCodes ? (
+            <div className="bg-surface border border-border rounded-[var(--radius)] p-3">
+              <div className="grid grid-cols-2 gap-1.5">
+                {backupCodes.map((code) => (
+                  <span key={code} className="[font-family:var(--font-mono)] text-[0.8rem] text-primary tracking-[0.08em] text-center py-0.5">{code}</span>
+                ))}
+              </div>
+              <div className="flex gap-2 mt-3 pt-3 border-t border-border-subtle">
+                <Button variant="ghost" size="sm" className="flex-1" onClick={() => copy(backupCodes.join('\n'))}>전체 복사</Button>
+                <Button variant="ghost" size="sm" className="flex-1" onClick={genBackup} disabled={backupBusy}>재생성</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-surface border border-border rounded-[var(--radius)] px-3 py-2.5">
+              <span className="flex-1 text-[0.8rem] text-secondary">{cred.hasBackupCodes ? '백업코드가 저장되어 있습니다.' : '저장된 백업코드가 없습니다.'}</span>
+              {cred.hasBackupCodes
+                ? <Button variant="ghost" size="sm" onClick={viewBackup} disabled={backupBusy}>보기</Button>
+                : <Button variant="ghost" size="sm" onClick={genBackup} disabled={backupBusy}>생성</Button>}
+            </div>
+          )}
+        </div>
       )}
 
       {/* 메모 */}

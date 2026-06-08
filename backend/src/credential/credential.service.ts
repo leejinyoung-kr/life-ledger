@@ -1,9 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { Credential, Prisma } from '@prisma/client';
 import * as ExcelJS from 'exceljs';
 import { authenticator } from 'otplib';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto.service';
+import { AccessLogService } from '../access-log/access-log.service';
+import type { ClientInfo } from '../common/client-info.decorator';
 import { CreateCredentialDto } from './dto/create-credential.dto';
 import { UpdateCredentialDto } from './dto/update-credential.dto';
 
@@ -36,6 +39,7 @@ export class CredentialService {
   constructor(
     private prisma: PrismaService,
     private crypto: CryptoService,
+    private accessLog: AccessLogService,
   ) {}
 
   // 엔티티 → 목록 DTO. 비밀번호/TOTP 원문은 제외(reveal 로만), 2FA 설정 여부만 노출
@@ -48,6 +52,8 @@ export class CredentialService {
       username: c.username,
       memo: c.memo,
       has2fa: !!c.totp_enc,
+      hasBackupCodes: !!c.backup_codes_enc,
+      passwordChangedAt: c.password_changed_at?.toISOString() ?? null,
       updatedAt: c.updated_at.toISOString(),
     };
   }
@@ -61,7 +67,7 @@ export class CredentialService {
     return rows.map((r) => this.toDto(r));
   }
 
-  // 계정 추가 (비밀번호·TOTP 암호화 저장)
+  // 계정 추가 (비밀번호·TOTP 암호화 저장). 비번 회전 기준일로 password_changed_at 기록
   async create(userId: number, dto: CreateCredentialDto) {
     const created = await this.prisma.credential.create({
       data: {
@@ -72,6 +78,7 @@ export class CredentialService {
         username: dto.username.trim(),
         password_enc: this.crypto.encrypt(dto.password),
         totp_enc: this.crypto.encryptNullable(dto.totp),
+        password_changed_at: new Date(),
         memo: dto.memo || null,
       },
     });
@@ -87,19 +94,21 @@ export class CredentialService {
     return row;
   }
 
-  // 비밀번호·TOTP 원문 복호화 (표시/복사 시 호출)
-  async reveal(userId: number, id: number) {
+  // 비밀번호·TOTP 원문 복호화 (표시/복사 시 호출). 열람 사실을 감사 로그에 기록
+  async reveal(userId: number, id: number, client?: ClientInfo) {
     const row = await this.findOwned(userId, id);
+    await this.accessLog.log(userId, 'cred_reveal', { type: 'credential', id, name: row.name }, client);
     return {
       password: this.crypto.decrypt(row.password_enc),
       totp: row.totp_enc ? this.crypto.decrypt(row.totp_enc) : null,
     };
   }
 
-  // 저장된 TOTP 시크릿으로 현재 6자리 코드 생성 (otpauth:// URI 면 secret 파라미터 추출)
-  async totpCode(userId: number, id: number) {
+  // 저장된 TOTP 시크릿으로 현재 6자리 코드 생성 (otpauth:// URI 면 secret 파라미터 추출). 감사 로그 기록
+  async totpCode(userId: number, id: number, client?: ClientInfo) {
     const row = await this.findOwned(userId, id);
     if (!row.totp_enc) throw new BadRequestException('2FA 시크릿이 없습니다.');
+    await this.accessLog.log(userId, 'cred_totp', { type: 'credential', id, name: row.name }, client);
     let secret = this.crypto.decrypt(row.totp_enc).trim();
     if (secret.startsWith('otpauth://')) {
       const m = /[?&]secret=([^&]+)/i.exec(secret);
@@ -117,7 +126,7 @@ export class CredentialService {
     }
   }
 
-  // 계정 수정 (password/totp 가 오면 재암호화. totp 빈 문자열이면 해제)
+  // 계정 수정 (password/totp 가 오면 재암호화. totp 빈 문자열이면 해제). 비번 변경 시 회전 기준일 갱신
   async update(userId: number, id: number, dto: UpdateCredentialDto) {
     await this.findOwned(userId, id);
     const updated = await this.prisma.credential.update({
@@ -128,11 +137,40 @@ export class CredentialService {
         category: dto.category,
         username: dto.username?.trim(),
         password_enc: dto.password ? this.crypto.encrypt(dto.password) : undefined,
+        password_changed_at: dto.password ? new Date() : undefined,
         totp_enc: dto.totp === undefined ? undefined : this.crypto.encryptNullable(dto.totp),
         memo: dto.memo === undefined ? undefined : dto.memo || null,
       },
     });
     return this.toDto(updated);
+  }
+
+  // 2FA 백업코드 생성 — 8자리 코드 N개를 만들어 JSON 배열로 암호화 저장. 평문은 이 응답에서만 1회 노출
+  async generateBackupCodes(userId: number, id: number, count = 10) {
+    const row = await this.findOwned(userId, id);
+    const codes = Array.from({ length: count }, () =>
+      randomBytes(4).toString('hex').toUpperCase().replace(/(.{4})(.{4})/, '$1-$2'),
+    );
+    await this.prisma.credential.update({
+      where: { id },
+      data: { backup_codes_enc: this.crypto.encrypt(JSON.stringify(codes)) },
+    });
+    return { name: row.name, codes };
+  }
+
+  // 저장된 2FA 백업코드 원문 조회 — 감사 로그 기록. 미설정 시 빈 배열
+  async revealBackupCodes(userId: number, id: number, client?: ClientInfo) {
+    const row = await this.findOwned(userId, id);
+    if (!row.backup_codes_enc) return { codes: [] as string[] };
+    await this.accessLog.log(userId, 'cred_backup', { type: 'credential', id, name: row.name }, client);
+    return { codes: JSON.parse(this.crypto.decrypt(row.backup_codes_enc)) as string[] };
+  }
+
+  // 2FA 백업코드 삭제
+  async clearBackupCodes(userId: number, id: number) {
+    await this.findOwned(userId, id);
+    await this.prisma.credential.update({ where: { id }, data: { backup_codes_enc: null } });
+    return { id };
   }
 
   // 빈 양식 엑셀(.xlsx) 버퍼 — 헤더(필수*)만 포함
@@ -221,6 +259,7 @@ export class CredentialService {
         username,
         password_enc: this.crypto.encrypt(password),
         totp_enc: totp ? this.crypto.encrypt(totp) : null,
+        password_changed_at: new Date(),
         memo: cell(row, '메모') || null,
       });
     }

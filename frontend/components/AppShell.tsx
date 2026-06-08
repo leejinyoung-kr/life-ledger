@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
+import VaultUnlockModal from './VaultUnlockModal';
 import { api } from '@/lib/api';
 
 interface AppShellProps {
@@ -62,6 +63,8 @@ export default function AppShell({
       </div>
       {/* 모바일 하단 내비게이션 */}
       <BottomNav activePath={activePath} onMore={toggleSidebar} />
+      {/* 마스터 잠금 해제 모달 — reveal 류 요청 423 시 자동 표시 */}
+      <VaultUnlockModal />
     </>
   );
 }
