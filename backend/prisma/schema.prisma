@@ -661,12 +661,27 @@ model EnvVar {
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
 
-  user    User       @relation(fields: [user_id], references: [id])
-  project EnvProject @relation(fields: [project_id], references: [id])
+  user    User            @relation(fields: [user_id], references: [id])
+  project EnvProject      @relation(fields: [project_id], references: [id])
+  history EnvVarHistory[]
 
   @@index([user_id])
   @@index([project_id, env])
   @@map("env_var")
+}
+
+/// ENV 변수 값 변경 이력 (버전이력/롤백) — 값 변경 시 이전 암호문을 1건씩 적재
+model EnvVarHistory {
+  id         Int      @id @default(autoincrement())
+  env_var_id Int /// env_var.id FK
+  user_id    Int /// user.id FK (소유자 확인용)
+  value_enc  String   @db.Text /// 이전 값(암호문)
+  created_at DateTime @default(now())
+
+  envVar EnvVar @relation(fields: [env_var_id], references: [id])
+
+  @@index([env_var_id, created_at])
+  @@map("env_var_history")
 }
 
 /// 보관함 열람 동작: cred_reveal(계정 비번/2FA) | cred_totp(TOTP 코드) | cred_backup(백업코드) | identity_reveal(신원번호) | env_reveal(ENV 값)

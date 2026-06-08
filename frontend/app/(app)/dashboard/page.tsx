@@ -18,6 +18,13 @@ interface Summary {
   upcoming: { type: EvType; title: string; date: string }[];
 }
 
+interface Forecast {
+  totalMonthly: number;
+  subscriptions: { count: number; monthly: number };
+  recurring: { count: number; monthly: number };
+  items: { name: string; kind: 'subscription' | 'recurring'; cycle: string; amount: number; monthly: number }[];
+}
+
 const EV_LABEL: Record<EvType, string> = { pay: '결제', due: '만기', exp: '만료', task: '할일' };
 const TX_DOT: Record<TransactionType, 'green' | 'warning' | 'muted'> = { income: 'green', expense: 'muted', transfer: 'muted' };
 const EV_DOT: Record<EvType, 'green' | 'warning' | 'muted'> = { pay: 'warning', exp: 'warning', task: 'green', due: 'muted' };
@@ -59,9 +66,11 @@ export default function DashboardPage() {
   const [s, setS] = useState<Summary | null>(null);
   const [wMap, setWMap] = useState<Record<string, boolean>>(DEFAULT_WIDGET_MAP);
   const [credCount, setCredCount] = useState<number | null>(null);
+  const [forecast, setForecast] = useState<Forecast | null>(null);
 
   useEffect(() => {
     api.get<Summary>('/dashboard/summary').then(setS).catch(() => {});
+    api.get<Forecast>('/dashboard/cashflow-forecast').then(setForecast).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -163,6 +172,37 @@ export default function DashboardPage() {
           </CardHeader>
           <CardBody>
             <p className="text-[0.82rem] text-muted">AI 리포트 페이지에서 소비 패턴 분석 및 인사이트를 확인하세요.</p>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* 현금흐름 예측 — 구독 + 반복지출 월 환산 */}
+      {forecast && (forecast.subscriptions.count > 0 || forecast.recurring.count > 0) && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>💸 다음 달 고정지출 예측</CardTitle>
+            <Badge tone="warning">{won(forecast.totalMonthly)}</Badge>
+          </CardHeader>
+          <CardBody>
+            <div className="flex gap-3 mb-3 flex-wrap">
+              <div className="flex-1 min-w-[140px] px-4 py-3 bg-surface border border-border rounded-(--radius)">
+                <div className="text-[0.72rem] text-muted">구독 {forecast.subscriptions.count}건</div>
+                <div className="text-[0.95rem] font-bold text-primary mt-0.5">{won(forecast.subscriptions.monthly)}</div>
+              </div>
+              <div className="flex-1 min-w-[140px] px-4 py-3 bg-surface border border-border rounded-(--radius)">
+                <div className="text-[0.72rem] text-muted">반복지출 {forecast.recurring.count}건</div>
+                <div className="text-[0.95rem] font-bold text-primary mt-0.5">{won(forecast.recurring.monthly)}</div>
+              </div>
+            </div>
+            {forecast.items.slice(0, 5).map((it, i) => (
+              <ActivityRow
+                key={i}
+                dot={it.kind === 'subscription' ? 'warning' : 'muted'}
+                text={<strong>{it.name}</strong>}
+                time={`${it.kind === 'subscription' ? '구독' : '반복'} · ${it.cycle === 'yearly' ? '연' : it.cycle === 'weekly' ? '주' : '월'} ${won(it.amount)} → 월 ${won(it.monthly)}`}
+              />
+            ))}
+            <p className="text-[0.72rem] text-muted mt-2">연·주 단위 항목은 월 단위로 환산한 추정치입니다.</p>
           </CardBody>
         </Card>
       )}

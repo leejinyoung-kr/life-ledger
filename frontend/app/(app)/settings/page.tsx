@@ -81,6 +81,22 @@ export default function SettingsPage() {
   const [vaultTimeout, setVaultTimeout] = useState(5);
   const [vaultBusy, setVaultBusy] = useState(false);
 
+  // 계정 보관함 JSON 백업 복원 (export 역방향) — 동일 CREDENTIAL_SECRET 전제
+  async function importCredentials(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!await confirm('계정 백업 JSON 을 현재 보관함에 추가할까요? (덮어쓰지 않고 추가됩니다)', 'primary')) return;
+    try {
+      const r = await api.upload<{ imported: number; skipped: number; errors: string[] }>('/import/credentials', file);
+      if (r.errors.length) notify.error(`${r.imported}건 복원 · ${r.skipped}건 건너뜀 (형식 오류 포함)`);
+      else if (r.skipped) notify.success(`${r.imported}건 복원, ${r.skipped}건 건너뜀`);
+      else notify.success(`계정 ${r.imported}건을 복원했습니다.`);
+    } catch (err) {
+      notify.error((err as Error).message);
+    }
+  }
+
   // 데이터 내보내기 — 인증 첨부 후 파일 다운로드
   async function exportData(path: string, filename: string) {
     try {
@@ -618,6 +634,18 @@ export default function SettingsPage() {
                 </Row>
                 <Row label="전체 백업" desc="모든 데이터·메모를 ZIP으로 다운로드">
                   <Button variant="ghost" onClick={() => exportData('/export/backup', 'docnexus-백업.zip')}>ZIP 다운로드</Button>
+                </Row>
+              </Group>
+
+              <Group title="데이터 가져오기">
+                <Row label="계정 보관함 복원" desc="JSON 백업을 현재 보관함에 추가 (동일 키 필요 · 덮어쓰지 않음)">
+                  <label className="excel-btn upload">
+                    JSON 복원
+                    <input type="file" accept=".json,application/json" hidden onChange={importCredentials} />
+                  </label>
+                </Row>
+                <Row label="가계부 가져오기" desc="거래 내역 엑셀(.xlsx)은 가계부 페이지에서 업로드합니다.">
+                  <Button variant="ghost" href="/transactions">가계부로 이동</Button>
                 </Row>
               </Group>
               <div className="bg-background border border-[rgba(240,68,56,0.2)] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">

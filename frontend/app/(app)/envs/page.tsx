@@ -15,12 +15,12 @@ import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
-  IconCode, IconEdit, IconCopy, IconEye, IconTrash, IconSearch,
+  IconCode, IconEdit, IconCopy, IconEye, IconTrash, IconSearch, IconClock,
 } from '@/components/icons';
 import { api } from '@/lib/api';
 import {
   ENV_TABS, ENV_DOT, ENV_GROUPS, groupVars, toEnvText, toEnvExample,
-  type EnvKind, type EnvProject, type EnvVar, type ExportVar, type EnvDiff,
+  type EnvKind, type EnvProject, type EnvVar, type ExportVar, type EnvDiff, type EnvVarHistoryEntry,
 } from '@/lib/env';
 
 export default function EnvsPage() {
@@ -38,6 +38,7 @@ export default function EnvsPage() {
   const [diffTarget, setDiffTarget] = useState<EnvKind>('prod');
   const [diff, setDiff] = useState<EnvDiff | null>(null);
   const [selectedVars, setSelectedVars] = useState<Set<number>>(new Set());
+  const [historyVar, setHistoryVar] = useState<EnvVar | null>(null);
   const { confirm, confirmElement } = useConfirm();
 
   // 프로젝트 목록 조회 (선택 유지, 없으면 첫 항목)
@@ -338,6 +339,7 @@ export default function EnvsPage() {
                         onEdit={(v) => setVarModal({ open: true, editing: v })}
                         onDelete={deleteVar}
                         onSelect={toggleSelectVar}
+                        onHistory={(v) => setHistoryVar(v)}
                       />
                     ))
                   )}
@@ -400,6 +402,7 @@ export default function EnvsPage() {
 
       <ProjectModal state={projectModal} onClose={() => setProjectModal((s) => ({ ...s, open: false }))} onSaved={() => { setProjectModal({ open: false, editing: null }); loadProjects(); }} />
       <VarModal state={varModal} projectId={selectedId} currentEnv={env} onClose={() => setVarModal((s) => ({ ...s, open: false }))} onSaved={() => { setVarModal({ open: false, editing: null }); loadVars(); loadProjects(); }} />
+      <HistoryModal envVar={historyVar} onClose={() => setHistoryVar(null)} onRolledBack={() => { setHistoryVar(null); setRevealed({}); loadVars(); }} confirm={confirm} />
       {confirmElement}
     </AppShell>
   );
@@ -423,14 +426,14 @@ function DiffBlock({ title, tone, keys }: { title: string; tone: string; keys: s
 
 // 변수 그룹 헤더 + 변수 행들 (env-table 내부 — globals 스타일 유지)
 function EnvGroupRows({
-  group, items, revealed, selected, onToggle, onCopy, onEdit, onDelete, onSelect,
+  group, items, revealed, selected, onToggle, onCopy, onEdit, onDelete, onSelect, onHistory,
 }: {
   group: string; items: EnvVar[];
   revealed: Record<number, string>;
   selected: Set<number>;
   onToggle: (v: EnvVar) => void; onCopy: (v: EnvVar) => void;
   onEdit: (v: EnvVar) => void; onDelete: (v: EnvVar) => void;
-  onSelect: (id: number) => void;
+  onSelect: (id: number) => void; onHistory: (v: EnvVar) => void;
 }) {
   return (
     <>
@@ -457,6 +460,9 @@ function EnvGroupRows({
               <div className="flex justify-center gap-1">
                 <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center text-secondary border border-border transition-all hover:bg-surface hover:text-primary" onClick={() => onEdit(item)} aria-label="수정">
                   <IconEdit width={14} height={14} />
+                </button>
+                <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center text-secondary border border-border transition-all hover:bg-surface hover:text-primary" onClick={() => onHistory(item)} aria-label="변경 이력">
+                  <IconClock width={14} height={14} />
                 </button>
                 <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center bg-danger-dim text-danger transition-all hover:bg-[rgba(240,68,56,0.15)]" onClick={() => onDelete(item)} aria-label="삭제">
                   <IconTrash width={14} height={14} />
@@ -599,6 +605,62 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
         </Field>
       )}
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="변수 설명" value={memo} onChange={(e) => setMemo(e.target.value)} /></Field>
+    </Modal>
+  );
+}
+
+// 변수 값 변경 이력 모달 — 이전 값(마스킹) 목록 + 롤백
+function HistoryModal({ envVar, onClose, onRolledBack, confirm }: {
+  envVar: EnvVar | null;
+  onClose: () => void;
+  onRolledBack: () => void;
+  confirm: (msg: string, variant?: 'danger' | 'primary') => Promise<boolean>;
+}) {
+  const [list, setList] = useState<EnvVarHistoryEntry[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // 모달 열릴 때 이력 조회
+  useEffect(() => {
+    if (!envVar) { setList([]); return; }
+    setLoading(true);
+    api.get<EnvVarHistoryEntry[]>(`/env-vars/${envVar.id}/history`)
+      .then(setList)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [envVar]);
+
+  // 선택 이력 값으로 롤백
+  async function rollback(historyId: number) {
+    if (!envVar) return;
+    if (!await confirm('이 값으로 되돌릴까요? 현재 값은 이력에 보관됩니다.', 'primary')) return;
+    try {
+      await api.post(`/env-vars/${envVar.id}/rollback/${historyId}`, {});
+      notify.success('이전 값으로 되돌렸습니다.');
+      onRolledBack();
+    } catch (e) {
+      notify.error((e as Error).message);
+    }
+  }
+
+  if (!envVar) return null;
+
+  return (
+    <Modal open={!!envVar} onClose={onClose} title={`변경 이력 — ${envVar.key}`} footer={<Button variant="ghost" onClick={onClose}>닫기</Button>}>
+      {loading ? (
+        <div className="py-6 text-center text-muted text-[0.84rem]">불러오는 중...</div>
+      ) : list.length === 0 ? (
+        <div className="py-6 text-center text-muted text-[0.84rem]">변경 이력이 없습니다. 값을 수정하면 이전 값이 여기에 쌓입니다.</div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {list.map((h) => (
+            <div key={h.id} className="flex items-center gap-2 bg-surface border border-border rounded-[var(--radius)] px-3 py-2.5">
+              <span className="flex-1 [font-family:var(--font-mono)] text-[0.82rem] text-muted truncate">{h.valueMasked}</span>
+              <span className="text-[0.72rem] text-muted shrink-0">{h.changedAt.slice(0, 16).replace('T', ' ')}</span>
+              <Button variant="ghost" size="sm" onClick={() => rollback(h.id)}>되돌리기</Button>
+            </div>
+          ))}
+        </div>
+      )}
     </Modal>
   );
 }

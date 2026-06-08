@@ -29,6 +29,13 @@ export interface ExportVar {
   group: string | null;
 }
 
+// 변수 값 변경 이력 1건 (값은 마스킹, 롤백으로만 반영)
+export interface EnvVarHistoryEntry {
+  id: number;
+  valueMasked: string;
+  changedAt: string; // ISO
+}
+
 export interface EnvDiff {
   base: EnvKind;
   target: EnvKind;

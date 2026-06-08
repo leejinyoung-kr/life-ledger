@@ -3,6 +3,7 @@
  * 위험 4건의 심각도 가중(12+8+5+3)으로 보안 점수 72점이 나오도록 구성. 세션은 현재기기/미확인 포함.
  */
 import type {
+  AccessAction,
   SecurityRiskCategory,
   SecurityRiskSeverity,
   SessionDeviceType,
@@ -44,10 +45,35 @@ const SESSIONS: SessionSeed[] = [
   { device: 'Windows · Edge', deviceType: 'unknown', location: '부산', isCurrent: false, status: 'unverified', lastActiveAt: ago(2 * DAY) },
 ];
 
-// 한 사용자에게 보안 위험/세션 더미를 채운다 (기존 행 제거 후 재삽입 → idempotent)
+// 보안 점수 추이 30일 백필 (50 → 65 점진 상승). date(KST) 기준 1일 1건
+function scoreSnapshots(): { date: string; score: number; reuse: number; weak: number; no2fa: number }[] {
+  const out: { date: string; score: number; reuse: number; weak: number; no2fa: number }[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date(Date.now() + 9 * HOUR - i * DAY).toISOString().slice(0, 10); // KST 날짜
+    const score = Math.min(65, 50 + Math.round((29 - i) * 0.5)); // 50→65 상승
+    const reuse = i > 10 ? 3 : 2; // 최근 일부 해소
+    out.push({ date, score, reuse, weak: 1, no2fa: i > 5 ? 4 : 3 });
+  }
+  return out;
+}
+
+// 최근 열람 기록 샘플 (created_at 은 트리거로 NOW() 고정 — 모두 최근으로 표시됨)
+type LogSeed = { action: AccessAction; targetType: string; targetName: string };
+const ACCESS_LOGS: LogSeed[] = [
+  { action: 'cred_reveal', targetType: 'credential', targetName: 'GitHub' },
+  { action: 'cred_totp', targetType: 'credential', targetName: 'Google' },
+  { action: 'cred_backup', targetType: 'credential', targetName: 'Google' },
+  { action: 'identity_reveal', targetType: 'identity', targetName: '여권' },
+  { action: 'env_reveal', targetType: 'env', targetName: 'DATABASE_URL' },
+  { action: 'cred_reveal', targetType: 'credential', targetName: '카카오뱅크' },
+];
+
+// 한 사용자에게 보안 위험/세션 + 점수추이/접근로그 더미를 채운다 (기존 행 제거 후 재삽입 → idempotent)
 export const seedSecurity: SeedFn = async (prisma, userId) => {
   await prisma.securityRisk.deleteMany({ where: { user_id: userId } });
   await prisma.loginSession.deleteMany({ where: { user_id: userId } });
+  await prisma.securityScoreSnapshot.deleteMany({ where: { user_id: userId } });
+  await prisma.accessLog.deleteMany({ where: { user_id: userId } });
 
   for (const r of RISKS) {
     await prisma.securityRisk.create({
@@ -76,5 +102,24 @@ export const seedSecurity: SeedFn = async (prisma, userId) => {
     });
   }
 
-  return RISKS.length + SESSIONS.length;
+  // 보안 점수 추이 (17a)
+  const snaps = scoreSnapshots();
+  await prisma.securityScoreSnapshot.createMany({
+    data: snaps.map((s) => ({ user_id: userId, date: s.date, score: s.score, reuse: s.reuse, weak: s.weak, no2fa: s.no2fa })),
+  });
+
+  // 최근 열람 기록 (17a) — target_id 는 표시용 더미값
+  await prisma.accessLog.createMany({
+    data: ACCESS_LOGS.map((l, i) => ({
+      user_id: userId,
+      action: l.action,
+      target_type: l.targetType,
+      target_id: i + 1,
+      target_name: l.targetName,
+      ip: '192.168.0.10',
+      user_agent: 'Mozilla/5.0 (Macintosh) Chrome/124',
+    })),
+  });
+
+  return RISKS.length + SESSIONS.length + snaps.length + ACCESS_LOGS.length;
 };

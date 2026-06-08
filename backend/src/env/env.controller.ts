@@ -129,6 +129,22 @@ export class EnvController {
     return this.service.updateVar(user.id, id, dto);
   }
 
+  // 변수 값 변경 이력 (마스킹)
+  @Get('env-vars/:id/history')
+  varHistory(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.service.varHistory(user.id, id);
+  }
+
+  // 이력 값으로 롤백
+  @Post('env-vars/:id/rollback/:historyId')
+  rollbackVar(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('historyId', ParseIntPipe) historyId: number,
+  ) {
+    return this.service.rollbackVar(user.id, id, historyId);
+  }
+
   // 변수 일괄 삭제
   @Delete('env-vars/bulk')
   removeVarMany(@CurrentUser() user: AuthUser, @Body('ids') ids: number[]) {

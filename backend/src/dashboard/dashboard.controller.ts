@@ -17,4 +17,10 @@ export class DashboardController {
   summary(@CurrentUser() user: AuthUser) {
     return this.service.summary(user.id);
   }
+
+  // 현금흐름 예측 (다음 달 고정지출)
+  @Get('cashflow-forecast')
+  cashflowForecast(@CurrentUser() user: AuthUser) {
+    return this.service.cashflowForecast(user.id);
+  }
 }

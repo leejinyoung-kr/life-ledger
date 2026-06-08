@@ -31,6 +31,7 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
 import { BudgetModule } from './budget/budget.module';
 import { FileModule } from './file/file.module';
 import { AccessLogModule } from './access-log/access-log.module';
+import { ImportModule } from './import/import.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { AccessLogModule } from './access-log/access-log.module';
     MaintenanceModule,
     BudgetModule,
     FileModule,
+    ImportModule,
   ],
   controllers: [AppController],
   // 전역 JWT 가드 — 모든 엔드포인트 보호. @Public() 핸들러만 예외(로그인 등)

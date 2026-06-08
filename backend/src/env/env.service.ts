@@ -176,9 +176,11 @@ export class EnvService {
     return { count: dto.envs.length };
   }
 
-  // 변수 수정 (value 가 오면 재암호화)
+  // 변수 수정 (value 가 오면 재암호화). 값이 실제로 바뀌면 이전 암호문을 이력에 보관(롤백용)
   async updateVar(userId: number, id: number, dto: UpdateEnvVarDto) {
-    await this.findOwnedVar(userId, id);
+    const current = await this.findOwnedVar(userId, id);
+    const valueChanged = dto.value !== undefined && dto.value !== this.crypto.decrypt(current.value_enc);
+    if (valueChanged) await this.pushHistory(userId, id, current.value_enc);
     const updated = await this.prisma.envVar.update({
       where: { id },
       data: {
@@ -187,6 +189,51 @@ export class EnvService {
         value_enc: dto.value === undefined ? undefined : this.crypto.encrypt(dto.value),
         memo: dto.memo === undefined ? undefined : dto.memo || null,
       },
+    });
+    return this.varDto(updated);
+  }
+
+  // 이전 값 암호문을 이력에 추가하고 변수당 최근 20건만 유지
+  private async pushHistory(userId: number, envVarId: number, valueEnc: string) {
+    await this.prisma.envVarHistory.create({
+      data: { env_var_id: envVarId, user_id: userId, value_enc: valueEnc },
+    });
+    const old = await this.prisma.envVarHistory.findMany({
+      where: { env_var_id: envVarId },
+      orderBy: { created_at: 'desc' },
+      skip: 20,
+      select: { id: true },
+    });
+    if (old.length) {
+      await this.prisma.envVarHistory.deleteMany({ where: { id: { in: old.map((o) => o.id) } } });
+    }
+  }
+
+  // 변수 값 변경 이력 (최신순) — 값은 마스킹, 원문은 롤백으로만 반영
+  async varHistory(userId: number, id: number) {
+    await this.findOwnedVar(userId, id);
+    const rows = await this.prisma.envVarHistory.findMany({
+      where: { env_var_id: id, user_id: userId },
+      orderBy: { created_at: 'desc' },
+    });
+    return rows.map((h) => ({
+      id: h.id,
+      valueMasked: '•'.repeat(Math.min(this.crypto.decrypt(h.value_enc).length, 20)),
+      changedAt: h.created_at.toISOString(),
+    }));
+  }
+
+  // 이력 값으로 롤백 — 현재 값을 이력에 보관한 뒤 선택한 이전 값으로 되돌린다
+  async rollbackVar(userId: number, id: number, historyId: number) {
+    const current = await this.findOwnedVar(userId, id);
+    const hist = await this.prisma.envVarHistory.findFirst({
+      where: { id: historyId, env_var_id: id, user_id: userId },
+    });
+    if (!hist) throw new NotFoundException('이력을 찾을 수 없습니다.');
+    await this.pushHistory(userId, id, current.value_enc);
+    const updated = await this.prisma.envVar.update({
+      where: { id },
+      data: { value_enc: hist.value_enc },
     });
     return this.varDto(updated);
   }

@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+// 주기별 금액을 월 단위로 환산 (yearly/12, weekly*52/12, monthly 그대로)
+function toMonthly(amount: number, cycle: string): number {
+  if (cycle === 'yearly') return amount / 12;
+  if (cycle === 'weekly') return (amount * 52) / 12;
+  return amount;
+}
+
 @Injectable()
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
@@ -69,6 +76,51 @@ export class DashboardService {
       budgets,
       recent: recent.map((r) => ({ type: r.type, title: r.title, amount: r.amount.toNumber(), date: r.date.toISOString().slice(0, 10) })),
       upcoming: upcoming.map((u) => ({ type: u.type, title: u.title, date: u.date.toISOString().slice(0, 10) })),
+    };
+  }
+
+  // 현금흐름 예측 — 활성 구독 + 반복 지출거래를 월 단위로 환산·합산해 다음 달 고정지출을 추정
+  async cashflowForecast(userId: number) {
+    const [subs, recurring] = await Promise.all([
+      this.prisma.subscription.findMany({
+        where: { user_id: userId, deleted_at: null, status: { in: ['active', 'trial'] } },
+      }),
+      this.prisma.transaction.findMany({
+        where: { user_id: userId, deleted_at: null, is_recurring: true, type: 'expense' },
+        orderBy: { date: 'desc' },
+      }),
+    ]);
+
+    // 구독: 주기 환산
+    const subItems = subs.map((s) => {
+      const amount = s.amount.toNumber();
+      return { name: s.name, kind: 'subscription' as const, cycle: s.cycle, amount, monthly: toMonthly(amount, s.cycle) };
+    });
+
+    // 반복 지출: 동일 규칙(제목·카테고리·금액)은 1건만 — recurring 회차 중복 제거
+    const seen = new Set<string>();
+    const recItems = recurring
+      .filter((r) => {
+        const key = `${r.title}|${r.category}|${r.amount}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((r) => {
+        const amount = r.amount.toNumber();
+        const cycle = (r.recurring_rule as { cycle?: string } | null)?.cycle ?? 'monthly';
+        return { name: r.title, kind: 'recurring' as const, cycle, amount, monthly: toMonthly(amount, cycle) };
+      });
+
+    const subMonthly = subItems.reduce((s, i) => s + i.monthly, 0);
+    const recMonthly = recItems.reduce((s, i) => s + i.monthly, 0);
+    const items = [...subItems, ...recItems].sort((a, b) => b.monthly - a.monthly);
+
+    return {
+      totalMonthly: Math.round(subMonthly + recMonthly),
+      subscriptions: { count: subItems.length, monthly: Math.round(subMonthly) },
+      recurring: { count: recItems.length, monthly: Math.round(recMonthly) },
+      items: items.map((i) => ({ ...i, monthly: Math.round(i.monthly) })),
     };
   }
 }
