@@ -6,8 +6,10 @@
  * 값 마스킹·복사·.env 다운로드·붙여넣기 파싱을 지원하며, 데이터는 백엔드(/env-projects, /env-vars)와 연동한다.
  * 값 원문은 reveal/export API 로만 받는다. 스타일: Tailwind. env-table 은 공통 globals 유지.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
@@ -24,13 +26,10 @@ import {
 } from '@/lib/env';
 
 export default function EnvsPage() {
-  const [projects, setProjects] = useState<EnvProject[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [env, setEnv] = useState<EnvKind>('dev');
-  const [vars, setVars] = useState<EnvVar[]>([]);
   const [revealed, setRevealed] = useState<Record<number, string>>({});
   const [paste, setPaste] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [projectModal, setProjectModal] = useState<{ open: boolean; editing: EnvProject | null }>({ open: false, editing: null });
   const [varModal, setVarModal] = useState<{ open: boolean; editing: EnvVar | null }>({ open: false, editing: null });
   const [varSearch, setVarSearch] = useState('');
@@ -40,35 +39,30 @@ export default function EnvsPage() {
   const [selectedVars, setSelectedVars] = useState<Set<number>>(new Set());
   const [historyVar, setHistoryVar] = useState<EnvVar | null>(null);
   const { confirm, confirmElement } = useConfirm();
+  const invalidate = useInvalidate();
 
-  // 프로젝트 목록 조회 (선택 유지, 없으면 첫 항목)
-  const loadProjects = useCallback(async () => {
-    try {
-      const list = await api.get<EnvProject[]>('/env-projects');
-      setProjects(list);
-      setSelectedId((prev) => (prev && list.some((p) => p.id === prev) ? prev : list[0]?.id ?? null));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
+  // 프로젝트 목록 (React Query 캐시)
+  const projectsQuery = useApiQuery<EnvProject[]>(qk.env.projects(), '/env-projects');
+  const projects = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
 
-  useEffect(() => { loadProjects(); }, [loadProjects]);
+  // 프로젝트 로드 시 선택 보정 (기존 선택 유지, 없으면 첫 항목)
+  useEffect(() => {
+    if (projects.length === 0) { setSelectedId(null); return; }
+    setSelectedId((prev) => (prev && projects.some((p) => p.id === prev) ? prev : projects[0].id));
+  }, [projects]);
 
-  // 선택 프로젝트·환경의 변수 조회
-  const loadVars = useCallback(async () => {
-    if (!selectedId) { setVars([]); return; }
-    try {
-      setVars(await api.get<EnvVar[]>(`/env-projects/${selectedId}/vars?env=${env}`));
-      setRevealed({});
-      setVarSearch('');
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [selectedId, env]);
+  // 선택 프로젝트·환경의 변수 (selectedId 있을 때만 조회)
+  const varsQuery = useApiQuery<EnvVar[]>(
+    qk.env.vars(selectedId ?? 0, env),
+    `/env-projects/${selectedId}/vars?env=${env}`,
+    { enabled: !!selectedId },
+  );
+  const vars = useMemo(() => varsQuery.data ?? [], [varsQuery.data]);
 
-  useEffect(() => { loadVars(); }, [loadVars]);
+  // 프로젝트/환경 전환 시 표시값·검색 초기화
+  useEffect(() => { setRevealed({}); setVarSearch(''); }, [selectedId, env]);
 
+  const error = (projectsQuery.error ?? varsQuery.error)?.message ?? null;
   const project = projects.find((p) => p.id === selectedId) ?? null;
 
   // 프로젝트 전환 — 환경/표시상태 초기화
@@ -145,7 +139,7 @@ export default function EnvsPage() {
       if (count === 0) { notify.error('저장할 KEY=VALUE 행이 없습니다.'); return; }
       notify.success(`변수 ${count}개를 저장했습니다.`);
       setPaste('');
-      loadVars(); loadProjects();
+      invalidate(qk.env.all);
     } catch {
       notify.saveFailed();
     }
@@ -190,7 +184,7 @@ export default function EnvsPage() {
       await api.del(`/env-projects/${p.id}`);
       notify.deleted('프로젝트');
       setSelectedId(null);
-      loadProjects();
+      invalidate(qk.env.all);
     } catch {
       notify.deleteFailed();
     }
@@ -203,7 +197,7 @@ export default function EnvsPage() {
       await api.del(`/env-vars/${v.id}`);
       notify.deleted('변수');
       setSelectedVars(new Set());
-      loadVars(); loadProjects();
+      invalidate(qk.env.all);
     } catch {
       notify.deleteFailed();
     }
@@ -230,7 +224,7 @@ export default function EnvsPage() {
       await api.del('/env-vars/bulk', { ids: [...selectedVars] });
       notify.deleted(`${selectedVars.size}개 변수`);
       setSelectedVars(new Set());
-      loadVars(); loadProjects();
+      invalidate(qk.env.all);
     } catch {
       notify.deleteFailed();
     }
@@ -400,9 +394,9 @@ export default function EnvsPage() {
         )}
       </Modal>
 
-      <ProjectModal state={projectModal} onClose={() => setProjectModal((s) => ({ ...s, open: false }))} onSaved={() => { setProjectModal({ open: false, editing: null }); loadProjects(); }} />
-      <VarModal state={varModal} projectId={selectedId} currentEnv={env} onClose={() => setVarModal((s) => ({ ...s, open: false }))} onSaved={() => { setVarModal({ open: false, editing: null }); loadVars(); loadProjects(); }} />
-      <HistoryModal envVar={historyVar} onClose={() => setHistoryVar(null)} onRolledBack={() => { setHistoryVar(null); setRevealed({}); loadVars(); }} confirm={confirm} />
+      <ProjectModal state={projectModal} onClose={() => setProjectModal((s) => ({ ...s, open: false }))} onSaved={() => { setProjectModal({ open: false, editing: null }); invalidate(qk.env.all); }} />
+      <VarModal state={varModal} projectId={selectedId} currentEnv={env} onClose={() => setVarModal((s) => ({ ...s, open: false }))} onSaved={() => { setVarModal({ open: false, editing: null }); invalidate(qk.env.all); }} />
+      <HistoryModal envVar={historyVar} onClose={() => setHistoryVar(null)} onRolledBack={() => { setHistoryVar(null); setRevealed({}); invalidate(qk.env.all); }} confirm={confirm} />
       {confirmElement}
     </AppShell>
   );

@@ -6,8 +6,10 @@
  * 데이터는 백엔드 API(/tasks, /goals)와 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Badge/Field). 진행바(track/fill)는 공통 globals.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Modal from '@/components/Modal';
@@ -24,9 +26,6 @@ import {
 } from '@/lib/task';
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [addModal, setAddModal] = useState(false);
   const [goalModal, setGoalModal] = useState<{ open: boolean; editing?: Goal }>({ open: false });
@@ -34,36 +33,27 @@ export default function TasksPage() {
   const [limit, setLimit] = useState(10);
   const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set());
   const { confirm, confirmElement } = useConfirm();
+  const invalidate = useInvalidate();
 
-  // 할일/목표 조회
-  const load = useCallback(async () => {
-    try {
-      const [t, g] = await Promise.all([
-        api.get<Task[]>('/tasks'),
-        api.get<Goal[]>('/goals'),
-      ]);
-      setTasks(t); setGoals(g); setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
+  // 할일/목표 (React Query 캐시)
+  const tasksQuery = useApiQuery<Task[]>(qk.tasks.list(), '/tasks');
+  const goalsQuery = useApiQuery<Goal[]>(qk.tasks.goals(), '/goals');
+  const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data]);
+  const goals = useMemo(() => goalsQuery.data ?? [], [goalsQuery.data]);
+  const error = (tasksQuery.error ?? goalsQuery.error)?.message ?? null;
+  const reload = () => invalidate(qk.tasks.all);
 
-  useEffect(() => { load(); }, [load]);
-
-  // 완료 토글 (낙관적 갱신 후 PUT)
+  // 완료 토글 (PUT 후 목록 무효화)
   async function toggleTask(id: number) {
     const target = tasks.find((t) => t.id === id);
     if (!target) return;
     const next = !target.done;
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: next } : t)));
     try {
       await api.put(`/tasks/${id}`, { done: next });
-      if (next) notify.success('할일을 완료했습니다.');
-      else notify.success('할일을 미완료로 변경했습니다.');
-      load();
+      notify.success(next ? '할일을 완료했습니다.' : '할일을 미완료로 변경했습니다.');
+      reload();
     } catch (e) {
-      setError((e as Error).message);
-      load();
+      notify.error((e as Error).message);
     }
   }
 
@@ -74,7 +64,7 @@ export default function TasksPage() {
       await api.del(`/tasks/${id}`);
       notify.deleted('할일');
       setSelectedTasks(new Set());
-      load();
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -101,7 +91,7 @@ export default function TasksPage() {
       await api.del('/tasks/bulk', { ids: [...selectedTasks] });
       notify.deleted(`${selectedTasks.size}건`);
       setSelectedTasks(new Set());
-      load();
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -113,7 +103,7 @@ export default function TasksPage() {
     try {
       await api.del(`/goals/${id}`);
       notify.deleted('목표');
-      load();
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -212,14 +202,14 @@ export default function TasksPage() {
       </div>
 
       {/* 할일 추가 모달 */}
-      <AddTaskModal open={addModal} onClose={() => setAddModal(false)} onSaved={() => { setAddModal(false); load(); }} />
+      <AddTaskModal open={addModal} onClose={() => setAddModal(false)} onSaved={() => { setAddModal(false); reload(); }} />
 
       {/* 목표 추가/수정 모달 */}
       <GoalModal
         open={goalModal.open}
         editing={goalModal.editing}
         onClose={() => setGoalModal({ open: false })}
-        onSaved={() => { setGoalModal({ open: false }); load(); }}
+        onSaved={() => { setGoalModal({ open: false }); reload(); }}
       />
 
       {confirmElement}

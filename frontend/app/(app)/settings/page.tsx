@@ -8,7 +8,10 @@
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { notify } from '@/lib/toast';
+import { useApiQuery } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
@@ -73,8 +76,10 @@ export default function SettingsPage() {
   const router = useRouter();
   const { confirm, confirmElement } = useConfirm();
   const [tab, setTab] = useState<TabId>('profile');
-  const [s, setS] = useState<Settings | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const qc = useQueryClient();
+  const settingsQuery = useApiQuery<Settings>(qk.settings.detail(), '/settings');
+  const s = settingsQuery.data ?? null;
+  const error = settingsQuery.error?.message ?? null;
   // 마스터 잠금
   const [vault, setVault] = useState<VaultStatus | null>(null);
   const [vaultPw, setVaultPw] = useState('');
@@ -138,23 +143,16 @@ export default function SettingsPage() {
   const [budgetStatusLoading, setBudgetStatusLoading] = useState(false);
   const [monthOverrides, setMonthOverrides] = useState<Record<string, number>>({});
 
-  // 설정 조회 후 로컬 상태 초기화
-  const load = useCallback(async () => {
-    try {
-      const data = await api.get<Settings>('/settings');
-      setS(data);
-      setDisplayName(data.displayName);
-      setBudgets(data.budgets);
-      setClaudeModel(data.claudeModel);
-      setWidgets(data.widgets.length ? data.widgets : DEFAULT_WIDGETS);
-      setMenuOrder(normalizeMenuOrder(data.menuOrder));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  // 설정 로드 시 로컬 편집 상태 동기화 (입력 중 값은 저장 버튼으로 커밋)
+  useEffect(() => {
+    const data = settingsQuery.data;
+    if (!data) return;
+    setDisplayName(data.displayName);
+    setBudgets(data.budgets);
+    setClaudeModel(data.claudeModel);
+    setWidgets(data.widgets.length ? data.widgets : DEFAULT_WIDGETS);
+    setMenuOrder(normalizeMenuOrder(data.menuOrder));
+  }, [settingsQuery.data]);
 
   // 월별 예산 현황 로드
   const loadMonthStatus = useCallback(async (month: string) => {
@@ -179,16 +177,14 @@ export default function SettingsPage() {
   const patch = useCallback(async (partial: Record<string, unknown>, successMsg?: string | null) => {
     try {
       const data = await api.put<Settings>('/settings', partial);
-      setS(data);
-      setError(null);
+      qc.setQueryData(qk.settings.detail(), data); // 캐시 즉시 갱신
       if (successMsg !== null) notify.success(successMsg ?? '저장됐습니다.');
       return data;
     } catch (e) {
-      setError((e as Error).message);
       notify.error('저장에 실패했습니다.');
       throw e;
     }
-  }, []);
+  }, [qc]);
 
   // 마스터 잠금 상태 로드 (보안 탭 진입 시)
   const loadVault = useCallback(async () => {

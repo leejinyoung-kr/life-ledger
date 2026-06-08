@@ -46,8 +46,11 @@ export function useApiMutation<TData, TVars = void>(
   });
 }
 
-// 수동 무효화 훅 (이벤트 핸들러 등에서 직접 호출)
+// 수동 무효화 훅 — 키를 주면 해당 쿼리만, 인자 없이 호출하면 전체 무효화(예: 휴지통 복구 → 여러 도메인)
 export function useInvalidate() {
   const qc = useQueryClient();
-  return (...keys: QueryKey[]) => keys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
+  return (...keys: QueryKey[]) => {
+    if (keys.length === 0) { qc.invalidateQueries(); return; }
+    keys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
+  };
 }

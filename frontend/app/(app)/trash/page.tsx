@@ -6,37 +6,33 @@
  * 데이터는 백엔드 API(/trash)와 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(Button/Pagination). 가계부와 동일한 표+모바일카드 패턴.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
 import { notify } from '@/lib/toast';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import { IconAlertCircle, IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
 import { trashDate, type TrashItem } from '@/lib/trash';
 
 export default function TrashPage() {
-  const [items, setItems] = useState<TrashItem[]>([]);
   const [query, setQuery] = useState('');
   const [type, setType] = useState('전체 유형');
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const { confirm, confirmElement } = useConfirm();
+  const invalidate = useInvalidate();
 
-  // 삭제 항목 통합 목록 조회
-  const load = useCallback(async () => {
-    try {
-      setItems(await api.get<TrashItem[]>('/trash'));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  // 삭제 항목 통합 목록 (React Query 캐시)
+  const itemsQuery = useApiQuery<TrashItem[]>(qk.trash.list(), '/trash');
+  const items = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
+  const error = itemsQuery.error?.message ?? null;
+  // 복구/삭제는 휴지통 + 복원 대상 도메인에 영향 → 전체 무효화
+  const reload = () => invalidate();
 
   // 단일 복구
   async function restore(it: TrashItem) {
@@ -44,8 +40,8 @@ export default function TrashPage() {
     try {
       await api.post('/trash/restore', { kind: it.kind, id: it.id });
       notify.success(`'${it.name}'을(를) 복구했습니다.`);
-      load();
-    } catch (e) { setError((e as Error).message); }
+      reload();
+    } catch (e) { notify.error((e as Error).message); }
   }
 
   // 단일 영구 삭제
@@ -54,8 +50,8 @@ export default function TrashPage() {
     try {
       await api.post('/trash/purge', { kind: it.kind, id: it.id });
       notify.purged();
-      load();
-    } catch (e) { setError((e as Error).message); }
+      reload();
+    } catch (e) { notify.error((e as Error).message); }
   }
 
   function toggleSelect(key: string) {
@@ -83,8 +79,8 @@ export default function TrashPage() {
       await api.post('/trash/bulk-restore', { items });
       notify.success(`${selected.size}건을 복구했습니다.`);
       setSelected(new Set());
-      load();
-    } catch (e) { setError((e as Error).message); }
+      reload();
+    } catch (e) { notify.error((e as Error).message); }
   }
 
   async function bulkPurgeSelected() {
@@ -98,8 +94,8 @@ export default function TrashPage() {
       await api.post('/trash/bulk-purge', { items });
       notify.purged();
       setSelected(new Set());
-      load();
-    } catch (e) { setError((e as Error).message); }
+      reload();
+    } catch (e) { notify.error((e as Error).message); }
   }
 
   // 전체 복구
@@ -109,8 +105,8 @@ export default function TrashPage() {
     try {
       await api.post('/trash/restore-all', {});
       notify.restoredAll();
-      load();
-    } catch (e) { setError((e as Error).message); }
+      reload();
+    } catch (e) { notify.error((e as Error).message); }
   }
 
   // 휴지통 비우기 (전체 영구 삭제)
@@ -120,8 +116,8 @@ export default function TrashPage() {
     try {
       await api.post('/trash/empty', {});
       notify.emptied();
-      load();
-    } catch (e) { setError((e as Error).message); }
+      reload();
+    } catch (e) { notify.error((e as Error).message); }
   }
 
   // 유형 필터 옵션 — 현재 항목의 종류에서 동적 구성

@@ -6,8 +6,10 @@
  * 비밀번호/TOTP 원문은 reveal API 로만 받아오며, 데이터는 백엔드(/credentials)와 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(Modal/Button/Badge/Field). 표+모바일카드 패턴.
  */
-import { useEffect, useCallback, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { notify } from '@/lib/toast';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Modal from '@/components/Modal';
@@ -28,28 +30,22 @@ const ICON_BTN = 'w-7 h-7 rounded-[5px] flex items-center justify-center text-mu
 const FILTER_CATEGORIES = ['전체 카테고리', ...CRED_CATEGORIES];
 
 export default function CredentialsPage() {
-  const [list, setList] = useState<Credential[]>([]);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('전체 카테고리');
   const [detail, setDetail] = useState<Credential | null>(null);
   const [edit, setEdit] = useState<{ open: boolean; editing: Credential | null }>({ open: false, editing: null });
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const { confirm, confirmElement } = useConfirm();
+  const invalidate = useInvalidate();
 
-  // 계정 목록 조회
-  const load = useCallback(async () => {
-    try {
-      setList(await api.get<Credential[]>('/credentials'));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  // 계정 목록 (React Query 캐시)
+  const listQuery = useApiQuery<Credential[]>(qk.credentials.list(), '/credentials');
+  const list = useMemo(() => listQuery.data ?? [], [listQuery.data]);
+  const error = listQuery.error?.message ?? null;
+  // 목록 갱신 단축 — 변이 후 호출
+  const reload = () => invalidate(qk.credentials.all);
 
   // 보안센터에서 ?focus=<id> 로 진입 시 해당 계정 상세 자동 열기 (위험 항목 → 계정 바로가기)
   useEffect(() => {
@@ -82,7 +78,7 @@ export default function CredentialsPage() {
       notify.deleted('계정');
       setDetail(null);
       setSelected(new Set());
-      load();
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -109,7 +105,7 @@ export default function CredentialsPage() {
       await api.del('/credentials/bulk', { ids: [...selected] });
       notify.deleted(`${selected.size}건`);
       setSelected(new Set());
-      load();
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -137,7 +133,7 @@ export default function CredentialsPage() {
       const r = await api.upload<{ imported: number; failed: number }>('/credentials/import', file);
       if (r.failed) notify.excelPartial(r.imported, r.failed);
       else notify.excelUploaded(r.imported);
-      load();
+      reload();
     } catch (err) {
       notify.error((err as Error).message);
     }
@@ -259,7 +255,7 @@ export default function CredentialsPage() {
       />
 
       {/* 추가/수정 모달 */}
-      <EditModal state={edit} onClose={() => setEdit((s) => ({ ...s, open: false }))} onSaved={() => { setEdit({ open: false, editing: null }); load(); }} />
+      <EditModal state={edit} onClose={() => setEdit((s) => ({ ...s, open: false }))} onSaved={() => { setEdit({ open: false, editing: null }); reload(); }} />
       {confirmElement}
     </AppShell>
   );
