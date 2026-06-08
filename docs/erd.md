@@ -3,7 +3,7 @@
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
 > 마이그레이션: `20260610000000_init_consolidated`(전 도메인 통합) + `20260610010000_phase17a_security_core` · `20260610020000_phase17b_dataflow` · `20260610030000_phase17c_enhance` · `20260610040000_phase17d_extras`
 
-## 테이블 목록 (26)
+## 테이블 목록 (27)
 
 | 테이블 | 설명 |
 | --- | --- |
@@ -33,6 +33,7 @@
 | StorageFile | 파일 메타 (B2 object_key·SHA-256 hash) |
 | AccessLog | 보관함 접근 감사 로그 |
 | SecurityScoreSnapshot | 보안 점수 일별 스냅샷 |
+| AiReport | AI 리포트 (가계부 분석·소비 패턴·절약 인사이트) |
 
 ## 주요 관계
 
@@ -40,7 +41,7 @@
 User 1 ─── N (Transaction, Saving, Investment, Subscription, Asset, NetWorthSnapshot,
               MonthlyBudget, Notification, Task, Goal, Note, CalendarEvent,
               SecurityRisk, LoginSession, Category, IdentityCard, Credential,
-              EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot)
+              EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport)
 User 1 ─── 1 UserSettings
 EnvProject     1 ─── N EnvVar
 EnvVar         1 ─── N EnvVarHistory

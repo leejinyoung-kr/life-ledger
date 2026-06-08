@@ -3,11 +3,12 @@
 /**
  * AI 리포트 페이지.
  * 가계부 데이터를 OpenAI API로 분석해 소비 패턴·절약 인사이트를 리포트로 생성·보관한다.
- * 공통 레이아웃(AppShell)을 재사용하고, 생성은 더미(setTimeout) 시뮬레이션. (TODO: OpenAI API)
+ * 공통 레이아웃(AppShell)을 재사용하고, 생성·목록은 백엔드 /ai/reports 와 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Badge).
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
+import { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
@@ -15,24 +16,23 @@ import { Card, CardBody } from '@/components/ui/Card';
 import { IconCube } from '@/components/icons';
 import { api } from '@/lib/api';
 import { notify } from '@/lib/toast';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
+import {
+  REPORT_PERIOD_LABEL, formatReportDate,
+  type AiReport, type ReportPeriod, type InsightTone,
+} from '@/lib/aiReport';
 
-type InsTone = 'green' | 'warning' | 'danger';
-interface Insight { tone: InsTone; node: ReactNode; }
-
-// ── 더미 데이터 (TODO: GET /api/v1/reports) ─────────────────────
-const APRIL_INSIGHTS: Insight[] = [
-  { tone: 'green', node: <><strong>식비 절약 성공</strong> — 3월 ₩410,000에서 4월 ₩298,000으로 27% 줄었습니다. 외식 횟수 감소가 주요 원인으로 분석됩니다.</> },
-  { tone: 'warning', node: <><strong>구독 서비스 비중 증가</strong> — 월정액 합계 <span className="warn">₩187,300</span>으로 전체의 25%를 차지합니다. 미사용 구독 정리를 권장합니다.</> },
-  { tone: 'green', node: <><strong>교통비 안정</strong> — 대중교통 위주 이용으로 ₩72,000 수준을 유지 중입니다.</> },
-  { tone: 'danger', node: <><strong>충동 구매 패턴 감지</strong> — 주말 저녁(금·토 21~23시) 쇼핑 결제가 집중되어 있습니다. 장바구니 하루 보관 후 구매를 권장합니다.</> },
-];
-const APRIL_TAGS = ['식비 -27%', '구독 과다', '교통 안정', '주말 충동구매'];
-
-const INS_DOT: Record<InsTone, string> = { green: 'bg-accent', warning: 'bg-warning', danger: 'bg-danger' };
+const INS_DOT: Record<InsightTone, string> = { green: 'bg-accent', warning: 'bg-warning', danger: 'bg-danger' };
+const INS_TEXT: Record<InsightTone, string> = { green: '', warning: 'text-warning', danger: 'text-danger' };
+const PERIOD_OPTIONS: ReportPeriod[] = ['this_month', 'last_month', 'last_3_months', 'this_year'];
 
 export default function AiReportPage() {
+  const [period, setPeriod] = useState<ReportPeriod>('this_month');
   const [generating, setGenerating] = useState(false);
   const [autoMonthly, setAutoMonthly] = useState(true); // 매월 1일 자동 생성 (설정 notifMonthly 와 동기화)
+  const invalidate = useInvalidate();
+  const { confirm, confirmElement } = useConfirm();
 
   // 설정에서 자동 생성 여부 로드
   useEffect(() => {
@@ -48,11 +48,23 @@ export default function AiReportPage() {
       .catch(() => { setAutoMonthly(!next); notify.saveFailed(); });
   }
 
-  // 리포트 생성 — 더미 2.5초 후 완료. TODO: POST /api/v1/reports (OpenAI API 분석)
-  function generateReport() {
+  const reportsQuery = useApiQuery<AiReport[]>(qk.aiReports.list(), '/ai/reports');
+  const reports = reportsQuery.data ?? [];
+
+  // 리포트 생성 — 선택한 기간의 가계부 데이터를 분석해 저장 (OpenAI 비용 발생 → 컨펌 후 진행, 1일 1회 제한은 서버에서 검사)
+  async function generateReport() {
     if (generating) return;
+    if (!await confirm(`${REPORT_PERIOD_LABEL[period]} 데이터를 분석해 리포트를 생성할까요? OpenAI API 호출 비용이 발생하며, 리포트는 하루에 한 번만 생성할 수 있습니다(자정 기준 초기화).`, 'primary')) return;
     setGenerating(true);
-    setTimeout(() => setGenerating(false), 2500);
+    try {
+      await api.post<AiReport>('/ai/reports', { period });
+      notify.success('리포트가 생성됐습니다.');
+      invalidate(qk.aiReports.list());
+    } catch (err) {
+      notify.error((err as Error).message || '리포트 생성에 실패했습니다.');
+    } finally {
+      setGenerating(false);
+    }
   }
 
   return (
@@ -76,11 +88,8 @@ export default function AiReportPage() {
           <div className="text-[0.855rem] text-secondary">이번 달 또는 원하는 기간의 소비 패턴을 AI로 분석합니다.</div>
         </div>
         <div className="flex items-center gap-3 flex-wrap justify-center">
-          <select className="input w-auto" aria-label="분석 기간">
-            <option>이번 달 (2025.05)</option>
-            <option>지난 달 (2025.04)</option>
-            <option>최근 3개월</option>
-            <option>올해 전체</option>
+          <select className="input w-auto" aria-label="분석 기간" value={period} onChange={(ev) => setPeriod(ev.target.value as ReportPeriod)}>
+            {PERIOD_OPTIONS.map((p) => <option key={p} value={p}>{REPORT_PERIOD_LABEL[p]}</option>)}
           </select>
           <Button onClick={generateReport} disabled={generating}>
             {generating && <span className="inline-block w-[18px] h-[18px] border-2 border-white/40 border-t-white rounded-full animate-spin" />}
@@ -92,56 +101,49 @@ export default function AiReportPage() {
       {/* 저장된 리포트 */}
       <div className="flex items-center gap-2 mb-6">
         <span className="text-[0.875rem] font-semibold text-primary">저장된 리포트</span>
-        <Badge tone="neutral">2개</Badge>
+        <Badge tone="neutral">{reports.length}개</Badge>
       </div>
 
-      {/* 4월 리포트 (인사이트 + 태그) */}
-      <ReportCard title="2025년 4월 소비 분석 리포트" date="생성일: 2025.05.02 · GPT-4o mini" insights={APRIL_INSIGHTS} tags={APRIL_TAGS}>
-        4월 총 지출은 <strong>₩748,200</strong>으로, 전월 대비 <span className="hi">▼ 8.3% 감소</span>했습니다. 수입 대비 지출 비율은 <strong>23.4%</strong>로 건전한 수준을 유지하고 있습니다.
-      </ReportCard>
+      {reportsQuery.error && <p className="text-[0.78rem] text-danger mb-4">⚠️ {reportsQuery.error.message}</p>}
+      {!reportsQuery.error && reports.length === 0 && (
+        <p className="text-[0.82rem] text-muted">아직 생성된 리포트가 없습니다. 위에서 분석 기간을 선택하고 리포트를 생성해보세요.</p>
+      )}
 
-      {/* 3월 리포트 (요약만) */}
-      <ReportCard title="2025년 3월 소비 분석 리포트" date="생성일: 2025.04.01 · GPT-4o mini">
-        3월 총 지출은 <strong>₩816,000</strong>으로, 식비가 전체의 <span className="warn">50.2%</span>를 차지했습니다. 외식 빈도가 높았던 달로 절약 여지가 큰 것으로 분석됩니다.
-      </ReportCard>
+      {reports.map((r) => <ReportCard key={r.id} report={r} />)}
+      {confirmElement}
     </AppShell>
   );
 }
 
-// 저장된 리포트 카드 — 본문 + (선택) 인사이트 목록 + 태그
-function ReportCard({
-  title, date, children, insights, tags,
-}: {
-  title: string; date: string; children: ReactNode;
-  insights?: Insight[]; tags?: string[];
-}) {
+// 저장된 리포트 카드 — 요약 + 인사이트 목록 + 태그
+function ReportCard({ report }: { report: AiReport }) {
   return (
     <Card className="mb-4">
       <CardBody>
         <div className="flex items-start gap-3 mb-3.5">
           <div className="w-[38px] h-[38px] rounded-[var(--radius)] bg-accent-dim border border-[rgba(0,192,127,0.2)] flex items-center justify-center text-accent shrink-0"><IconCube width={17} height={17} /></div>
           <div className="flex-1">
-            <div className="[font-family:var(--font-display)] text-[0.95rem] font-bold text-primary">{title}</div>
-            <div className="text-[0.75rem] text-muted mt-0.5">{date}</div>
+            <div className="[font-family:var(--font-display)] text-[0.95rem] font-bold text-primary">{report.periodLabel} 소비 분석 리포트</div>
+            <div className="text-[0.75rem] text-muted mt-0.5">생성일: {formatReportDate(report.createdAt)} · {report.modelUsed}</div>
           </div>
           <Badge tone="success">완료</Badge>
         </div>
-        <p className="text-[0.875rem] text-secondary leading-[1.8] [&_strong]:text-primary [&_strong]:font-semibold [&_.hi]:text-accent [&_.hi]:font-semibold [&_.warn]:text-warning [&_.warn]:font-semibold">{children}</p>
+        <p className="text-[0.875rem] text-secondary leading-[1.8]">{report.summary}</p>
 
-        {insights && (
+        {report.insights.length > 0 && (
           <div className="flex flex-col gap-2.5 mt-4">
-            {insights.map((ins, i) => (
+            {report.insights.map((ins, i) => (
               <div className="flex gap-3 px-3.5 py-3 bg-surface border border-border rounded-[var(--radius)]" key={i}>
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 mt-[7px] ${INS_DOT[ins.tone]}`} />
-                <div className="text-[0.845rem] text-secondary leading-relaxed [&_strong]:text-primary [&_.warn]:text-warning [&_.warn]:font-semibold">{ins.node}</div>
+                <div className={`text-[0.845rem] leading-relaxed ${INS_TEXT[ins.tone] || 'text-secondary'}`}>{ins.text}</div>
               </div>
             ))}
           </div>
         )}
 
-        {tags && (
+        {report.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-3.5">
-            {tags.map((t) => <span className="px-2.5 py-[3px] rounded-full text-[0.75rem] bg-surface text-secondary border border-border" key={t}>{t}</span>)}
+            {report.tags.map((t) => <span className="px-2.5 py-[3px] rounded-full text-[0.75rem] bg-surface text-secondary border border-border" key={t}>{t}</span>)}
           </div>
         )}
       </CardBody>

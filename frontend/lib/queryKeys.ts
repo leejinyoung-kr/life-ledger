@@ -60,4 +60,5 @@ export const qk = {
     vault: () => ['security', 'vault'] as const,
   },
   categories: { all: ['categories'] as const },
+  aiReports: { all: ['ai-reports'] as const, list: () => ['ai-reports', 'list'] as const },
 } as const;

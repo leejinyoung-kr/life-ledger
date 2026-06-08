@@ -7,6 +7,7 @@ import { VaultService } from './vault.service';
 import { VaultGuard } from './vault.guard';
 
 // 보안 센터 + 마스터 잠금. @Global 로 VaultGuard·SecurityService 를 보관함/크론 모듈에서 주입 가능하게 한다.
+// JwtModule 도 함께 export 해야 VaultGuard 가 다른 모듈(@UseGuards) 컨텍스트에서 인스턴스화될 때 JwtService 를 주입받을 수 있다.
 @Global()
 @Module({
   imports: [
@@ -19,6 +20,6 @@ import { VaultGuard } from './vault.guard';
   ],
   controllers: [SecurityController],
   providers: [SecurityService, VaultService, VaultGuard],
-  exports: [SecurityService, VaultService, VaultGuard],
+  exports: [JwtModule, SecurityService, VaultService, VaultGuard],
 })
 export class SecurityModule {}

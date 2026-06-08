@@ -46,7 +46,7 @@ pnpm run dev
 - **암호화**: AES-256-GCM (계정·신원·ENV 보관함 민감 필드) / 마스터 잠금 scrypt
 - **스토리지**: Backblaze B2 (파일 보관함 — presigned·MIME검증·SHA-256 중복제거)
 - **외부 연동**: HIBP 유출 비밀번호 검사 · tesseract.js 영수증 OCR
-- **AI**: OpenAI API `gpt-4o-mini` (미구현)
+- **AI**: OpenAI API (사용자별 키·모델 — AI 리포트, 자연어→거래 파싱)
 
 ## 주요 기능
 

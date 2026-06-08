@@ -92,6 +92,7 @@ src/
 ├── export/        # 데이터 내보내기 (JSON/ZIP)
 ├── import/        # 데이터 가져오기 (계정 JSON 복원)
 ├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수)
+├── ai/            # AI 리포트 / 자연어 거래 파싱 (사용자별 OpenAI 키)
 ├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
 └── prisma/        # PrismaService / PrismaModule
 ```

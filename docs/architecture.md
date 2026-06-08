@@ -10,15 +10,15 @@
 | --- | --- | --- |
 | Frontend | Next.js 16.2 (App Router), React 19, TypeScript, Tailwind CSS v4 | 구현 완료 |
 | 상태관리 | TanStack Query (React Query) — lib/query·queryKeys | 전 페이지 전환 완료 |
-| Backend | NestJS 11, TypeScript | 27개 모듈 구현 완료 |
+| Backend | NestJS 11, TypeScript | 28개 모듈 구현 완료 |
 | ORM | Prisma | 구현 완료 |
-| DB | MariaDB 11 | 26개 테이블 구현 완료 |
+| DB | MariaDB 11 | 27개 테이블 구현 완료 |
 | Auth | Google OAuth 2.0 + JWT (전역 가드 + 새 기기 감지) | 구현 완료 |
 | Rate-limit | @nestjs/throttler | 구현 완료 |
 | 암호화 | AES-256-GCM(`CREDENTIAL_SECRET`) / 마스터잠금 scrypt | 구현 완료 |
 | Storage | Backblaze B2 (@aws-sdk/client-s3, presigned) | 구현 완료 |
 | OCR / 유출검사 | tesseract.js(클라) / HIBP(k-anonymity) | 구현 완료 |
-| AI | OpenAI API (gpt-4o-mini) | 미구현 |
+| AI | OpenAI API (사용자별 키·모델, AI 리포트·자연어 거래 파싱) | 구현 완료 |
 
 ## Ports
 
@@ -59,6 +59,7 @@
 | export | /export | 구현 완료 |
 | import | /import | 구현 완료 |
 | maintenance | (크론 — 알림·휴지통·보안점수 스냅샷) | 구현 완료 |
+| ai | /ai (자연어 거래 파싱·AI 리포트, 사용자별 OpenAI 키) | 구현 완료 |
 
 ## 프론트엔드 페이지
 
@@ -81,6 +82,6 @@
 | /envs | 구현 완료 (백엔드 연동) |
 | /id-wallet | 구현 완료 (백엔드 연동) |
 | /files | 구현 완료 (Backblaze B2) |
-| /ai-report | UI 완료 (백엔드 미구현) |
+| /ai-report | 구현 완료 (백엔드 연동) |
 
 > 모든 페이지·공통 컴포넌트는 React Query(useApiQuery/useApiMutation) 기반. 인증(401 refresh)·마스터잠금(423 unlock)은 lib/api 래퍼가 처리.

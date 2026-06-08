@@ -28,12 +28,15 @@ import {
   AMT_COLOR, RowActions, CardActions, toDay, monthsAgo,
 } from '../_shared';
 
-// prefill: 영수증 OCR 등으로 추가 모달을 미리 채울 때 사용
-type ReceiptDraft = { date?: string; title?: string; amount?: number };
-type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Transaction; prefill?: ReceiptDraft };
+// prefill: 영수증 OCR · AI 자연어 입력 등으로 추가 모달을 미리 채울 때 사용
+type LedgerDraft = {
+  date?: string; title?: string; amount?: number;
+  type?: TransactionType; category?: string; payMethod?: string; memo?: string;
+};
+type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Transaction; prefill?: LedgerDraft };
 
 // 영수증 OCR 텍스트 → 날짜·금액·상호 추정 (한국어 영수증 휴리스틱)
-function parseReceipt(text: string): ReceiptDraft {
+function parseReceipt(text: string): LedgerDraft {
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
   const joined = lines.join('\n');
 
@@ -233,6 +236,8 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
     <>
       {error && <p className="mt-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
 
+      <AiLedgerInput onResult={(draft) => setModal({ open: true, mode: 'add', prefill: draft })} />
+
       {summary && (
         <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
           <StatCard icon={<IconWon />} tone="green" value={won(summary.income)} label="수입" change="이번 달 합계" changeDir="up" />
@@ -420,6 +425,63 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
   );
 }
 
+// AI 자연어 입력 → /ai/parse-transaction 으로 거래 초안을 받아 추가 모달을 프리필 (자동 저장 아님, 사용자 확인)
+function AiLedgerInput({ onResult }: { onResult: (draft: LedgerDraft) => void }) {
+  const [text, setText] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function submit() {
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
+    setLoading(true);
+    try {
+      const r = await api.post<{
+        type: TransactionType; amount: number; category: string | null;
+        title: string; payMethod: string; memo: string; date: string;
+      }>('/ai/parse-transaction', { text: trimmed });
+      if (!r.amount || r.amount <= 0) {
+        notify.error('금액을 인식하지 못했습니다. 직접 입력해 주세요.');
+        return;
+      }
+      onResult({
+        type: r.type,
+        amount: r.amount,
+        category: r.category ?? undefined,
+        title: r.title || undefined,
+        payMethod: r.payMethod || undefined,
+        memo: r.memo || undefined,
+        date: r.date,
+      });
+      notify.success('AI가 내용을 채웠습니다. 내용을 확인 후 저장해주세요.');
+      setText('');
+    } catch (err) {
+      notify.error((err as Error).message || 'AI 입력 처리에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="flex gap-2 items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
+      <span className="text-[1.05rem] shrink-0" aria-hidden>✨</span>
+      <input
+        type="text"
+        className="input flex-1"
+        placeholder="예: 어제 점심 스타벅스에서 8500원 카드로 결제"
+        value={text}
+        onChange={(ev) => setText(ev.target.value)}
+        onKeyDown={(ev) => ev.key === 'Enter' && submit()}
+        aria-label="AI 자연어 입력"
+        disabled={loading}
+      />
+      <Button onClick={submit} disabled={loading || !text.trim()}>
+        {loading && <span className="inline-block w-[14px] h-[14px] border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+        {loading ? '분석 중...' : 'AI 입력'}
+      </Button>
+    </div>
+  );
+}
+
 function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalState; categories: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
   const [type, setType] = useState<TransactionType>('expense');
@@ -444,13 +506,13 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
     setErrors({});
     setScope('one');
     const pf = state.prefill;
-    setType(e?.type ?? 'expense');
+    setType(e?.type ?? pf?.type ?? 'expense');
     setDate(e?.date ?? pf?.date ?? new Date().toISOString().slice(0, 10));
     setTitle(e?.title ?? pf?.title ?? '');
-    setCategory(e?.category ?? categories[0]?.code ?? 'food');
+    setCategory(e?.category ?? pf?.category ?? categories[0]?.code ?? 'food');
     setAmount(e ? String(e.amount) : pf?.amount ? String(pf.amount) : '');
-    setPayMethod(e?.payMethod ?? PAY_METHODS[0]);
-    setMemo(e?.memo ?? '');
+    setPayMethod(e?.payMethod ?? pf?.payMethod ?? PAY_METHODS[0]);
+    setMemo(e?.memo ?? pf?.memo ?? '');
     setIsRecurring(e?.isRecurring ?? false);
     setRecurringCycle((e?.recurringRule?.cycle as RecurringCycle) ?? 'monthly');
     setRecurringDay(e?.recurringRule?.day ?? 1);

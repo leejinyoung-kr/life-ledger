@@ -289,9 +289,16 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /files/folders | 폴더 생성 |
 | DELETE | /files/folders/:id | 폴더 삭제 (하위 재귀 soft delete) |
 
+## AI
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| POST | /ai/parse-transaction | 자연어 → 가계부 거래 초안 파싱 (사용자별 OpenAI 키 사용) |
+| GET | /ai/reports | 저장된 AI 리포트 목록 조회 |
+| POST | /ai/reports | 기간별 가계부 분석 → AI 리포트 생성·저장 |
+
 ## 미구현
 
 | 영역 | 설명 |
 | --- | --- |
-| AI 리포트 | 가계부 분석·절약 인사이트 (외부 LLM 연동 예정) |
 | 시세 자동연동 | 업비트(crypto만 무료)·주식 외부 API (보류) |

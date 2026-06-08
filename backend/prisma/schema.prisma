@@ -23,6 +23,7 @@ model User {
   nwSnapshots   NetWorthSnapshot[]
   settings      UserSettings?
   notifications Notification[]
+  aiReports     AiReport[]
   tasks         Task[]
   goals         Goal[]
   notes         Note[]
@@ -295,6 +296,25 @@ model Notification {
 
   @@index([user_id, created_at])
   @@map("notification")
+}
+
+/// AI 리포트 (가계부 데이터 분석 - 소비 패턴·절약 인사이트)
+model AiReport {
+  id           Int      @id @default(autoincrement())
+  user_id      Int /// user.id FK
+  period_label String   @db.VarChar(50) /// 분석 기간 표시 라벨 (예: "2026년 5월", "최근 3개월")
+  period_from  DateTime @db.Date /// 분석 시작일
+  period_to    DateTime @db.Date /// 분석 종료일
+  model_used   String   @db.VarChar(50) /// 생성에 사용한 AI 모델
+  summary      String   @db.VarChar(1000) /// 종합 요약 (총지출·증감 등)
+  insights     Json /// [{tone: green|warning|danger, text}]
+  tags         Json /// 키워드 태그 목록
+  created_at   DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, created_at])
+  @@map("ai_report")
 }
 
 /// 할일 우선순위: low(낮음) | normal(보통) | high(높음)
