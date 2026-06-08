@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
+import { useApiQuery } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import StatCard from '@/components/StatCard';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { IconWon, IconLock, IconCube, IconUpload, IconRepeat, IconPie } from '@/components/icons';
-import { api } from '@/lib/api';
 import { won, signedWon, CATEGORY_LABEL, type TransactionType } from '@/lib/finance';
 
 type EvType = 'pay' | 'due' | 'exp' | 'task';
@@ -68,36 +69,28 @@ const DEFAULT_WIDGET_MAP: Record<string, boolean> = {
 };
 
 export default function DashboardPage() {
-  const [s, setS] = useState<Summary | null>(null);
-  const [wMap, setWMap] = useState<Record<string, boolean>>(DEFAULT_WIDGET_MAP);
-  const [wOrder, setWOrder] = useState<string[]>([]);
-  const [credCount, setCredCount] = useState<number | null>(null);
-  const [forecast, setForecast] = useState<Forecast | null>(null);
-  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
+  // 대시보드 데이터 (React Query 캐시 — 페이지 재진입 시 재조회 최소화)
+  const summaryQuery = useApiQuery<Summary>(qk.dashboard.summary(), '/dashboard/summary');
+  const forecastQuery = useApiQuery<Forecast>(qk.dashboard.forecast(), '/dashboard/cashflow-forecast');
+  const deadlinesQuery = useApiQuery<Deadline[]>(qk.dashboard.deadlines(), '/dashboard/deadlines');
+  const settingsQuery = useApiQuery<{ widgets: { id: string; on: boolean }[] }>(qk.settings.detail(), '/settings');
 
-  useEffect(() => {
-    api.get<Summary>('/dashboard/summary').then(setS).catch(() => {});
-    api.get<Forecast>('/dashboard/cashflow-forecast').then(setForecast).catch(() => {});
-    api.get<Deadline[]>('/dashboard/deadlines').then(setDeadlines).catch(() => {});
-  }, []);
+  const s = summaryQuery.data ?? null;
+  const forecast = forecastQuery.data ?? null;
+  const deadlines = deadlinesQuery.data ?? [];
 
-  useEffect(() => {
-    api.get<{ widgets: { id: string; on: boolean }[] }>('/settings')
-      .then((data) => {
-        const map: Record<string, boolean> = {};
-        data.widgets.forEach((w) => { map[w.id] = w.on; });
-        setWMap((prev) => ({ ...prev, ...map }));
-        setWOrder(data.widgets.map((w) => w.id)); // 저장된 표시 순서
-      })
-      .catch(() => {});
-  }, []);
+  // 위젯 표시여부 맵 + 순서 (설정에서 파생)
+  const wMap = useMemo(() => {
+    const map: Record<string, boolean> = { ...DEFAULT_WIDGET_MAP };
+    settingsQuery.data?.widgets.forEach((w) => { map[w.id] = w.on; });
+    return map;
+  }, [settingsQuery.data]);
+  const wOrder = useMemo(() => settingsQuery.data?.widgets.map((w) => w.id) ?? [], [settingsQuery.data]);
 
+  // 저장된 계정 수 위젯 — 켜진 경우에만 조회
   const credCountOn = wMap['cred-count'];
-  useEffect(() => {
-    if (credCountOn) {
-      api.get<{ id: number }[]>('/credentials').then((list) => setCredCount(list.length)).catch(() => {});
-    }
-  }, [credCountOn]);
+  const credQuery = useApiQuery<{ id: number }[]>(qk.credentials.list(), '/credentials', { enabled: credCountOn });
+  const credCount = credQuery.data ? credQuery.data.length : null;
 
   const stats = s
     ? [

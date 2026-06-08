@@ -6,8 +6,10 @@
  * 데이터는 백엔드 API(/subscriptions)와 실시간 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(StatCard/Button/Badge/Card/Modal/Field). 메인 목록은 카드형 유지.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
@@ -35,34 +37,22 @@ const STATUS_TONE: Record<SubscriptionStatus, 'success' | 'warning' | 'neutral'>
 export default function SubscriptionsPage() {
   // 구독 추가/수정 모달 상태 (편집 대상 포함)
   const [modal, setModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Subscription }>({ open: false, mode: 'add' });
-  // mutation 후 증가시켜 전체 데이터 재조회
-  const [reload, setReload] = useState(0);
-  const bump = () => setReload((n) => n + 1);
-
-  const [subs, setSubs] = useState<Subscription[]>([]);
-  const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
-  const [unused, setUnused] = useState<UnusedSubscription[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const { confirm, confirmElement } = useConfirm();
+  const invalidate = useInvalidate();
+  // mutation 후 구독 관련 쿼리 무효화
+  const bump = () => invalidate(qk.subscriptions.all);
 
-  // 목록/요약/미사용 조회
-  const load = useCallback(async () => {
-    try {
-      const [list, s, u] = await Promise.all([
-        api.get<Subscription[]>('/subscriptions'),
-        api.get<SubscriptionSummary>('/subscriptions/summary'),
-        api.get<UnusedSubscription[]>('/subscriptions/unused'),
-      ]);
-      setSubs(list); setSummary(s); setUnused(u); setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load, reload]);
+  // 목록/요약/미사용 (React Query 캐시)
+  const subsQuery = useApiQuery<Subscription[]>(qk.subscriptions.list(), '/subscriptions');
+  const summaryQuery = useApiQuery<SubscriptionSummary>(['subscriptions', 'summary'], '/subscriptions/summary');
+  const unusedQuery = useApiQuery<UnusedSubscription[]>(['subscriptions', 'unused'], '/subscriptions/unused');
+  const subs = useMemo(() => subsQuery.data ?? [], [subsQuery.data]);
+  const summary = summaryQuery.data ?? null;
+  const unused = unusedQuery.data ?? [];
+  const error = (subsQuery.error ?? summaryQuery.error)?.message ?? null;
 
   // 구독 해지 (soft delete)
   async function cancel(id: number) {

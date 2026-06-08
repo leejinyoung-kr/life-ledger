@@ -1,13 +1,14 @@
 'use client';
 
-import { Suspense, useEffect, useState, type ReactNode } from 'react';
+import { Suspense, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import Button from '@/components/ui/Button';
 import {
   IconWon, IconBank, IconTrendUp, IconHome, IconCreditCard,
 } from '@/components/icons';
-import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import type { Category } from '@/lib/finance';
 import LedgerTab from './_tabs/LedgerTab';
 import SavingsTab from './_tabs/SavingsTab';
@@ -44,21 +45,13 @@ function TransactionsPageInner() {
   const [addTrigger, setAddTrigger] = useState<Record<TabId, number>>({
     ledger: 0, savings: 0, invest: 0, realestate: 0, debt: 0,
   });
-  const [txCats, setTxCats] = useState<Category[]>([]);
-  const [savingCats, setSavingCats] = useState<Category[]>([]);
-  const [investCats, setInvestCats] = useState<Category[]>([]);
-
-  useEffect(() => {
-    Promise.all([
-      api.get<Category[]>('/categories?domain=transaction'),
-      api.get<Category[]>('/categories?domain=saving'),
-      api.get<Category[]>('/categories?domain=investment'),
-    ]).then(([tx, sav, inv]) => {
-      setTxCats(tx.filter((c) => c.isActive));
-      setSavingCats(sav.filter((c) => c.isActive));
-      setInvestCats(inv.filter((c) => c.isActive));
-    });
-  }, []);
+  // 탭별 카테고리 (React Query 캐시 — 활성만 사용)
+  const txCatQuery = useApiQuery<Category[]>(['categories', 'transaction'], '/categories?domain=transaction');
+  const savingCatQuery = useApiQuery<Category[]>(['categories', 'saving'], '/categories?domain=saving');
+  const investCatQuery = useApiQuery<Category[]>(['categories', 'investment'], '/categories?domain=investment');
+  const txCats = useMemo(() => (txCatQuery.data ?? []).filter((c) => c.isActive), [txCatQuery.data]);
+  const savingCats = useMemo(() => (savingCatQuery.data ?? []).filter((c) => c.isActive), [savingCatQuery.data]);
+  const investCats = useMemo(() => (investCatQuery.data ?? []).filter((c) => c.isActive), [investCatQuery.data]);
 
   function openAddModal() {
     setAddTrigger((prev) => ({ ...prev, [tab]: prev[tab] + 1 }));

@@ -4,9 +4,11 @@
  * 파일 보관함 페이지.
  * 중첩 폴더 탐색(브레드크럼), 업로드, 다운로드, 삭제를 B2 백엔드 API와 연동한다.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { notify } from '@/lib/toast';
 import { api, apiUpload } from '@/lib/api';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import { useConfirm } from '@/components/ConfirmModal';
@@ -73,9 +75,7 @@ const FILE_BTN = 'flex-1 flex items-center justify-center gap-[3px] py-1.5 text-
 // ── 페이지 ───────────────────────────────────────────────────────────────────
 
 export default function FilesPage() {
-  const [data, setData] = useState<ListResponse>({ breadcrumb: [], folders: [], files: [], totalBytes: 0 });
   const [currentFolderId, setCurrentFolderId] = useState<number | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
   const [dragOver, setDragOver] = useState(false);
   const [folderModal, setFolderModal] = useState(false);
   const [folderName, setFolderName] = useState('');
@@ -85,21 +85,15 @@ export default function FilesPage() {
   const [search, setSearch] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { confirm, confirmElement } = useConfirm();
+  const invalidate = useInvalidate();
 
-  const load = useCallback(async (folderId?: number) => {
-    setLoading(true);
-    try {
-      const qs = folderId !== undefined ? `?folderId=${folderId}` : '';
-      const res = await api.get<ListResponse>(`/files${qs}`);
-      setData(res);
-    } catch {
-      notify.error('파일 목록을 불러오지 못했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(currentFolderId); }, [load, currentFolderId]);
+  // 현재 폴더 목록 (React Query — folderId 별 캐시)
+  const qs = currentFolderId !== undefined ? `?folderId=${currentFolderId}` : '';
+  const dataQuery = useApiQuery<ListResponse>(qk.files.list(currentFolderId), `/files${qs}`);
+  const data = dataQuery.data ?? { breadcrumb: [], folders: [], files: [], totalBytes: 0 };
+  const loading = dataQuery.isLoading;
+  // 변이 후 파일 트리 무효화
+  const reload = () => invalidate(qk.files.all);
 
   // 폴더 클릭 — 해당 폴더로 진입
   function enterFolder(id: number) {
@@ -123,7 +117,7 @@ export default function FilesPage() {
         await apiUpload(`/files/upload${qs}`, f);
       }
       notify.success('업로드 완료');
-      load(currentFolderId);
+      reload();
     } catch {
       notify.error('업로드에 실패했습니다.');
     } finally {
@@ -146,7 +140,7 @@ export default function FilesPage() {
       notify.success('폴더가 생성되었습니다.');
       setFolderModal(false);
       setFolderName('');
-      load(currentFolderId);
+      reload();
     } catch {
       notify.error('폴더 생성에 실패했습니다.');
     } finally {
@@ -173,7 +167,7 @@ export default function FilesPage() {
     try {
       await api.del(`/files/${file.id}`);
       notify.success('삭제되었습니다.');
-      load(currentFolderId);
+      reload();
     } catch {
       notify.error('삭제에 실패했습니다.');
     }
@@ -185,7 +179,7 @@ export default function FilesPage() {
     try {
       await api.del(`/files/folders/${folder.id}`);
       notify.success('폴더가 삭제되었습니다.');
-      load(currentFolderId);
+      reload();
     } catch {
       notify.error('폴더 삭제에 실패했습니다.');
     }

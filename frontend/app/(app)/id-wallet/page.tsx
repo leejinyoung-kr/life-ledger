@@ -6,8 +6,10 @@
  * 번호는 기본 마스킹하고 토글 시 reveal API 로 원문을 받아 표시한다. (AES-256-GCM)
  * 데이터는 백엔드 API(/identities)와 연동한다. 스타일: Tailwind + 공통 컴포넌트.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
@@ -21,24 +23,17 @@ import {
 } from '@/lib/identity';
 
 export default function IdWalletPage() {
-  const [cards, setCards] = useState<IdCard[]>([]);
   const [numbers, setNumbers] = useState<Record<number, string>>({}); // 복호화 캐시
   const [shown, setShown] = useState<Set<number>>(new Set());          // 표시 중인 카드
-  const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<{ open: boolean; editing: IdCard | null }>({ open: false, editing: null });
   const { confirm, confirmElement } = useConfirm();
+  const invalidate = useInvalidate();
 
-  // 신원 문서 목록 조회
-  const load = useCallback(async () => {
-    try {
-      setCards(await api.get<IdCard[]>('/identities'));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  // 신원 문서 목록 (React Query 캐시)
+  const cardsQuery = useApiQuery<IdCard[]>(qk.identity.list(), '/identities');
+  const cards = useMemo(() => cardsQuery.data ?? [], [cardsQuery.data]);
+  const error = cardsQuery.error?.message ?? null;
+  const reload = () => invalidate(qk.identity.all);
 
   // 번호 표시/숨김 토글 — 처음 표시할 때만 reveal API 로 원문을 받아 캐시
   async function toggleNum(card: IdCard) {
@@ -67,7 +62,7 @@ export default function IdWalletPage() {
     try {
       await api.del(`/identities/${card.id}`);
       notify.deleted('신분증');
-      load();
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -162,7 +157,7 @@ export default function IdWalletPage() {
       <IdModal
         state={modal}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
-        onSaved={() => { setModal({ open: false, editing: null }); setShown(new Set()); setNumbers({}); load(); }}
+        onSaved={() => { setModal({ open: false, editing: null }); setShown(new Set()); setNumbers({}); reload(); }}
       />
       {confirmElement}
     </AppShell>

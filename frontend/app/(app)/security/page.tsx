@@ -6,7 +6,7 @@
  * 데이터는 백엔드 API(/security)와 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(StatCard/Button/Badge/Card). 게이지는 동적 conic-gradient inline.
  */
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { type CSSProperties } from 'react';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
 import StatCard from '@/components/StatCard';
@@ -14,6 +14,9 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { api } from '@/lib/api';
+import { notify } from '@/lib/toast';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import { clearVaultToken } from '@/lib/vault';
 import { relativeTime } from '@/lib/notification';
 import {
@@ -28,53 +31,43 @@ const RISK_ICON_BG: Record<string, string> = {
 };
 
 export default function SecurityPage() {
-  const [summary, setSummary] = useState<SecuritySummary | null>(null);
-  const [risks, setRisks] = useState<SecurityRisk[]>([]);
-  const [sessions, setSessions] = useState<LoginSession[]>([]);
-  const [trend, setTrend] = useState<ScoreTrendPoint[]>([]);
-  const [logs, setLogs] = useState<AccessLogEntry[]>([]);
-  const [vault, setVault] = useState<VaultStatus | null>(null);
-  const [strength, setStrength] = useState<StrengthStats | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const { confirm, confirmElement } = useConfirm();
+  const invalidate = useInvalidate();
 
-  // 요약/위험/세션 + 점수추이/접근로그/마스터잠금 상태 조회
-  const load = useCallback(async () => {
-    try {
-      const [s, r, ses, tr, lg, v, st] = await Promise.all([
-        api.get<SecuritySummary>('/security/summary'),
-        api.get<SecurityRisk[]>('/security/risks'),
-        api.get<LoginSession[]>('/security/sessions'),
-        api.get<ScoreTrendPoint[]>('/security/score-trend?days=30'),
-        api.get<AccessLogEntry[]>('/security/access-logs?limit=20'),
-        api.get<VaultStatus>('/security/vault'),
-        api.get<StrengthStats>('/security/strength-stats'),
-      ]);
-      setSummary(s); setRisks(r); setSessions(ses); setTrend(tr); setLogs(lg); setVault(v); setStrength(st); setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
+  // 보안 데이터 (React Query 캐시)
+  const summaryQuery = useApiQuery<SecuritySummary>(qk.security.summary(), '/security/summary');
+  const risksQuery = useApiQuery<SecurityRisk[]>(qk.security.risks(), '/security/risks');
+  const sessionsQuery = useApiQuery<LoginSession[]>(qk.security.sessions(), '/security/sessions');
+  const trendQuery = useApiQuery<ScoreTrendPoint[]>(qk.security.scoreTrend(30), '/security/score-trend?days=30');
+  const logsQuery = useApiQuery<AccessLogEntry[]>(qk.security.accessLogs(20), '/security/access-logs?limit=20');
+  const vaultQuery = useApiQuery<VaultStatus>(qk.security.vault(), '/security/vault');
+  const strengthQuery = useApiQuery<StrengthStats>(qk.security.strengthStats(), '/security/strength-stats');
 
-  useEffect(() => { load(); }, [load]);
+  const summary = summaryQuery.data ?? null;
+  const risks = risksQuery.data ?? [];
+  const sessions = sessionsQuery.data ?? [];
+  const trend = trendQuery.data ?? [];
+  const logs = logsQuery.data ?? [];
+  const vault = vaultQuery.data ?? null;
+  const strength = strengthQuery.data ?? null;
+  const error = (summaryQuery.error ?? sessionsQuery.error)?.message ?? null;
 
   // 보관함 즉시 잠그기 (vault 토큰 폐기)
   function lockNow() {
     clearVaultToken();
-    setError(null);
   }
 
   // 단일 세션 로그아웃/차단
   async function revokeSession(id: number) {
-    try { await api.post(`/security/sessions/${id}/revoke`, {}); load(); }
-    catch (e) { setError((e as Error).message); }
+    try { await api.post(`/security/sessions/${id}/revoke`, {}); invalidate(qk.security.all); }
+    catch (e) { notify.error((e as Error).message); }
   }
 
   // 전체 세션 로그아웃 (현재 기기 제외)
   async function revokeAll() {
     if (!await confirm('현재 기기를 제외한 모든 세션을 로그아웃할까요?', 'danger')) return;
-    try { await api.post('/security/sessions/revoke-all', {}); load(); }
-    catch (e) { setError((e as Error).message); }
+    try { await api.post('/security/sessions/revoke-all', {}); invalidate(qk.security.all); }
+    catch (e) { notify.error((e as Error).message); }
   }
 
   const score = summary?.score ?? 0;

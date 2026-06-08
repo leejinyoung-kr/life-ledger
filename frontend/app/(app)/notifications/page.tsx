@@ -7,8 +7,10 @@
  * "모두 읽음" 클릭 시 전체 읽음 처리 + 토스트.
  * 스타일: Tailwind + 공통 컴포넌트(Button/Badge/Modal/Pagination).
  */
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { notify } from '@/lib/toast';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
@@ -40,41 +42,30 @@ function iconFor(n: Noti): ReactNode {
 }
 
 export default function NotificationsPage() {
-  const [items, setItems] = useState<Noti[]>([]);
   const [tab, setTab] = useState<typeof NOTI_TABS[number]['kind']>('all');
   const changeTab = (t: typeof tab) => { setTab(t); setPage(1); setSelected(new Set()); };
-  const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<Noti | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const { confirm, confirmElement } = useConfirm();
+  const invalidate = useInvalidate();
 
-  // 알림 목록 조회
-  const load = useCallback(async () => {
-    try {
-      setItems(await api.get<Noti[]>('/notifications'));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  // 알림 목록 (React Query 캐시)
+  const itemsQuery = useApiQuery<Noti[]>(qk.notifications.list(), '/notifications');
+  const items = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
+  const error = itemsQuery.error?.message ?? null;
+  const reload = () => invalidate(qk.notifications.all);
 
   // 알림 클릭 — 상세 모달 열기 + 읽지 않은 경우 읽음 처리
   async function openDetail(n: Noti) {
     setDetail(n);
     if (n.read) return;
-
-    // 낙관적 갱신
-    setItems((prev) => prev.map((item) => (item.id === n.id ? { ...item, read: true } : item)));
     try {
       await api.put(`/notifications/${n.id}/read`, {});
-      notify.success('알림을 읽음 처리했습니다.');
+      reload();
     } catch (e) {
-      setError((e as Error).message);
-      load();
+      notify.error((e as Error).message);
     }
   }
 
@@ -103,7 +94,7 @@ export default function NotificationsPage() {
       await api.del('/notifications/bulk', { ids: [...selected] });
       notify.deleted(`알림 ${selected.size}건`);
       setSelected(new Set());
-      load();
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -117,7 +108,7 @@ export default function NotificationsPage() {
       await api.del('/notifications');
       notify.deleted('모든 알림');
       setSelected(new Set());
-      load();
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -125,14 +116,12 @@ export default function NotificationsPage() {
 
   // 전체 읽음 처리
   async function markAllRead() {
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
     try {
       await api.put('/notifications/read-all', {});
       notify.success('모든 알림을 읽음 처리했습니다.');
-    } catch (e) {
-      setError((e as Error).message);
+      reload();
+    } catch {
       notify.error('읽음 처리에 실패했습니다.');
-      load();
     }
   }
 

@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
 import StatCard from '@/components/StatCard';
 import Badge from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
-import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import { won } from '@/lib/finance';
 import {
   ASSET_TYPE_LABEL, ASSET_TYPE_COLOR, BY_TYPE_CARD,
@@ -26,25 +26,14 @@ function buildDonutGradient(items: AllocationItem[]): string {
 }
 
 export default function NetworthPage() {
-  const [summary, setSummary] = useState<NetWorthSummary | null>(null);
-  const [trend, setTrend] = useState<TrendPoint[]>([]);
-  const [debts, setDebts] = useState<Asset[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const [s, t, assets] = await Promise.all([
-        api.get<NetWorthSummary>('/assets/summary'),
-        api.get<TrendPoint[]>('/assets/trend'),
-        api.get<Asset[]>('/assets?type=debt&take=5'),
-      ]);
-      setSummary(s); setTrend(t); setDebts(assets); setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  // 순자산 데이터 (React Query 캐시)
+  const summaryQuery = useApiQuery<NetWorthSummary>(qk.assets.networth(), '/assets/summary');
+  const trendQuery = useApiQuery<TrendPoint[]>(['assets', 'trend'], '/assets/trend');
+  const debtsQuery = useApiQuery<Asset[]>(['assets', 'debts'], '/assets?type=debt&take=5');
+  const summary = summaryQuery.data ?? null;
+  const trend = trendQuery.data ?? [];
+  const debts = debtsQuery.data ?? [];
+  const error = (summaryQuery.error ?? trendQuery.error ?? debtsQuery.error)?.message ?? null;
 
   const maxTrend = Math.max(1, ...trend.map((t) => t.netWorth));
   const up = (summary?.changeAmount ?? 0) >= 0;

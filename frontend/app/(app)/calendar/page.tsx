@@ -6,9 +6,11 @@
  * 월 그리드는 Date 계산으로 직접 생성(라이브러리 미사용), 데이터는 API(/calendar)와 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Field).
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { IconTrash } from '@/components/icons';
 import { notify } from '@/lib/toast';
+import { useApiQuery, useInvalidate } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
@@ -61,12 +63,10 @@ export default function CalendarPage() {
   // 오늘 기준 현재 월로 초기화 (SSR 불일치 방지 — 클라이언트에서 설정)
   const [view, setView] = useState<{ year: number; month: number } | null>(null);
   const [todayIso, setTodayIso] = useState('');
-  const [eventsByDate, setEventsByDate] = useState<Record<string, CalEvent[]>>({});
-  const [upcoming, setUpcoming] = useState<UpcomingEvent[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [addModal, setAddModal] = useState(false);
   const [detailEvent, setDetailEvent] = useState<CalEvent | null>(null);
   const { confirm, confirmElement } = useConfirm();
+  const invalidate = useInvalidate();
 
   useEffect(() => {
     const now = new Date();
@@ -74,24 +74,18 @@ export default function CalendarPage() {
     setView({ year: now.getFullYear(), month: now.getMonth() });
   }, []);
 
-  // 현재 view 월의 일정 + 다가오는 일정 조회
-  const load = useCallback(async () => {
-    if (!view) return;
-    const month = `${view.year}-${pad(view.month + 1)}`;
-    try {
-      const [list, up] = await Promise.all([
-        api.get<CalEvent[]>(`/calendar?month=${month}`),
-        api.get<UpcomingEvent[]>('/calendar/upcoming'),
-      ]);
-      const map: Record<string, CalEvent[]> = {};
-      for (const ev of list) (map[ev.date] ??= []).push(ev);
-      setEventsByDate(map); setUpcoming(up); setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, [view]);
-
-  useEffect(() => { load(); }, [load]);
+  // 현재 view 월의 일정 + 다가오는 일정 (React Query 캐시)
+  const month = view ? `${view.year}-${pad(view.month + 1)}` : null;
+  const eventsQuery = useApiQuery<CalEvent[]>(qk.calendar.list(month ?? undefined), `/calendar?month=${month}`, { enabled: !!month });
+  const upcomingQuery = useApiQuery<UpcomingEvent[]>(['calendar', 'upcoming'], '/calendar/upcoming');
+  const eventsByDate = useMemo(() => {
+    const map: Record<string, CalEvent[]> = {};
+    for (const ev of eventsQuery.data ?? []) (map[ev.date] ??= []).push(ev);
+    return map;
+  }, [eventsQuery.data]);
+  const upcoming = upcomingQuery.data ?? [];
+  const error = (eventsQuery.error ?? upcomingQuery.error)?.message ?? null;
+  const reload = () => invalidate(qk.calendar.all);
 
   // 월 이동 (delta: -1 이전, +1 다음)
   function moveMonth(delta: number) {
@@ -113,7 +107,7 @@ export default function CalendarPage() {
       await api.del(`/calendar/${ev.id}`);
       notify.deleted(label);
       setDetailEvent(null);
-      load();
+      reload();
     } catch {
       notify.deleteFailed();
     }
@@ -222,7 +216,7 @@ export default function CalendarPage() {
       </div>
 
       {/* 일정 추가 모달 */}
-      <AddEventModal open={addModal} onClose={() => setAddModal(false)} onSaved={() => { setAddModal(false); load(); }} />
+      <AddEventModal open={addModal} onClose={() => setAddModal(false)} onSaved={() => { setAddModal(false); reload(); }} />
 
       {/* 일정 상세/삭제 모달 */}
       <EventDetailModal event={detailEvent} onClose={() => setDetailEvent(null)} onDelete={(ev) => removeEvent(ev)} />
