@@ -28,7 +28,34 @@ import {
   AMT_COLOR, RowActions, CardActions, toDay, monthsAgo,
 } from '../_shared';
 
-type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Transaction };
+// prefill: 영수증 OCR 등으로 추가 모달을 미리 채울 때 사용
+type ReceiptDraft = { date?: string; title?: string; amount?: number };
+type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Transaction; prefill?: ReceiptDraft };
+
+// 영수증 OCR 텍스트 → 날짜·금액·상호 추정 (한국어 영수증 휴리스틱)
+function parseReceipt(text: string): ReceiptDraft {
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  const joined = lines.join('\n');
+
+  // 날짜: YYYY[-./ ]MM[-./ ]DD
+  const dm = joined.match(/(20\d{2})[.\-/\s]?\s?(\d{1,2})[.\-/\s]?\s?(\d{1,2})/);
+  const date = dm ? `${dm[1]}-${dm[2].padStart(2, '0')}-${dm[3].padStart(2, '0')}` : undefined;
+
+  // 금액: 합계/총액/결제금액 라인의 숫자 우선, 없으면 콤마 포함 최대 숫자
+  const num = (s: string) => Number(s.replace(/[^\d]/g, ''));
+  let amount: number | undefined;
+  const totalLine = lines.find((l) => /(합\s?계|총\s?액|받을금액|결제금액|승인금액)/.test(l) && /\d/.test(l));
+  if (totalLine) amount = num((totalLine.match(/[\d,]{2,}/g) ?? []).sort((a, b) => num(b) - num(a))[0] ?? '');
+  if (!amount) {
+    const all = (joined.match(/[\d]{1,3}(?:,\d{3})+/g) ?? []).map(num).filter((n) => n >= 100);
+    amount = all.length ? Math.max(...all) : undefined;
+  }
+
+  // 상호: 금액/날짜/숫자 위주가 아닌 첫 의미있는 줄
+  const title = lines.find((l) => l.length >= 2 && !/^[\d\s.,:\-/]+$/.test(l) && !/(영수증|승인|합계|카드|현금)/.test(l));
+
+  return { date, amount, title: title?.slice(0, 40) };
+}
 
 export default function LedgerTab({ categories, addTrigger }: { categories: Category[]; addTrigger: number }) {
   const [pendingFrom, setPendingFrom] = useState(() => monthsAgo(1));
@@ -43,6 +70,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
   const [activePreset, setActivePreset] = useState<number | null>(1);
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [scanning, setScanning] = useState(false);
   const invalidate = useInvalidate();
 
   const mountTrigger = useRef(addTrigger);
@@ -158,6 +186,30 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
     }
   }
 
+  // 영수증 사진 OCR(tesseract.js) → 날짜·금액·상호 추정 후 지출 추가 모달 프리필. 자동 저장 아님(사용자 확인)
+  async function scanReceipt(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0];
+    ev.target.value = '';
+    if (!file) return;
+    setScanning(true);
+    try {
+      const Tesseract = (await import('tesseract.js')).default;
+      const { data } = await Tesseract.recognize(file, 'kor+eng');
+      const draft = parseReceipt(data.text);
+      if (!draft.amount && !draft.title) {
+        notify.error('영수증에서 정보를 찾지 못했습니다. 직접 입력해 주세요.');
+        setModal({ open: true, mode: 'add' });
+      } else {
+        setModal({ open: true, mode: 'add', prefill: draft });
+        notify.success('영수증을 인식했습니다. 내용을 확인 후 저장하세요.');
+      }
+    } catch {
+      notify.error('영수증 인식에 실패했습니다.');
+    } finally {
+      setScanning(false);
+    }
+  }
+
   async function downloadData() {
     const params = new URLSearchParams();
     if (applied.from) params.set('from', applied.from);
@@ -244,8 +296,13 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
           엑셀 업로드
           <input type="file" accept=".xlsx,.xls,.csv" hidden aria-label="엑셀 업로드" onChange={handleUpload} />
         </label>
-        <div className="w-px bg-border self-stretch mx-1 shrink-0" />
         <button type="button" className="excel-btn" onClick={downloadData}>데이터 다운로드</button>
+        <div className="w-px bg-border self-stretch mx-1 shrink-0" />
+        <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">영수증</span>
+        <label className="excel-btn upload">
+          {scanning ? '인식 중...' : '📷 영수증 스캔'}
+          <input type="file" accept="image/*" hidden aria-label="영수증 스캔" disabled={scanning} onChange={scanReceipt} />
+        </label>
       </div>
 
       <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex flex-col gap-3 mb-4">
@@ -386,11 +443,12 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
     if (!state.open) return;
     setErrors({});
     setScope('one');
+    const pf = state.prefill;
     setType(e?.type ?? 'expense');
-    setDate(e?.date ?? new Date().toISOString().slice(0, 10));
-    setTitle(e?.title ?? '');
+    setDate(e?.date ?? pf?.date ?? new Date().toISOString().slice(0, 10));
+    setTitle(e?.title ?? pf?.title ?? '');
     setCategory(e?.category ?? categories[0]?.code ?? 'food');
-    setAmount(e ? String(e.amount) : '');
+    setAmount(e ? String(e.amount) : pf?.amount ? String(pf.amount) : '');
     setPayMethod(e?.payMethod ?? PAY_METHODS[0]);
     setMemo(e?.memo ?? '');
     setIsRecurring(e?.isRecurring ?? false);
