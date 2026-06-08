@@ -88,8 +88,8 @@ export default function SecurityPage() {
 
       {summary && (
         <>
-          {/* 보안 점수 게이지 */}
-          <div className="flex gap-7 items-center flex-wrap px-7 py-6 bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] mb-6">
+          {/* 보안 점수 게이지 — 모바일은 줄바꿈 시 과대 간격 방지 위해 gap·패딩 축소 */}
+          <div className="flex gap-4 min-[600px]:gap-7 items-center flex-wrap p-5 min-[600px]:px-7 min-[600px]:py-6 bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] mb-6">
             <div
               className="w-[130px] h-[130px] rounded-full shrink-0 flex items-center justify-center relative after:content-[''] after:w-24 after:h-24 after:rounded-full after:bg-background after:absolute"
               style={{ background: `conic-gradient(${gaugeColor} 0 ${score}%, var(--bg-elevated) ${score}% 100%)` } as CSSProperties}

@@ -307,8 +307,9 @@ export default function EnvsPage() {
                 </div>
               </div>
 
-              {/* env-table: 그룹행 구조라 공통 globals 유지 */}
-              <table className="env-table">
+              {/* env-table: 그룹행 구조라 공통 globals 유지 — 모바일은 가로 스크롤로 레이아웃 깨짐 방지 */}
+              <div className="overflow-x-auto">
+              <table className="env-table min-w-130">
                 <thead>
                   <tr>
                     <th style={{ width: '36px' }} className="td-center"><input type="checkbox" className="checkbox" checked={filteredVars.length > 0 && filteredVars.every((v) => selectedVars.has(v.id))} onChange={toggleSelectAllVars} aria-label="전체선택" /></th>
@@ -339,6 +340,7 @@ export default function EnvsPage() {
                   )}
                 </tbody>
               </table>
+              </div>
 
               <div className="flex items-center gap-2.5 px-[18px] py-3 bg-surface border-t border-border">
                 <span className="text-[0.78rem] text-muted flex-1">.env 파일 형식으로 전체 복사</span>
