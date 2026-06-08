@@ -7,6 +7,7 @@ type RiskCategory = 'reuse' | 'weak' | 'no2fa' | 'breach';
 type RiskSeverity = 'critical' | 'danger' | 'warning' | 'info';
 export interface ComputedRisk {
   id: number;
+  credentialId: number;
   category: RiskCategory;
   severity: RiskSeverity;
   title: string;
@@ -42,6 +43,7 @@ export class SecurityService {
       orderBy: { id: 'asc' },
     });
     const decoded = creds.map((c) => ({
+      id: c.id,
       name: c.name,
       pw: this.crypto.decrypt(c.password_enc),
       has2fa: !!c.totp_enc,
@@ -50,17 +52,19 @@ export class SecurityService {
     const byPw = new Map<string, number>();
     decoded.forEach((c) => byPw.set(c.pw, (byPw.get(c.pw) ?? 0) + 1));
 
+    // 위험 항목 클릭 시 해당 계정으로 바로 이동하도록 credential id 를 쿼리로 딥링크
+    const link = (id: number) => `/credentials?focus=${id}`;
     const risks: ComputedRisk[] = [];
     let seq = 1;
     for (const c of decoded) {
       if ((byPw.get(c.pw) ?? 0) > 1) {
-        risks.push({ id: seq++, category: 'reuse', severity: 'danger', title: `'${c.name}' 비밀번호 재사용`, description: '다른 계정과 동일한 비밀번호를 사용 중입니다.', actionLabel: '변경', href: '/credentials' });
+        risks.push({ id: seq++, credentialId: c.id, category: 'reuse', severity: 'danger', title: `'${c.name}' 비밀번호 재사용`, description: '다른 계정과 동일한 비밀번호를 사용 중입니다.', actionLabel: '변경', href: link(c.id) });
       }
       if (c.pw.length < 8 || this.strength(c.pw) < 45) {
-        risks.push({ id: seq++, category: 'weak', severity: 'warning', title: `'${c.name}' 취약한 비밀번호`, description: '길이·복잡도가 부족합니다.', actionLabel: '강화', href: '/credentials' });
+        risks.push({ id: seq++, credentialId: c.id, category: 'weak', severity: 'warning', title: `'${c.name}' 취약한 비밀번호`, description: '길이·복잡도가 부족합니다.', actionLabel: '강화', href: link(c.id) });
       }
       if (!c.has2fa) {
-        risks.push({ id: seq++, category: 'no2fa', severity: 'warning', title: `'${c.name}' 2FA 미설정`, description: '2단계 인증 설정을 권장합니다.', actionLabel: '설정', href: '/credentials' });
+        risks.push({ id: seq++, credentialId: c.id, category: 'no2fa', severity: 'warning', title: `'${c.name}' 2FA 미설정`, description: '2단계 인증 설정을 권장합니다.', actionLabel: '설정', href: link(c.id) });
       }
     }
     const counts: Record<RiskCategory, number> = {
@@ -114,6 +118,23 @@ export class SecurityService {
       create: { user_id: userId, date, score, reuse: counts.reuse, weak: counts.weak, no2fa: counts.no2fa },
       update: { score, reuse: counts.reuse, weak: counts.weak, no2fa: counts.no2fa },
     });
+  }
+
+  // 비밀번호 강도 분포 — 전 계정의 강도를 강함/보통/취약 3구간으로 집계 (프론트 pwStrength 와 동일 기준)
+  async strengthStats(userId: number) {
+    const creds = await this.prisma.credential.findMany({
+      where: { user_id: userId, deleted_at: null },
+      select: { password_enc: true },
+    });
+    let strong = 0, medium = 0, weak = 0;
+    for (const c of creds) {
+      const s = this.strength(this.crypto.decrypt(c.password_enc));
+      if (s >= 75) strong++;
+      else if (s >= 45) medium++;
+      else weak++;
+    }
+    const total = creds.length;
+    return { total, strong, medium, weak, avgScorePct: total ? Math.round(((strong * 100 + medium * 60 + weak * 25) / total)) : 0 };
   }
 
   // 보안 점수 추이 (최근 days 일, 오래된→최신순)

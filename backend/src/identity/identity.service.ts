@@ -26,6 +26,7 @@ export class IdentityService {
       issueDate: toDateStr(c.issue_date),
       expireDate: toDateStr(c.expire_date),
       memo: c.memo,
+      fileId: c.file_id,
       updatedAt: c.updated_at.toISOString(),
     };
   }
@@ -47,6 +48,7 @@ export class IdentityService {
         type: dto.type,
         name: dto.name.trim(),
         number_enc: this.crypto.encrypt(dto.number),
+        file_id: dto.fileId ?? null,
         issue_date: toDateOrNull(dto.issueDate),
         expire_date: toDateOrNull(dto.expireDate),
         memo: dto.memo || null,
@@ -80,6 +82,7 @@ export class IdentityService {
         type: dto.type,
         name: dto.name?.trim(),
         number_enc: dto.number ? this.crypto.encrypt(dto.number) : undefined,
+        file_id: dto.fileId === undefined ? undefined : dto.fileId,
         issue_date: dto.issueDate === undefined ? undefined : toDateOrNull(dto.issueDate),
         expire_date: dto.expireDate === undefined ? undefined : toDateOrNull(dto.expireDate),
         memo: dto.memo === undefined ? undefined : dto.memo || null,

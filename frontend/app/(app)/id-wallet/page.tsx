@@ -73,6 +73,17 @@ export default function IdWalletPage() {
     }
   }
 
+  // 사본 이미지 미리보기 — presigned inline URL 발급 후 새 탭으로 열기
+  async function viewFile(card: IdCard) {
+    if (!card.fileId) return;
+    try {
+      const { url } = await api.get<{ url: string }>(`/files/${card.fileId}/url?disposition=inline`);
+      window.open(url, '_blank', 'noopener');
+    } catch {
+      notify.error('사본을 불러오지 못했습니다.');
+    }
+  }
+
   // 만료 임박(60일 이내) 카드 중 가장 급한 것 — 경고 배너용
   const soonest = cards
     .map((c) => ({ card: c, dd: ddayOf(c.expireDate) }))
@@ -129,6 +140,11 @@ export default function IdWalletPage() {
                     <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => toggleNum(card)} aria-label="번호 표시/숨김">
                       <IconEye width={14} height={14} />
                     </button>
+                    {card.fileId && (
+                      <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => viewFile(card)} aria-label="사본 보기" title="사본 이미지 보기">
+                        🖼️
+                      </button>
+                    )}
                     <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => setModal({ open: true, editing: card })} aria-label="수정">
                       <IconEdit width={14} height={14} />
                     </button>
@@ -162,6 +178,8 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
   const [issueDate, setIssueDate] = useState('');
   const [expireDate, setExpireDate] = useState('');
   const [memo, setMemo] = useState('');
+  const [fileId, setFileId] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -174,7 +192,25 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
     setIssueDate(editing?.issueDate ?? '');
     setExpireDate(editing?.expireDate ?? '');
     setMemo(editing?.memo ?? '');
+    setFileId(editing?.fileId ?? null);
   }, [state.open, editing]);
+
+  // 사본 이미지 업로드 — 파일 보관함에 저장 후 file.id 를 연결값으로 보관
+  async function uploadFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true);
+    try {
+      const r = await api.upload<{ id: number }>('/files/upload', file);
+      setFileId(r.id);
+      notify.success('사본 이미지를 첨부했습니다.');
+    } catch (err) {
+      notify.error((err as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
@@ -192,6 +228,7 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
       issueDate: issueDate || undefined,
       expireDate: expireDate || undefined,
       memo: memo || undefined,
+      fileId, // null 이면 사본 해제, 숫자면 연결
     };
     setSaving(true);
     try {
@@ -224,6 +261,20 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
         <Field label="만료일 (선택)"><input type="date" className="input" aria-label="만료일" value={expireDate} onChange={(e) => setExpireDate(e.target.value)} /></Field>
       </div>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 메모" value={memo} onChange={(e) => setMemo(e.target.value)} /></Field>
+      <Field label="사본 이미지 (선택)">
+        <div className="flex items-center gap-2">
+          <label className="excel-btn upload">
+            {uploading ? '업로드 중...' : fileId ? '사본 변경' : '사본 업로드'}
+            <input type="file" accept="image/*,.pdf" hidden onChange={uploadFile} disabled={uploading} />
+          </label>
+          {fileId && (
+            <>
+              <span className="text-[0.78rem] text-accent">첨부됨</span>
+              <button type="button" className="text-[0.78rem] text-danger hover:underline" onClick={() => setFileId(null)}>제거</button>
+            </>
+          )}
+        </div>
+      </Field>
     </Modal>
   );
 }

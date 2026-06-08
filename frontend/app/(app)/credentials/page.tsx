@@ -51,6 +51,17 @@ export default function CredentialsPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // 보안센터에서 ?focus=<id> 로 진입 시 해당 계정 상세 자동 열기 (위험 항목 → 계정 바로가기)
+  useEffect(() => {
+    if (typeof window === 'undefined' || list.length === 0) return;
+    const focusId = Number(new URLSearchParams(window.location.search).get('focus'));
+    if (!focusId) return;
+    const target = list.find((c) => c.id === focusId);
+    if (target) setDetail(target);
+    // 한 번 열고 쿼리 제거 (재오픈 방지)
+    window.history.replaceState(null, '', '/credentials');
+  }, [list]);
+
   // 검색어 + 카테고리 필터
   const rows = list.filter((c) => {
     const matchCat = category === '전체 카테고리' || c.category === category;

@@ -63,6 +63,14 @@ export interface VaultStatus {
   timeoutMin: number;
 }
 
+export interface StrengthStats {
+  total: number;
+  strong: number;
+  medium: number;
+  weak: number;
+  avgScorePct: number;
+}
+
 // 접근 동작 → 라벨/아이콘
 export const ACCESS_ACTION_META: Record<AccessAction, { label: string; icon: string }> = {
   cred_reveal: { label: '비밀번호 열람', icon: '🔑' },

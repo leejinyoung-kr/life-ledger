@@ -26,6 +26,8 @@ export interface Settings {
   notifBudget: boolean;
   notifMonthly: boolean;
   notifUpload: boolean;
+  notifMaturity: boolean;
+  notifDeadline: boolean;
   sessionExpiry: string; // 7d|1d|12h|none
   pwAutoHide: string; // 10s|30s|1m|none
   claudeApiKeySet: boolean;

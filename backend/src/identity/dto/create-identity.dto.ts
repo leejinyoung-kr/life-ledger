@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export const IDENTITY_TYPES = ['passport', 'idcard', 'license', 'cert', 'etc'] as const;
 export type IdentityTypeDto = (typeof IDENTITY_TYPES)[number];
@@ -30,4 +30,9 @@ export class CreateIdentityDto {
   @IsString()
   @MaxLength(300)
   memo?: string;
+
+  // 사본 이미지 파일 id (파일 보관함 업로드 후 연결). null 이면 해제
+  @IsOptional()
+  @IsInt()
+  fileId?: number | null;
 }

@@ -19,7 +19,7 @@ import { relativeTime } from '@/lib/notification';
 import {
   RISK_CATEGORY_ICON, SEVERITY_BADGE, STAT_META, DEVICE_ICON, SCORE_COLOR, ACCESS_ACTION_META,
   type SecuritySummary, type SecurityRisk, type LoginSession,
-  type ScoreTrendPoint, type AccessLogEntry, type VaultStatus,
+  type ScoreTrendPoint, type AccessLogEntry, type VaultStatus, type StrengthStats,
 } from '@/lib/security';
 
 // 위험/세션 아이콘 배경색 (tone → Tailwind)
@@ -34,21 +34,23 @@ export default function SecurityPage() {
   const [trend, setTrend] = useState<ScoreTrendPoint[]>([]);
   const [logs, setLogs] = useState<AccessLogEntry[]>([]);
   const [vault, setVault] = useState<VaultStatus | null>(null);
+  const [strength, setStrength] = useState<StrengthStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { confirm, confirmElement } = useConfirm();
 
   // 요약/위험/세션 + 점수추이/접근로그/마스터잠금 상태 조회
   const load = useCallback(async () => {
     try {
-      const [s, r, ses, tr, lg, v] = await Promise.all([
+      const [s, r, ses, tr, lg, v, st] = await Promise.all([
         api.get<SecuritySummary>('/security/summary'),
         api.get<SecurityRisk[]>('/security/risks'),
         api.get<LoginSession[]>('/security/sessions'),
         api.get<ScoreTrendPoint[]>('/security/score-trend?days=30'),
         api.get<AccessLogEntry[]>('/security/access-logs?limit=20'),
         api.get<VaultStatus>('/security/vault'),
+        api.get<StrengthStats>('/security/strength-stats'),
       ]);
-      setSummary(s); setRisks(r); setSessions(ses); setTrend(tr); setLogs(lg); setVault(v); setError(null);
+      setSummary(s); setRisks(r); setSessions(ses); setTrend(tr); setLogs(lg); setVault(v); setStrength(st); setError(null);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -189,6 +191,32 @@ export default function SecurityPage() {
           })}
         </div>
       </Card>
+
+      {/* 비밀번호 강도 분포 */}
+      {strength && strength.total > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>비밀번호 강도 분포</CardTitle>
+            <Badge tone="blue">평균 {strength.avgScorePct}%</Badge>
+          </CardHeader>
+          <div className="px-5 py-4">
+            {/* 누적 막대 */}
+            <div className="flex h-3 rounded-full overflow-hidden bg-elevated mb-3">
+              {strength.strong > 0 && <div className="bg-accent" style={{ width: `${(strength.strong / strength.total) * 100}%` }} />}
+              {strength.medium > 0 && <div className="bg-warning" style={{ width: `${(strength.medium / strength.total) * 100}%` }} />}
+              {strength.weak > 0 && <div className="bg-danger" style={{ width: `${(strength.weak / strength.total) * 100}%` }} />}
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              {([['강함', strength.strong, 'text-accent'], ['보통', strength.medium, 'text-warning'], ['취약', strength.weak, 'text-danger']] as const).map(([label, n, cls]) => (
+                <div key={label}>
+                  <div className={`text-[1.3rem] font-extrabold ${cls}`}>{n}</div>
+                  <div className="text-[0.74rem] text-muted">{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* 최근 열람 (접근 감사 로그) */}
       <Card className="mb-6">

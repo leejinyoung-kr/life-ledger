@@ -65,6 +65,7 @@ const DEFAULT_WIDGET_MAP: Record<string, boolean> = {
 export default function DashboardPage() {
   const [s, setS] = useState<Summary | null>(null);
   const [wMap, setWMap] = useState<Record<string, boolean>>(DEFAULT_WIDGET_MAP);
+  const [wOrder, setWOrder] = useState<string[]>([]);
   const [credCount, setCredCount] = useState<number | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
 
@@ -79,6 +80,7 @@ export default function DashboardPage() {
         const map: Record<string, boolean> = {};
         data.widgets.forEach((w) => { map[w.id] = w.on; });
         setWMap((prev) => ({ ...prev, ...map }));
+        setWOrder(data.widgets.map((w) => w.id)); // 저장된 표시 순서
       })
       .catch(() => {});
   }, []);
@@ -119,50 +121,55 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {(wMap['budget-bars'] || wMap['recent-activity']) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-          {wMap['budget-bars'] && (
-            <Card>
-              <CardHeader>
-                <CardTitle>카테고리별 지출</CardTitle>
-                <Button href="/transactions" variant="ghost" size="sm">전체 보기</Button>
-              </CardHeader>
-              <CardBody>
-                {s && s.budgets.length === 0 && <p className="text-[0.82rem] text-muted">설정에서 카테고리 예산을 지정하세요.</p>}
-                {s?.budgets.map((b) => {
-                  const tone = budgetTone(b.percent);
-                  return (
-                    <div className="flex flex-col gap-1.5 mb-3.5 last:mb-0" key={b.category}>
-                      <div className="flex justify-between text-[0.8rem]">
-                        <span className="text-secondary font-medium">{CATEGORY_LABEL[b.category] ?? b.category}</span>
-                        <span className="text-muted">{won(b.spent)} / {won(b.budget)}</span>
-                      </div>
-                      <div className="h-1.5 bg-elevated rounded-[3px] overflow-hidden">
-                        <div className={`h-full rounded-[3px] transition-[width] duration-700 ${FILL_COLOR[tone]}`} style={{ width: `${Math.min(b.percent, 100)}%` }} />
-                      </div>
+      {(wMap['budget-bars'] || wMap['recent-activity']) && (() => {
+        const budgetCard = (
+          <Card key="budget-bars">
+            <CardHeader>
+              <CardTitle>카테고리별 지출</CardTitle>
+              <Button href="/transactions" variant="ghost" size="sm">전체 보기</Button>
+            </CardHeader>
+            <CardBody>
+              {s && s.budgets.length === 0 && <p className="text-[0.82rem] text-muted">설정에서 카테고리 예산을 지정하세요.</p>}
+              {s?.budgets.map((b) => {
+                const tone = budgetTone(b.percent);
+                return (
+                  <div className="flex flex-col gap-1.5 mb-3.5 last:mb-0" key={b.category}>
+                    <div className="flex justify-between text-[0.8rem]">
+                      <span className="text-secondary font-medium">{CATEGORY_LABEL[b.category] ?? b.category}</span>
+                      <span className="text-muted">{won(b.spent)} / {won(b.budget)}</span>
                     </div>
-                  );
-                })}
-              </CardBody>
-            </Card>
-          )}
-
-          {wMap['recent-activity'] && (
-            <Card>
-              <CardHeader>
-                <CardTitle>최근 활동</CardTitle>
-                <Badge tone="success">{s?.recent.length ?? 0}건</Badge>
-              </CardHeader>
-              <CardBody compact>
-                {s && s.recent.length === 0 && <div className="py-2.5 text-muted text-[0.84rem]">최근 활동이 없습니다.</div>}
-                {s?.recent.map((r, i) => (
-                  <ActivityRow key={i} dot={TX_DOT[r.type]} text={<><strong>{r.title}</strong> {signedWon(r.type, r.amount)}</>} time={r.date} />
-                ))}
-              </CardBody>
-            </Card>
-          )}
-        </div>
-      )}
+                    <div className="h-1.5 bg-elevated rounded-[3px] overflow-hidden">
+                      <div className={`h-full rounded-[3px] transition-[width] duration-700 ${FILL_COLOR[tone]}`} style={{ width: `${Math.min(b.percent, 100)}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </CardBody>
+          </Card>
+        );
+        const recentCard = (
+          <Card key="recent-activity">
+            <CardHeader>
+              <CardTitle>최근 활동</CardTitle>
+              <Badge tone="success">{s?.recent.length ?? 0}건</Badge>
+            </CardHeader>
+            <CardBody compact>
+              {s && s.recent.length === 0 && <div className="py-2.5 text-muted text-[0.84rem]">최근 활동이 없습니다.</div>}
+              {s?.recent.map((r, i) => (
+                <ActivityRow key={i} dot={TX_DOT[r.type]} text={<><strong>{r.title}</strong> {signedWon(r.type, r.amount)}</>} time={r.date} />
+              ))}
+            </CardBody>
+          </Card>
+        );
+        // 설정에서 지정한 위젯 순서대로 두 카드 정렬 (표시 토글된 것만)
+        const cards = [
+          { id: 'budget-bars', node: budgetCard, on: wMap['budget-bars'] },
+          { id: 'recent-activity', node: recentCard, on: wMap['recent-activity'] },
+        ]
+          .filter((c) => c.on)
+          .sort((a, b) => (wOrder.indexOf(a.id) - wOrder.indexOf(b.id)));
+        return <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">{cards.map((c) => c.node)}</div>;
+      })()}
 
       {wMap['ai-summary'] && (
         <Card className="mb-6">

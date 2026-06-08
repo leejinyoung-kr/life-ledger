@@ -21,6 +21,26 @@ interface SearchEntry {
 // 타입 코드 → 한글 라벨
 const TYPE_LABEL: Record<SearchType, string> = { tx: '가계부', note: '메모', cred: '계정', id: '신원', env: 'ENV' };
 
+// 도메인 필터 칩 (전체 + 타입별)
+const FILTERS: { key: SearchType | 'all'; label: string }[] = [
+  { key: 'all', label: '전체' }, { key: 'tx', label: '가계부' }, { key: 'note', label: '메모' },
+  { key: 'cred', label: '계정' }, { key: 'id', label: '신원' }, { key: 'env', label: 'ENV' },
+];
+
+// 최근 검색어 (localStorage, 최대 6개)
+const RECENT_KEY = 'dn_recent_search';
+function loadRecent(): string[] {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]') as string[]; } catch { return []; }
+}
+function saveRecent(q: string): string[] {
+  const t = q.trim();
+  if (!t) return loadRecent();
+  const list = [t, ...loadRecent().filter((x) => x !== t)].slice(0, 6);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+  return list;
+}
+
 // 정규식 특수문자 이스케이프 (검색어를 안전하게 하이라이트하기 위함)
 function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -47,7 +67,15 @@ export default function GlobalSearch() {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<SearchEntry[]>([]);
+  const [filter, setFilter] = useState<SearchType | 'all'>('all');
+  const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 최근 검색어 초기 로드
+  useEffect(() => { setRecent(loadRecent()); }, []);
+
+  // 검색어 확정 시 최근 검색어에 기록 (Enter·결과 클릭)
+  const commitRecent = () => setRecent(saveRecent(query));
 
   // 검색어 변경 시 디바운스 후 통합 검색 API 호출
   useEffect(() => {
@@ -79,13 +107,14 @@ export default function GlobalSearch() {
     return () => document.removeEventListener('keydown', onKey);
   }, []);
 
-  // 결과를 타입별로 묶고 타입당 최대 3개로 제한
-  const groups = results.reduce<Record<string, SearchEntry[]>>((acc, r) => {
+  // 도메인 필터 적용 후 타입별 그룹화
+  const filtered = filter === 'all' ? results : results.filter((r) => r.type === filter);
+  const groups = filtered.reduce<Record<string, SearchEntry[]>>((acc, r) => {
     (acc[r.type] ??= []).push(r);
     return acc;
   }, {});
 
-  const isEmpty = query.trim() !== '' && results.length === 0;
+  const isEmpty = query.trim() !== '' && filtered.length === 0;
 
   return (
     <div className="relative flex items-center flex-1 max-w-[480px] max-[600px]:hidden">
@@ -97,7 +126,7 @@ export default function GlobalSearch() {
         placeholder="통합 검색... (가계부·메모·계정·신원·ENV)"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setOpen(true); } }}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setOpen(true); commitRecent(); } }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
         autoComplete="off"
@@ -105,16 +134,52 @@ export default function GlobalSearch() {
       <span className="absolute right-2.5 text-[0.68rem] text-muted bg-elevated border border-border rounded-[4px] px-[5px] py-px pointer-events-none [font-family:var(--font-mono)] max-[900px]:hidden">⌘K</span>
 
       <div className={`${open ? 'block' : 'hidden'} absolute top-[calc(100%+6px)] left-0 w-full min-w-[320px] bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] z-[300] overflow-hidden`}>
+        {/* 도메인 필터 칩 (검색어 있을 때만) */}
+        {query.trim() && (
+          <div className="flex gap-1.5 px-3 py-2 border-b border-border-subtle bg-surface overflow-x-auto">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); setFilter(f.key); }}
+                className={`px-2.5 py-1 rounded-full text-[0.72rem] font-medium whitespace-nowrap transition-colors ${filter === f.key ? 'bg-accent text-white' : 'bg-elevated text-secondary hover:text-primary'}`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {isEmpty ? (
           <div className="p-6 text-center text-[0.855rem] text-muted">검색 결과가 없습니다.</div>
         ) : !query.trim() ? (
-          <div className="p-6 text-center text-[0.855rem] text-muted">가계부·메모·계정·신원·ENV를 검색하세요.</div>
+          recent.length > 0 ? (
+            <div>
+              <div className="flex items-center justify-between px-3.5 pt-2.5 pb-1.5 bg-surface border-b border-border-subtle">
+                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-muted">최근 검색</span>
+                <button type="button" onMouseDown={(e) => { e.preventDefault(); localStorage.removeItem(RECENT_KEY); setRecent([]); }} className="text-[0.68rem] text-muted hover:text-danger">지우기</button>
+              </div>
+              {recent.map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); setQuery(q); inputRef.current?.focus(); }}
+                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-left border-b border-border-subtle last:border-b-0 hover:bg-surface"
+                >
+                  <span className="text-muted text-[0.85rem]">🕘</span>
+                  <span className="text-[0.84rem] text-secondary">{q}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 text-center text-[0.855rem] text-muted">가계부·메모·계정·신원·ENV를 검색하세요.</div>
+          )
         ) : (
           Object.entries(groups).map(([type, items]) => (
             <div key={type}>
               <div className="px-3.5 pt-2.5 pb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-muted bg-surface border-b border-border-subtle">{TYPE_LABEL[type as SearchType]}</div>
               {items.slice(0, 3).map((item, i) => (
-                <SearchResultRow key={i} item={item} query={query} />
+                <SearchResultRow key={i} item={item} query={query} onPick={commitRecent} />
               ))}
             </div>
           ))
@@ -129,9 +194,9 @@ const ICON_BG: Record<SearchType, string> = {
 };
 
 // 검색 결과 한 줄
-function SearchResultRow({ item, query }: { item: SearchEntry; query: string }) {
+function SearchResultRow({ item, query, onPick }: { item: SearchEntry; query: string; onPick?: () => void }) {
   return (
-    <a className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer transition-colors border-b border-border-subtle last:border-b-0 hover:bg-surface no-underline" href={item.href}>
+    <a className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer transition-colors border-b border-border-subtle last:border-b-0 hover:bg-surface no-underline" href={item.href} onClick={onPick}>
       <div className={`w-8 h-8 rounded-[var(--radius)] flex items-center justify-center text-[0.9rem] shrink-0 ${ICON_BG[item.type]}`}>{item.icon}</div>
       <div>
         <div className="text-[0.855rem] font-medium text-primary">{query ? highlight(item.title, query) : item.title}</div>

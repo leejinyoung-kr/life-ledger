@@ -13,6 +13,7 @@ export interface IdCard {
   issueDate: string | null; // YYYY-MM-DD
   expireDate: string | null;
   memo: string | null;
+  fileId: number | null; // 사본 이미지 (파일 보관함 file.id)
   updatedAt: string; // ISO
 }
 

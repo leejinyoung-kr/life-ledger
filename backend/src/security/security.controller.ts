@@ -55,6 +55,12 @@ export class SecurityController {
     return this.service.scoreTrend(user.id, days ? Number(days) : 30);
   }
 
+  // 비밀번호 강도 분포 통계
+  @Get('strength-stats')
+  strengthStats(@CurrentUser() user: AuthUser) {
+    return this.service.strengthStats(user.id);
+  }
+
   // 최근 보관함 열람 기록
   @Get('access-logs')
   accessLogs(@CurrentUser() user: AuthUser, @Query('limit') limit?: string) {

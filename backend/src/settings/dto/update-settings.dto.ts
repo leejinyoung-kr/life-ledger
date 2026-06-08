@@ -29,6 +29,14 @@ export class UpdateSettingsDto {
   notifUpload?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  notifMaturity?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifDeadline?: boolean;
+
+  @IsOptional()
   @IsIn(['7d', '1d', '12h', 'none'])
   sessionExpiry?: string;
 

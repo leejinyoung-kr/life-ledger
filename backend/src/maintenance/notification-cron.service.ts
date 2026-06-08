@@ -70,51 +70,57 @@ export class NotificationCronService {
       }
     }
 
-    // 2) 예적금 만기 D-30
-    const savings = await this.prisma.saving.findMany({
-      where: { user_id: userId, deleted_at: null, maturity_date: { gte: today, lte: addDays(today, 30) } },
-    });
-    for (const s of savings) {
-      n += await this.emit(userId, {
-        group: 'ledger', tone: 'warning',
-        title: `${s.name} 만기 임박`, description: '예적금 만기가 30일 이내입니다.', source: '예적금',
+    // 만기/결제 임박 알림(예적금·구독) — settings.notif_maturity 켜진 경우만
+    if (settings?.notif_maturity ?? true) {
+      // 2) 예적금 만기 D-30
+      const savings = await this.prisma.saving.findMany({
+        where: { user_id: userId, deleted_at: null, maturity_date: { gte: today, lte: addDays(today, 30) } },
       });
+      for (const s of savings) {
+        n += await this.emit(userId, {
+          group: 'ledger', tone: 'warning',
+          title: `${s.name} 만기 임박`, description: '예적금 만기가 30일 이내입니다.', source: '예적금',
+        });
+      }
+
+      // 3) 구독 결제 D-3 / 무료체험 종료 D-3
+      const subs = await this.prisma.subscription.findMany({
+        where: { user_id: userId, deleted_at: null, next_payment_date: { gte: today, lte: addDays(today, 3) } },
+      });
+      for (const s of subs) {
+        const trial = s.status === 'trial';
+        n += await this.emit(userId, {
+          group: 'ledger', tone: trial ? 'warning' : 'info',
+          title: trial ? `${s.name} 무료체험 종료 임박` : `${s.name} 결제 예정`,
+          description: trial ? '무료체험이 3일 내 종료되어 과금됩니다.' : '구독 결제일이 3일 이내입니다.',
+          source: '구독',
+        });
+      }
     }
 
-    // 3) 구독 결제 D-3 / 무료체험 종료 D-3
-    const subs = await this.prisma.subscription.findMany({
-      where: { user_id: userId, deleted_at: null, next_payment_date: { gte: today, lte: addDays(today, 3) } },
-    });
-    for (const s of subs) {
-      const trial = s.status === 'trial';
-      n += await this.emit(userId, {
-        group: 'ledger', tone: trial ? 'warning' : 'info',
-        title: trial ? `${s.name} 무료체험 종료 임박` : `${s.name} 결제 예정`,
-        description: trial ? '무료체험이 3일 내 종료되어 과금됩니다.' : '구독 결제일이 3일 이내입니다.',
-        source: '구독',
+    // 만료/마감 임박 알림(신원·할일) — settings.notif_deadline 켜진 경우만
+    if (settings?.notif_deadline ?? true) {
+      // 4) 신원 문서 만료 D-60
+      const ids = await this.prisma.identityCard.findMany({
+        where: { user_id: userId, deleted_at: null, expire_date: { gte: today, lte: addDays(today, 60) } },
       });
-    }
+      for (const i of ids) {
+        n += await this.emit(userId, {
+          group: 'system', tone: 'warning',
+          title: `${i.name} 문서 만료 임박`, description: '신원 문서 유효기간이 60일 이내입니다.', source: '신원 지갑',
+        });
+      }
 
-    // 4) 신원 문서 만료 D-60
-    const ids = await this.prisma.identityCard.findMany({
-      where: { user_id: userId, deleted_at: null, expire_date: { gte: today, lte: addDays(today, 60) } },
-    });
-    for (const i of ids) {
-      n += await this.emit(userId, {
-        group: 'system', tone: 'warning',
-        title: `${i.name} 문서 만료 임박`, description: '신원 문서 유효기간이 60일 이내입니다.', source: '신원 지갑',
+      // 5) 할일 마감 D-1
+      const tasks = await this.prisma.task.findMany({
+        where: { user_id: userId, deleted_at: null, done: false, due_date: { gte: today, lte: addDays(today, 1) } },
       });
-    }
-
-    // 5) 할일 마감 D-1
-    const tasks = await this.prisma.task.findMany({
-      where: { user_id: userId, deleted_at: null, done: false, due_date: { gte: today, lte: addDays(today, 1) } },
-    });
-    for (const t of tasks) {
-      n += await this.emit(userId, {
-        group: 'system', tone: 'warning',
-        title: `'${t.text}' 마감 임박`, description: '할일 마감이 하루 이내입니다.', source: '할일',
-      });
+      for (const t of tasks) {
+        n += await this.emit(userId, {
+          group: 'system', tone: 'warning',
+          title: `'${t.text}' 마감 임박`, description: '할일 마감이 하루 이내입니다.', source: '할일',
+        });
+      }
     }
 
     // 6) 비밀번호 회전 — 마지막 변경 90일 경과 계정

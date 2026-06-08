@@ -240,10 +240,12 @@ export default function SettingsPage() {
     notifBudget: '예산 초과 알림',
     notifMonthly: '월간 리포트 자동 생성',
     notifUpload: '파일 업로드 완료 알림',
+    notifMaturity: '만기·결제 임박 알림',
+    notifDeadline: '만료·마감 임박 알림',
   };
 
   // 알림 토글 — 즉시 저장
-  const toggleNotif = (key: 'notifBudget' | 'notifMonthly' | 'notifUpload') => {
+  const toggleNotif = (key: 'notifBudget' | 'notifMonthly' | 'notifUpload' | 'notifMaturity' | 'notifDeadline') => {
     const next = !s[key];
     const label = NOTIF_LABEL[key];
     patch({ [key]: next }, `${label}을(를) ${next ? '켰습니다.' : '껐습니다.'}`);
@@ -348,6 +350,12 @@ export default function SettingsPage() {
               <Group title="알림">
                 <Row label="예산 초과 알림" desc="카테고리 예산의 80% 이상 소비 시 알림">
                   <Toggle on={s.notifBudget} onToggle={() => toggleNotif('notifBudget')} />
+                </Row>
+                <Row label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
+                  <Toggle on={s.notifMaturity} onToggle={() => toggleNotif('notifMaturity')} />
+                </Row>
+                <Row label="만료·마감 임박 알림" desc="신원 문서 만료·할일 마감 임박 시 알림">
+                  <Toggle on={s.notifDeadline} onToggle={() => toggleNotif('notifDeadline')} />
                 </Row>
                 <Row label="월간 리포트 자동 생성" desc="매월 1일 전월 리포트 자동 생성">
                   <Toggle on={s.notifMonthly} onToggle={() => toggleNotif('notifMonthly')} />
