@@ -109,6 +109,10 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /notifications/unread-count | 미읽음 알림 수 (상단 종 배지) |
 | PUT | /notifications/:id/read | 단건 읽음 처리 |
 | PUT | /notifications/read-all | 전체 읽음 처리 |
+| DELETE | /notifications/bulk | 선택 일괄 삭제 |
+| DELETE | /notifications | 전체 삭제 |
+
+> 알림 자동생성 크론(매일 9시): 예산초과·예적금만기·구독결제/체험·신원만료·할일마감·비번회전(90일). `notif_maturity`·`notif_deadline` 설정으로 게이팅.
 
 ## 할 일
 
@@ -132,12 +136,22 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /security/summary | 보안 요약 |
-| GET | /security/risks | 보안 위험 목록 |
+| GET | /security/summary | 보안 요약 (실시간 분석 — 점수·카테고리 건수) |
+| GET | /security/risks | 위험 목록 (계정별 reuse/weak/no2fa + credentialId 딥링크) |
 | GET | /security/sessions | 로그인 세션 목록 |
-| POST | /security/risks/:id/resolve | 위험 항목 해결 처리 |
 | POST | /security/sessions/:id/revoke | 세션 단건 차단 |
 | POST | /security/sessions/revoke-all | 전체 세션 차단 |
+| GET | /security/score-trend?days= | 보안 점수 추이 (일별 스냅샷) |
+| GET | /security/access-logs?limit= | 최근 보관함 열람 기록 |
+| GET | /security/strength-stats | 비밀번호 강도 분포 (강함/보통/취약) |
+| GET | /security/breach-check | 유출 비밀번호 검사 (HIBP k-anonymity, throttle 6/분) |
+| GET | /security/vault | 마스터 잠금 상태 |
+| POST | /security/vault/setup | 마스터 잠금 설정/변경 (비번 scrypt 해시) |
+| POST | /security/vault/disable | 마스터 잠금 해제 (현재 비번 확인) |
+| POST | /security/vault/unlock | 잠금 해제 — vault 토큰 발급 (throttle 5/분) |
+
+> **마스터 잠금**: 켜지면 reveal/totp/백업코드/신원/ENV 열람 시 `x-vault-token` 헤더 필요(없으면 423 + `code:VAULT_LOCKED`). 자동잠금 = 토큰 만료.
+> **Rate-limit**(`@nestjs/throttler`): 전역 120/분, reveal·totp·신원·ENV·백업코드 20/분, vault unlock 5/분.
 
 ## 설정
 
@@ -150,11 +164,15 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /trash | 삭제된 항목 목록 |
-| POST | /trash/restore | 선택 항목 복원 |
+| GET | /trash | 삭제된 항목 목록 (`daysLeft` D-day 포함) |
+| POST | /trash/restore | 단건 복원 |
+| POST | /trash/bulk-restore | 선택 일괄 복원 |
 | POST | /trash/restore-all | 전체 복원 |
-| POST | /trash/purge | 선택 항목 영구 삭제 |
+| POST | /trash/purge | 단건 영구 삭제 |
+| POST | /trash/bulk-purge | 선택 일괄 영구 삭제 |
 | POST | /trash/empty | 휴지통 비우기 |
+
+> 30일 경과 자동 영구삭제 크론(매일 3시).
 
 ## 카테고리 관리
 
@@ -177,6 +195,18 @@ Base URL: `http://localhost:8000/api/v1`
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | /dashboard/summary | 요약 — 이번 달 수입/지출·순자산·활성구독 + 카테고리 예산·최근 거래·다가오는 일정 |
+| GET | /dashboard/cashflow-forecast | 현금흐름 예측 — 활성 구독 + 반복 지출거래 월 환산·합산 |
+| GET | /dashboard/deadlines | 통합 D-day — 신원만료·예적금만기·구독결제·할일마감 임박순 |
+
+## 예산
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| GET | /budget/status?month= | 월별 예산 현황 (기본+오버라이드+이월) |
+| GET | /budget/history | 예산 이월 이력 |
+| POST | /budget | 월별 예산 오버라이드 저장 |
+| POST | /budget/carryover | 이월 적용 |
+| DELETE | /budget/carryover | 이월 해제 |
 
 ## 신원 지갑
 
@@ -184,24 +214,31 @@ Base URL: `http://localhost:8000/api/v1`
 | --- | --- | --- |
 | GET | /identities | 신원 문서 목록 (번호는 마스킹) |
 | GET | /identities/:id/reveal | 번호 원문 복호화 |
-| POST | /identities | 신원 문서 추가 (번호 AES 암호화) |
-| PUT | /identities/:id | 수정 (`number` 전달 시 재암호화) |
+| POST | /identities | 신원 문서 추가 (번호 AES 암호화, `fileId` 로 사본 연결) |
+| PUT | /identities/:id | 수정 (`number` 전달 시 재암호화, `fileId` 로 사본 변경/해제) |
 | DELETE | /identities/:id | 삭제 (soft delete) |
 
-> `type`: passport / idcard / license / cert / etc
+> `type`: passport / idcard / license / cert / etc · 사본 이미지는 파일 보관함(B2) 업로드 후 `fileId` 연결, 조회는 `/files/:id/url?disposition=inline`
 
 ## 계정 보관함
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /credentials | 계정 목록 (비번 제외, `has2fa` 만 노출) |
-| GET | /credentials/:id/reveal | 비밀번호·TOTP 원문 복호화 |
+| GET | /credentials | 계정 목록 (비번 제외 — `has2fa`·`hasBackupCodes`·`passwordChangedAt` 노출) |
+| GET | /credentials/:id/reveal | 비밀번호·TOTP 원문 복호화 (감사 로그 기록) |
+| GET | /credentials/:id/totp | 현재 6자리 TOTP 코드 + 남은 시간 |
+| GET | /credentials/:id/backup-codes | 2FA 백업코드 조회 |
+| POST | /credentials/:id/backup-codes | 2FA 백업코드 생성 (평문 1회 반환) |
+| DELETE | /credentials/:id/backup-codes | 백업코드 삭제 |
 | GET | /credentials/template | 엑셀 양식(.xlsx) 다운로드 |
 | GET | /credentials/export | 계정 엑셀 다운로드 (비밀번호 평문 — 본인 백업) |
 | POST | /credentials | 계정 추가 (비번·TOTP AES 암호화) |
 | POST | /credentials/import | 엑셀 업로드 → 일괄 추가 (multipart `file`) |
 | PUT | /credentials/:id | 수정 (`password`/`totp` 전달 시 재암호화) |
+| DELETE | /credentials/bulk | 선택 일괄 삭제 |
 | DELETE | /credentials/:id | 삭제 (soft delete) |
+
+> reveal/totp/backup-codes 는 마스터 잠금 시 `x-vault-token` 필요 + 분당 20회 제한.
 
 ## ENV 보관함
 
@@ -212,11 +249,15 @@ Base URL: `http://localhost:8000/api/v1`
 | PUT | /env-projects/:id | 프로젝트 수정 |
 | DELETE | /env-projects/:id | 프로젝트 삭제 (하위 변수 포함 soft delete) |
 | GET | /env-projects/:id/vars?env= | 환경별 변수 목록 (값 마스킹) |
+| GET | /env-projects/:id/diff?base=&target= | 두 환경 비교 (누락·값 불일치) |
 | GET | /env-projects/:id/export?env= | 환경 변수 원문 내보내기 (.env 복사/다운로드용) |
 | POST | /env-projects/:id/vars | 변수 추가 (선택 환경마다 생성, 값 AES 암호화) |
 | POST | /env-projects/:id/bulk | .env 텍스트 일괄 파싱 저장 |
-| GET | /env-vars/:id/reveal | 변수 값 원문 복호화 |
-| PUT | /env-vars/:id | 변수 수정 (`value` 전달 시 재암호화) |
+| GET | /env-vars/:id/reveal | 변수 값 원문 복호화 (감사 로그 기록) |
+| GET | /env-vars/:id/history | 값 변경 이력 (마스킹) |
+| POST | /env-vars/:id/rollback/:historyId | 이력 값으로 롤백 |
+| PUT | /env-vars/:id | 변수 수정 (`value` 변경 시 재암호화 + 이전값 이력 적재) |
+| DELETE | /env-vars/bulk | 선택 일괄 삭제 |
 | DELETE | /env-vars/:id | 변수 삭제 (soft delete) |
 
 > `env`: dev / staging / prod
@@ -230,10 +271,27 @@ Base URL: `http://localhost:8000/api/v1`
 
 > 암호화 컬럼은 암호문(`v1:...`)으로 내보내며, 동일한 `CREDENTIAL_SECRET` 환경에서만 복호화 가능하다.
 
+## 데이터 가져오기
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| POST | /import/credentials | 계정 JSON 백업 복원 (multipart `file`, 암호문 v1 형식 검증·보존, 추가 방식) |
+
+## 파일 보관함 (Backblaze B2)
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| GET | /files?folderId= | 폴더 내용 (브레드크럼·하위폴더·파일·사용량) |
+| POST | /files/upload?folderId= | 업로드 (multipart `file`, MIME 화이트리스트 + SHA-256 중복제거) |
+| GET | /files/:id/url?disposition= | presigned URL 발급 (5분, inline=미리보기) |
+| PATCH | /files/:id/move | 파일 폴더 이동 |
+| DELETE | /files/:id | 파일 삭제 (공유 오브젝트 보호) |
+| POST | /files/folders | 폴더 생성 |
+| DELETE | /files/folders/:id | 폴더 삭제 (하위 재귀 soft delete) |
+
 ## 미구현
 
 | 영역 | 설명 |
 | --- | --- |
-| 파일 보관함 | Cloudflare R2 연동 (외부 연동 예정) |
-| AI 리포트 | Claude API 기반 분석 (외부 연동 예정) |
-| 어시스턴트 | Claude API 챗봇 (외부 연동 예정) |
+| AI 리포트 / 어시스턴트 | Claude API 기반 분석·챗봇 (외부 연동 예정) |
+| 시세 자동연동 | 업비트(crypto만 무료)·주식 외부 API (보류) |

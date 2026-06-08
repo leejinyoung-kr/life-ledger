@@ -1,142 +1,102 @@
 # DocNexus — ERD
 
-## 테이블 목록
+> 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
+> 마이그레이션: `20260610000000_init_consolidated`(전 도메인 통합) + `20260610010000_phase17a_security_core` · `20260610020000_phase17b_dataflow` · `20260610030000_phase17c_enhance` · `20260610040000_phase17d_extras`
 
-| 테이블 | 설명 | 상태 |
-| --- | --- | --- |
-| User | 사용자 | 구현 완료 |
-| Transaction | 수입/지출 내역 | 구현 완료 |
-| Saving | 예적금 | 구현 완료 |
-| Investment | 투자 | 구현 완료 |
-| Subscription | 구독 서비스 | 구현 완료 |
-| Asset | 자산 항목 | 구현 완료 |
-| NetWorthSnapshot | 순자산 스냅샷 | 구현 완료 |
-| UserSettings | 사용자 설정 | 구현 완료 |
-| Notification | 알림 | 구현 완료 |
-| Task | 할 일 | 구현 완료 |
-| Goal | 목표 | 구현 완료 |
-| Note | 메모/노트 | 구현 완료 |
-| CalendarEvent | 캘린더 이벤트 | 구현 완료 |
-| SecurityRisk | 보안 위험 항목 | 구현 완료 |
-| LoginSession | 로그인 세션 | 구현 완료 |
-| Category | 카테고리 관리 | 구현 완료 |
-| IdentityCard | 신원 지갑 (번호 암호화) | 구현 완료 |
-| Credential | 계정 보관함 (비번/TOTP 암호화) | 구현 완료 |
-| EnvProject | ENV 프로젝트 | 구현 완료 |
-| EnvVar | ENV 변수 (값 암호화) | 구현 완료 |
+## 테이블 목록 (26)
+
+| 테이블 | 설명 |
+| --- | --- |
+| User | 사용자 (Google OAuth) |
+| Transaction | 수입/지출 내역 (반복 자동생성 포함) |
+| Saving | 예적금 |
+| Investment | 투자 |
+| Subscription | 구독 서비스 |
+| Asset | 자산/부채 항목 |
+| NetWorthSnapshot | 순자산 월별 스냅샷 |
+| MonthlyBudget | 월별 예산 오버라이드 (이월 carryover) |
+| UserSettings | 사용자 설정 (1:1) |
+| Notification | 알림 |
+| Task | 할 일 |
+| Goal | 목표 |
+| Note | 메모 |
+| CalendarEvent | 캘린더 일정 |
+| SecurityRisk | 보안 위험 (시드/표시용) |
+| LoginSession | 로그인 세션 |
+| Category | 카테고리 (도메인별) |
+| IdentityCard | 신원 지갑 (번호 AES + 사본 fileId) |
+| Credential | 계정 보관함 (비번·TOTP·백업코드 AES) |
+| EnvProject | ENV 프로젝트 |
+| EnvVar | ENV 변수 (값 AES) |
+| EnvVarHistory | ENV 변수 값 변경 이력 (롤백) |
+| StorageFolder | 파일 보관함 폴더 (무한 중첩) |
+| StorageFile | 파일 메타 (B2 object_key·SHA-256 hash) |
+| AccessLog | 보관함 접근 감사 로그 |
+| SecurityScoreSnapshot | 보안 점수 일별 스냅샷 |
 
 ## 주요 관계
 
 ```text
-User 1 ─── N Transaction
-User 1 ─── N Saving
-User 1 ─── N Investment
-User 1 ─── N Subscription
-User 1 ─── N Asset
-User 1 ─── N NetWorthSnapshot
+User 1 ─── N (Transaction, Saving, Investment, Subscription, Asset, NetWorthSnapshot,
+              MonthlyBudget, Notification, Task, Goal, Note, CalendarEvent,
+              SecurityRisk, LoginSession, Category, IdentityCard, Credential,
+              EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot)
 User 1 ─── 1 UserSettings
-User 1 ─── N Notification
-User 1 ─── N Task
-User 1 ─── N Goal
-User 1 ─── N Note
-User 1 ─── N CalendarEvent
-User 1 ─── N SecurityRisk
-User 1 ─── N LoginSession
-User 1 ─── N Category
-User 1 ─── N IdentityCard
-User 1 ─── N Credential
-User 1 ─── N EnvProject
-User 1 ─── N EnvVar
-EnvProject 1 ─── N EnvVar
+EnvProject     1 ─── N EnvVar
+EnvVar         1 ─── N EnvVarHistory
+StorageFolder  1 ─── N StorageFolder(parent_id, 자기참조) · N StorageFile
+StorageFile    1 ─── N IdentityCard(file_id, 사본 이미지)
 ```
 
-## 스키마 (Prisma)
+## 암호화 (보관함)
 
-`backend/prisma/schema.prisma` 참고.
+민감 필드는 AES-256-GCM 암호문(`v1:ivHex:tagHex:cipherHex`)으로 저장. 목록은 마스킹, 원문은 reveal 엔드포인트로만 제공.
+키는 `CREDENTIAL_SECRET` 을 sha256 한 32바이트. 마스터 잠금 비번은 별도 scrypt 해시(`saltHex:hashHex`).
 
-### User
+- `IdentityCard.number_enc` · `Credential.password_enc`·`totp_enc`·`backup_codes_enc` · `EnvVar.value_enc` · `EnvVarHistory.value_enc`
 
-```prisma
-model User {
-  id         Int      @id @default(autoincrement())
-  google_id  String   @unique @db.VarChar(100)
-  email      String   @unique @db.VarChar(200)
-  name       String   @db.VarChar(100)
-  picture    String?  @db.VarChar(500)
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+## 도메인별 요약
 
-  @@map("user")
-}
-```
+### 가계부 — Transaction / Saving / Investment
 
-### Transaction / Saving / Investment (가계부)
+- `Transaction` — `type`(income/expense/transfer), `category`, `amount`, `pay_method`, `is_recurring`, `recurring_rule`(JSON), 반복 회차(`recurring_parent_id`·`recurring_period`·`recurring_overridden`), soft delete
+- `Saving` — `type`(savings/deposit/subscription/etc), `interest_rate`, `monthly_amount`, `maturity_date`, `balance`
+- `Investment` — `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `current_value`, `purchase_date`
 
-- `Transaction` — 수입/지출 내역. `type`(income/expense/transfer), `category`(코드), `amount`, `pay_method`, `is_recurring`, `recurring_rule`(JSON), soft delete(`deleted_at`)
-- `Saving` — 예적금. `type`(savings/deposit/subscription/etc), `interest_rate`, `monthly_amount`, `maturity_date`, `balance`
-- `Investment` — 투자. `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `current_value`, `purchase_date`
+### 자산·예산 — Subscription / Asset / NetWorthSnapshot / MonthlyBudget
 
-마이그레이션: `migrations/20260602093000_finance/`
+- `Subscription` — `cycle`(monthly/yearly/weekly), `status`(active/trial/paused), `next_payment_date`, `last_used_at`
+- `Asset` — `type`(cash/savings/investment/realestate/debt/etc), `amount`, `interest_rate?` — debt 는 순자산에서 차감
+- `NetWorthSnapshot` — `month`(YYYY-MM), `total_assets`, `total_debt` (`@@unique([user_id, month])`)
+- `MonthlyBudget` — 기본 예산(UserSettings.budgets) 대신 특정 달 오버라이드 + `carried_over_amount`(이월)
 
-### Subscription / Asset / NetWorthSnapshot (순자산)
+### 설정 — UserSettings (1:1)
 
-- `Subscription` — 구독 서비스. `name`, `amount`, `billing_cycle`(monthly/yearly/weekly), `next_billing_date`, soft delete(`deleted_at`)
-- `Asset` — 자산 항목. `name`, `type`(cash/stock/real_estate/crypto/etc), `value`
-- `NetWorthSnapshot` — 순자산 스냅샷. `total_assets`, `total_liabilities`, `net_worth`, `recorded_at`
+- 알림: `notif_budget`·`notif_monthly`·`notif_upload`·`notif_maturity`·`notif_deadline`
+- 보안: `session_expiry`, `pw_auto_hide`, `master_lock_enabled`·`master_lock_hash`(scrypt)·`master_lock_timeout`
+- API: `claude_api_key`, `claude_model`
+- JSON: `budgets`{코드:금액}, `categories`[{emoji,name}], `widgets`[{id,on}](순서=표시순서), `menu_order`(사이드바 1차 메뉴 순서)
 
-마이그레이션: `migrations/20260602160000_asset/`
+### 보관함 — IdentityCard / Credential / EnvProject / EnvVar / EnvVarHistory
 
-### UserSettings
+- `IdentityCard` — `type`(passport/idcard/license/cert/etc), `number_enc`, `file_id`(StorageFile FK, 사본 이미지), `issue/expire_date`
+- `Credential` — `category`, `username`, `password_enc`, `totp_enc?`, `backup_codes_enc?`(JSON 배열 암호문), `password_changed_at`(90일 회전 알림용)
+- `EnvProject` — `name`, `description`
+- `EnvVar` — `env`(dev/staging/prod), `group`, `key`, `value_enc`
+- `EnvVarHistory` — `value_enc` 변경 시 이전값 1건 적재(변수당 20건 유지) → diff/롤백
 
-- 사용자별 설정. `currency`, `language`, `timezone`, `notification_enabled` 등
+### 파일 보관함 — StorageFolder / StorageFile
 
-마이그레이션: `migrations/20260602170000_user_settings/`
+- `StorageFolder` — `parent_id` 자기참조로 무한 중첩
+- `StorageFile` — `object_key`(B2: `users/{userId}/{uuid}/{filename}`), `size`, `mime_type`, `hash`(SHA-256, 중복제거). soft delete 시 같은 object_key 참조 없을 때만 B2 삭제
 
-### Notification
+### 보안 — SecurityRisk / LoginSession / AccessLog / SecurityScoreSnapshot
 
-- `type`, `title`, `message`, `is_read`, `read_at`
+- `SecurityRisk` — `category`(reuse/weak/no2fa/breach), `severity`, `resolved` (실시간 분석은 별도, 이 테이블은 시드/표시용)
+- `LoginSession` — `device`, `device_type`, `location`, `is_current`, `status`, `revoked_at` (새 기기 로그인 감지 시 기록)
+- `AccessLog` — `action`(cred_reveal/cred_totp/cred_backup/identity_reveal/env_reveal), `target_type/id/name`, `ip`, `user_agent`
+- `SecurityScoreSnapshot` — `date`(YYYY-MM-DD), `score`, `reuse/weak/no2fa` — 크론이 매일 1건 적재 → 추이 차트
 
-마이그레이션: `migrations/20260602180000_notification/`
+## KST 타임스탬프
 
-### Task / Goal (할 일 + 목표)
-
-- `Task` — `title`, `due_date`, `is_done`, `priority`(low/medium/high), soft delete
-- `Goal` — `title`, `target_amount`, `current_amount`, `deadline`, soft delete
-
-마이그레이션: `migrations/20260602190000_task_goal/`
-
-### Note
-
-- `title`, `content`(TEXT), `tags`(JSON), `is_pinned`, soft delete
-
-마이그레이션: `migrations/20260602200000_note/`
-
-### CalendarEvent
-
-- `title`, `start_at`, `end_at`, `all_day`, `type`, `color`, soft delete
-
-마이그레이션: `migrations/20260602210000_calendar_event/`
-
-### SecurityRisk / LoginSession (보안)
-
-- `SecurityRisk` — `type`, `description`, `severity`, `resolved_at`
-- `LoginSession` — `device`, `browser`, `ip`, `location`, `revoked_at`
-
-마이그레이션: `migrations/20260602220000_security/`
-
-### IdentityCard / Credential / EnvProject / EnvVar (보관함)
-
-민감 필드는 AES-256-GCM 암호문(`v1:iv:tag:cipher`)으로 저장하며, 목록은 마스킹, 원문은 reveal 엔드포인트로만 제공한다.
-
-- `IdentityCard` — 신원 지갑. `type`(passport/idcard/license/cert/etc), `name`, `number_enc`(암호문), `issue_date`, `expire_date`
-- `Credential` — 계정 보관함. `name`, `emoji`, `url`, `category`, `username`, `password_enc`(암호문), `totp_enc`(암호문, 선택)
-- `EnvProject` — ENV 프로젝트. `emoji`, `name`, `description`
-- `EnvVar` — ENV 변수. `project_id`(FK), `env`(dev/staging/prod), `group`, `key`, `value_enc`(암호문)
-
-마이그레이션: `migrations/20260606000000_credential_vault/`
-
-### Transaction 반복 (회차)
-
-`Transaction` 에 반복 자동 생성용 컬럼 추가: `recurring_parent_id`(원본 FK), `recurring_period`(회차 식별), `recurring_overridden`(개별 수정 보존 플래그).
-
-마이그레이션: `migrations/20260605000000_transaction_recurring_occurrence/`, `migrations/20260607000000_transaction_recurring_overridden/`
+Prisma 가 `@default(now())`/`@updatedAt` 을 UTC 로 전송 → BEFORE INSERT/UPDATE 트리거로 NOW() 덮어씀 (전제: `@@global.time_zone = +09:00`). 신규 테이블은 마이그레이션에 트리거 동봉.

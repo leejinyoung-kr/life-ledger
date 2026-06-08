@@ -9,12 +9,13 @@
 기능 목록:
 
 - 자격증명 관리 (계정·신원 번호·ENV 값 AES-256-GCM 암호화 저장) — **구현 완료**
-- 파일 보관함 (Cloudflare R2 — 신원 문서·파일 업로드) — 미구현
-- 자산 현황 (금융 자산 요약·월별 추이) — 구현 완료
-- AI 리포트 (Claude API 기반 분석) — 미구현
-- 캘린더 / 할 일 — 구현 완료
-- 보안 감사 로그 — 구현 완료
-- 통합 검색 / 데이터 내보내기(JSON·ZIP) — 구현 완료
+- 파일 보관함 (Backblaze B2 — 폴더·업로드·presigned·MIME검증·SHA-256 중복제거) — **구현 완료**
+- 자산 현황 (금융 자산 요약·월별 추이·현금흐름 예측) — 구현 완료
+- 캘린더 / 할 일 / 메모 / 구독 — 구현 완료
+- 보안 코어 (마스터 잠금·접근 감사 로그·보안점수 추이·비번 회전·2FA 백업코드·강도 통계) — 구현 완료
+- 외부 연동 (HIBP 유출 비밀번호 검사·영수증 OCR) — 구현 완료
+- 통합 검색 / 데이터 내보내기(JSON·ZIP)·가져오기(계정 JSON 복원) — 구현 완료
+- AI 리포트 / 어시스턴트 (Claude API 기반) — 미구현
 
 ---
 
@@ -26,27 +27,32 @@ doc-nexus/
 ├── backend/           # NestJS (API 서버, 포트 8000)
 │   ├── prisma/        # schema.prisma, migrations/
 │   └── src/
-│       ├── auth/          # Google OAuth + JWT 인증
+│       ├── auth/          # Google OAuth + JWT 인증 (+ 새 기기 로그인 감지)
 │       ├── transaction/   # 수입/지출 내역
 │       ├── saving/        # 예적금
 │       ├── investment/    # 투자
 │       ├── subscription/  # 구독 서비스
 │       ├── asset/         # 자산 (순자산)
+│       ├── budget/        # 월별 예산 (이월 carryover)
 │       ├── note/          # 메모
 │       ├── calendar/      # 캘린더 이벤트
 │       ├── notification/  # 알림
 │       ├── task/          # 할 일 + 목표
-│       ├── security/      # 보안 감사 로그
+│       ├── security/      # 보안센터 + 마스터 잠금(VaultService/VaultGuard) + 유출검사·강도통계
+│       ├── access-log/    # 보관함 접근 감사 로그 (전역)
 │       ├── settings/      # 사용자 설정
 │       ├── category/      # 카테고리 관리
 │       ├── trash/         # 휴지통
 │       ├── search/        # 통합 검색 (거래·메모·계정·신원·ENV)
-│       ├── dashboard/     # 대시보드 요약
-│       ├── identity/      # 신원 지갑 (번호 AES 암호화)
-│       ├── credential/    # 계정 보관함 (비번·TOTP AES 암호화 + 엑셀)
-│       ├── env/           # ENV 보관함 (값 AES 암호화)
+│       ├── dashboard/     # 대시보드 요약 + 현금흐름 예측 + 통합 D-day
+│       ├── identity/      # 신원 지갑 (번호 AES 암호화 + 사본 이미지 fileId)
+│       ├── credential/    # 계정 보관함 (비번·TOTP·백업코드 AES + 엑셀)
+│       ├── env/           # ENV 보관함 (값 AES + 변경 이력/롤백)
+│       ├── file/          # 파일 보관함 (Backblaze B2)
 │       ├── export/        # 데이터 내보내기 (계정 JSON·전체 ZIP)
-│       ├── common/        # CryptoService(AES-256-GCM) 등 공용
+│       ├── import/        # 데이터 가져오기 (계정 JSON 복원)
+│       ├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수 스냅샷)
+│       ├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
 │       └── prisma/        # PrismaService / PrismaModule
 ├── docs/              # 설계 문서
 └── docker-compose.yml
@@ -59,12 +65,16 @@ doc-nexus/
 | 영역 | 기술 |
 | --- | --- |
 | Frontend | Next.js 16.2, React 19, TypeScript, Tailwind CSS v4 |
+| 상태관리 | **TanStack Query(React Query)** — 서버 데이터 캐싱/무효화 (lib/query·queryKeys) |
 | Backend | NestJS 11, TypeScript |
 | ORM | Prisma |
 | DB | MariaDB (docker-compose, 포트 3308) |
-| 인증 | Google OAuth 2.0 + JWT |
-| 암호화 | AES-256-GCM (`CREDENTIAL_SECRET` 키, 보관함 민감필드) |
-| 스토리지 | Cloudflare R2 (예정) |
+| 인증 | Google OAuth 2.0 + JWT (전역 가드) |
+| Rate-limit | `@nestjs/throttler` (reveal/totp/복호화·vault unlock 엄격 제한) |
+| 암호화 | AES-256-GCM (`CREDENTIAL_SECRET` 키, 보관함 민감필드) / 마스터 잠금은 scrypt 해시 |
+| 스토리지 | Backblaze B2 (`@aws-sdk/client-s3`, presigned) |
+| OCR | tesseract.js (클라이언트, 영수증) |
+| 유출검사 | HaveIBeenPwned Pwned Passwords (k-anonymity) |
 | AI | Claude API `claude-sonnet-4-6` (예정) |
 | 패키지 매니저 | pnpm (모노레포) |
 
@@ -80,24 +90,30 @@ doc-nexus/
 | Transaction | user_id, type, category, amount, date, is_recurring | 구현 완료 |
 | Saving | user_id, type, interest_rate, balance, maturity_date | 구현 완료 |
 | Investment | user_id, type, principal, current_value, purchase_date | 구현 완료 |
-| Subscription | user_id, name, amount, billing_cycle, next_billing_date | 구현 완료 |
-| Asset | user_id, name, type, value | 구현 완료 |
-| NetWorthSnapshot | user_id, total_assets, total_liabilities, recorded_at | 구현 완료 |
-| UserSettings | user_id, currency, language, theme 등 | 구현 완료 |
-| Notification | user_id, type, title, message, is_read | 구현 완료 |
-| Task | user_id, title, due_date, is_done, priority | 구현 완료 |
-| Goal | user_id, title, target_amount, current_amount, deadline | 구현 완료 |
-| Note | user_id, title, content, tags | 구현 완료 |
-| CalendarEvent | user_id, title, start_at, end_at, type | 구현 완료 |
-| SecurityRisk | user_id, type, description, resolved_at | 구현 완료 |
-| LoginSession | user_id, device, ip, created_at, revoked_at | 구현 완료 |
+| Subscription | user_id, name, amount, cycle, status, next_payment_date | 구현 완료 |
+| Asset | user_id, name, type(cash/savings/investment/realestate/debt/etc), amount | 구현 완료 |
+| NetWorthSnapshot | user_id, month, total_assets, total_debt | 구현 완료 |
+| MonthlyBudget | user_id, year_month, category, amount, carried_over_amount | 구현 완료 |
+| UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, budgets/categories/widgets(JSON), menu_order | 구현 완료 |
+| Notification | user_id, group, tone, title, description, source, read_at | 구현 완료 |
+| Task | user_id, text, due_date, done, priority | 구현 완료 |
+| Goal | user_id, name, current_val, target_val, pct, tone | 구현 완료 |
+| Note | user_id, title, body, tag | 구현 완료 |
+| CalendarEvent | user_id, date, type, title, memo | 구현 완료 |
+| SecurityRisk | user_id, category, severity, title, resolved | 구현 완료 |
+| LoginSession | user_id, device, device_type, location, is_current, revoked_at | 구현 완료 |
 | Category | user_id, domain, code, label, sort_order, is_active | 구현 완료 |
-| IdentityCard | user_id, type, name, number_enc(암호문), issue/expire_date | 구현 완료 |
-| Credential | user_id, name, category, username, password_enc, totp_enc(암호문) | 구현 완료 |
-| EnvProject | user_id, emoji, name, description | 구현 완료 |
+| IdentityCard | user_id, type, name, number_enc(암호문), file_id(사본), issue/expire_date | 구현 완료 |
+| Credential | user_id, name, category, username, password_enc, totp_enc, backup_codes_enc, password_changed_at | 구현 완료 |
+| EnvProject | user_id, name, description | 구현 완료 |
 | EnvVar | user_id, project_id, env, group, key, value_enc(암호문) | 구현 완료 |
+| EnvVarHistory | env_var_id, user_id, value_enc(이전값 암호문) | 구현 완료 |
+| StorageFolder | user_id, parent_id(무한중첩), name | 구현 완료 |
+| StorageFile | user_id, folder_id, object_key(B2), name, size, mime_type, hash(SHA-256) | 구현 완료 |
+| AccessLog | user_id, action, target_type/id/name, ip, user_agent | 구현 완료 |
+| SecurityScoreSnapshot | user_id, date, score, reuse/weak/no2fa | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_uca1400_ai_ci  
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 26개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---
@@ -119,17 +135,19 @@ doc-nexus/
 | Frontend — 설정 | 구현 완료 |
 | Frontend — 휴지통 | 구현 완료 |
 | Frontend — 자격증명 / ENV / 신원지갑 | 구현 완료 (백엔드 연동) |
-| Frontend — 파일 보관함 | UI 완료 (백엔드 미구현 — R2) |
+| Frontend — 파일 보관함 | 구현 완료 (B2 연동) |
 | Frontend — AI 리포트 / 어시스턴트 | UI 완료 (백엔드 미구현 — Claude API) |
-| Backend — Google OAuth + JWT (전역 가드) | 구현 완료 |
-| Backend — 가계부 API (transaction/saving/investment) | 구현 완료 |
-| Backend — 구독/자산/메모/캘린더/할 일/목표 | 구현 완료 |
-| Backend — 알림/보안/설정/휴지통 | 구현 완료 |
-| Backend — 통합검색/대시보드 | 구현 완료 |
+| Frontend — React Query 전환 | 전 페이지·공통 컴포넌트 완료 |
+| Backend — Google OAuth + JWT (전역 가드 + Rate-limit) | 구현 완료 |
+| Backend — 가계부/구독/자산/예산/메모/캘린더/할일/목표 | 구현 완료 |
+| Backend — 알림/보안/설정/휴지통/통합검색/대시보드 | 구현 완료 |
 | Backend — 보관함 (신원/계정/ENV, AES 암호화) | 구현 완료 |
-| Backend — 데이터 내보내기 (계정 JSON·전체 ZIP) | 구현 완료 |
-| Backend — 파일(R2) / AI(Claude API) | 미구현 |
-| DB | 20개 테이블 구현 완료 |
+| Backend — 마스터 잠금·접근로그·보안점수추이·유출검사·강도통계 | 구현 완료 |
+| Backend — 파일 보관함 (Backblaze B2) | 구현 완료 |
+| Backend — 데이터 내보내기/가져오기 (JSON·ZIP·복원) | 구현 완료 |
+| Backend — 영수증 OCR(클라이언트)·현금흐름 예측·통합 D-day | 구현 완료 |
+| Backend — AI(Claude API) / 시세 자동연동 | 미구현 |
+| DB | 26개 테이블 구현 완료 |
 
 ---
 

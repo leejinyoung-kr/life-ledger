@@ -40,9 +40,14 @@ pnpm run dev
 
 ## 기술 스택
 
-- **Frontend**: Next.js 16.2, React 19, TypeScript, Tailwind CSS v4
-- **Backend**: NestJS 11, Prisma, MariaDB
-- **인증**: Google OAuth 2.0 + JWT (전역 가드 — 로그인 외 전 엔드포인트 토큰 필수)
-- **암호화**: AES-256-GCM (계정·신원·ENV 보관함 민감 필드)
-- **스토리지**: Cloudflare R2 (미구현)
+- **Frontend**: Next.js 16.2, React 19, TypeScript, Tailwind CSS v4, **TanStack Query(React Query)**
+- **Backend**: NestJS 11, Prisma, MariaDB, `@nestjs/throttler`(Rate-limit)
+- **인증**: Google OAuth 2.0 + JWT (전역 가드 — 로그인 외 전 엔드포인트 토큰 필수, 새 기기 로그인 감지)
+- **암호화**: AES-256-GCM (계정·신원·ENV 보관함 민감 필드) / 마스터 잠금 scrypt
+- **스토리지**: Backblaze B2 (파일 보관함 — presigned·MIME검증·SHA-256 중복제거)
+- **외부 연동**: HIBP 유출 비밀번호 검사 · tesseract.js 영수증 OCR
 - **AI**: Claude API (미구현)
+
+## 주요 기능
+
+자격증명 관리(계정·ENV·신원, AES) · 파일 보관함(B2) · 가계부/순자산/구독/예산 · 캘린더/할일/메모 · 보안 코어(마스터 잠금·접근 감사 로그·보안점수 추이·비번 회전·2FA 백업코드·강도 통계·유출 검사) · 통합 검색·내보내기/가져오기 · 현금흐름 예측·통합 D-day

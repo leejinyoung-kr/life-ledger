@@ -51,6 +51,13 @@ JWT_SECRET=your_super_secret_jwt_key_change_this
 # 한 번 정하면 변경 금지(기존 암호문 복호화 불가). 미설정 시 보관함 호출 500.
 CREDENTIAL_SECRET=change_this_to_a_long_random_secret
 
+# 파일 보관함 (Backblaze B2 — S3 호환)
+B2_ENDPOINT=
+B2_BUCKET_REGION=
+B2_BUCKET_NAME=
+B2_KEY_ID=
+B2_APPLICATION_KEY=
+
 # App
 FRONTEND_URL=http://localhost:3000
 CORS_ORIGINS=http://localhost:3000
@@ -60,29 +67,36 @@ CORS_ORIGINS=http://localhost:3000
 
 ```text
 src/
-├── auth/          # Google OAuth + JWT 인증
-├── transaction/   # 수입/지출 내역
+├── auth/          # Google OAuth + JWT 인증 (+ 새 기기 로그인 감지)
+├── transaction/   # 수입/지출 내역 (반복 자동생성)
 ├── saving/        # 예적금
 ├── investment/    # 투자
 ├── subscription/  # 구독 서비스
 ├── asset/         # 자산 (순자산)
+├── budget/        # 월별 예산 (이월)
 ├── note/          # 메모
 ├── calendar/      # 캘린더 이벤트
 ├── notification/  # 알림
 ├── task/          # 할 일 + 목표
-├── security/      # 보안 감사 로그
+├── security/      # 보안센터 + 마스터 잠금(Vault) + 유출검사·강도통계
+├── access-log/    # 보관함 접근 감사 로그 (전역)
 ├── settings/      # 사용자 설정
 ├── category/      # 카테고리 관리
 ├── trash/         # 휴지통
 ├── search/        # 통합 검색
-├── dashboard/     # 대시보드 요약
-├── identity/      # 신원 지갑 (AES 암호화)
-├── credential/    # 계정 보관함 (AES 암호화 + 엑셀)
-├── env/           # ENV 보관함 (AES 암호화)
+├── dashboard/     # 대시보드 요약 + 현금흐름 예측 + D-day
+├── identity/      # 신원 지갑 (AES + 사본 fileId)
+├── credential/    # 계정 보관함 (AES + 백업코드 + 엑셀)
+├── env/           # ENV 보관함 (AES + 변경 이력/롤백)
+├── file/          # 파일 보관함 (Backblaze B2)
 ├── export/        # 데이터 내보내기 (JSON/ZIP)
-├── common/        # CryptoService(AES-256-GCM) 등 공용
+├── import/        # 데이터 가져오기 (계정 JSON 복원)
+├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수)
+├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
 └── prisma/        # PrismaService / PrismaModule
 ```
+
+> 보안 엔드포인트(reveal/totp/복호화)는 `@nestjs/throttler` 로 분당 호출 제한. 마스터 잠금 활성 시 `x-vault-token` 헤더 필요.
 
 ## API 문서
 
