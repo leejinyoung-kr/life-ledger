@@ -74,7 +74,7 @@ StorageFile    1 ─── N IdentityCard(file_id, 사본 이미지)
 
 - 알림: `notif_budget`·`notif_monthly`·`notif_upload`·`notif_maturity`·`notif_deadline`
 - 보안: `session_expiry`, `pw_auto_hide`, `master_lock_enabled`·`master_lock_hash`(scrypt)·`master_lock_timeout`
-- API: `claude_api_key`, `claude_model`
+- API: `openai_api_key`, `openai_model`
 - JSON: `budgets`{코드:금액}, `categories`[{emoji,name}], `widgets`[{id,on}](순서=표시순서), `menu_order`(사이드바 1차 메뉴 순서)
 
 ### 보관함 — IdentityCard / Credential / EnvProject / EnvVar / EnvVarHistory

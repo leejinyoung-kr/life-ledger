@@ -15,7 +15,7 @@
 - 보안 코어 (마스터 잠금·접근 감사 로그·보안점수 추이·비번 회전·2FA 백업코드·강도 통계) — 구현 완료
 - 외부 연동 (HIBP 유출 비밀번호 검사·영수증 OCR) — 구현 완료
 - 통합 검색 / 데이터 내보내기(JSON·ZIP)·가져오기(계정 JSON 복원) — 구현 완료
-- AI 리포트 / 어시스턴트 (Claude API 기반) — 미구현
+- AI 리포트 (가계부 분석·절약 인사이트) — 미구현
 
 ---
 
@@ -75,7 +75,7 @@ doc-nexus/
 | 스토리지 | Backblaze B2 (`@aws-sdk/client-s3`, presigned) |
 | OCR | tesseract.js (클라이언트, 영수증) |
 | 유출검사 | HaveIBeenPwned Pwned Passwords (k-anonymity) |
-| AI | Claude API `claude-sonnet-4-6` (예정) |
+| AI | OpenAI API `gpt-4o-mini` (예정) |
 | 패키지 매니저 | pnpm (모노레포) |
 
 > 보관함 동작 전제: `backend/.env` 에 `CREDENTIAL_SECRET`(긴 랜덤값) 필수. 한 번 정하면 변경 금지(기존 암호문 복호화 불가).
@@ -136,7 +136,7 @@ doc-nexus/
 | Frontend — 휴지통 | 구현 완료 |
 | Frontend — 자격증명 / ENV / 신원지갑 | 구현 완료 (백엔드 연동) |
 | Frontend — 파일 보관함 | 구현 완료 (B2 연동) |
-| Frontend — AI 리포트 / 어시스턴트 | UI 완료 (백엔드 미구현 — Claude API) |
+| Frontend — AI 리포트 | UI 완료 (백엔드 미구현) |
 | Frontend — React Query 전환 | 전 페이지·공통 컴포넌트 완료 |
 | Backend — Google OAuth + JWT (전역 가드 + Rate-limit) | 구현 완료 |
 | Backend — 가계부/구독/자산/예산/메모/캘린더/할일/목표 | 구현 완료 |
@@ -146,7 +146,7 @@ doc-nexus/
 | Backend — 파일 보관함 (Backblaze B2) | 구현 완료 |
 | Backend — 데이터 내보내기/가져오기 (JSON·ZIP·복원) | 구현 완료 |
 | Backend — 영수증 OCR(클라이언트)·현금흐름 예측·통합 D-day | 구현 완료 |
-| Backend — AI(Claude API) / 시세 자동연동 | 미구현 |
+| Backend — AI(OpenAI API) / 시세 자동연동 | 미구현 |
 | DB | 26개 테이블 구현 완료 |
 
 ---

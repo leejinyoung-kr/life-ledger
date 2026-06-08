@@ -30,9 +30,9 @@ export interface Settings {
   notifDeadline: boolean;
   sessionExpiry: string; // 7d|1d|12h|none
   pwAutoHide: string; // 10s|30s|1m|none
-  claudeApiKeySet: boolean;
-  claudeApiKeyMasked: string | null;
-  claudeModel: string;
+  openaiApiKeySet: boolean;
+  openaiApiKeyMasked: string | null;
+  openaiModel: string;
   budgets: Record<string, number>;
   categories: Category[];
   widgets: WidgetPref[];
@@ -80,4 +80,4 @@ export const PW_AUTO_HIDE_OPTIONS: { value: string; label: string }[] = [
   { value: 'none', label: '없음' },
 ];
 
-export const CLAUDE_MODEL_OPTIONS = ['claude-sonnet-4-6', 'claude-haiku-4-5'];
+export const OPENAI_MODEL_OPTIONS = ['gpt-4o-mini', 'gpt-4o'];

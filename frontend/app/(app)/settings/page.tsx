@@ -21,7 +21,7 @@ import { IconWon, IconBars, IconClock, IconZap, IconLock, IconCube, IconDrag } f
 import { api, apiDownload } from '@/lib/api';
 import { clearVaultToken } from '@/lib/vault';
 import {
-  BUDGET_LABEL, SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS, CLAUDE_MODEL_OPTIONS,
+  BUDGET_LABEL, SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS, OPENAI_MODEL_OPTIONS,
   MENU_ITEMS, DEFAULT_MENU_ORDER, normalizeMenuOrder,
   type Settings, type Category, type WidgetPref,
 } from '@/lib/settings';
@@ -129,7 +129,7 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState('');
   const [budgets, setBudgets] = useState<Record<string, number>>({});
   const [apiKeyInput, setApiKeyInput] = useState('');
-  const [claudeModel, setClaudeModel] = useState('claude-sonnet-4-6');
+  const [openaiModel, setOpenaiModel] = useState('gpt-4o-mini');
   const [newCatName, setNewCatName] = useState('');
   const [newCatEmoji, setNewCatEmoji] = useState('');
   const [widgets, setWidgets] = useState<WidgetPref[]>(DEFAULT_WIDGETS);
@@ -149,7 +149,7 @@ export default function SettingsPage() {
     if (!data) return;
     setDisplayName(data.displayName);
     setBudgets(data.budgets);
-    setClaudeModel(data.claudeModel);
+    setOpenaiModel(data.openaiModel);
     setWidgets(data.widgets.length ? data.widgets : DEFAULT_WIDGETS);
     setMenuOrder(normalizeMenuOrder(data.menuOrder));
   }, [settingsQuery.data]);
@@ -552,14 +552,14 @@ export default function SettingsPage() {
 
           {/* ── API 키 ── */}
           {tab === 'api' && (
-            <Group title="Claude API">
-              <Row label="API 키" desc={s.claudeApiKeySet ? `저장됨 (${s.claudeApiKeyMasked})` : 'AI 리포트 생성에 사용됩니다.'}>
-                <input type="password" className="input w-50 font-mono" placeholder={s.claudeApiKeySet ? '변경하려면 입력' : 'sk-ant-api...'} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} aria-label="API 키" />
-                <Button variant="ghost" onClick={() => patch({ claudeApiKey: apiKeyInput || undefined }).then(() => setApiKeyInput(''))}>저장</Button>
+            <Group title="OpenAI API">
+              <Row label="API 키" desc={s.openaiApiKeySet ? `저장됨 (${s.openaiApiKeyMasked})` : 'AI 리포트 생성에 사용됩니다.'}>
+                <input type="password" className="input w-50 font-mono" placeholder={s.openaiApiKeySet ? '변경하려면 입력' : 'sk-proj-...'} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} aria-label="API 키" />
+                <Button variant="ghost" onClick={() => patch({ openaiApiKey: apiKeyInput || undefined }).then(() => setApiKeyInput(''))}>저장</Button>
               </Row>
-              <Row label="모델" desc="리포트 생성에 사용할 Claude 모델">
-                <select className="input w-50 font-mono" aria-label="모델" value={claudeModel} onChange={(e) => { setClaudeModel(e.target.value); patch({ claudeModel: e.target.value }); }}>
-                  {CLAUDE_MODEL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
+              <Row label="모델" desc="리포트 생성에 사용할 OpenAI 모델">
+                <select className="input w-50 font-mono" aria-label="모델" value={openaiModel} onChange={(e) => { setOpenaiModel(e.target.value); patch({ openaiModel: e.target.value }); }}>
+                  {OPENAI_MODEL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </Row>
             </Group>

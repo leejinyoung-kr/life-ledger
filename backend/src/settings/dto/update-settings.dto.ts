@@ -48,12 +48,12 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsString()
   @MaxLength(200)
-  claudeApiKey?: string;
+  openaiApiKey?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(50)
-  claudeModel?: string;
+  openaiModel?: string;
 
   // { 카테고리코드: 금액 }
   @IsOptional()

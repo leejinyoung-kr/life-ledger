@@ -2,8 +2,8 @@
 
 /**
  * AI 리포트 페이지.
- * 가계부 데이터를 Claude API로 분석해 소비 패턴·절약 인사이트를 리포트로 생성·보관한다.
- * 공통 레이아웃(AppShell)을 재사용하고, 생성은 더미(setTimeout) 시뮬레이션. (TODO: Claude API)
+ * 가계부 데이터를 OpenAI API로 분석해 소비 패턴·절약 인사이트를 리포트로 생성·보관한다.
+ * 공통 레이아웃(AppShell)을 재사용하고, 생성은 더미(setTimeout) 시뮬레이션. (TODO: OpenAI API)
  * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Badge).
  */
 import { useEffect, useState, type ReactNode } from 'react';
@@ -48,7 +48,7 @@ export default function AiReportPage() {
       .catch(() => { setAutoMonthly(!next); notify.saveFailed(); });
   }
 
-  // 리포트 생성 — 더미 2.5초 후 완료. TODO: POST /api/v1/reports (Claude API 분석)
+  // 리포트 생성 — 더미 2.5초 후 완료. TODO: POST /api/v1/reports (OpenAI API 분석)
   function generateReport() {
     if (generating) return;
     setGenerating(true);
@@ -62,19 +62,10 @@ export default function AiReportPage() {
         <p className="text-sm text-secondary mt-1.5">가계부 데이터를 분석하여 소비 패턴과 절약 인사이트를 제공합니다.</p>
       </div>
 
-      {/* 대화형 질문 안내 + 정기 생성 토글 */}
-      <div className="flex items-center gap-3 flex-wrap px-[18px] py-3.5 bg-surface border border-border rounded-[var(--radius-lg)] mb-5">
-        <span>💬</span>
-        <div className="flex-1 min-w-[160px]">
-          <div className="text-[0.875rem] font-semibold text-primary">대화형으로 물어보기</div>
-          <div className="text-[0.78rem] text-muted">&quot;이번 달 외식비 왜 늘었어?&quot; 처럼 자유롭게 질문</div>
-        </div>
-        <Button href="/assistant" size="sm">AI 챗 열기</Button>
-        <div className="w-px bg-border self-stretch mx-1 shrink-0 max-md:hidden" />
-        <div className="flex items-center gap-2">
-          <span className="text-[0.82rem] text-secondary">매월 1일 자동 생성</span>
-          <Toggle on={autoMonthly} onToggle={toggleAuto} label="매월 자동 생성 토글" />
-        </div>
+      {/* 정기 생성 토글 */}
+      <div className="flex items-center justify-end gap-2 px-[18px] py-3.5 bg-surface border border-border rounded-[var(--radius-lg)] mb-5">
+        <span className="text-[0.82rem] text-secondary">매월 1일 자동 생성</span>
+        <Toggle on={autoMonthly} onToggle={toggleAuto} label="매월 자동 생성 토글" />
       </div>
 
       {/* 새 리포트 생성 박스 */}
@@ -105,12 +96,12 @@ export default function AiReportPage() {
       </div>
 
       {/* 4월 리포트 (인사이트 + 태그) */}
-      <ReportCard title="2025년 4월 소비 분석 리포트" date="생성일: 2025.05.02 · Claude API" insights={APRIL_INSIGHTS} tags={APRIL_TAGS}>
+      <ReportCard title="2025년 4월 소비 분석 리포트" date="생성일: 2025.05.02 · GPT-4o mini" insights={APRIL_INSIGHTS} tags={APRIL_TAGS}>
         4월 총 지출은 <strong>₩748,200</strong>으로, 전월 대비 <span className="hi">▼ 8.3% 감소</span>했습니다. 수입 대비 지출 비율은 <strong>23.4%</strong>로 건전한 수준을 유지하고 있습니다.
       </ReportCard>
 
       {/* 3월 리포트 (요약만) */}
-      <ReportCard title="2025년 3월 소비 분석 리포트" date="생성일: 2025.04.01 · Claude API">
+      <ReportCard title="2025년 3월 소비 분석 리포트" date="생성일: 2025.04.01 · GPT-4o mini">
         3월 총 지출은 <strong>₩816,000</strong>으로, 식비가 전체의 <span className="warn">50.2%</span>를 차지했습니다. 외식 빈도가 높았던 달로 절약 여지가 큰 것으로 분석됩니다.
       </ReportCard>
     </AppShell>

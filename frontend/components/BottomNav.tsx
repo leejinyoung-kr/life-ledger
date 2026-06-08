@@ -3,7 +3,7 @@
 /**
  * 모바일 전용 하단 내비게이션 (Tailwind). ≤768 에서만 노출.
  */
-import { IconGrid, IconWon, IconFolder, IconChat, IconMenu } from './icons';
+import { IconGrid, IconWon, IconFolder, IconMenu } from './icons';
 
 interface BottomNavProps {
   activePath?: string;
@@ -14,7 +14,6 @@ const NAV_ITEMS = [
   { label: '홈', href: '/dashboard', Icon: IconGrid },
   { label: '가계부', href: '/transactions', Icon: IconWon },
   { label: '보관함', href: '/files', Icon: IconFolder },
-  { label: 'AI챗', href: '/assistant', Icon: IconChat },
 ];
 
 const ITEM =

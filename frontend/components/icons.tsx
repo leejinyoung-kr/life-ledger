@@ -127,13 +127,6 @@ export const IconCube = (p: IconProps) => (
   </Stroke>
 );
 
-// AI 챗(말풍선) 아이콘
-export const IconChat = (p: IconProps) => (
-  <Stroke {...p}>
-    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-  </Stroke>
-);
-
 // 설정(톱니) 아이콘
 export const IconSettings = (p: IconProps) => (
   <Stroke {...p}>
@@ -282,14 +275,6 @@ export const IconImage = (p: IconProps) => (
     <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
     <circle cx="8.5" cy="8.5" r="1.5" />
     <polyline points="21 15 16 10 5 21" />
-  </svg>
-);
-
-// 전송(종이비행기) 아이콘
-export const IconSend = (p: IconProps) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...p}>
-    <line x1="22" y1="2" x2="11" y2="13" />
-    <polygon points="22 2 15 22 11 13 2 9 22 2" />
   </svg>
 );
 

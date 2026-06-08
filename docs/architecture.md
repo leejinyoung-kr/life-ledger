@@ -18,7 +18,7 @@
 | 암호화 | AES-256-GCM(`CREDENTIAL_SECRET`) / 마스터잠금 scrypt | 구현 완료 |
 | Storage | Backblaze B2 (@aws-sdk/client-s3, presigned) | 구현 완료 |
 | OCR / 유출검사 | tesseract.js(클라) / HIBP(k-anonymity) | 구현 완료 |
-| AI | Claude API (claude-sonnet-4-6) | 미구현 |
+| AI | OpenAI API (gpt-4o-mini) | 미구현 |
 
 ## Ports
 
@@ -81,7 +81,6 @@
 | /envs | 구현 완료 (백엔드 연동) |
 | /id-wallet | 구현 완료 (백엔드 연동) |
 | /files | 구현 완료 (Backblaze B2) |
-| /ai-report | UI 완료 (백엔드 미구현 — Claude API) |
-| /assistant | UI 완료 (백엔드 미구현 — Claude API) |
+| /ai-report | UI 완료 (백엔드 미구현) |
 
 > 모든 페이지·공통 컴포넌트는 React Query(useApiQuery/useApiMutation) 기반. 인증(401 refresh)·마스터잠금(423 unlock)은 lib/api 래퍼가 처리.

@@ -10,7 +10,7 @@ type VarSeed = { env: EnvKind; group: string | null; key: string; value: string 
 const VARS: VarSeed[] = [
   { env: 'dev', group: 'database', key: 'DATABASE_URL', value: 'mysql://root:root@localhost:3306/docnexus_dev' },
   { env: 'dev', group: 'auth', key: 'JWT_SECRET', value: 'dev-jwt-secret-0001' },
-  { env: 'dev', group: 'api', key: 'CLAUDE_API_KEY', value: 'sk-ant-dev-xxxx' },
+  { env: 'dev', group: 'api', key: 'OPENAI_API_KEY', value: 'sk-proj-dev-xxxx' },
   { env: 'staging', group: 'database', key: 'DATABASE_URL', value: 'mysql://app:stg@stg-db:3306/docnexus' },
   { env: 'staging', group: 'auth', key: 'JWT_SECRET', value: 'stg-jwt-secret-7777' },
   { env: 'prod', group: 'database', key: 'DATABASE_URL', value: 'mysql://app:prod@prod-db:3306/docnexus' },

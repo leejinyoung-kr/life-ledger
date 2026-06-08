@@ -40,9 +40,9 @@ export class SettingsService {
       notifDeadline: s.notif_deadline,
       sessionExpiry: s.session_expiry,
       pwAutoHide: s.pw_auto_hide,
-      claudeApiKeySet: !!s.claude_api_key,
-      claudeApiKeyMasked: s.claude_api_key ? maskKey(s.claude_api_key) : null,
-      claudeModel: s.claude_model,
+      openaiApiKeySet: !!s.openai_api_key,
+      openaiApiKeyMasked: s.openai_api_key ? maskKey(s.openai_api_key) : null,
+      openaiModel: s.openai_model,
       budgets: s.budgets,
       categories: s.categories,
       widgets: s.widgets,
@@ -56,7 +56,7 @@ export class SettingsService {
     return this.toDto(row, user);
   }
 
-  // 설정 부분 수정 — 전달된 필드만 반영. claudeApiKey 는 빈 값이면 기존 키 유지
+  // 설정 부분 수정 — 전달된 필드만 반영. openaiApiKey 는 빈 값이면 기존 키 유지
   async update(user: AuthUser, dto: UpdateSettingsDto) {
     await this.getOrCreate(user.id);
 
@@ -69,14 +69,14 @@ export class SettingsService {
       notif_deadline: dto.notifDeadline,
       session_expiry: dto.sessionExpiry,
       pw_auto_hide: dto.pwAutoHide,
-      claude_model: dto.claudeModel,
+      openai_model: dto.openaiModel,
       budgets: dto.budgets as Prisma.InputJsonValue,
       categories: dto.categories as Prisma.InputJsonValue,
       widgets: dto.widgets as Prisma.InputJsonValue,
       menu_order: dto.menuOrder as Prisma.InputJsonValue,
     };
     // 새 키가 입력됐을 때만 교체 (빈 문자열/미전송 시 기존 유지)
-    if (dto.claudeApiKey) data.claude_api_key = dto.claudeApiKey;
+    if (dto.openaiApiKey) data.openai_api_key = dto.openaiApiKey;
 
     const updated = await this.prisma.userSettings.update({
       where: { user_id: user.id },
