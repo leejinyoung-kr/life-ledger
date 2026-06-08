@@ -6,7 +6,7 @@
  * ⌘K / Ctrl+K 단축키로 포커스, Esc 로 닫기.
  */
 import { useEffect, useRef, useState } from 'react';
-import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/query';
 
 type SearchType = 'tx' | 'note' | 'cred' | 'id' | 'env';
 
@@ -65,8 +65,8 @@ function highlight(text: string, q: string) {
 
 export default function GlobalSearch() {
   const [query, setQuery] = useState('');
+  const [debounced, setDebounced] = useState('');
   const [open, setOpen] = useState(false);
-  const [results, setResults] = useState<SearchEntry[]>([]);
   const [filter, setFilter] = useState<SearchType | 'all'>('all');
   const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -77,18 +77,18 @@ export default function GlobalSearch() {
   // 검색어 확정 시 최근 검색어에 기록 (Enter·결과 클릭)
   const commitRecent = () => setRecent(saveRecent(query));
 
-  // 검색어 변경 시 디바운스 후 통합 검색 API 호출
+  // 입력 디바운스 (200ms) → 디바운스된 검색어로 쿼리 키 구성
   useEffect(() => {
-    const q = query.trim();
-    if (!q) { setResults([]); return; }
-    let cancelled = false;
-    const t = setTimeout(() => {
-      api.get<SearchEntry[]>(`/search?q=${encodeURIComponent(q)}`)
-        .then((r) => { if (!cancelled) setResults(r); })
-        .catch(() => { if (!cancelled) setResults([]); });
-    }, 200);
-    return () => { cancelled = true; clearTimeout(t); };
+    const t = setTimeout(() => setDebounced(query.trim()), 200);
+    return () => clearTimeout(t);
   }, [query]);
+
+  // 통합 검색 — 디바운스된 검색어가 있을 때만 조회(React Query 캐시)
+  const results = useApiQuery<SearchEntry[]>(
+    ['search', debounced],
+    `/search?q=${encodeURIComponent(debounced)}`,
+    { enabled: debounced.length > 0 },
+  ).data ?? [];
 
   // ⌘K/Ctrl+K → 검색창 포커스, Esc → 닫기
   useEffect(() => {

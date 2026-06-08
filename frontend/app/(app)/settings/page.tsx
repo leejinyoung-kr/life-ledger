@@ -297,10 +297,9 @@ export default function SettingsPage() {
     setMenuDragId(null);
   }
 
-  // 메뉴 순서 저장 → 사이드바 즉시 반영(window 이벤트)
+  // 메뉴 순서 저장 → patch 가 ['settings'] 캐시를 갱신하면 사이드바(useQuery)가 자동 반영
   async function saveMenuOrder() {
     await patch({ menuOrder });
-    window.dispatchEvent(new Event('menu-order-changed'));
   }
 
   // 메뉴 순서 기본값으로 초기화 (로컬)

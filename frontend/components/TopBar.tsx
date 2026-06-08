@@ -8,7 +8,8 @@
 import { useState, useEffect } from 'react';
 import GlobalSearch from './GlobalSearch';
 import { IconBell } from './icons';
-import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 
 interface TopBarProps {
   /** 좌측 보조 라벨 (예: '2025년 5월') */
@@ -17,7 +18,13 @@ interface TopBarProps {
 
 export default function TopBar({ label }: TopBarProps) {
   const [dark, setDark] = useState(false);
-  const [unread, setUnread] = useState(0);
+
+  // 미읽음 알림 수 — 60초마다 폴링 + 알림 읽음/삭제 시 invalidate 로 갱신
+  const unread = useApiQuery<{ count: number }>(
+    qk.notifications.unread(),
+    '/notifications/unread-count',
+    { refetchInterval: 60_000 },
+  ).data?.count ?? 0;
 
   useEffect(() => {
     const saved = localStorage.getItem('theme');
@@ -25,10 +32,6 @@ export default function TopBar({ label }: TopBarProps) {
       setDark(true);
       document.documentElement.setAttribute('data-theme', 'dark');
     }
-    // 미읽음 알림 수 조회
-    api.get<{ count: number }>('/notifications/unread-count')
-      .then((r) => setUnread(r.count))
-      .catch(() => {});
   }, []);
 
   const toggleDark = () => {

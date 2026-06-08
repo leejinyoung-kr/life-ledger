@@ -5,8 +5,9 @@
  * 1차 메뉴 + 접이식 2차 메뉴 그룹, 하단 사용자 정보 + 로그아웃 버튼으로 구성된다.
  * 모바일에서는 오버레이와 함께 슬라이드 인/아웃 (open prop 으로 제어).
  */
-import { useEffect, useState, type ReactNode } from 'react';
-import { api } from '@/lib/api';
+import { useState, type ReactNode } from 'react';
+import { useApiQuery } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
 import { normalizeMenuOrder, type Settings } from '@/lib/settings';
 import {
   IconLogo, IconGrid, IconChart, IconWon, IconRepeat, IconPie, IconFolder,
@@ -105,22 +106,11 @@ interface SidebarProps {
 interface MeUser { name: string; email: string }
 
 export default function Sidebar({ activePath = '/dashboard', open = false, onLogout }: SidebarProps) {
-  const [me, setMe] = useState<MeUser | null>(null);
-  const [menuOrder, setMenuOrder] = useState<string[]>(normalizeMenuOrder(null));
-
-  // 로그인 사용자 정보 조회 (이름·이메일·아바타 이니셜)
-  useEffect(() => {
-    api.get<MeUser>('/auth/me').then(setMe).catch(() => {});
-  }, []);
-
-  // 1차 메뉴 순서 조회 + 설정에서 변경 시(window 이벤트) 즉시 재적용
-  useEffect(() => {
-    const fetchOrder = () =>
-      api.get<Settings>('/settings').then((s) => setMenuOrder(normalizeMenuOrder(s.menuOrder))).catch(() => {});
-    fetchOrder();
-    window.addEventListener('menu-order-changed', fetchOrder);
-    return () => window.removeEventListener('menu-order-changed', fetchOrder);
-  }, []);
+  // 로그인 사용자 + 설정(메뉴 순서) — React Query 캐시 구독.
+  // 설정 저장 시 ['settings'] 캐시가 갱신되므로 별도 window 이벤트 없이 사이드바가 자동 반영된다.
+  const me = useApiQuery<MeUser>(['auth', 'me'], '/auth/me').data ?? null;
+  const settingsQuery = useApiQuery<Settings>(qk.settings.detail(), '/settings');
+  const menuOrder = normalizeMenuOrder(settingsQuery.data?.menuOrder ?? null);
 
   const name = me?.name || '사용자';
   const email = me?.email || '';
