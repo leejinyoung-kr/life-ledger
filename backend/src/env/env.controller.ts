@@ -10,6 +10,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -112,8 +113,9 @@ export class EnvController {
     return this.service.bulkUpsert(user.id, id, dto);
   }
 
-  // 변수 값 원문 조회 (표시/복사). 마스터 잠금 시 VaultGuard 통과 필요
+  // 변수 값 원문 조회 (표시/복사). 마스터 잠금 시 VaultGuard 통과 필요. 분당 20회 제한
   @Get('env-vars/:id/reveal')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseGuards(VaultGuard)
   revealVar(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Client() client: ClientInfo) {
     return this.service.revealVar(user.id, id, client);

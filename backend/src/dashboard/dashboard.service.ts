@@ -123,4 +123,31 @@ export class DashboardService {
       items: items.map((i) => ({ ...i, monthly: Math.round(i.monthly) })),
     };
   }
+
+  // 통합 D-day 보드 — 신원 만료·예적금 만기·구독 결제·할일 마감을 한 목록으로 집계(임박순)
+  async deadlines(userId: number, withinDays = 90) {
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const until = new Date(today);
+    until.setUTCDate(until.getUTCDate() + withinDays);
+    const range = { gte: today, lte: until };
+
+    const [ids, savings, subs, tasks] = await Promise.all([
+      this.prisma.identityCard.findMany({ where: { user_id: userId, deleted_at: null, expire_date: range }, select: { name: true, expire_date: true } }),
+      this.prisma.saving.findMany({ where: { user_id: userId, deleted_at: null, maturity_date: range }, select: { name: true, maturity_date: true } }),
+      this.prisma.subscription.findMany({ where: { user_id: userId, deleted_at: null, next_payment_date: range }, select: { name: true, next_payment_date: true, status: true } }),
+      this.prisma.task.findMany({ where: { user_id: userId, deleted_at: null, done: false, due_date: range }, select: { text: true, due_date: true } }),
+    ]);
+
+    const DAY = 86400000;
+    const dday = (d: Date) => Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - today.getTime()) / DAY);
+    type Item = { kind: 'identity' | 'saving' | 'subscription' | 'task'; title: string; date: string; dday: number };
+    const items: Item[] = [
+      ...ids.map((i) => ({ kind: 'identity' as const, title: `${i.name} 만료`, date: i.expire_date!.toISOString().slice(0, 10), dday: dday(i.expire_date!) })),
+      ...savings.map((s) => ({ kind: 'saving' as const, title: `${s.name} 만기`, date: s.maturity_date!.toISOString().slice(0, 10), dday: dday(s.maturity_date!) })),
+      ...subs.map((s) => ({ kind: 'subscription' as const, title: `${s.name} ${s.status === 'trial' ? '체험 종료' : '결제'}`, date: s.next_payment_date.toISOString().slice(0, 10), dday: dday(s.next_payment_date) })),
+      ...tasks.map((t) => ({ kind: 'task' as const, title: `${t.text} 마감`, date: t.due_date!.toISOString().slice(0, 10), dday: dday(t.due_date!) })),
+    ];
+    return items.sort((a, b) => a.dday - b.dday);
+  }
 }

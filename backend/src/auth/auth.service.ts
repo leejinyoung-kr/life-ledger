@@ -10,9 +10,24 @@ export interface GoogleUser {
   picture: string;
 }
 
+// 로그인 클라이언트 정보 (기기 감지용)
+export interface LoginClient {
+  ip?: string;
+  userAgent?: string;
+}
+
 // 토큰 수명 — Access 짧게(자주 갱신), Refresh 길게(쿠키 보관)
 const ACCESS_TTL = '15m';
 const REFRESH_TTL = '7d';
+
+// User-Agent → 기기 표기/종류 추정 (간이)
+function parseDevice(ua = ''): { device: string; type: 'desktop' | 'mobile' | 'unknown' } {
+  if (!ua) return { device: '알 수 없는 기기', type: 'unknown' };
+  const mobile = /Mobile|Android|iPhone|iPad/i.test(ua);
+  const browser = /Edg/i.test(ua) ? 'Edge' : /Chrome/i.test(ua) ? 'Chrome' : /Firefox/i.test(ua) ? 'Firefox' : /Safari/i.test(ua) ? 'Safari' : 'Unknown';
+  const os = /Windows/i.test(ua) ? 'Windows' : /Mac OS/i.test(ua) ? 'macOS' : /Android/i.test(ua) ? 'Android' : /iPhone|iPad/i.test(ua) ? 'iOS' : /Linux/i.test(ua) ? 'Linux' : '';
+  return { device: `${os ? os + ' · ' : ''}${browser}`, type: mobile ? 'mobile' : 'desktop' };
+}
 
 @Injectable()
 export class AuthService {
@@ -41,8 +56,8 @@ export class AuthService {
     return this.jwtService.sign({ sub: userId, type: 'refresh' }, { expiresIn: REFRESH_TTL });
   }
 
-  // Google 로그인 시 user upsert 후 access/refresh 토큰 발급
-  async login(googleUser: GoogleUser): Promise<{ access: string; refresh: string }> {
+  // Google 로그인 시 user upsert 후 access/refresh 토큰 발급. 클라이언트 정보가 있으면 세션 기록·신규 기기 감지
+  async login(googleUser: GoogleUser, client?: LoginClient): Promise<{ access: string; refresh: string }> {
     const user = await this.prisma.user.upsert({
       where: { google_id: googleUser.googleId },
       update: {
@@ -58,7 +73,48 @@ export class AuthService {
       },
     });
 
+    if (client) await this.recordLogin(user.id, client);
     return { access: this.signAccess(user), refresh: this.signRefresh(user.id) };
+  }
+
+  // 로그인 세션 기록 — 동일 기기/IP면 활동시각 갱신, 새 조합이면 세션 생성 + (첫 로그인 제외) 새 기기 알림
+  private async recordLogin(userId: number, client: LoginClient): Promise<void> {
+    const { device, type } = parseDevice(client.userAgent);
+    const location = client.ip?.slice(0, 100) || '알 수 없음';
+
+    const priorCount = await this.prisma.loginSession.count({ where: { user_id: userId, revoked_at: null } });
+    const existing = await this.prisma.loginSession.findFirst({
+      where: { user_id: userId, device, location, revoked_at: null },
+    });
+
+    // 이번 로그인 기기만 현재 기기로 표시
+    await this.prisma.loginSession.updateMany({ where: { user_id: userId }, data: { is_current: false } });
+
+    if (existing) {
+      await this.prisma.loginSession.update({
+        where: { id: existing.id },
+        data: { is_current: true, last_active_at: new Date(), status: 'active' },
+      });
+      return;
+    }
+
+    await this.prisma.loginSession.create({
+      data: { user_id: userId, device, device_type: type, location, is_current: true, status: 'active' },
+    });
+
+    // 기존 세션이 있던 사용자에게만 새 기기 알림 (최초 로그인은 제외)
+    if (priorCount > 0) {
+      await this.prisma.notification.create({
+        data: {
+          user_id: userId,
+          group: 'system',
+          tone: 'warning',
+          title: '새 기기에서 로그인',
+          description: `${device} (${location}) 에서 로그인되었습니다. 본인이 아니라면 보안 센터에서 세션을 로그아웃하세요.`,
+          source: '보안',
+        },
+      });
+    }
   }
 
   // 갱신 토큰 검증 → 새 access 발급 (type=refresh 만 허용, 사용자 존재 확인)

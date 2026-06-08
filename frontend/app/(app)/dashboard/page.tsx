@@ -25,6 +25,11 @@ interface Forecast {
   items: { name: string; kind: 'subscription' | 'recurring'; cycle: string; amount: number; monthly: number }[];
 }
 
+type DeadlineKind = 'identity' | 'saving' | 'subscription' | 'task';
+interface Deadline { kind: DeadlineKind; title: string; date: string; dday: number }
+const DEADLINE_DOT: Record<DeadlineKind, 'green' | 'warning' | 'muted'> = { identity: 'warning', saving: 'muted', subscription: 'warning', task: 'green' };
+const DEADLINE_LABEL: Record<DeadlineKind, string> = { identity: '신원', saving: '예적금', subscription: '구독', task: '할일' };
+
 const EV_LABEL: Record<EvType, string> = { pay: '결제', due: '만기', exp: '만료', task: '할일' };
 const TX_DOT: Record<TransactionType, 'green' | 'warning' | 'muted'> = { income: 'green', expense: 'muted', transfer: 'muted' };
 const EV_DOT: Record<EvType, 'green' | 'warning' | 'muted'> = { pay: 'warning', exp: 'warning', task: 'green', due: 'muted' };
@@ -68,10 +73,12 @@ export default function DashboardPage() {
   const [wOrder, setWOrder] = useState<string[]>([]);
   const [credCount, setCredCount] = useState<number | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
+  const [deadlines, setDeadlines] = useState<Deadline[]>([]);
 
   useEffect(() => {
     api.get<Summary>('/dashboard/summary').then(setS).catch(() => {});
     api.get<Forecast>('/dashboard/cashflow-forecast').then(setForecast).catch(() => {});
+    api.get<Deadline[]>('/dashboard/deadlines').then(setDeadlines).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -210,6 +217,26 @@ export default function DashboardPage() {
               />
             ))}
             <p className="text-[0.72rem] text-muted mt-2">연·주 단위 항목은 월 단위로 환산한 추정치입니다.</p>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* 통합 D-day 보드 — 만료·만기·결제·마감 한 화면 집계 */}
+      {deadlines.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>⏳ 다가오는 만료·마감</CardTitle>
+            <Badge tone="warning">{deadlines.length}건</Badge>
+          </CardHeader>
+          <CardBody compact>
+            {deadlines.slice(0, 8).map((d, i) => (
+              <ActivityRow
+                key={i}
+                dot={DEADLINE_DOT[d.kind]}
+                text={<><strong>{d.title}</strong> <span className="text-[0.72rem] text-muted">· {DEADLINE_LABEL[d.kind]}</span></>}
+                time={`${d.date} · ${d.dday === 0 ? 'D-day' : `D-${d.dday}`}`}
+              />
+            ))}
           </CardBody>
         </Card>
       )}

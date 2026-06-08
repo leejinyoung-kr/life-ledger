@@ -14,6 +14,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -71,8 +72,9 @@ export class CredentialController {
     return this.service.importExcel(user.id, file.buffer);
   }
 
-  // 비밀번호·TOTP 원문 조회 (표시/복사). 마스터 잠금 시 VaultGuard 통과 필요
+  // 비밀번호·TOTP 원문 조회 (표시/복사). 마스터 잠금 시 VaultGuard 통과 필요. 무차별 조회 방지로 분당 20회 제한
   @Get(':id/reveal')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseGuards(VaultGuard)
   reveal(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Client() client: ClientInfo) {
     return this.service.reveal(user.id, id, client);
@@ -80,6 +82,7 @@ export class CredentialController {
 
   // 현재 TOTP 6자리 코드 + 남은 시간
   @Get(':id/totp')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseGuards(VaultGuard)
   totp(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Client() client: ClientInfo) {
     return this.service.totpCode(user.id, id, client);
@@ -94,6 +97,7 @@ export class CredentialController {
 
   // 저장된 2FA 백업코드 조회
   @Get(':id/backup-codes')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseGuards(VaultGuard)
   revealBackupCodes(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Client() client: ClientInfo) {
     return this.service.revealBackupCodes(user.id, id, client);

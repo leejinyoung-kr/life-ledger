@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -85,8 +86,9 @@ export class SecurityController {
     return this.vault.disable(user.id, dto.password);
   }
 
-  // 잠금 해제 — vault 토큰 발급
+  // 잠금 해제 — vault 토큰 발급. 마스터 비번 무차별 대입 방지로 분당 5회 제한
   @Post('vault/unlock')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   vaultUnlock(@CurrentUser() user: AuthUser, @Body() dto: VaultPasswordDto) {
     return this.vault.unlock(user.id, dto.password);
   }

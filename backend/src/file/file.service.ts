@@ -10,11 +10,29 @@ import {
   GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
+
+// 허용 MIME 접두/타입 화이트리스트 — 실행파일·스크립트 등 위험 업로드 차단
+const ALLOWED_MIME_PREFIXES = ['image/', 'video/', 'audio/', 'text/'];
+const ALLOWED_MIME_EXACT = new Set([
+  'application/pdf',
+  'application/zip',
+  'application/json',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/octet-stream',
+]);
+function isAllowedMime(mime: string): boolean {
+  return ALLOWED_MIME_PREFIXES.some((p) => mime.startsWith(p)) || ALLOWED_MIME_EXACT.has(mime);
+}
 
 @Injectable()
 export class FileService {
@@ -92,27 +110,38 @@ export class FileService {
     return crumbs;
   }
 
-  // 파일 업로드 — B2에 저장 후 메타데이터를 DB에 기록
+  // 파일 업로드 — MIME 화이트리스트 검증 + SHA-256 중복 제거 후 B2 저장·DB 기록.
+  // 동일 내용(해시 일치) 파일이 이미 있으면 B2 재업로드 없이 기존 오브젝트를 가리키는 메타만 추가한다.
   async upload(userId: number, file: Express.Multer.File, folderId?: number) {
     if (file.size > MAX_FILE_SIZE)
       throw new BadRequestException('파일 크기는 50MB를 초과할 수 없습니다.');
+    if (!isAllowedMime(file.mimetype))
+      throw new BadRequestException(`허용되지 않는 파일 형식입니다: ${file.mimetype}`);
 
     if (folderId) await this.findOwnedFolder(userId, folderId);
 
     // multer가 원본 파일명을 latin1로 디코딩하므로 한글 등 비ASCII 파일명은 utf8로 재해석
     const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
-    const ext = originalName.split('.').pop() ?? '';
-    const objectKey = `users/${userId}/${randomUUID()}${ext ? '.' + ext : ''}`;
+    const hash = createHash('sha256').update(file.buffer).digest('hex');
 
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: objectKey,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-        ContentLength: file.size,
-      }),
-    );
+    // 동일 내용 파일이 이미 있으면 그 오브젝트 키를 재사용 (B2 업로드/저장 비용 절감)
+    const dup = await this.prisma.storageFile.findFirst({
+      where: { user_id: userId, hash, deleted_at: null },
+    });
+    const ext = originalName.split('.').pop() ?? '';
+    const objectKey = dup?.object_key ?? `users/${userId}/${randomUUID()}${ext ? '.' + ext : ''}`;
+
+    if (!dup) {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: objectKey,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+          ContentLength: file.size,
+        }),
+      );
+    }
 
     const saved = await this.prisma.storageFile.create({
       data: {
@@ -122,6 +151,7 @@ export class FileService {
         name: originalName,
         size: file.size,
         mime_type: file.mimetype,
+        hash,
       },
     });
 
@@ -131,6 +161,7 @@ export class FileService {
       size: Number(saved.size),
       mimeType: saved.mime_type,
       folderId: saved.folder_id,
+      deduped: !!dup,
       createdAt: saved.created_at.toISOString(),
     };
   }
@@ -151,18 +182,24 @@ export class FileService {
     return { url };
   }
 
-  // 파일 삭제 — B2 오브젝트 삭제 + DB soft delete
+  // 파일 삭제 — DB soft delete. 동일 오브젝트를 가리키는 다른 파일(중복제거 공유)이 없을 때만 B2 오브젝트 삭제
   async removeFile(userId: number, fileId: number) {
     const file = await this.findOwnedFile(userId, fileId);
-
-    await this.s3.send(
-      new DeleteObjectCommand({ Bucket: this.bucket, Key: file.object_key }),
-    );
 
     await this.prisma.storageFile.update({
       where: { id: fileId },
       data: { deleted_at: new Date() },
     });
+
+    // 같은 object_key 를 참조하는 미삭제 파일이 남아있으면 B2 오브젝트는 보존
+    const stillReferenced = await this.prisma.storageFile.count({
+      where: { object_key: file.object_key, deleted_at: null },
+    });
+    if (stillReferenced === 0) {
+      await this.s3.send(
+        new DeleteObjectCommand({ Bucket: this.bucket, Key: file.object_key }),
+      );
+    }
 
     return { id: fileId };
   }

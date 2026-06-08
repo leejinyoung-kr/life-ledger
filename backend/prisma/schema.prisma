@@ -639,6 +639,7 @@ model StorageFile {
   name        String         @db.VarChar(300) /// 원본 파일명
   size        BigInt         @default(0) /// 바이트 단위
   mime_type   String         @db.VarChar(100)
+  hash        String?        @db.VarChar(64) /// SHA-256 (동일 내용 중복 업로드 제거용)
   deleted_at  DateTime?
   created_at  DateTime       @default(now())
   updated_at  DateTime       @updatedAt
@@ -649,6 +650,7 @@ model StorageFile {
 
   @@index([user_id])
   @@index([folder_id])
+  @@index([user_id, hash])
   @@map("storage_file")
 }
 

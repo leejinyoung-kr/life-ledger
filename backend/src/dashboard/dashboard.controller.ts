@@ -23,4 +23,10 @@ export class DashboardController {
   cashflowForecast(@CurrentUser() user: AuthUser) {
     return this.service.cashflowForecast(user.id);
   }
+
+  // 통합 D-day 보드 (만료·만기·결제·마감)
+  @Get('deadlines')
+  deadlines(@CurrentUser() user: AuthUser) {
+    return this.service.deadlines(user.id);
+  }
 }

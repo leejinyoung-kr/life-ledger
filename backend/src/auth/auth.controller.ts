@@ -51,7 +51,13 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req: Request & { user: GoogleUser }, @Res() res: Response) {
-    const { access, refresh } = await this.authService.login(req.user);
+    // 기기/IP 추출 — 신규 기기 로그인 감지용
+    const fwd = req.headers['x-forwarded-for'];
+    const ip = (Array.isArray(fwd) ? fwd[0] : fwd?.split(',')[0]) ?? req.ip;
+    const { access, refresh } = await this.authService.login(req.user, {
+      ip: ip?.trim(),
+      userAgent: req.headers['user-agent'],
+    });
     // refresh 는 httpOnly 쿠키로만, access 는 쿼리로 프론트에 전달
     res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions());
     const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
