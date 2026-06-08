@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { LoginSession } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto.service';
@@ -118,6 +119,55 @@ export class SecurityService {
       create: { user_id: userId, date, score, reuse: counts.reuse, weak: counts.weak, no2fa: counts.no2fa },
       update: { score, reuse: counts.reuse, weak: counts.weak, no2fa: counts.no2fa },
     });
+  }
+
+  // 유출 비밀번호 검사 — HaveIBeenPwned Pwned Passwords(k-anonymity).
+  // SHA-1 해시의 앞 5자만 외부로 보내고(원문/전체해시 노출 0), 나머지 35자는 로컬에서 대조한다.
+  async breachCheck(userId: number) {
+    const creds = await this.prisma.credential.findMany({
+      where: { user_id: userId, deleted_at: null },
+      select: { id: true, name: true, password_enc: true },
+    });
+
+    const prefixCache = new Map<string, Map<string, number>>(); // prefix → (suffix → 유출횟수)
+    const results: { credentialId: number; name: string; count: number }[] = [];
+
+    for (const c of creds) {
+      const pw = this.crypto.decrypt(c.password_enc);
+      const sha1 = createHash('sha1').update(pw).digest('hex').toUpperCase();
+      const prefix = sha1.slice(0, 5);
+      const suffix = sha1.slice(5);
+
+      let table = prefixCache.get(prefix);
+      if (!table) {
+        table = await this.fetchPwnedRange(prefix);
+        prefixCache.set(prefix, table);
+      }
+      const count = table.get(suffix) ?? 0;
+      if (count > 0) results.push({ credentialId: c.id, name: c.name, count });
+    }
+
+    results.sort((a, b) => b.count - a.count);
+    return { checked: creds.length, breachedCount: results.length, items: results };
+  }
+
+  // HIBP range API 호출 → suffix→count 맵. 실패 시 빈 맵(검사 자체는 계속)
+  private async fetchPwnedRange(prefix: string): Promise<Map<string, number>> {
+    const table = new Map<string, number>();
+    try {
+      const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
+        headers: { 'Add-Padding': 'true' }, // 응답 길이로 유추 못하도록 패딩 요청
+      });
+      if (!res.ok) return table;
+      const text = await res.text();
+      for (const line of text.split('\n')) {
+        const [suf, cnt] = line.trim().split(':');
+        if (suf) table.set(suf.toUpperCase(), Number(cnt) || 0);
+      }
+    } catch {
+      // 네트워크 실패는 무시 — 해당 prefix 는 미검출로 처리
+    }
+    return table;
   }
 
   // 비밀번호 강도 분포 — 전 계정의 강도를 강함/보통/취약 3구간으로 집계 (프론트 pwStrength 와 동일 기준)

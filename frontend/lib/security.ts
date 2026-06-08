@@ -71,6 +71,12 @@ export interface StrengthStats {
   avgScorePct: number;
 }
 
+export interface BreachResult {
+  checked: number;
+  breachedCount: number;
+  items: { credentialId: number; name: string; count: number }[];
+}
+
 // 접근 동작 → 라벨/아이콘
 export const ACCESS_ACTION_META: Record<AccessAction, { label: string; icon: string }> = {
   cred_reveal: { label: '비밀번호 열람', icon: '🔑' },

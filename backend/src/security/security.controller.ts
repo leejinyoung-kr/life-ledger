@@ -62,6 +62,13 @@ export class SecurityController {
     return this.service.strengthStats(user.id);
   }
 
+  // 유출 비밀번호 검사 (HIBP) — 외부 API 호출이라 분당 6회로 제한
+  @Get('breach-check')
+  @Throttle({ default: { limit: 6, ttl: 60000 } })
+  breachCheck(@CurrentUser() user: AuthUser) {
+    return this.service.breachCheck(user.id);
+  }
+
   // 최근 보관함 열람 기록
   @Get('access-logs')
   accessLogs(@CurrentUser() user: AuthUser, @Query('limit') limit?: string) {

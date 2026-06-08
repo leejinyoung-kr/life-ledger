@@ -6,7 +6,7 @@
  * 데이터는 백엔드 API(/security)와 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(StatCard/Button/Badge/Card). 게이지는 동적 conic-gradient inline.
  */
-import { type CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
 import StatCard from '@/components/StatCard';
@@ -22,7 +22,7 @@ import { relativeTime } from '@/lib/notification';
 import {
   RISK_CATEGORY_ICON, SEVERITY_BADGE, STAT_META, DEVICE_ICON, SCORE_COLOR, ACCESS_ACTION_META,
   type SecuritySummary, type SecurityRisk, type LoginSession,
-  type ScoreTrendPoint, type AccessLogEntry, type VaultStatus, type StrengthStats,
+  type ScoreTrendPoint, type AccessLogEntry, type VaultStatus, type StrengthStats, type BreachResult,
 } from '@/lib/security';
 
 // 위험/세션 아이콘 배경색 (tone → Tailwind)
@@ -42,6 +42,10 @@ export default function SecurityPage() {
   const logsQuery = useApiQuery<AccessLogEntry[]>(qk.security.accessLogs(20), '/security/access-logs?limit=20');
   const vaultQuery = useApiQuery<VaultStatus>(qk.security.vault(), '/security/vault');
   const strengthQuery = useApiQuery<StrengthStats>(qk.security.strengthStats(), '/security/strength-stats');
+
+  // 유출 검사 — 외부 API 호출이라 버튼으로 온디맨드 실행
+  const [runBreach, setRunBreach] = useState(false);
+  const breachQuery = useApiQuery<BreachResult>(qk.security.breach(), '/security/breach-check', { enabled: runBreach, staleTime: 5 * 60_000 });
 
   const summary = summaryQuery.data ?? null;
   const risks = risksQuery.data ?? [];
@@ -210,6 +214,48 @@ export default function SecurityPage() {
           </div>
         </Card>
       )}
+
+      {/* 유출 비밀번호 검사 (HIBP) */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>유출 비밀번호 검사</CardTitle>
+          {breachQuery.data
+            ? <Badge tone={breachQuery.data.breachedCount > 0 ? 'danger' : 'success'}>{breachQuery.data.breachedCount > 0 ? `${breachQuery.data.breachedCount}건 유출` : '안전'}</Badge>
+            : <Badge tone="blue">HaveIBeenPwned</Badge>}
+        </CardHeader>
+        <div className="px-5 py-4">
+          {!runBreach ? (
+            <div className="flex items-center gap-3.5">
+              <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-elevated">🛡️</div>
+              <div className="flex-1 text-[0.82rem] text-secondary leading-relaxed [word-break:keep-all]">
+                저장된 비밀번호가 외부 유출 DB에 있는지 검사합니다. 비밀번호 원문·전체 해시는 전송되지 않습니다(k-익명성).
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setRunBreach(true)}>검사 실행</Button>
+            </div>
+          ) : breachQuery.isFetching ? (
+            <div className="text-[0.82rem] text-muted py-2">검사 중... (외부 DB 대조)</div>
+          ) : breachQuery.data ? (
+            breachQuery.data.breachedCount === 0 ? (
+              <div className="text-[0.82rem] text-accent py-1">✓ 검사한 {breachQuery.data.checked}건 모두 유출 이력이 없습니다.</div>
+            ) : (
+              <div>
+                {breachQuery.data.items.map((b) => (
+                  <div className="flex items-center gap-3.5 px-0 py-2.5 border-b border-border-subtle last:border-b-0" key={b.credentialId}>
+                    <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-danger-dim">🚨</div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-[0.85rem]">{b.name}</div>
+                      <div className="text-[0.76rem] text-muted">유출 DB에서 {b.count.toLocaleString()}회 발견 — 즉시 변경 권장</div>
+                    </div>
+                    <Button href={`/credentials?focus=${b.credentialId}`} variant="ghost" size="sm">변경</Button>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="text-[0.82rem] text-danger py-2">검사에 실패했습니다. 잠시 후 다시 시도하세요.</div>
+          )}
+        </div>
+      </Card>
 
       {/* 최근 열람 (접근 감사 로그) */}
       <Card className="mb-6">

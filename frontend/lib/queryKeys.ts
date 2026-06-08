@@ -56,6 +56,7 @@ export const qk = {
     scoreTrend: (days: number) => ['security', 'score-trend', days] as const,
     accessLogs: (limit: number) => ['security', 'access-logs', limit] as const,
     strengthStats: () => ['security', 'strength-stats'] as const,
+    breach: () => ['security', 'breach'] as const,
     vault: () => ['security', 'vault'] as const,
   },
   categories: { all: ['categories'] as const },
