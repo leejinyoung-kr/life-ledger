@@ -39,6 +39,7 @@ model User {
   storageFiles   StorageFile[]
   accessLogs     AccessLog[]
   scoreSnapshots SecurityScoreSnapshot[]
+  pushSubscriptions PushSubscription[]
 
   @@map("user")
 }
@@ -737,4 +738,20 @@ model SecurityScoreSnapshot {
   @@unique([user_id, date])
   @@index([user_id])
   @@map("security_score_snapshot")
+}
+
+/// 웹 푸시 구독 (PWA Web Push - 브라우저 푸시 서비스 endpoint + 암복호화 키)
+model PushSubscription {
+  id         Int      @id @default(autoincrement())
+  user_id    Int /// user.id FK
+  endpoint   String   @unique @db.VarChar(500) /// 브라우저 푸시 서비스 엔드포인트 URL
+  p256dh     String   @db.VarChar(255) /// 페이로드 암호화용 공개키(Base64URL)
+  auth       String   @db.VarChar(255) /// 페이로드 인증 시크릿(Base64URL)
+  user_agent String?  @db.VarChar(300) /// 구독 생성 기기 식별용(선택)
+  created_at DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@map("push_subscription")
 }

@@ -20,6 +20,7 @@ import Toggle from '@/components/ui/Toggle';
 import { IconWon, IconClock, IconZap, IconLock, IconCube, IconDrag } from '@/components/icons';
 import { api, apiDownload } from '@/lib/api';
 import { clearVaultToken } from '@/lib/vault';
+import { isPushSupported, fetchPushStatus, getCurrentSubscription, enablePush, disablePush } from '@/lib/push';
 import {
   SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS, OPENAI_MODEL_OPTIONS,
   MENU_ITEMS, DEFAULT_MENU_ORDER, normalizeMenuOrder,
@@ -132,6 +133,45 @@ export default function SettingsPage() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [menuOrder, setMenuOrder] = useState<string[]>(DEFAULT_MENU_ORDER);
   const [menuDragId, setMenuDragId] = useState<string | null>(null);
+
+  // 웹 푸시 — 브라우저/권한 기반(설정 DTO 아님). serverReady=서버 VAPID 활성, on=현재 구독중
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushServerReady, setPushServerReady] = useState(false);
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+
+  // 마운트 시 푸시 지원/서버활성/구독상태 조회
+  useEffect(() => {
+    if (!isPushSupported()) return;
+    setPushSupported(true);
+    (async () => {
+      const status = await fetchPushStatus();
+      setPushServerReady(status.enabled);
+      const sub = await getCurrentSubscription();
+      setPushOn(!!sub);
+    })();
+  }, []);
+
+  // 푸시 토글 — 켜기(권한+구독+서버저장) / 끄기(구독취소+서버삭제)
+  async function togglePush() {
+    if (pushBusy) return;
+    setPushBusy(true);
+    try {
+      if (pushOn) {
+        await disablePush();
+        setPushOn(false);
+        notify.success('푸시 알림을 껐습니다.');
+      } else {
+        await enablePush();
+        setPushOn(true);
+        notify.success('푸시 알림을 켰습니다.');
+      }
+    } catch (e) {
+      notify.error((e as Error).message);
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   // 설정 로드 시 로컬 편집 상태 동기화 (입력 중 값은 저장 버튼으로 커밋)
   useEffect(() => {
@@ -313,6 +353,18 @@ export default function SettingsPage() {
                 </Row>
               </Group>
               <Group title="알림">
+                {pushSupported && (
+                  <Row
+                    label="푸시 알림 (이 기기)"
+                    desc={
+                      pushServerReady
+                        ? '브라우저를 닫아도 만기·결제·보안 알림을 푸시로 받습니다.'
+                        : '서버에 푸시 키(VAPID)가 설정되지 않아 사용할 수 없습니다.'
+                    }
+                  >
+                    <Toggle on={pushOn} onToggle={togglePush} disabled={!pushServerReady || pushBusy} />
+                  </Row>
+                )}
                 <Row label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
                   <Toggle on={s.notifMaturity} onToggle={() => toggleNotif('notifMaturity')} />
                 </Row>

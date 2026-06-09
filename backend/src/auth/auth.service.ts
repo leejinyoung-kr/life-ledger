@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { PushService } from '../push/push.service.js';
 
 export interface GoogleUser {
   googleId: string;
@@ -34,6 +35,7 @@ export class AuthService {
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
+    private push: PushService,
   ) {}
 
   // 접근 토큰 — 사용자 정보 포함(JwtStrategy 가 검증)
@@ -113,6 +115,12 @@ export class AuthService {
           description: `${device} (${location}) 에서 로그인되었습니다. 본인이 아니라면 보안 센터에서 세션을 로그아웃하세요.`,
           source: '보안',
         },
+      });
+      // 새 기기 로그인은 보안 이벤트 → 웹 푸시도 발송 (VAPID 비활성 시 no-op)
+      await this.push.sendToUser(userId, {
+        title: '새 기기에서 로그인',
+        body: `${device} (${location}) 에서 로그인되었습니다.`,
+        url: '/security',
       });
     }
   }

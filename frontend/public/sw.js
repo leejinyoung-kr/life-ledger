@@ -22,6 +22,48 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// 웹 푸시 수신 — 서버가 보낸 {title, body, url} 표시. 민감정보는 페이로드에 없음(제목/요약만)
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "DocNexus", body: event.data ? event.data.text() : "" };
+  }
+  const title = data.title || "DocNexus";
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, {
+        body: data.body || "",
+        icon: "/icons/icon.svg",
+        badge: "/icons/icon.svg",
+        data: { url: data.url || "/notifications" },
+      }),
+      // 열린 탭에 알림 도착 신호 → TopBar 종 배지 즉시 갱신
+      self.clients
+        .matchAll({ type: "window", includeUncontrolled: true })
+        .then((list) => list.forEach((c) => c.postMessage({ type: "noti" }))),
+    ])
+  );
+});
+
+// 알림 클릭 — 이미 열린 탭이 있으면 포커스, 없으면 새로 연다
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/notifications";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
+        if ("focus" in client) {
+          client.navigate(target);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    })
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;

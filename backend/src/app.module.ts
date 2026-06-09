@@ -33,6 +33,7 @@ import { FileModule } from './file/file.module';
 import { AccessLogModule } from './access-log/access-log.module';
 import { ImportModule } from './import/import.module';
 import { AiModule } from './ai/ai.module';
+import { PushModule } from './push/push.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { AiModule } from './ai/ai.module';
     FileModule,
     ImportModule,
     AiModule,
+    PushModule,
   ],
   controllers: [AppController],
   // 전역 가드 — 요청량 제한(Throttler) 후 JWT 인증. @Public() 핸들러만 토큰 예외

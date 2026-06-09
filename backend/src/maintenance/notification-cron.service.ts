@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotiGroup, NotiTone } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PushService } from '../push/push.service';
 
 // 오늘(UTC 자정) + days 후 Date
 function addDays(base: Date, days: number): Date {
@@ -14,7 +15,10 @@ function addDays(base: Date, days: number): Date {
 export class NotificationCronService {
   private readonly logger = new Logger(NotificationCronService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private push: PushService,
+  ) {}
 
   // 매일 오전 9시 — 전 사용자 대상 임박/초과 알림 생성
   @Cron(CronExpression.EVERY_DAY_AT_9AM)
@@ -36,6 +40,8 @@ export class NotificationCronService {
     });
     if (dup) return 0;
     await this.prisma.notification.create({ data: { user_id: userId, ...n } });
+    // 앱 내 알림 생성과 동시에 웹 푸시 발송 (VAPID 비활성 시 no-op). 민감정보 없이 제목/설명만
+    await this.push.sendToUser(userId, { title: n.title, body: n.description, url: '/notifications' });
     return 1;
   }
 
