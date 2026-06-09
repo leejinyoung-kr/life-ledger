@@ -70,5 +70,34 @@ export const seedTrash: SeedFn = async (prisma, userId) => {
   });
   count++;
 
+  // 투자 — 3일 전 삭제 (27일)
+  await prisma.investment.create({
+    data: {
+      user_id: userId, name: '도지코인', type: 'crypto', principal: 300000, current_value: 180000,
+      purchase_date: d('2025-04-01'), memo: '손절 후 삭제',
+      deleted_at: daysAgo(3),
+    },
+  });
+  count++;
+
+  // 수입/지출 — 7일 전 삭제 (23일)
+  await prisma.transaction.create({
+    data: {
+      user_id: userId, type: 'expense', date: d('2026-05-20'), title: '중복 결제 환불건',
+      category: 'living_daily', amount: 12000, pay_method: '신한카드', memo: '환불되어 삭제',
+      deleted_at: daysAgo(7),
+    },
+  });
+  count++;
+
+  // 메모 — 15일 전 삭제 (15일)
+  await prisma.note.create({
+    data: {
+      user_id: userId, title: '임시 메모', body: '# 테스트\n\n- 삭제 예정', tag: '기타',
+      deleted_at: daysAgo(15),
+    },
+  });
+  count++;
+
   return count;
 };

@@ -22,6 +22,13 @@ const INVESTMENTS: InvestSeed[] = [
   { name: '애플', type: 'foreign_stock', principal: 2500000, currentValue: 2710000, purchaseDate: '2024-11-05', memo: null },
   { name: 'TIGER 2차전지', type: 'domestic_etf', principal: 1800000, currentValue: 1620000, purchaseDate: '2025-02-14', memo: '테마 ETF' },
   { name: '이더리움', type: 'crypto', principal: 1000000, currentValue: 1340000, purchaseDate: '2025-03-30', memo: null },
+  { name: 'SK하이닉스', type: 'domestic_stock', principal: 2200000, currentValue: 2640000, purchaseDate: '2025-04-08', memo: 'AI 반도체' },
+  { name: '엔비디아', type: 'foreign_stock', principal: 3000000, currentValue: 4180000, purchaseDate: '2024-09-12', memo: '장기 보유' },
+  { name: 'TIGER 미국나스닥100', type: 'foreign_etf', principal: 2500000, currentValue: 2890000, purchaseDate: '2025-01-15', memo: '연금저축 운용' },
+  { name: 'KODEX 200', type: 'domestic_etf', principal: 1500000, currentValue: 1455000, purchaseDate: '2025-06-02', memo: '코스피 추종' },
+  { name: '테슬라', type: 'foreign_stock', principal: 1800000, currentValue: 1560000, purchaseDate: '2025-02-20', memo: '변동성 큼' },
+  { name: '리플', type: 'crypto', principal: 500000, currentValue: 720000, purchaseDate: '2025-05-25', memo: '소액 알트' },
+  { name: 'NAVER', type: 'domestic_stock', principal: 1700000, currentValue: 1632000, purchaseDate: '2025-03-05', memo: null },
 ];
 
 // 한 사용자에게 투자 더미를 채운다 (idempotent)
