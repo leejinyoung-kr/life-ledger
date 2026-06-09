@@ -4,6 +4,7 @@ import { useMemo, type ReactNode } from 'react';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import QueryError from '@/components/QueryError';
 import StatCard from '@/components/StatCard';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -34,6 +35,8 @@ const EV_LABEL: Record<EvType, string> = { pay: '결제', due: '만기', exp: '�
 const TX_DOT: Record<TransactionType, 'green' | 'warning' | 'muted'> = { income: 'green', expense: 'muted', transfer: 'muted' };
 const EV_DOT: Record<EvType, 'green' | 'warning' | 'muted'> = { pay: 'warning', exp: 'warning', task: 'green', due: 'muted' };
 const DOT_COLOR = { green: 'bg-accent', warning: 'bg-warning', muted: 'bg-muted' } as const;
+// 색상만으로 구분되던 상태 점에 스크린리더용 라벨 부여
+const DOT_LABEL = { green: '정상', warning: '주의', muted: '정보' } as const;
 
 const QUICK_ACTIONS = [
   { icon: <IconWon width={17} height={17} />,    title: '지출 기록',   desc: '가계부에 추가',     href: '/transactions' },
@@ -45,7 +48,7 @@ const QUICK_ACTIONS = [
 function ActivityRow({ dot, text, time }: { dot: 'green' | 'warning' | 'muted'; text: ReactNode; time: string }) {
   return (
     <div className="flex gap-3 py-2.5 border-b border-border-subtle last:border-b-0">
-      <div className={`w-2 h-2 rounded-full shrink-0 mt-1.25 ${DOT_COLOR[dot]}`} />
+      <div role="img" aria-label={DOT_LABEL[dot]} className={`w-2 h-2 rounded-full shrink-0 mt-1.25 ${DOT_COLOR[dot]}`} />
       <div>
         <div className="text-[0.838rem] text-secondary leading-normal [&_strong]:text-primary [&_strong]:font-semibold">{text}</div>
         <div className="text-[0.72rem] text-muted mt-0.5">{time}</div>
@@ -99,6 +102,14 @@ export default function DashboardPage() {
           <p className="text-sm text-secondary mt-1.5">이번 달 지출 현황과 최근 활동을 확인하세요.</p>
         </div>
       </div>
+
+      {(summaryQuery.isError || forecastQuery.isError || deadlinesQuery.isError) && (
+        <QueryError
+          message="일부 대시보드 데이터를 불러오지 못했습니다."
+          onRetry={() => { summaryQuery.refetch(); forecastQuery.refetch(); deadlinesQuery.refetch(); }}
+          className="mb-6 border border-border rounded-[var(--radius-lg)] bg-background"
+        />
+      )}
 
       {wMap['stat-cards'] && (
         <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-8">

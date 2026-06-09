@@ -7,7 +7,8 @@
  * 스타일: Tailwind. md-preview(마크다운 렌더 스타일)는 공통 globals 유지.
  * 모바일은 목록↔에디터 전환(노트 선택 시 에디터, "← 목록"으로 복귀).
  */
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { notify } from '@/lib/toast';
 import { useConfirm } from '@/components/ConfirmModal';
 import ReactMarkdown from 'react-markdown';
@@ -16,6 +17,9 @@ import AppShell from '@/components/AppShell';
 import Button from '@/components/ui/Button';
 import { IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
+import { clickable } from '@/lib/a11y';
 import { formatNoteDate, type Note } from '@/lib/note';
 
 type EditTab = 'edit' | 'preview';
@@ -25,90 +29,86 @@ const TB = 'w-[30px] h-[30px] rounded-[5px] flex items-center justify-center tex
 const TB_DIV = 'w-px h-5 bg-border mx-1.5 shrink-0';
 
 export default function NotesPage() {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [picked, setPicked] = useState<number | null>(null);
+  const [draft, setDraft] = useState<Note | null>(null);
   const [tab, setTab] = useState<EditTab>('edit');
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
   const editorRef = useRef<HTMLTextAreaElement>(null);
   const { confirm, confirmElement } = useConfirm();
+  const qc = useQueryClient();
 
-  // 메모 목록 조회 (선택 항목 유지, 없으면 첫 항목 선택)
-  const load = useCallback(async () => {
-    try {
-      const list = await api.get<Note[]>('/notes');
-      setNotes(list);
-      setSelectedId((prev) => (prev && list.some((n) => n.id === prev) ? prev : list[0]?.id ?? null));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
+  // 메모 목록 (React Query — 서버 캐시. 편집 중인 노트는 별도 draft 로 분리)
+  const listQuery = useApiQuery<Note[]>(qk.notes.list(), '/notes');
+  const notes = listQuery.data ?? [];
 
-  useEffect(() => { load(); }, [load]);
+  // 선택 id — 명시 선택이 유효하면 그것, 없으면 첫 항목 (effect 없이 파생)
+  const selectedId = picked != null && notes.some((n) => n.id === picked) ? picked : notes[0]?.id ?? null;
+  const serverNote = notes.find((n) => n.id === selectedId) ?? null;
+  // 화면용 노트 — 현재 선택을 편집 중이면 draft, 아니면 서버값
+  const note = draft && draft.id === selectedId ? draft : serverNote;
 
-  const note = notes.find((n) => n.id === selectedId) ?? null;
+  // 목록 캐시 직접 갱신 (변이 후 즉시 반영 — refetch 대기 없이 스냅)
+  const setList = (fn: (prev: Note[]) => Note[]) =>
+    qc.setQueryData<Note[]>(qk.notes.list(), (prev) => fn(prev ?? []));
 
   // 노트 선택 (모바일은 에디터로 전환)
   function selectNote(id: number) {
-    setSelectedId(id);
+    setPicked(id);
     setMobileView('editor');
   }
 
-  // 선택 노트의 필드를 로컬 갱신 (저장 버튼으로 서버 반영)
+  // 선택 노트의 필드를 draft 로 갱신 (저장 버튼으로 서버 반영)
   function patchNote(patch: Partial<Note>) {
-    if (selectedId === null) return;
-    setNotes((prev) => prev.map((n) => (n.id === selectedId ? { ...n, ...patch } : n)));
+    if (!note) return;
+    setDraft({ ...note, ...patch });
   }
 
-  // 새 메모 추가 (POST 후 선택)
+  // 새 메모 추가 (POST 후 캐시 prepend + 선택)
   async function newNote() {
     try {
       const created = await api.post<Note>('/notes', { title: '새 메모', body: '', tag: '기타' });
-      setNotes((prev) => [created, ...prev]);
-      setSelectedId(created.id);
+      setList((prev) => [created, ...prev]);
+      setPicked(created.id);
+      setDraft(null);
       setTab('edit');
       setMobileView('editor');
       notify.success('새 메모가 생성됐습니다.');
-    } catch (e) {
-      setError((e as Error).message);
+    } catch {
       notify.error('메모 생성에 실패했습니다.');
     }
   }
 
-  // 현재 메모 저장 (PUT)
+  // 현재 메모 저장 (PUT → 캐시 반영 + draft 해제)
   async function saveNote() {
     if (!note) return;
-    setSaving(true); setError(null);
+    setSaving(true);
     try {
       const updated = await api.put<Note>(`/notes/${note.id}`, { title: note.title, body: note.body, tag: note.tag ?? '' });
-      setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+      setList((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+      setDraft(null);
       notify.saved('메모');
-    } catch (e) {
-      setError((e as Error).message);
+    } catch {
       notify.saveFailed();
     } finally {
       setSaving(false);
     }
   }
 
-  // 현재 메모 삭제 (DELETE)
+  // 현재 메모 삭제 (DELETE → 캐시에서 제거, 선택은 첫 항목으로)
   async function deleteNote() {
     if (!note) return;
     if (!await confirm('이 메모를 삭제할까요?', 'danger')) return;
+    const targetId = note.id;
     try {
-      await api.del(`/notes/${note.id}`);
-      setNotes((prev) => {
-        const next = prev.filter((n) => n.id !== note.id);
-        setSelectedId(next[0]?.id ?? null);
-        return next;
-      });
+      await api.del(`/notes/${targetId}`);
+      setList((prev) => prev.filter((n) => n.id !== targetId));
+      setPicked(null);
+      setDraft(null);
       setMobileView('list');
       notify.deleted('메모');
-    } catch (e) {
-      setError((e as Error).message);
+    } catch {
       notify.deleteFailed();
     }
   }
@@ -176,12 +176,16 @@ export default function NotesPage() {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-2">
-            {error && <p className="px-2 py-1.5 text-[0.78rem] text-danger">⚠️ {error}</p>}
-            {filtered.length === 0 && <p className="text-center text-muted py-5 text-[0.875rem]">메모가 없습니다.</p>}
+            {listQuery.isError && <p className="px-2 py-1.5 text-[0.78rem] text-danger">⚠️ {listQuery.error.message}</p>}
+            {listQuery.isLoading ? (
+              <p className="text-center text-muted py-5 text-[0.875rem]">불러오는 중…</p>
+            ) : filtered.length === 0 ? (
+              <p className="text-center text-muted py-5 text-[0.875rem]">메모가 없습니다.</p>
+            ) : null}
             {filtered.map((n) => {
               const active = n.id === selectedId;
               return (
-                <div key={n.id} className={`p-3 rounded-[var(--radius)] cursor-pointer transition-colors border border-transparent mb-0.5 hover:bg-surface ${active ? 'bg-accent-dim border-[rgba(0,192,127,0.2)]' : ''}`} onClick={() => selectNote(n.id)}>
+                <div key={n.id} {...clickable(() => selectNote(n.id))} aria-label={`메모 ${n.title}`} className={`p-3 rounded-[var(--radius)] cursor-pointer transition-colors border border-transparent mb-0.5 hover:bg-surface ${active ? 'bg-accent-dim border-[rgba(0,192,127,0.2)]' : ''}`} onClick={() => selectNote(n.id)}>
                   <div className={`text-[0.855rem] font-semibold truncate mb-1 ${active ? 'text-accent' : 'text-primary'}`}>{n.title}</div>
                   <div className="text-[0.75rem] text-muted truncate leading-snug">{n.body.replace(/[#>*`\-|]/g, '').trim().slice(0, 40) || '내용 없음'}</div>
                   <div className="flex items-center justify-between mt-1.5">

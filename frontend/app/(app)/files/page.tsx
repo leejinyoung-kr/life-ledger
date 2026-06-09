@@ -5,11 +5,14 @@
  * 중첩 폴더 탐색(브레드크럼), 업로드, 다운로드, 삭제를 B2 백엔드 API와 연동한다.
  */
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { notify } from '@/lib/toast';
 import { api, apiUpload } from '@/lib/api';
 import { useApiQuery, useInvalidate } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
+import { clickable } from '@/lib/a11y';
 import AppShell from '@/components/AppShell';
+import QueryError from '@/components/QueryError';
 import Modal from '@/components/Modal';
 import { useConfirm } from '@/components/ConfirmModal';
 import Button, { buttonClasses } from '@/components/ui/Button';
@@ -223,8 +226,12 @@ export default function FilesPage() {
 
       {/* 업로드 드롭존 */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="파일 업로드 — 드래그하거나 클릭"
         className={`border-2 border-dashed rounded-[var(--radius-lg)] px-6 py-9 flex flex-col items-center gap-3 text-center cursor-pointer transition-all mb-5 [&>svg]:text-muted ${dragOver ? 'border-accent bg-accent-dim' : 'border-border hover:border-accent hover:bg-accent-dim'}`}
         onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
@@ -265,7 +272,9 @@ export default function FilesPage() {
         </span>
       </div>
 
-      {loading ? (
+      {dataQuery.isError ? (
+        <QueryError message="파일 목록을 불러오지 못했습니다." onRetry={() => dataQuery.refetch()} />
+      ) : loading ? (
         <div className="text-center py-16 text-muted text-sm">불러오는 중…</div>
       ) : (
         <>
@@ -277,6 +286,8 @@ export default function FilesPage() {
                 {filteredFolders.map((f) => (
                   <div
                     key={f.id}
+                    {...clickable(() => enterFolder(f.id))}
+                    aria-label={`폴더 ${f.name} 열기`}
                     className="flex flex-col items-center gap-2 px-3 pt-5 pb-3.5 bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] cursor-pointer transition-all text-center hover:border-accent hover:bg-accent-dim hover:-translate-y-px group relative"
                     onClick={() => enterFolder(f.id)}
                   >
@@ -296,6 +307,8 @@ export default function FilesPage() {
                   </div>
                 ))}
                 <div
+                  {...clickable(() => setFolderModal(true))}
+                  aria-label="새 폴더 생성"
                   className="flex flex-col items-center justify-center gap-2 px-3 py-5 border border-dashed border-border rounded-[var(--radius-lg)] text-muted cursor-pointer transition-all hover:border-accent hover:text-accent hover:bg-accent-dim"
                   onClick={() => setFolderModal(true)}
                 >
@@ -311,6 +324,8 @@ export default function FilesPage() {
             <div className="mb-7">
               <div className={SECTION}><IconFolder width={16} height={16} />폴더</div>
               <div
+                {...clickable(() => setFolderModal(true))}
+                aria-label="새 폴더 생성"
                 className="inline-flex flex-col items-center justify-center gap-2 px-6 py-5 border border-dashed border-border rounded-[var(--radius-lg)] text-muted cursor-pointer transition-all hover:border-accent hover:text-accent hover:bg-accent-dim"
                 onClick={() => setFolderModal(true)}
               >
@@ -329,6 +344,8 @@ export default function FilesPage() {
               {filteredFiles.map((file) => (
                 <div
                   key={file.id}
+                  {...clickable(() => setViewer(file))}
+                  aria-label={`${file.name} 미리보기`}
                   className="bg-background border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)] transition-all cursor-pointer hover:border-accent hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
                   onClick={() => setViewer(file)}
                 >
@@ -450,8 +467,10 @@ function ViewerModal({
       <div className="bg-elevated flex items-center justify-center min-h-[400px] rounded-[var(--radius)] -m-6 overflow-hidden">
         {isImage ? (
           previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={previewUrl} alt={file.name} className="max-w-full max-h-[70vh] object-contain" />
+            // 만료되는 presigned URL 이라 next/image 최적화 프록시 대신 unoptimized 로 직접 로드
+            <div className="relative w-full h-[70vh]">
+              <Image src={previewUrl} alt={file.name} fill unoptimized className="object-contain" />
+            </div>
           ) : (
             <div className="w-full max-w-[480px] aspect-[4/3] bg-[linear-gradient(135deg,var(--bg-surface)_0%,var(--bg-elevated)_100%)] border border-border rounded-[var(--radius)] flex flex-col items-center justify-center gap-3 [&>svg]:text-muted">
               <IconImage width={48} height={48} />
