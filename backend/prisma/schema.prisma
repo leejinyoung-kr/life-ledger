@@ -494,8 +494,9 @@ model Category {
   id         Int            @id @default(autoincrement())
   user_id    Int            /// user.id FK
   domain     CategoryDomain
-  code       String         @db.VarChar(50)
-  label      String         @db.VarChar(100)
+  code        String        @db.VarChar(50)
+  label       String        @db.VarChar(100)
+  parent_code String?       @db.VarChar(50) /// 대분류 code (소분류만 채움, 대분류·단일계층 도메인은 NULL)
   sort_order Int            @default(1) @map("sort_order")
   is_active  Boolean        @default(true) @map("is_active")
   created_at DateTime       @default(now()) @map("created_at")
@@ -505,6 +506,7 @@ model Category {
 
   @@unique([user_id, domain, code])
   @@index([user_id, domain])
+  @@index([user_id, domain, parent_code])
   @@map("category")
 }
 

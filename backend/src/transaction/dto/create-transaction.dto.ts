@@ -21,7 +21,7 @@ export class CreateTransactionDto {
   @MaxLength(200)
   title: string;
 
-  // 카테고리 코드 (food/transport/subscription/shopping/salary/transfer/etc)
+  // 소분류(leaf) 카테고리 code (예: food_dining). 대분류는 Category.parent_code 로 파생
   @IsString()
   @MaxLength(50)
   category: string;

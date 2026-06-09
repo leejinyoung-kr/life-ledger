@@ -22,7 +22,7 @@
 | CalendarEvent | 캘린더 일정 |
 | SecurityRisk | 보안 위험 (시드/표시용) |
 | LoginSession | 로그인 세션 |
-| Category | 카테고리 (도메인별) |
+| Category | 카테고리 (도메인별, 가계부는 대분류→소분류 2계층) |
 | IdentityCard | 신원 지갑 (번호 AES + 사본 fileId) |
 | Credential | 계정 보관함 (비번·TOTP·백업코드 AES) |
 | EnvProject | ENV 프로젝트 |
@@ -59,7 +59,7 @@ StorageFile    1 ─── N IdentityCard(file_id, 사본 이미지)
 
 ### 가계부 — Transaction / Saving / Investment
 
-- `Transaction` — `type`(income/expense/transfer), `category`, `amount`, `pay_method`, `is_recurring`, `recurring_rule`(JSON), 반복 회차(`recurring_parent_id`·`recurring_period`·`recurring_overridden`), soft delete
+- `Transaction` — `type`(income/expense/transfer), `category`(소분류 code 저장 — 대분류는 Category.parent_code 로 파생), `amount`, `pay_method`, `is_recurring`, `recurring_rule`(JSON), 반복 회차(`recurring_parent_id`·`recurring_period`·`recurring_overridden`), soft delete
 - `Saving` — `type`(savings/deposit/subscription/etc), `interest_rate`, `monthly_amount`, `maturity_date`, `balance`
 - `Investment` — `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `current_value`, `purchase_date`
 
@@ -95,6 +95,14 @@ StorageFile    1 ─── N IdentityCard(file_id, 사본 이미지)
 - `LoginSession` — `device`, `device_type`, `location`, `is_current`, `status`, `revoked_at` (새 기기 로그인 감지 시 기록)
 - `AccessLog` — `action`(cred_reveal/cred_totp/cred_backup/identity_reveal/env_reveal), `target_type/id/name`, `ip`, `user_agent`
 - `SecurityScoreSnapshot` — `date`(YYYY-MM-DD), `score`, `reuse/weak/no2fa` — 크론이 매일 1건 적재 → 추이 차트
+
+### 카테고리 — Category
+
+- 도메인별(`domain`) 사용자 정의 카테고리. `@@unique([user_id, domain, code])`
+- 가계부(`transaction`)는 **2계층**: 대분류(`parent_code` NULL) → 소분류(`parent_code`=대분류 code)
+- 거래(`Transaction.category`)는 **소분류 code** 만 저장 — 대분류는 `parent_code` 로 파생
+- 그 외 도메인(결제수단·구독·자산 등)은 단일 계층(`parent_code` NULL)
+- 엑셀→앱 카테고리 매칭·마이그레이션: [category-migration.md](category-migration.md)
 
 ## KST 타임스탬프
 

@@ -297,9 +297,9 @@ export class TransactionService {
       throw new BadRequestException(`양식 헤더 누락: ${missingHeader.join(', ')}`);
     }
 
-    // 카테고리 라벨 → 코드 (해당 사용자의 transaction 도메인)
+    // 카테고리 라벨 → 코드 (소분류만 — 대분류는 거래에 직접 저장 안 함, 동명 라벨 충돌 방지)
     const cats = await this.prisma.category.findMany({
-      where: { user_id: userId, domain: 'transaction' },
+      where: { user_id: userId, domain: 'transaction', parent_code: { not: null } },
       select: { code: true, label: true },
     });
     const catCode = new Map(cats.map((c) => [c.label, c.code]));

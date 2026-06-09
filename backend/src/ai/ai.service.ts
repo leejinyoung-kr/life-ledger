@@ -7,8 +7,10 @@ import type { ReportPeriod } from './dto/generate-report.dto';
 export interface LedgerParseResult {
   type: 'income' | 'expense' | 'transfer';
   amount: number;
-  category: string | null;
+  category: string | null; // 소분류(leaf) code
   categoryLabel: string;
+  parentCode: string | null; // 대분류 code (소분류에서 파생)
+  parentLabel: string;
   title: string;
   payMethod: string;
   memo: string;
@@ -100,14 +102,25 @@ export class AiService {
       where: { user_id: userId, domain: 'transaction', is_active: true },
       orderBy: { sort_order: 'asc' },
     });
-    const categoryList = categories.map((c) => `- ${c.label} (code: ${c.code})`).join('\n');
+    // 2계층: 대분류(parent_code=null) 아래 소분류를 묶어 제시. AI 는 소분류 code 만 선택
+    const parents = categories.filter((c) => !c.parent_code);
+    const leaves = categories.filter((c) => c.parent_code);
+    const categoryList = parents
+      .map((p) => {
+        const children = leaves
+          .filter((l) => l.parent_code === p.code)
+          .map((l) => `  - ${l.label} (code: ${l.code})`)
+          .join('\n');
+        return `[${p.label}]\n${children}`;
+      })
+      .join('\n');
     const today = toDateStr(new Date());
 
     const systemPrompt = `당신은 가계부 거래 파싱 AI입니다. 사용자의 자연어 텍스트를 분석해서 거래 정보를 JSON으로만 반환하세요.
 
 오늘 날짜: ${today}
 
-사용 가능한 카테고리 목록:
+사용 가능한 카테고리 목록 (대괄호=대분류, 그 아래가 소분류):
 ${categoryList}
 
 사용 가능한 결제수단: ${PAY_METHODS.join(', ')}
@@ -116,7 +129,7 @@ ${categoryList}
 {
   "type": "expense" 또는 "income" 또는 "transfer",
   "amount": 숫자 (원 단위, 만원 단위 자동 변환),
-  "category": "카테고리 code (목록에서 선택, 매칭 불가 시 null)",
+  "category": "소분류 code (목록의 소분류 중 선택, 매칭 불가 시 null)",
   "title": "내역명 (품목·상호 등, 없으면 빈 문자열)",
   "payMethod": "결제수단 (목록에서 선택, 지출이 아니거나 알 수 없으면 빈 문자열)",
   "memo": "메모 (없으면 빈 문자열)",
@@ -125,9 +138,10 @@ ${categoryList}
 
 규칙:
 - "만원" 표현은 × 10000 변환 (1만5천원 → 15000)
-- 카테고리는 목록에서 의미가 가장 유사한 항목의 code 선택
-- 식당·음식·배달·카페는 식비류, 지하철·버스·택시·주유는 교통류 카테고리 선택
-- 월급·용돈·이자 수령·환급 등은 income, 계좌·자산 간 이동(저축 등)은 transfer, 그 외 대부분은 expense`;
+- category 는 반드시 소분류(들여쓴 항목)의 code 만 선택. 대분류 code 는 사용 금지
+- 소분류를 특정하기 어려우면 해당 대분류의 "기타…" 소분류 선택. 대분류조차 불명확하면 null
+- 식당·회식은 외식, 카페·간식은 카페·간식, 마트·장보기는 식료품 / 지하철·버스는 대중교통, 택시는 택시, 주유는 유류비
+- 월급·용돈·이자·환급 등은 income(수입 대분류 소분류), 저축·계좌 간 이동은 transfer(이체), 그 외 대부분은 expense`;
 
     const response = await openai.chat.completions.create({
       model,
@@ -141,7 +155,9 @@ ${categoryList}
 
     const raw = response.choices[0].message.content ?? '{}';
     const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const matched = categories.find((c) => c.code === parsed['category']);
+    // 소분류만 유효한 매칭으로 인정 (대분류 code 반환 시 무시)
+    const matched = leaves.find((c) => c.code === parsed['category']);
+    const parent = matched ? parents.find((p) => p.code === matched.parent_code) ?? null : null;
     const type = parsed['type'];
 
     return {
@@ -149,6 +165,8 @@ ${categoryList}
       amount: Number(parsed['amount']) || 0,
       category: matched?.code ?? null,
       categoryLabel: matched?.label ?? '',
+      parentCode: parent?.code ?? null,
+      parentLabel: parent?.label ?? '',
       title: String(parsed['title'] ?? ''),
       payMethod: PAY_METHODS.includes(parsed['payMethod'] as string) ? (parsed['payMethod'] as string) : '',
       memo: String(parsed['memo'] ?? ''),

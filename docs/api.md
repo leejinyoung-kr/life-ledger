@@ -179,10 +179,12 @@ Base URL: `http://localhost:8000/api/v1`
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | /categories?domain= | 카테고리 목록 (도메인 필터 선택) |
-| POST | /categories | 카테고리 추가 |
+| POST | /categories | 카테고리 추가 (`parentCode` 주면 소분류, 없으면 대분류) |
 | POST | /categories/seed?domain= | 기본 카테고리 시드 (도메인 미지정 시 전체) |
-| PATCH | /categories/:id | 카테고리 수정 |
+| PATCH | /categories/:id | 카테고리 수정 (label·parentCode·sortOrder·isActive) |
 | DELETE | /categories/:id | 카테고리 삭제 |
+
+> 가계부(`transaction`) 도메인은 2계층: 응답에 `parentCode`(대분류 code, 대분류면 null) 포함. 거래는 소분류 code 만 저장. 상세: [category-migration.md](category-migration.md)
 
 ## 통합 검색
 

@@ -6,7 +6,7 @@
  * @dnd-kit 으로 드래그 순서 변경 → 순서가 바뀐 항목만 PATCH 호출(최소 요청).
  * 스타일: Tailwind + 공통 컴포넌트(Button/Card). 드래그 transform 은 dnd-kit inline style.
  */
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { Fragment, useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
   DndContext,
@@ -58,9 +58,12 @@ interface CodeItem {
   domain: string;
   code: string;
   label: string;
+  parentCode: string | null; // 소분류면 대분류 code (가계부 도메인 2계층)
   sortOrder: number;
   isActive: boolean;
 }
+
+const NEW_PARENT = '__new__'; // 추가 폼에서 "새 대분류" 선택값
 
 export default function CodesPage() {
   const [domain, setDomain] = useState<Domain>('transaction');
@@ -68,6 +71,7 @@ export default function CodesPage() {
   const [loading, setLoading] = useState(false);
   const [newCode, setNewCode] = useState('');
   const [newLabel, setNewLabel] = useState('');
+  const [newParent, setNewParent] = useState(NEW_PARENT); // 가계부: 추가할 항목의 대분류 (NEW_PARENT=새 대분류)
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [saving, setSaving] = useState(false);
@@ -120,6 +124,48 @@ export default function CodesPage() {
     }
   }
 
+  // 가계부 2계층 드래그 — 대분류끼리 / 소분류는 같은 대분류 안에서만 정렬(부모 넘나들기 차단)
+  async function handleHierDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const a = items.find((i) => i.id === active.id);
+    const o = items.find((i) => i.id === over.id);
+    if (!a || !o) return;
+
+    const ps = items.filter((i) => !i.parentCode);
+    let newItems: CodeItem[] | null = null;
+
+    if (!a.parentCode && !o.parentCode) {
+      // 대분류끼리 재정렬
+      const from = ps.findIndex((p) => p.id === a.id);
+      const to = ps.findIndex((p) => p.id === o.id);
+      const np = arrayMove(ps, from, to);
+      newItems = np.flatMap((p) => [p, ...items.filter((i) => i.parentCode === p.code)]);
+    } else if (a.parentCode && a.parentCode === o.parentCode) {
+      // 같은 대분류의 소분류끼리 재정렬
+      const sibs = items.filter((i) => i.parentCode === a.parentCode);
+      const from = sibs.findIndex((s) => s.id === a.id);
+      const to = sibs.findIndex((s) => s.id === o.id);
+      const ns = arrayMove(sibs, from, to);
+      newItems = ps.flatMap((p) => [p, ...(p.code === a.parentCode ? ns : items.filter((i) => i.parentCode === p.code))]);
+    } else {
+      return; // 부모 넘나들기·타입 불일치 차단
+    }
+
+    // 트리 순서대로 sort_order 재계산 + 바뀐 행만 PATCH
+    const withOrder = newItems.map((it, idx) => ({ ...it, sortOrder: idx + 1 }));
+    setItems(withOrder); // 낙관적 갱신
+    const updates = withOrder.filter((it) => items.find((p) => p.id === it.id)?.sortOrder !== it.sortOrder);
+    try {
+      await Promise.all(updates.map((it) => api.patch(`/categories/${it.id}`, { sortOrder: it.sortOrder })));
+      notify.success('순서가 변경됐습니다.');
+      load();
+    } catch {
+      notify.error('순서 저장에 실패했습니다.');
+      load();
+    }
+  }
+
   // 항목 추가
   async function add() {
     if (!newCode.trim() || !newLabel.trim()) {
@@ -128,10 +174,13 @@ export default function CodesPage() {
     }
     setSaving(true);
     try {
+      // 가계부 도메인에서 대분류 선택 시 소분류로 등록(parentCode), "새 대분류"면 대분류로 등록
+      const parentCode = hierDomain && newParent !== NEW_PARENT ? newParent : undefined;
       await api.post('/categories', {
         domain,
         code: newCode.trim().toLowerCase().replace(/\s+/g, '_'),
         label: newLabel.trim(),
+        parentCode,
       });
       notify.added('항목');
       setNewCode(''); setNewLabel('');
@@ -192,6 +241,10 @@ export default function CodesPage() {
   }
 
   const currentDomain = DOMAINS.find((d) => d.key === domain)!;
+  // 가계부 도메인만 2계층(대분류→소분류) — 그룹 렌더 + 추가 시 대분류 선택
+  const hierDomain = domain === 'transaction';
+  const parentItems = items.filter((i) => !i.parentCode);
+  const childrenOf = (code: string) => items.filter((i) => i.parentCode === code);
 
   return (
     <AppShell activePath="/codes" topbarLabel="코드 관리">
@@ -233,38 +286,83 @@ export default function CodesPage() {
           )}
 
           <div className="max-h-64.5 md:max-h-118.25 overflow-y-auto">
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={items.map((i) => i.id)}
-                strategy={verticalListSortingStrategy}
+            {/* 가계부: 대분류 → 소분류 그룹(드래그 없음). 그 외 도메인: 드래그 정렬 평면 목록 */}
+            {hierDomain ? (
+              !loading && (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleHierDragEnd}>
+                  {/* 대분류끼리 정렬 */}
+                  <SortableContext items={parentItems.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                    {parentItems.map((p) => (
+                      <Fragment key={p.id}>
+                        <SortableGroupRow
+                          item={p} isParent
+                          editingId={editingId} editLabel={editLabel} onEditLabelChange={setEditLabel}
+                          onEdit={(it) => { setEditingId(it.id); setEditLabel(it.label); }}
+                          onEditSave={() => saveEdit(p.id)} onEditCancel={() => setEditingId(null)}
+                          onToggle={toggleActive} onDelete={remove}
+                        />
+                        {/* 같은 대분류 안 소분류끼리 정렬 */}
+                        <SortableContext items={childrenOf(p.code).map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                          {childrenOf(p.code).map((c) => (
+                            <SortableGroupRow
+                              key={c.id} item={c}
+                              editingId={editingId} editLabel={editLabel} onEditLabelChange={setEditLabel}
+                              onEdit={(it) => { setEditingId(it.id); setEditLabel(it.label); }}
+                              onEditSave={() => saveEdit(c.id)} onEditCancel={() => setEditingId(null)}
+                              onToggle={toggleActive} onDelete={remove}
+                            />
+                          ))}
+                        </SortableContext>
+                      </Fragment>
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              )
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                {items.map((item, idx) => (
-                  <SortableRow
-                    key={item.id}
-                    item={item}
-                    idx={idx}
-                    editingId={editingId}
-                    editLabel={editLabel}
-                    onEditLabelChange={setEditLabel}
-                    onEdit={(it) => { setEditingId(it.id); setEditLabel(it.label); }}
-                    onEditSave={() => saveEdit(item.id)}
-                    onEditCancel={() => setEditingId(null)}
-                    onToggle={toggleActive}
-                    onDelete={remove}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+                <SortableContext
+                  items={items.map((i) => i.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {items.map((item, idx) => (
+                    <SortableRow
+                      key={item.id}
+                      item={item}
+                      idx={idx}
+                      editingId={editingId}
+                      editLabel={editLabel}
+                      onEditLabelChange={setEditLabel}
+                      onEdit={(it) => { setEditingId(it.id); setEditLabel(it.label); }}
+                      onEditSave={() => saveEdit(item.id)}
+                      onEditCancel={() => setEditingId(null)}
+                      onToggle={toggleActive}
+                      onDelete={remove}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
           </div>
         </div>
 
         {/* 추가 폼 */}
         <div className="flex items-center gap-2 px-5 py-3 border-t border-border-subtle bg-surface">
           <IconPlus width={14} height={14} className="text-muted shrink-0" />
+          {hierDomain && (
+            <select
+              className="input w-auto min-w-[120px] shrink-0"
+              value={newParent}
+              onChange={(e) => setNewParent(e.target.value)}
+              aria-label="대분류"
+            >
+              <option value={NEW_PARENT}>+ 새 대분류</option>
+              {parentItems.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
+            </select>
+          )}
           <input
             type="text"
             className="input flex-1"
@@ -358,6 +456,82 @@ function SortableRow({
         <>
           <div className="flex-1 flex items-center gap-2 min-w-0">
             <span className={`text-[0.875rem] font-medium truncate ${item.isActive ? 'text-primary' : 'text-muted line-through'}`}>{item.label}</span>
+            {!item.isActive && <span className="text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-warning-dim text-warning shrink-0">비활성</span>}
+          </div>
+          <span className="text-[0.72rem] text-muted [font-family:var(--font-mono)] bg-elevated px-[7px] py-0.5 rounded-[4px] whitespace-nowrap shrink-0">{item.code}</span>
+          <div className="flex gap-1.5 shrink-0">
+            <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>수정</Button>
+            <Button variant={item.isActive ? 'ghost' : 'primary'} size="sm" onClick={() => onToggle(item.id, item.isActive)}>
+              {item.isActive ? '비활성' : '활성'}
+            </Button>
+            <Button variant="danger" size="sm" onClick={() => onDelete(item.id)}>삭제</Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── 2계층(가계부) 그룹 행 — 드래그 정렬. isParent=대분류 헤더(대분류끼리), 아니면 들여쓴 소분류(같은 부모 안) ──
+interface SortableGroupRowProps {
+  item: CodeItem;
+  isParent?: boolean;
+  editingId: number | null;
+  editLabel: string;
+  onEditLabelChange: (v: string) => void;
+  onEdit: (item: CodeItem) => void;
+  onEditSave: () => void;
+  onEditCancel: () => void;
+  onToggle: (id: number, isActive: boolean) => void;
+  onDelete: (id: number) => void;
+}
+
+function SortableGroupRow({
+  item, isParent,
+  editingId, editLabel, onEditLabelChange,
+  onEdit, onEditSave, onEditCancel,
+  onToggle, onDelete,
+}: SortableGroupRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: item.id });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : item.isActive ? 1 : 0.55,
+    zIndex: isDragging ? 1 : undefined,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className={`flex items-center gap-2.5 px-5 py-2.5 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface ${isParent ? 'bg-surface' : 'bg-background pl-8'}`}>
+      <button
+        type="button"
+        className="flex items-center justify-center w-7 h-7 rounded-[var(--radius)] text-muted cursor-grab transition-colors hover:bg-elevated hover:text-secondary shrink-0 touch-none active:cursor-grabbing"
+        aria-label="순서 변경"
+        {...attributes}
+        {...listeners}
+      >
+        <IconDrag width={14} height={14} />
+      </button>
+      {editingId === item.id ? (
+        <div className="flex items-center gap-2 flex-1">
+          <input
+            type="text"
+            className="input flex-1 min-w-0"
+            value={editLabel}
+            onChange={(e) => onEditLabelChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onEditSave();
+              if (e.key === 'Escape') onEditCancel();
+            }}
+            autoFocus
+          />
+          <Button size="sm" onClick={onEditSave}>저장</Button>
+          <Button variant="ghost" size="sm" onClick={onEditCancel}>취소</Button>
+        </div>
+      ) : (
+        <>
+          <div className="flex-1 flex items-center gap-2 min-w-0">
+            <span className={`truncate ${isParent ? 'text-[0.9rem] font-bold' : 'text-[0.875rem] font-medium'} ${item.isActive ? 'text-primary' : 'text-muted line-through'}`}>{item.label}</span>
             {!item.isActive && <span className="text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-warning-dim text-warning shrink-0">비활성</span>}
           </div>
           <span className="text-[0.72rem] text-muted [font-family:var(--font-mono)] bg-elevated px-[7px] py-0.5 rounded-[4px] whitespace-nowrap shrink-0">{item.code}</span>

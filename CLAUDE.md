@@ -100,7 +100,7 @@ doc-nexus/
 | CalendarEvent | user_id, date, type, title, memo | 구현 완료 |
 | SecurityRisk | user_id, category, severity, title, resolved | 구현 완료 |
 | LoginSession | user_id, device, device_type, location, is_current, revoked_at | 구현 완료 |
-| Category | user_id, domain, code, label, sort_order, is_active | 구현 완료 |
+| Category | user_id, domain, code, label, parent_code(2계층), sort_order, is_active | 구현 완료 |
 | IdentityCard | user_id, type, name, number_enc(암호문), file_id(사본), issue/expire_date | 구현 완료 |
 | Credential | user_id, name, category, username, password_enc, totp_enc, backup_codes_enc, password_changed_at | 구현 완료 |
 | EnvProject | user_id, name, description | 구현 완료 |
@@ -235,3 +235,4 @@ CREATE TRIGGER `tr_xxx_bi` BEFORE INSERT ON `xxx` FOR EACH ROW SET NEW.created_a
 
 - [docs/erd.md](docs/erd.md) — DB 엔티티 정의
 - [docs/api.md](docs/api.md) — API 명세
+- [docs/category-migration.md](docs/category-migration.md) — 카테고리 2계층 구조 + 엑셀→앱 매칭표(실데이터 마이그레이션용)

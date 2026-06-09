@@ -13,6 +13,12 @@ export class CreateCategoryDto {
   @MaxLength(100)
   label: string;
 
+  // 소분류면 대분류 code, 대분류면 미지정
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  parentCode?: string;
+
   @IsOptional()
   @IsInt()
   @Min(0)

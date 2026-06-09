@@ -11,6 +11,7 @@ export interface Category {
   domain: string;
   code: string;
   label: string;
+  parentCode: string | null; // 소분류면 대분류 code, 대분류·단일계층이면 null
   sortOrder: number;
   isActive: boolean;
 }
@@ -122,28 +123,6 @@ export const WEEKEND_ADJUST_LABEL: Record<WeekendAdjust, string> = {
   before: '전 금요일',
   after: '다음 월요일',
 };
-
-// 카테고리 코드 → 이모지+한글 칩 라벨
-export const CATEGORY_LABEL: Record<string, string> = {
-  food: '🍚 식비',
-  transport: '🚌 교통',
-  subscription: '📺 구독',
-  shopping: '🛍️ 쇼핑',
-  salary: '💰 급여',
-  transfer: '💳 자산이동',
-  etc: '📦 기타',
-};
-
-// 가계부 입력 폼에서 고르는 카테고리 옵션
-export const CATEGORY_OPTIONS: { value: string; label: string }[] = [
-  { value: 'food', label: '식비' },
-  { value: 'transport', label: '교통' },
-  { value: 'subscription', label: '구독' },
-  { value: 'shopping', label: '쇼핑' },
-  { value: 'salary', label: '급여' },
-  { value: 'transfer', label: '자산이동' },
-  { value: 'etc', label: '기타' },
-];
 
 export const PAY_METHODS = ['신한카드', '카카오페이', '현금', '계좌이체'];
 

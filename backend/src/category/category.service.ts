@@ -4,22 +4,32 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
+// 가계부 2계층 트리 (대분류→소분류) — 코드페이지 기본값 복원·시드에서 공용
+const TX_TREE: { code: string; label: string; children: [string, string][] }[] = [
+  { code: 'food',      label: '식비',     children: [['food_grocery', '식료품'], ['food_dining', '외식'], ['food_cafe', '카페·간식'], ['food_etc', '기타(식비)']] },
+  { code: 'beauty',    label: '꾸밈비',   children: [['beauty_clothing', '의류·잡화'], ['beauty_cosmetic', '화장품'], ['beauty_hair', '미용'], ['beauty_etc', '기타(꾸밈비)']] },
+  { code: 'living',    label: '생활비',   children: [['living_daily', '생필품'], ['living_appliance', '가구·가전'], ['living_housing', '주거관련'], ['living_etc', '기타(생활비)']] },
+  { code: 'insurance', label: '보험·통신', children: [['insurance_telecom', '통신비'], ['insurance_premium', '보험'], ['insurance_subscription', '구독·정기결제'], ['insurance_etc', '기타(보험·통신)']] },
+  { code: 'car',       label: '차량유지', children: [['car_fuel', '유류비'], ['car_maintenance', '정비·수리'], ['car_etc', '기타(차량)']] },
+  { code: 'transport', label: '교통비',   children: [['transport_transit', '대중교통'], ['transport_taxi', '택시'], ['transport_intercity', '시외·항공'], ['transport_etc', '기타(교통)']] },
+  { code: 'leisure',   label: '여가생활', children: [['leisure_travel', '여행'], ['leisure_culture', '영화·공연'], ['leisure_exercise', '운동'], ['leisure_etc', '기타(여가)']] },
+  { code: 'health',    label: '건강',     children: [['health_hospital', '병원'], ['health_pharmacy', '약국'], ['health_supplement', '건강보조제'], ['health_etc', '기타(건강)']] },
+  { code: 'selfdev',   label: '자기계발', children: [['selfdev_book', '도서'], ['selfdev_edu', '교육·강의'], ['selfdev_etc', '기타(자기계발)']] },
+  { code: 'event',     label: '경조사',   children: [['event_condolence', '부조'], ['event_gift', '선물'], ['event_gathering', '모임·회비'], ['event_etc', '기타(경조사)']] },
+  { code: 'etc',       label: '기타',     children: [['etc_interest', '이자'], ['etc_fee', '수수료'], ['etc_tax', '세금'], ['etc_rentfee', '임대관리비'], ['etc_etc', '기타']] },
+  { code: 'income',    label: '수입',     children: [['income_salary', '급여'], ['income_side', '부수입'], ['income_financial', '금융수입'], ['income_etc', '기타수입']] },
+  { code: 'transfer',  label: '이체',     children: [['transfer_move', '저축·계좌이체']] },
+];
+
+// TX_TREE → flat 시드 행 (대분류 + 소분류, 트리 순서)
+const TX_SEED: { code: string; label: string; parent?: string }[] = TX_TREE.flatMap((p) => [
+  { code: p.code, label: p.label },
+  ...p.children.map(([code, label]) => ({ code, label, parent: p.code })),
+]);
+
 // 도메인별 기본 카테고리 시드 데이터
-const SEED: Record<CategoryDomain, { code: string; label: string }[]> = {
-  transaction: [
-    { code: 'food', label: '식비' },
-    { code: 'transport', label: '교통' },
-    { code: 'subscription', label: '구독' },
-    { code: 'shopping', label: '쇼핑' },
-    { code: 'medical', label: '의료' },
-    { code: 'leisure', label: '여가' },
-    { code: 'education', label: '교육' },
-    { code: 'utility', label: '공과금' },
-    { code: 'salary', label: '급여' },
-    { code: 'freelance', label: '부수입' },
-    { code: 'transfer', label: '이체' },
-    { code: 'etc', label: '기타' },
-  ],
+const SEED: Record<CategoryDomain, { code: string; label: string; parent?: string }[]> = {
+  transaction: TX_SEED,
   subscription: [
     { code: 'ott', label: 'OTT' },
     { code: 'music', label: '음악' },
@@ -95,12 +105,13 @@ const SEED: Record<CategoryDomain, { code: string; label: string }[]> = {
 export class CategoryService {
   constructor(private prisma: PrismaService) {}
 
-  private toDto(c: { id: number; domain: string; code: string; label: string; sort_order: number; is_active: boolean }) {
+  private toDto(c: { id: number; domain: string; code: string; label: string; parent_code: string | null; sort_order: number; is_active: boolean }) {
     return {
       id: c.id,
       domain: c.domain,
       code: c.code,
       label: c.label,
+      parentCode: c.parent_code,
       sortOrder: c.sort_order,
       isActive: c.is_active,
     };
@@ -137,6 +148,7 @@ export class CategoryService {
         domain: dto.domain,
         code: dto.code,
         label: dto.label,
+        parent_code: dto.parentCode ?? null,
         sort_order: dto.sortOrder ?? nextOrder,
       },
     });
@@ -152,6 +164,7 @@ export class CategoryService {
       where: { id },
       data: {
         ...(dto.label !== undefined && { label: dto.label }),
+        ...(dto.parentCode !== undefined && { parent_code: dto.parentCode || null }),
         ...(dto.sortOrder !== undefined && { sort_order: dto.sortOrder }),
         ...(dto.isActive !== undefined && { is_active: dto.isActive }),
       },
@@ -175,12 +188,13 @@ export class CategoryService {
     for (const d of domains) {
       let created = 0;
       for (let i = 0; i < SEED[d].length; i++) {
-        const { code, label } = SEED[d][i];
+        const { code, label, parent } = SEED[d][i];
         try {
           await this.prisma.category.upsert({
             where: { user_id_domain_code: { user_id: userId, domain: d, code } },
-            update: {},
-            create: { user_id: userId, domain: d, code, label, sort_order: i },
+            // 기존 행은 부모 코드만 보강(2계층 도입 전 시드된 행 호환)
+            update: { parent_code: parent ?? null },
+            create: { user_id: userId, domain: d, code, label, parent_code: parent ?? null, sort_order: i + 1 },
           });
           created++;
         } catch { /* skip duplicates */ }

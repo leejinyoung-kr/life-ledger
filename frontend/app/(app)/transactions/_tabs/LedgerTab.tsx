@@ -18,7 +18,7 @@ import { useApiQuery, useInvalidate } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { downloadTransactionTemplate } from '@/lib/excel';
 import {
-  CATEGORY_LABEL, PAY_METHODS, TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL,
+  PAY_METHODS, TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL,
   won, signedWon, dotDate,
   type Category, type Transaction, type TransactionSummary, type TrendBucket,
   type TransactionType, type RecurringCycle, type WeekendAdjust,
@@ -85,6 +85,9 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
   }, [addTrigger]);
 
   const catMap = Object.fromEntries(categories.map((c) => [c.code, c.label]));
+  // 2계층: 대분류(parentCode 없음) / 소분류(parentCode 있음) 분리. 필터·엑셀·표시에 사용
+  const parentCats = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
+  const leafCats = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
 
   function search() { setApplied({ from: pendingFrom, to: pendingTo, type: pendingType, cat: pendingCat, q: pendingQ }); setPage(1); }
 
@@ -165,7 +168,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
 
   async function downloadTemplate() {
     try {
-      await downloadTransactionTemplate(categories.map((c) => c.label));
+      await downloadTransactionTemplate(leafCats.map((c) => c.label));
       notify.excelDownloaded();
     } catch {
       notify.error('양식 생성에 실패했습니다.');
@@ -280,7 +283,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
                 <div className="py-2.5 border-b border-border-subtle last:border-b-0" key={r.id}>
                   <div className="text-[0.84rem] font-medium">{r.title} — {won(r.amount)}</div>
                   <div className="text-[0.72rem] text-muted">
-                    {CATEGORY_LABEL[r.category] ?? r.category} · {TX_TYPE_LABEL[r.type]}
+                    {catMap[r.category] ?? r.category} · {TX_TYPE_LABEL[r.type]}
                     {r.recurringRule && (
                       <> · {CYCLE_LABEL[r.recurringRule.cycle]} {r.recurringRule.day}일
                       {r.recurringRule.weekendAdjust !== 'none' && ` · 주말→${WEEKEND_ADJUST_LABEL[r.recurringRule.weekendAdjust]}`}
@@ -328,7 +331,13 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
           </select>
           <select className="input w-auto min-w-[120px] shrink-0" value={pendingCat} onChange={(ev) => setPendingCat(ev.target.value)} aria-label="카테고리 필터">
             <option value="">전체 카테고리</option>
-            {categories.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+            {parentCats.map((p) => (
+              <optgroup key={p.code} label={p.label}>
+                {leafCats.filter((l) => l.parentCode === p.code).map((c) => (
+                  <option key={c.code} value={c.code}>{c.label}</option>
+                ))}
+              </optgroup>
+            ))}
           </select>
           <div className="relative flex-1 min-w-[160px]">
             <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
@@ -482,12 +491,22 @@ function AiLedgerInput({ onResult }: { onResult: (draft: LedgerDraft) => void })
   );
 }
 
+// 대분류 code → 거래 유형 (income/transfer 대분류만 해당 유형, 나머지는 지출)
+function parentTypeOf(parentCode: string | null | undefined): TransactionType {
+  if (parentCode === 'income') return 'income';
+  if (parentCode === 'transfer') return 'transfer';
+  return 'expense';
+}
+
 function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalState; categories: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
+  const parents = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
+  const leaves = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
   const [type, setType] = useState<TransactionType>('expense');
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('food');
+  const [parentCode, setParentCode] = useState('');
+  const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
   const [payMethod, setPayMethod] = useState(PAY_METHODS[0]);
   const [memo, setMemo] = useState('');
@@ -506,10 +525,17 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
     setErrors({});
     setScope('one');
     const pf = state.prefill;
-    setType(e?.type ?? pf?.type ?? 'expense');
+    // 소분류 code(leaf) 기준으로 대분류·유형을 일관되게 파생 (leaf 없으면 유형→첫 대분류→첫 소분류)
+    const leafCode = e?.category ?? pf?.category;
+    const leaf = leaves.find((l) => l.code === leafCode);
+    const initType: TransactionType = leaf ? parentTypeOf(leaf.parentCode) : (e?.type ?? pf?.type ?? 'expense');
+    const initParent = leaf?.parentCode ?? parents.find((p) => parentTypeOf(p.code) === initType)?.code ?? '';
+    const initLeaf = leaf?.code ?? leaves.find((l) => l.parentCode === initParent)?.code ?? '';
+    setType(initType);
     setDate(e?.date ?? pf?.date ?? new Date().toISOString().slice(0, 10));
     setTitle(e?.title ?? pf?.title ?? '');
-    setCategory(e?.category ?? pf?.category ?? categories[0]?.code ?? 'food');
+    setParentCode(initParent);
+    setCategory(initLeaf);
     setAmount(e ? String(e.amount) : pf?.amount ? String(pf.amount) : '');
     setPayMethod(e?.payMethod ?? pf?.payMethod ?? PAY_METHODS[0]);
     setMemo(e?.memo ?? pf?.memo ?? '');
@@ -529,6 +555,23 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
   }
 
   function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
+
+  // 유형 변경 시 해당 유형의 첫 대분류·소분류로 초기화 (지출↔수입↔이체 카테고리 분리)
+  function changeType(t: TransactionType) {
+    setType(t);
+    const fp = parents.find((p) => parentTypeOf(p.code) === t);
+    setParentCode(fp?.code ?? '');
+    setCategory(leaves.find((l) => l.parentCode === fp?.code)?.code ?? '');
+  }
+
+  // 대분류 변경 시 그 대분류의 첫 소분류로 설정
+  function changeParent(pc: string) {
+    setParentCode(pc);
+    setCategory(leaves.find((l) => l.parentCode === pc)?.code ?? '');
+  }
+
+  const availableParents = parents.filter((p) => parentTypeOf(p.code) === type);
+  const childLeaves = leaves.filter((l) => l.parentCode === parentCode);
 
   async function save() {
     if (!validate()) return;
@@ -567,7 +610,7 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
         </div>
       )}
       <Field label="유형" required>
-        <select className="input" value={type} onChange={(ev) => setType(ev.target.value as TransactionType)}>
+        <select className="input" value={type} onChange={(ev) => changeType(ev.target.value as TransactionType)}>
           <option value="expense">지출</option><option value="income">수입</option><option value="transfer">자산이동</option>
         </select>
       </Field>
@@ -578,15 +621,20 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
         <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 스타벅스" value={title} onChange={(ev) => { setTitle(ev.target.value); clearErr('title'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-        <Field label="카테고리" required>
-          <select className="input" value={category} onChange={(ev) => setCategory(ev.target.value)}>
-            {categories.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+        <Field label="대분류" required>
+          <select className="input" value={parentCode} onChange={(ev) => changeParent(ev.target.value)}>
+            {availableParents.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
           </select>
         </Field>
-        <Field label="금액 (원)" required error={errors.amount}>
-          <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }} />
+        <Field label="소분류" required>
+          <select className="input" value={category} onChange={(ev) => setCategory(ev.target.value)} disabled={childLeaves.length === 0}>
+            {childLeaves.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+          </select>
         </Field>
       </div>
+      <Field label="금액 (원)" required error={errors.amount}>
+        <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }} />
+      </Field>
       {type === 'expense' && (
         <Field label="결제수단" required>
           <select className="input" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>

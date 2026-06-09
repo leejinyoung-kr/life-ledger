@@ -10,23 +10,36 @@ type CatSeed = {
   domain: CategoryDomain;
   code: string;
   label: string;
+  parent_code?: string; // 소분류만 채움 (대분류·단일계층 도메인은 미지정 → NULL)
 };
+
+// 가계부 2계층 트리 (대분류 → 소분류) — flat CatSeed 로 펼쳐서 사용. 모든 대분류에 기타(catch-all) 포함(AI 파싱 fallback)
+const TX_TREE: { code: string; label: string; children: [string, string][] }[] = [
+  { code: 'food',      label: '식비',     children: [['food_grocery', '식료품'], ['food_dining', '외식'], ['food_cafe', '카페·간식'], ['food_etc', '기타(식비)']] },
+  { code: 'beauty',    label: '꾸밈비',   children: [['beauty_clothing', '의류·잡화'], ['beauty_cosmetic', '화장품'], ['beauty_hair', '미용'], ['beauty_etc', '기타(꾸밈비)']] },
+  { code: 'living',    label: '생활비',   children: [['living_daily', '생필품'], ['living_appliance', '가구·가전'], ['living_housing', '주거관련'], ['living_etc', '기타(생활비)']] },
+  { code: 'insurance', label: '보험·통신', children: [['insurance_telecom', '통신비'], ['insurance_premium', '보험'], ['insurance_subscription', '구독·정기결제'], ['insurance_etc', '기타(보험·통신)']] },
+  { code: 'car',       label: '차량유지', children: [['car_fuel', '유류비'], ['car_maintenance', '정비·수리'], ['car_etc', '기타(차량)']] },
+  { code: 'transport', label: '교통비',   children: [['transport_transit', '대중교통'], ['transport_taxi', '택시'], ['transport_intercity', '시외·항공'], ['transport_etc', '기타(교통)']] },
+  { code: 'leisure',   label: '여가생활', children: [['leisure_travel', '여행'], ['leisure_culture', '영화·공연'], ['leisure_exercise', '운동'], ['leisure_etc', '기타(여가)']] },
+  { code: 'health',    label: '건강',     children: [['health_hospital', '병원'], ['health_pharmacy', '약국'], ['health_supplement', '건강보조제'], ['health_etc', '기타(건강)']] },
+  { code: 'selfdev',   label: '자기계발', children: [['selfdev_book', '도서'], ['selfdev_edu', '교육·강의'], ['selfdev_etc', '기타(자기계발)']] },
+  { code: 'event',     label: '경조사',   children: [['event_condolence', '부조'], ['event_gift', '선물'], ['event_gathering', '모임·회비'], ['event_etc', '기타(경조사)']] },
+  { code: 'etc',       label: '기타',     children: [['etc_interest', '이자'], ['etc_fee', '수수료'], ['etc_tax', '세금'], ['etc_rentfee', '임대관리비'], ['etc_etc', '기타']] },
+  { code: 'income',    label: '수입',     children: [['income_salary', '급여'], ['income_side', '부수입'], ['income_financial', '금융수입'], ['income_etc', '기타수입']] },
+  { code: 'transfer',  label: '이체',     children: [['transfer_move', '저축·계좌이체']] },
+];
+
+// TX_TREE → flat CatSeed (대분류 행 + 소분류 행, 트리 순서 유지)
+const TX_CATEGORIES: CatSeed[] = TX_TREE.flatMap((p) => [
+  { domain: 'transaction' as const, code: p.code, label: p.label },
+  ...p.children.map(([code, label]) => ({ domain: 'transaction' as const, code, label, parent_code: p.code })),
+]);
 
 // 도메인별 기본 카테고리 목록
 const CATEGORIES: CatSeed[] = [
-  // ── 가계부 ──────────────────────────────
-  { domain: 'transaction', code: 'food',         label: '식비' },
-  { domain: 'transaction', code: 'transport',    label: '교통' },
-  { domain: 'transaction', code: 'subscription', label: '구독' },
-  { domain: 'transaction', code: 'shopping',     label: '쇼핑' },
-  { domain: 'transaction', code: 'medical',      label: '의료' },
-  { domain: 'transaction', code: 'leisure',      label: '여가' },
-  { domain: 'transaction', code: 'education',    label: '교육' },
-  { domain: 'transaction', code: 'utility',      label: '공과금' },
-  { domain: 'transaction', code: 'salary',       label: '급여' },
-  { domain: 'transaction', code: 'freelance',    label: '부수입' },
-  { domain: 'transaction', code: 'transfer',     label: '이체' },
-  { domain: 'transaction', code: 'etc',          label: '기타' },
+  // ── 가계부 (대분류→소분류) ───────────────
+  ...TX_CATEGORIES,
 
   // ── 구독 ────────────────────────────────
   { domain: 'subscription', code: 'ott',      label: 'OTT' },
@@ -113,12 +126,13 @@ export const seedCategories: SeedFn = async (prisma, userId) => {
       domainCounters[c.domain] ??= 1;
       const sort_order = domainCounters[c.domain]++;
       return {
-        user_id:    userId,
-        domain:     c.domain,
-        code:       c.code,
-        label:      c.label,
+        user_id:     userId,
+        domain:      c.domain,
+        code:        c.code,
+        label:       c.label,
+        parent_code: c.parent_code ?? null,
         sort_order,
-        is_active:  true,
+        is_active:   true,
       };
     }),
   });

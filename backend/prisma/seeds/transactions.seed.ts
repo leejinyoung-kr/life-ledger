@@ -22,41 +22,41 @@ type TxSeed = {
 // 반복 거래 템플릿 (첫 달만 등록 — 이후 회차는 백엔드 materialize 가 현재 월까지 자동 생성)
 function fixedRows(): TxSeed[] {
   return [
-    { type: 'income',   date: '2026-01-25', title: '월급',         category: 'salary',       amount: 3200000, payMethod: '계좌이체', memo: '월 급여',      recurring: true, weekendAdjust: 'before' },
-    { type: 'transfer', date: '2026-01-30', title: '청약저축 납입', category: 'transfer',     amount:  200000, payMethod: '계좌이체', memo: '잔액에서 제외', recurring: true, weekendAdjust: 'none' },
-    { type: 'expense',  date: '2026-01-29', title: '넷플릭스',      category: 'subscription', amount:   17000, payMethod: '신한카드', memo: '월정액',       recurring: true, weekendAdjust: 'none' },
+    { type: 'income',   date: '2026-01-25', title: '월급',         category: 'income_salary',   amount: 3200000, payMethod: '계좌이체', memo: '월 급여',      recurring: true, weekendAdjust: 'before' },
+    { type: 'transfer', date: '2026-01-30', title: '청약저축 납입', category: 'transfer_move',   amount:  200000, payMethod: '계좌이체', memo: '잔액에서 제외', recurring: true, weekendAdjust: 'none' },
+    { type: 'expense',  date: '2026-01-29', title: '넷플릭스',      category: 'insurance_subscription', amount:   17000, payMethod: '신한카드', memo: '월정액',       recurring: true, weekendAdjust: 'none' },
   ];
 }
 
 // 월별 변동 거래 — 금액·카테고리·결제수단 섞어서
 const VARIABLE: TxSeed[] = [
-  { type: 'expense', date: '2026-01-03', title: '이마트 장보기', category: 'food', amount: 84300, payMethod: '신한카드', memo: '주간 장보기' },
-  { type: 'expense', date: '2026-01-12', title: '지하철 정기권', category: 'transport', amount: 55000, payMethod: '카카오페이' },
-  { type: 'expense', date: '2026-01-18', title: '무신사 패딩', category: 'shopping', amount: 129000, payMethod: '신한카드', memo: '겨울 외투' },
-  { type: 'income', date: '2026-01-22', title: '중고거래 판매', category: 'etc', amount: 45000, payMethod: '계좌이체', memo: '안 쓰는 키보드' },
+  { type: 'expense', date: '2026-01-03', title: '이마트 장보기', category: 'food_grocery', amount: 84300, payMethod: '신한카드', memo: '주간 장보기' },
+  { type: 'expense', date: '2026-01-12', title: '지하철 정기권', category: 'transport_transit', amount: 55000, payMethod: '카카오페이' },
+  { type: 'expense', date: '2026-01-18', title: '무신사 패딩', category: 'beauty_clothing', amount: 129000, payMethod: '신한카드', memo: '겨울 외투' },
+  { type: 'income', date: '2026-01-22', title: '중고거래 판매', category: 'income_side', amount: 45000, payMethod: '계좌이체', memo: '안 쓰는 키보드' },
 
-  { type: 'expense', date: '2026-02-05', title: '스타벅스', category: 'food', amount: 6500, payMethod: '카카오페이', memo: '아메리카노' },
-  { type: 'expense', date: '2026-02-14', title: '발렌타인 선물', category: 'shopping', amount: 38000, payMethod: '현금' },
-  { type: 'expense', date: '2026-02-19', title: '택시', category: 'transport', amount: 12800, payMethod: '카카오페이', memo: '야근 귀가' },
-  { type: 'expense', date: '2026-02-24', title: '병원 진료', category: 'etc', amount: 23000, payMethod: '신한카드', memo: '감기' },
+  { type: 'expense', date: '2026-02-05', title: '스타벅스', category: 'food_cafe', amount: 6500, payMethod: '카카오페이', memo: '아메리카노' },
+  { type: 'expense', date: '2026-02-14', title: '발렌타인 선물', category: 'event_gift', amount: 38000, payMethod: '현금' },
+  { type: 'expense', date: '2026-02-19', title: '택시', category: 'transport_taxi', amount: 12800, payMethod: '카카오페이', memo: '야근 귀가' },
+  { type: 'expense', date: '2026-02-24', title: '병원 진료', category: 'health_hospital', amount: 23000, payMethod: '신한카드', memo: '감기' },
 
-  { type: 'expense', date: '2026-03-02', title: '쿠팡 생필품', category: 'shopping', amount: 47600, payMethod: '신한카드' },
-  { type: 'expense', date: '2026-03-09', title: '점심 회식', category: 'food', amount: 32000, payMethod: '현금' },
-  { type: 'expense', date: '2026-03-15', title: 'KTX 부산', category: 'transport', amount: 59800, payMethod: '신한카드', memo: '주말 여행' },
-  { type: 'income', date: '2026-03-28', title: '카드 캐시백', category: 'etc', amount: 18500, payMethod: '계좌이체' },
+  { type: 'expense', date: '2026-03-02', title: '쿠팡 생필품', category: 'living_daily', amount: 47600, payMethod: '신한카드' },
+  { type: 'expense', date: '2026-03-09', title: '점심 회식', category: 'food_dining', amount: 32000, payMethod: '현금' },
+  { type: 'expense', date: '2026-03-15', title: 'KTX 부산', category: 'transport_intercity', amount: 59800, payMethod: '신한카드', memo: '주말 여행' },
+  { type: 'income', date: '2026-03-28', title: '카드 캐시백', category: 'income_etc', amount: 18500, payMethod: '계좌이체' },
 
-  { type: 'expense', date: '2026-04-04', title: '올리브영', category: 'shopping', amount: 41200, payMethod: '카카오페이' },
-  { type: 'expense', date: '2026-04-11', title: '배달의민족', category: 'food', amount: 24500, payMethod: '카카오페이', memo: '치킨' },
-  { type: 'expense', date: '2026-04-17', title: '유튜브 프리미엄', category: 'subscription', amount: 14900, payMethod: '신한카드' },
-  { type: 'expense', date: '2026-04-23', title: '주유', category: 'transport', amount: 70000, payMethod: '신한카드' },
+  { type: 'expense', date: '2026-04-04', title: '올리브영', category: 'beauty_cosmetic', amount: 41200, payMethod: '카카오페이' },
+  { type: 'expense', date: '2026-04-11', title: '배달의민족', category: 'food_dining', amount: 24500, payMethod: '카카오페이', memo: '치킨' },
+  { type: 'expense', date: '2026-04-17', title: '유튜브 프리미엄', category: 'insurance_subscription', amount: 14900, payMethod: '신한카드' },
+  { type: 'expense', date: '2026-04-23', title: '주유', category: 'car_fuel', amount: 70000, payMethod: '신한카드' },
 
-  { type: 'expense', date: '2026-05-06', title: '어버이날 선물', category: 'shopping', amount: 150000, payMethod: '계좌이체', memo: '카네이션+상품권' },
-  { type: 'expense', date: '2026-05-13', title: '마트 장보기', category: 'food', amount: 67800, payMethod: '신한카드' },
-  { type: 'expense', date: '2026-05-20', title: '영화 2매', category: 'etc', amount: 28000, payMethod: '카카오페이' },
-  { type: 'income', date: '2026-05-31', title: '분기 성과급', category: 'salary', amount: 500000, payMethod: '계좌이체', memo: '1분기 인센티브' },
+  { type: 'expense', date: '2026-05-06', title: '어버이날 선물', category: 'event_gift', amount: 150000, payMethod: '계좌이체', memo: '카네이션+상품권' },
+  { type: 'expense', date: '2026-05-13', title: '마트 장보기', category: 'food_grocery', amount: 67800, payMethod: '신한카드' },
+  { type: 'expense', date: '2026-05-20', title: '영화 2매', category: 'leisure_culture', amount: 28000, payMethod: '카카오페이' },
+  { type: 'income', date: '2026-05-31', title: '분기 성과급', category: 'income_salary', amount: 500000, payMethod: '계좌이체', memo: '1분기 인센티브' },
 
-  { type: 'expense', date: '2026-06-01', title: '스타벅스', category: 'food', amount: 6500, payMethod: '카카오페이', memo: '아메리카노' },
-  { type: 'expense', date: '2026-06-02', title: '교통카드 충전', category: 'transport', amount: 30000, payMethod: '카카오페이' },
+  { type: 'expense', date: '2026-06-01', title: '스타벅스', category: 'food_cafe', amount: 6500, payMethod: '카카오페이', memo: '아메리카노' },
+  { type: 'expense', date: '2026-06-02', title: '교통카드 충전', category: 'transport_transit', amount: 30000, payMethod: '카카오페이' },
 ];
 
 // 한 사용자에게 수입/지출 더미를 채운다 (기존 행 제거 후 재삽입 → idempotent)
