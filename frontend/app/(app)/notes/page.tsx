@@ -229,7 +229,7 @@ export default function NotesPage() {
                 <button type="button" className={TB} onClick={() => wrap('\n---\n', '')} title="구분선">―</button>
               </div>
               <div className="ml-auto flex gap-1.5 items-center">
-                <Button variant="ghost" size="sm" onClick={saveNote} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
+                <Button variant="primary" size="sm" onClick={saveNote} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
                 <Button variant="danger" size="sm" onClick={deleteNote}>삭제</Button>
               </div>
             </div>

@@ -162,7 +162,7 @@ export default function TasksPage() {
                 </button>
                 <div className={`flex-1 text-[0.875rem] ${task.done ? 'text-muted line-through' : 'text-primary'}`}>{task.text}</div>
                 <div className={`text-[0.72rem] shrink-0 ${isSoon(task) ? 'text-warning font-semibold' : 'text-muted'}`}>{formatDue(task)}</div>
-                <button type="button" className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-(--radius) bg-danger-dim text-danger hover:bg-[rgba(240,68,56,0.15)] transition-all" onClick={() => removeTask(task.id)} aria-label="할일 삭제"><IconTrash width={12} height={12} /></button>
+                <button type="button" className="icon-btn-danger" onClick={() => removeTask(task.id)} aria-label="할일 삭제"><IconTrash width={12} height={12} /></button>
               </div>
             ))}
           </div>
@@ -186,8 +186,8 @@ export default function TasksPage() {
                   <span className="font-semibold text-[0.9rem] text-primary">{goal.name}</span>
                   <div className="flex items-center gap-1.5">
                     <span className="[font-family:var(--font-display)] font-bold text-accent mr-1">{goal.pct}%</span>
-                    <button type="button" className="w-7.5 h-7.5 inline-flex items-center justify-center rounded-(--radius) text-secondary border border-border hover:bg-surface hover:text-primary transition-all" onClick={() => setGoalModal({ open: true, editing: goal })} aria-label="수정"><IconEdit width={13} height={13} /></button>
-                    <button type="button" className="w-7.5 h-7.5 inline-flex items-center justify-center rounded-(--radius) bg-danger-dim text-danger hover:bg-[rgba(240,68,56,0.15)] transition-all" onClick={() => removeGoal(goal.id)} aria-label="삭제"><IconTrash width={13} height={13} /></button>
+                    <button type="button" className="icon-btn-bordered" onClick={() => setGoalModal({ open: true, editing: goal })} aria-label="수정"><IconEdit width={13} height={13} /></button>
+                    <button type="button" className="icon-btn-danger" onClick={() => removeGoal(goal.id)} aria-label="삭제"><IconTrash width={13} height={13} /></button>
                   </div>
                 </div>
                 <div className="track"><div className={`fill ${goal.tone}`} style={{ width: `${goal.pct}%` }} /></div>

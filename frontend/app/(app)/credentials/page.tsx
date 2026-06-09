@@ -211,8 +211,8 @@ export default function CredentialsPage() {
                   <td className="td-muted td-center">{fmtCredDate(c.updatedAt)}</td>
                   <td className="td-center" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-center gap-1">
-                      <button type="button" className={`${ICON_BTN} border border-border hover:text-primary`} onClick={() => setEdit({ open: true, editing: c })} aria-label="수정"><IconEdit width={14} height={14} /></button>
-                      <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center bg-danger-dim text-danger transition-all hover:bg-[rgba(240,68,56,0.15)]" onClick={() => remove(c)} aria-label="삭제"><IconTrash width={14} height={14} /></button>
+                      <button type="button" className="icon-btn-bordered" onClick={() => setEdit({ open: true, editing: c })} aria-label="수정"><IconEdit width={14} height={14} /></button>
+                      <button type="button" className="icon-btn-danger" onClick={() => remove(c)} aria-label="삭제"><IconTrash width={14} height={14} /></button>
                     </div>
                   </td>
                 </tr>

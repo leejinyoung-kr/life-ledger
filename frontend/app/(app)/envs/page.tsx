@@ -283,7 +283,7 @@ export default function EnvsPage() {
                 <Button variant="ghost" size="sm" onClick={openDiff}>환경 비교</Button>
                 <Button variant="ghost" size="sm" onClick={downloadExample}>.env.example</Button>
                 <Button variant="ghost" size="sm" onClick={() => setProjectModal({ open: true, editing: project })}>수정</Button>
-                <Button variant="ghost" size="sm" onClick={() => deleteProject(project)}>삭제</Button>
+                <Button variant="danger" size="sm" onClick={() => deleteProject(project)}>삭제</Button>
                 <Button size="sm" onClick={() => setVarModal({ open: true, editing: null })}>변수 추가</Button>
               </div>
             </div>
@@ -342,11 +342,11 @@ export default function EnvsPage() {
               </table>
               </div>
 
-              <div className="flex items-center gap-2.5 px-[18px] py-3 bg-surface border-t border-border">
-                <span className="text-[0.78rem] text-muted flex-1">.env 파일 형식으로 전체 복사</span>
+              <div className="flex flex-wrap items-center gap-2.5 px-[18px] py-3 bg-surface border-t border-border">
+                <span className="text-[0.78rem] text-muted flex-1 max-md:hidden">.env 파일 형식으로 전체 복사</span>
                 <Button variant="danger" disabled={selectedVars.size === 0} onClick={removeSelectedVars}>선택삭제</Button>
-                <Button variant="ghost" size="sm" onClick={copyAll}>전체 복사</Button>
-                <Button variant="ghost" size="sm" onClick={downloadEnv}>.env 다운로드</Button>
+                <Button variant="ghost" onClick={copyAll}>전체 복사</Button>
+                <Button variant="ghost" onClick={downloadEnv}>.env 다운로드</Button>
               </div>
             </div>
 
@@ -454,13 +454,13 @@ function EnvGroupRows({
             </td>
             <td className="td-center">
               <div className="flex justify-center gap-1">
-                <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center text-secondary border border-border transition-all hover:bg-surface hover:text-primary" onClick={() => onEdit(item)} aria-label="수정">
+                <button type="button" className="icon-btn-bordered" onClick={() => onEdit(item)} aria-label="수정">
                   <IconEdit width={14} height={14} />
                 </button>
-                <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center text-secondary border border-border transition-all hover:bg-surface hover:text-primary" onClick={() => onHistory(item)} aria-label="변경 이력">
+                <button type="button" className="icon-btn-bordered" onClick={() => onHistory(item)} aria-label="변경 이력">
                   <IconClock width={14} height={14} />
                 </button>
-                <button type="button" className="w-7 h-7 rounded-[5px] inline-flex items-center justify-center bg-danger-dim text-danger transition-all hover:bg-[rgba(240,68,56,0.15)]" onClick={() => onDelete(item)} aria-label="삭제">
+                <button type="button" className="icon-btn-danger" onClick={() => onDelete(item)} aria-label="삭제">
                   <IconTrash width={14} height={14} />
                 </button>
               </div>

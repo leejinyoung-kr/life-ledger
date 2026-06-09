@@ -349,7 +349,7 @@ export default function SettingsPage() {
                 </div>
                 <Row label="표시 이름" desc="대시보드 상단에 표시되는 이름">
                   <input type="text" className="input w-45" value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="표시 이름" />
-                  <Button variant="ghost" onClick={() => patch({ displayName })}>저장</Button>
+                  <Button onClick={() => patch({ displayName })}>저장</Button>
                 </Row>
               </Group>
               <Group title="알림">
@@ -437,7 +437,7 @@ export default function SettingsPage() {
             <Group title="OpenAI API">
               <Row label="API 키" desc={s.openaiApiKeySet ? `저장됨 (${s.openaiApiKeyMasked})` : 'AI 리포트 생성에 사용됩니다.'}>
                 <input type="password" className="input w-50 font-mono" placeholder={s.openaiApiKeySet ? '변경하려면 입력' : 'sk-proj-...'} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} aria-label="API 키" />
-                <Button variant="ghost" onClick={() => patch({ openaiApiKey: apiKeyInput || undefined }).then(() => setApiKeyInput(''))}>저장</Button>
+                <Button onClick={() => patch({ openaiApiKey: apiKeyInput || undefined }).then(() => setApiKeyInput(''))}>저장</Button>
               </Row>
               <Row label="모델" desc="리포트 생성에 사용할 OpenAI 모델">
                 <select className="input w-50 font-mono" aria-label="모델" value={openaiModel} onChange={(e) => { setOpenaiModel(e.target.value); patch({ openaiModel: e.target.value }); }}>

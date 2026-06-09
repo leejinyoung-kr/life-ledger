@@ -192,7 +192,7 @@ export default function CalendarPage() {
                     </div>
                     <button
                       type="button"
-                      className="shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-(--radius) bg-danger-dim text-danger hover:bg-[rgba(240,68,56,0.15)] transition-all"
+                      className="icon-btn-danger"
                       onClick={() => removeEvent(u)}
                       aria-label="일정 삭제"
                     ><IconTrash width={12} height={12} /></button>

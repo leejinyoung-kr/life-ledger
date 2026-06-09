@@ -10,7 +10,6 @@ export const TXCARD_TITLE = 'font-semibold text-[0.95rem] break-all';
 export const TXCARD_AMT = 'font-bold text-base whitespace-nowrap [font-family:var(--font-mono)]';
 export const TXCARD_SUB = 'mt-2 text-[0.78rem] text-secondary flex flex-wrap items-center gap-1.5';
 export const TXCARD_EMPTY = 'text-center text-muted py-7';
-export const ICON_BTN = 'w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] transition-all';
 
 export const AMT_COLOR: Record<TransactionType, string> = {
   income: 'text-accent',
@@ -27,8 +26,8 @@ export function monthsAgo(n: number): string {
 export function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
     <div className="flex justify-center gap-1">
-      <button type="button" className={`${ICON_BTN} text-secondary border border-border hover:bg-surface hover:text-primary`} onClick={onEdit} aria-label="수정"><IconEdit width={14} height={14} /></button>
-      <button type="button" className={`${ICON_BTN} bg-danger-dim text-danger hover:bg-[rgba(240,68,56,0.15)]`} onClick={onDelete} aria-label="삭제"><IconTrash width={14} height={14} /></button>
+      <button type="button" className="icon-btn-bordered" onClick={onEdit} aria-label="수정"><IconEdit width={14} height={14} /></button>
+      <button type="button" className="icon-btn-danger" onClick={onDelete} aria-label="삭제"><IconTrash width={14} height={14} /></button>
     </div>
   );
 }
