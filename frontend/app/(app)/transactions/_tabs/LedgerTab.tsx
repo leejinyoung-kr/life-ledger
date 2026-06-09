@@ -297,39 +297,51 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
         </Card>
       </div>
 
-      <div className="flex gap-2 flex-wrap items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
-        <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">엑셀</span>
-        <button type="button" className="excel-btn" onClick={downloadTemplate}>양식 다운로드</button>
-        <label className="excel-btn upload">
-          엑셀 업로드
-          <input type="file" accept=".xlsx,.xls,.csv" hidden aria-label="엑셀 업로드" onChange={handleUpload} />
-        </label>
-        <button type="button" className="excel-btn" onClick={downloadData}>데이터 다운로드</button>
-        <div className="w-px bg-border self-stretch mx-1 shrink-0" />
-        <span className="text-[0.75rem] font-semibold text-muted whitespace-nowrap mr-1">영수증</span>
-        <label className="excel-btn upload">
-          {scanning ? '인식 중...' : '📷 영수증 스캔'}
-          <input type="file" accept="image/*" hidden aria-label="영수증 스캔" disabled={scanning} onChange={scanReceipt} />
-        </label>
+      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5 px-4 py-3 bg-surface border border-border rounded-(--radius)">
+        <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
+          <span className="text-[0.75rem] font-semibold text-muted">엑셀</span>
+          <div className="flex gap-2 flex-wrap">
+            <button type="button" className="excel-btn" onClick={downloadTemplate}>양식 다운로드</button>
+            <label className="excel-btn upload">
+              엑셀 업로드
+              <input type="file" accept=".xlsx,.xls,.csv" hidden aria-label="엑셀 업로드" onChange={handleUpload} />
+            </label>
+            <button type="button" className="excel-btn" onClick={downloadData}>데이터 다운로드</button>
+          </div>
+        </div>
+        <div className="hidden md:block w-px bg-border self-stretch mx-1 shrink-0" />
+        <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
+          <span className="text-[0.75rem] font-semibold text-muted">영수증</span>
+          <div className="flex gap-2">
+            <label className="excel-btn upload">
+              {scanning ? '인식 중...' : '📷 영수증 스캔'}
+              <input type="file" accept="image/*" hidden aria-label="영수증 스캔" disabled={scanning} onChange={scanReceipt} />
+            </label>
+          </div>
+        </div>
       </div>
 
-      <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex flex-col gap-3 mb-4">
-        <div className="flex gap-2 items-center max-md:flex-wrap">
-          <input type="date" className="input flex-[0_0_140px] w-[140px]" value={pendingFrom} onChange={(ev) => { setPendingFrom(ev.target.value); setActivePreset(null); }} aria-label="조회 시작일" />
-          <span className="text-muted text-[0.82rem] shrink-0">~</span>
-          <input type="date" className="input flex-[0_0_140px] w-[140px]" value={pendingTo} onChange={(ev) => { setPendingTo(ev.target.value); setActivePreset(null); }} aria-label="조회 종료일" />
-          <div className="flex gap-1 shrink-0">
+      <div className="bg-surface border border-border rounded-lg px-5 py-4 flex flex-col gap-3 mb-4">
+        <div className="flex gap-2 items-center flex-wrap">
+          {/* PC: shrink-0으로 날짜 묶음 고정, 모바일: flex-1로 가득 채워 프리셋이 다음 줄로 */}
+          <div className="date-range-group flex items-center gap-2 shrink-0">
+            <input type="date" className="input date-range-input w-35" value={pendingFrom} onChange={(ev) => { setPendingFrom(ev.target.value); setActivePreset(null); }} aria-label="조회 시작일" />
+            <span className="text-muted text-[0.82rem] shrink-0 px-1">~</span>
+            <input type="date" className="input date-range-input w-35" value={pendingTo} onChange={(ev) => { setPendingTo(ev.target.value); setActivePreset(null); }} aria-label="조회 종료일" />
+          </div>
+          <div className="flex gap-1">
             <Button size="sm" variant={activePreset === 1 ? 'primary' : 'ghost'} onClick={() => applyPreset(1)}>1개월</Button>
             <Button size="sm" variant={activePreset === 2 ? 'primary' : 'ghost'} onClick={() => applyPreset(2)}>2개월</Button>
             <Button size="sm" variant={activePreset === 3 ? 'primary' : 'ghost'} onClick={() => applyPreset(3)}>3개월</Button>
           </div>
         </div>
-        <div className="flex gap-2 items-center max-md:flex-wrap">
-          <select className="input w-auto min-w-[120px] shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+        {/* 유형·카테고리·검색 한 줄 */}
+        <div className="flex gap-2 items-center flex-wrap">
+          <select className="input w-auto min-w-30 shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
             <option value="">전체 유형</option>
             <option value="income">수입</option><option value="expense">지출</option><option value="transfer">자산이동</option>
           </select>
-          <select className="input w-auto min-w-[120px] shrink-0" value={pendingCat} onChange={(ev) => setPendingCat(ev.target.value)} aria-label="카테고리 필터">
+          <select className="input w-auto min-w-30 shrink-0" value={pendingCat} onChange={(ev) => setPendingCat(ev.target.value)} aria-label="카테고리 필터">
             <option value="">전체 카테고리</option>
             {parentCats.map((p) => (
               <optgroup key={p.code} label={p.label}>
@@ -339,8 +351,8 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
               </optgroup>
             ))}
           </select>
-          <div className="relative flex-1 min-w-[160px]">
-            <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
+          <div className="relative flex-1 min-w-40">
+            <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
             <input className="input pl-icon" type="text" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && search()} aria-label="내역 검색" />
           </div>
           <Button onClick={search}>조회</Button>
@@ -471,7 +483,7 @@ function AiLedgerInput({ onResult }: { onResult: (draft: LedgerDraft) => void })
   }
 
   return (
-    <div className="flex gap-2 items-center mb-5 px-4 py-3 bg-surface border border-border rounded-[var(--radius)]">
+    <div className="flex gap-2 items-center mb-5 px-4 py-3 bg-surface border border-border rounded-(--radius)">
       <span className="text-[1.05rem] shrink-0" aria-hidden>✨</span>
       <input
         type="text"
@@ -484,7 +496,7 @@ function AiLedgerInput({ onResult }: { onResult: (draft: LedgerDraft) => void })
         disabled={loading}
       />
       <Button onClick={submit} disabled={loading || !text.trim()}>
-        {loading && <span className="inline-block w-[14px] h-[14px] border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+        {loading && <span className="inline-block w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
         {loading ? '분석 중...' : 'AI 입력'}
       </Button>
     </div>
@@ -599,7 +611,7 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '항목 수정' : '항목 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       {editingRecurring && (
-        <div className="flex flex-col gap-2 p-3.5 bg-surface border border-border rounded-[var(--radius)]">
+        <div className="flex flex-col gap-2 p-3.5 bg-surface border border-border rounded-(--radius)">
           <span className="text-[0.8rem] font-medium text-secondary">🔁 반복 거래 — 수정 범위</span>
           <div className="flex gap-4 flex-wrap text-[0.82rem] text-secondary [&_label]:flex [&_label]:items-center [&_label]:gap-1.5 [&_label]:cursor-pointer [&_input]:accent-accent">
             <label><input type="radio" name="scope" checked={scope === 'one'} onChange={() => setScope('one')} />이 항목만</label>
@@ -644,7 +656,7 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
       )}
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
 
-      <div className="flex flex-col gap-3 p-3.5 bg-surface border border-border rounded-[var(--radius)]">
+      <div className="flex flex-col gap-3 p-3.5 bg-surface border border-border rounded-(--radius)">
         <label className="flex items-center gap-2 text-[0.875rem] font-medium text-primary cursor-pointer select-none [&_input]:w-4 [&_input]:h-4 [&_input]:accent-accent [&_input]:cursor-pointer">
           <input type="checkbox" checked={isRecurring} onChange={(ev) => setIsRecurring(ev.target.checked)} />
           반복 거래로 등록
@@ -668,7 +680,7 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
               </Field>
             </div>
             <Field label="주말인 경우">
-              <div className="flex gap-5 flex-wrap [&_label]:flex [&_label]:items-center [&_label]:gap-[5px] [&_label]:text-[0.82rem] [&_label]:text-secondary [&_label]:cursor-pointer [&_input]:accent-accent">
+              <div className="flex gap-5 flex-wrap [&_label]:flex [&_label]:items-center [&_label]:gap-1.25 [&_label]:text-[0.82rem] [&_label]:text-secondary [&_label]:cursor-pointer [&_input]:accent-accent">
                 <label><input type="radio" name="weekendAdjust" value="none" checked={weekendAdjust === 'none'} onChange={() => setWeekendAdjust('none')} />조정 안 함</label>
                 <label><input type="radio" name="weekendAdjust" value="before" checked={weekendAdjust === 'before'} onChange={() => setWeekendAdjust('before')} />전 금요일</label>
                 <label><input type="radio" name="weekendAdjust" value="after" checked={weekendAdjust === 'after'} onChange={() => setWeekendAdjust('after')} />다음 월요일</label>

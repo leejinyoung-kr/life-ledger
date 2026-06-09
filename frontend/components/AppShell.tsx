@@ -56,9 +56,9 @@ export default function AppShell({
       />
       <div className="flex min-h-screen">
         <Sidebar activePath={activePath} open={sidebarOpen} onLogout={handleLogout} />
-        <div className="ml-[var(--sidebar-w)] flex-1 min-h-screen flex flex-col max-md:ml-0 max-md:pb-[calc(60px+env(safe-area-inset-bottom))]">
+        <div className="ml-[var(--sidebar-w)] flex-1 min-h-screen flex flex-col max-md:ml-0 max-md:pb-[calc(60px+env(safe-area-inset-bottom))] overflow-x-hidden">
           <TopBar label={topbarLabel} />
-          {bare ? children : <div className="p-8 w-full max-md:p-4">{children}</div>}
+          {bare ? children : <div className="p-8 w-full max-md:p-4 overflow-x-hidden">{children}</div>}
         </div>
       </div>
       {/* 모바일 하단 내비게이션 */}

@@ -30,7 +30,7 @@ function Tab({ active, onClick, icon, children }: { active: boolean; onClick: ()
   return (
     <button
       type="button"
-      className={`px-5 py-2.5 text-[0.875rem] cursor-pointer border-b-2 -mb-px transition-all flex items-center gap-1.75 [&_svg]:w-3.75 [&_svg]:h-3.75 max-md:px-3 max-md:text-[0.82rem] ${active ? 'text-accent border-accent font-semibold' : 'text-muted border-transparent font-medium hover:text-primary'}`}
+      className={`px-5 py-2.5 text-[0.875rem] cursor-pointer border-b-2 -mb-px transition-all flex items-center gap-1.75 whitespace-nowrap shrink-0 [&_svg]:w-3.75 [&_svg]:h-3.75 max-md:px-3 max-md:text-[0.82rem] ${active ? 'text-accent border-accent font-semibold' : 'text-muted border-transparent font-medium hover:text-primary'}`}
       onClick={onClick}
     >
       {icon}{children}
@@ -66,13 +66,18 @@ function TransactionsPageInner() {
         </div>
       </div>
 
-      <div className="flex gap-0 border-b border-border mb-6 items-center">
-        <Tab active={tab === 'ledger'} onClick={() => setTab('ledger')} icon={<IconWon />}>수입 / 지출</Tab>
-        <Tab active={tab === 'savings'} onClick={() => setTab('savings')} icon={<IconBank />}>예적금</Tab>
-        <Tab active={tab === 'invest'} onClick={() => setTab('invest')} icon={<IconTrendUp />}>투자</Tab>
-        <Tab active={tab === 'realestate'} onClick={() => setTab('realestate')} icon={<IconHome />}>부동산</Tab>
-        <Tab active={tab === 'debt'} onClick={() => setTab('debt')} icon={<IconCreditCard />}>부채</Tab>
-        <Button className="ml-auto mb-2.5" onClick={openAddModal}>{ADD_LABELS[tab]}</Button>
+      <div className="flex items-center gap-2 border-b border-border mb-6">
+        <div className="flex gap-0 overflow-x-auto flex-1 min-w-0 scrollbar-none">
+          <Tab active={tab === 'ledger'} onClick={() => setTab('ledger')} icon={<IconWon />}>수입 / 지출</Tab>
+          <Tab active={tab === 'savings'} onClick={() => setTab('savings')} icon={<IconBank />}>예적금</Tab>
+          <Tab active={tab === 'invest'} onClick={() => setTab('invest')} icon={<IconTrendUp />}>투자</Tab>
+          <Tab active={tab === 'realestate'} onClick={() => setTab('realestate')} icon={<IconHome />}>부동산</Tab>
+          <Tab active={tab === 'debt'} onClick={() => setTab('debt')} icon={<IconCreditCard />}>부채</Tab>
+        </div>
+        <Button className="shrink-0 mb-2.5" onClick={openAddModal}>
+          <span className="hidden md:inline">{ADD_LABELS[tab]}</span>
+          <span className="md:hidden">추가</span>
+        </Button>
       </div>
 
       {tab === 'ledger' && <LedgerTab categories={txCats} addTrigger={addTrigger.ledger} />}
