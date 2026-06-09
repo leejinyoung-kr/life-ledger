@@ -172,7 +172,8 @@ ${categoryList}
       orderBy: { created_at: 'desc' },
       select: { created_at: true },
     });
-    if (latest && kstDateStr(latest.created_at) === kstDateStr(new Date())) {
+    // created_at은 KST 트리거로 이미 KST 벽시계 시각이 저장되므로 toDateStr로 그대로 날짜 추출(kstDateStr 적용 시 +9h 이중 적용 버그)
+    if (latest && toDateStr(latest.created_at) === kstDateStr(new Date())) {
       const nowKst = new Date(Date.now() + 9 * 3600 * 1000);
       const msSinceKstMidnight = nowKst.getTime() - Date.UTC(nowKst.getUTCFullYear(), nowKst.getUTCMonth(), nowKst.getUTCDate());
       const remainingHours = Math.ceil((24 * 60 * 60 * 1000 - msSinceKstMidnight) / (60 * 60 * 1000));
