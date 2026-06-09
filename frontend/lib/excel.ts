@@ -4,7 +4,7 @@
  * 유형·카테고리·결제수단은 숨김 `options` 시트를 참조하는 드롭다운(데이터 검증)으로 입력 실수를 막는다.
  * 업로드 파싱(백엔드)이 라벨→코드로 역매핑하므로 셀에는 사람이 읽기 쉬운 한글 라벨을 넣는다.
  */
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
 import { PAY_METHODS } from './finance';
 
 // 양식 컬럼 정의 — 화면 테이블과 동일한 순서. 메모만 선택, 나머지는 필수(헤더에 * 표시).
@@ -27,7 +27,9 @@ const VALIDATION_ROWS = 1000;
 export async function downloadTransactionTemplate(
   categoryLabels: string[],
 ): Promise<void> {
-  const wb = new ExcelJS.Workbook();
+  // exceljs(~1.5MB)는 양식 다운로드 시점에만 필요 → 동적 import 로 초기 번들에서 제외
+  const { default: ExcelJSRuntime } = await import('exceljs');
+  const wb = new ExcelJSRuntime.Workbook();
   const ws = wb.addWorksheet('가계부');
 
   // 드롭다운 원본 목록을 담는 숨김 시트 (인라인 목록 255자 제한 회피)
