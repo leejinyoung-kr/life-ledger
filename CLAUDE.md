@@ -145,7 +145,6 @@ doc-nexus/
 | Backend — 데이터 내보내기/가져오기 (JSON·ZIP·복원) | 구현 완료 |
 | Backend — 영수증 OCR(클라이언트)·현금흐름 예측·통합 D-day | 구현 완료 |
 | Backend — AI 리포트 / 자연어 거래 파싱 (OpenAI, 사용자별 키) | 구현 완료 |
-| Backend — 시세 자동연동 | 미구현 |
 | DB | 26개 테이블 구현 완료 |
 
 ---
