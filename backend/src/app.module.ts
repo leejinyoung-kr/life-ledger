@@ -34,6 +34,7 @@ import { AccessLogModule } from './access-log/access-log.module';
 import { ImportModule } from './import/import.module';
 import { AiModule } from './ai/ai.module';
 import { PushModule } from './push/push.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { PushModule } from './push/push.module';
     ImportModule,
     AiModule,
     PushModule,
+    HealthModule,
   ],
   controllers: [AppController],
   // 전역 가드 — 요청량 제한(Throttler) 후 JWT 인증. @Public() 핸들러만 토큰 예외
