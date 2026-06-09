@@ -1,4 +1,13 @@
-import { Controller, Delete, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiExcludeController } from '@nestjs/swagger';
@@ -17,7 +26,7 @@ function refreshCookieOptions() {
   return {
     httpOnly: true,
     secure: isProd,
-    sameSite: (isProd ? 'none' : 'lax') as 'none' | 'lax',
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
   };
@@ -51,7 +60,10 @@ export class AuthController {
   @Public()
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
-  async googleCallback(@Req() req: Request & { user?: GoogleUser }, @Res() res: Response) {
+  async googleCallback(
+    @Req() req: Request & { user?: GoogleUser },
+    @Res() res: Response,
+  ) {
     const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
 
     // 화이트리스트 외 계정 등 인증 실패 — 프론트 로그인으로 에러 리다이렉트
@@ -72,9 +84,14 @@ export class AuthController {
   }
 
   // 갱신 토큰(쿠키)으로 새 access 발급 — access 만료 시 프론트가 호출
+  // 무제한 리프레시 시도 방지 — 분당 30회 제한
   @Public()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Post('refresh')
-  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const token = (req.cookies?.[REFRESH_COOKIE] as string | undefined) ?? '';
     const access = await this.authService.refresh(token);
     return { token: access };
@@ -84,7 +101,10 @@ export class AuthController {
   @Public()
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie(REFRESH_COOKIE, { ...refreshCookieOptions(), maxAge: undefined });
+    res.clearCookie(REFRESH_COOKIE, {
+      ...refreshCookieOptions(),
+      maxAge: undefined,
+    });
     return { ok: true };
   }
 }

@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -38,15 +47,19 @@ export class SecurityController {
     return this.service.sessions(user.id);
   }
 
-  // 전체 세션 로그아웃 (현재 기기 제외)
+  // 전체 세션 로그아웃 (현재 기기 제외) — 남용 방지로 분당 10회 제한
   @Post('sessions/revoke-all')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   revokeAll(@CurrentUser() user: AuthUser) {
     return this.service.revokeAll(user.id);
   }
 
   // 단일 세션 로그아웃/차단
   @Post('sessions/:id/revoke')
-  revokeSession(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+  revokeSession(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.service.revokeSession(user.id, id);
   }
 

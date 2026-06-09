@@ -45,19 +45,25 @@ export class CredentialController {
     const buf = await this.service.templateExcel();
     const filename = encodeURIComponent('계정양식.xlsx');
     res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="credentials-template.xlsx"; filename*=UTF-8''${filename}`,
     });
     res.end(buf);
   }
 
-  // 계정 데이터 엑셀 다운로드 (비밀번호 평문 — 본인 백업)
+  // 계정 데이터 엑셀 다운로드 (비밀번호 평문 — 본인 백업). 평문 유출 공격 방지로 분당 5회 제한
   @Get('export')
-  async export(@CurrentUser() user: AuthUser, @Res() res: Response): Promise<void> {
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  async export(
+    @CurrentUser() user: AuthUser,
+    @Res() res: Response,
+  ): Promise<void> {
     const buf = await this.service.exportExcel(user.id);
     const filename = encodeURIComponent('계정.xlsx');
     res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Type':
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="credentials.xlsx"; filename*=UTF-8''${filename}`,
     });
     res.end(buf);
@@ -66,8 +72,13 @@ export class CredentialController {
   // 엑셀 양식 업로드 → 일괄 추가 (multipart 필드명: file)
   @Post('import')
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
-  importExcel(@CurrentUser() user: AuthUser, @UploadedFile() file?: Express.Multer.File) {
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }),
+  )
+  importExcel(
+    @CurrentUser() user: AuthUser,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
     if (!file) throw new BadRequestException('업로드할 파일이 없습니다.');
     return this.service.importExcel(user.id, file.buffer);
   }
@@ -76,7 +87,11 @@ export class CredentialController {
   @Get(':id/reveal')
   @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseGuards(VaultGuard)
-  reveal(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Client() client: ClientInfo) {
+  reveal(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Client() client: ClientInfo,
+  ) {
     return this.service.reveal(user.id, id, client);
   }
 
@@ -84,14 +99,21 @@ export class CredentialController {
   @Get(':id/totp')
   @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseGuards(VaultGuard)
-  totp(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Client() client: ClientInfo) {
+  totp(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Client() client: ClientInfo,
+  ) {
     return this.service.totpCode(user.id, id, client);
   }
 
   // 2FA 백업코드 생성 (기존 코드 덮어씀) — 평문 코드 1회 반환
   @Post(':id/backup-codes')
   @UseGuards(VaultGuard)
-  generateBackupCodes(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+  generateBackupCodes(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.service.generateBackupCodes(user.id, id);
   }
 
@@ -99,13 +121,20 @@ export class CredentialController {
   @Get(':id/backup-codes')
   @Throttle({ default: { limit: 20, ttl: 60000 } })
   @UseGuards(VaultGuard)
-  revealBackupCodes(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number, @Client() client: ClientInfo) {
+  revealBackupCodes(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Client() client: ClientInfo,
+  ) {
     return this.service.revealBackupCodes(user.id, id, client);
   }
 
   // 2FA 백업코드 삭제
   @Delete(':id/backup-codes')
-  clearBackupCodes(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+  clearBackupCodes(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.service.clearBackupCodes(user.id, id);
   }
 
