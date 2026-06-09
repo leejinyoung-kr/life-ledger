@@ -26,7 +26,6 @@ import { seedCalendar } from './seeds/calendar.seed';
 import { seedTrash } from './seeds/trash.seed';
 import { seedSecurity } from './seeds/security.seed';
 import { seedCategories } from './seeds/categories.seed';
-import { seedMonthlyBudget } from './seeds/monthly-budget.seed';
 import { seedCredentials } from './seeds/credentials.seed';
 import { seedEnv } from './seeds/env.seed';
 import { seedIdentity } from './seeds/identity.seed';
@@ -51,7 +50,6 @@ const SEEDS: { name: string; run: SeedFn }[] = [
   { name: '신원지갑', run: seedIdentity },
   { name: '보안센터', run: seedSecurity },
   { name: '카테고리', run: seedCategories },
-  { name: '월별예산', run: seedMonthlyBudget },
   // 휴지통: 도메인 시드(전체 wipe) 이후 삭제 더미를 심어야 하므로 반드시 마지막
   { name: '휴지통', run: seedTrash },
 ];

@@ -2,23 +2,18 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
-  IsObject,
   IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
 
 // 부분 수정 — 각 설정 섹션의 저장 버튼이 자신이 바꾼 필드만 보낸다.
-// budgets/categories/widgets 는 JSON 컬럼이라 형태만 검증(deep validation 생략).
+// categories/widgets 는 JSON 컬럼이라 형태만 검증(deep validation 생략).
 export class UpdateSettingsDto {
   @IsOptional()
   @IsString()
   @MaxLength(100)
   displayName?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  notifBudget?: boolean;
 
   @IsOptional()
   @IsBoolean()
@@ -54,11 +49,6 @@ export class UpdateSettingsDto {
   @IsString()
   @MaxLength(50)
   openaiModel?: string;
-
-  // { 카테고리코드: 금액 }
-  @IsOptional()
-  @IsObject()
-  budgets?: Record<string, number>;
 
   // [{ emoji, name }]
   @IsOptional()

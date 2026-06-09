@@ -9,12 +9,11 @@ import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { IconWon, IconLock, IconCube, IconUpload, IconRepeat, IconPie } from '@/components/icons';
-import { won, signedWon, CATEGORY_LABEL, type TransactionType } from '@/lib/finance';
+import { won, signedWon, type TransactionType } from '@/lib/finance';
 
 type EvType = 'pay' | 'due' | 'exp' | 'task';
 interface Summary {
   stats: { income: number; expense: number; netWorth: number; activeSubs: number };
-  budgets: { category: string; spent: number; budget: number; percent: number }[];
   recent: { type: TransactionType; title: string; amount: number; date: string }[];
   upcoming: { type: EvType; title: string; date: string }[];
 }
@@ -35,13 +34,6 @@ const EV_LABEL: Record<EvType, string> = { pay: '결제', due: '만기', exp: '�
 const TX_DOT: Record<TransactionType, 'green' | 'warning' | 'muted'> = { income: 'green', expense: 'muted', transfer: 'muted' };
 const EV_DOT: Record<EvType, 'green' | 'warning' | 'muted'> = { pay: 'warning', exp: 'warning', task: 'green', due: 'muted' };
 const DOT_COLOR = { green: 'bg-accent', warning: 'bg-warning', muted: 'bg-muted' } as const;
-const FILL_COLOR = { green: 'bg-accent', warning: 'bg-warning', danger: 'bg-danger' } as const;
-
-function budgetTone(pct: number): 'green' | 'warning' | 'danger' {
-  if (pct >= 90) return 'danger';
-  if (pct >= 75) return 'warning';
-  return 'green';
-}
 
 const QUICK_ACTIONS = [
   { icon: <IconWon width={17} height={17} />,    title: '지출 기록',   desc: '가계부에 추가',     href: '/transactions' },
@@ -63,9 +55,8 @@ function ActivityRow({ dot, text, time }: { dot: 'green' | 'warning' | 'muted'; 
 }
 
 const DEFAULT_WIDGET_MAP: Record<string, boolean> = {
-  'stat-cards': true, 'budget-bars': true,
-  'recent-activity': true, 'quick-actions': true,
-  'cred-count': false, 'ai-summary': false,
+  'stat-cards': true, 'recent-activity': true,
+  'quick-actions': true, 'cred-count': false, 'ai-summary': false,
 };
 
 export default function DashboardPage() {
@@ -79,13 +70,12 @@ export default function DashboardPage() {
   const forecast = forecastQuery.data ?? null;
   const deadlines = deadlinesQuery.data ?? [];
 
-  // 위젯 표시여부 맵 + 순서 (설정에서 파생)
+  // 위젯 표시여부 맵 (설정에서 파생)
   const wMap = useMemo(() => {
     const map: Record<string, boolean> = { ...DEFAULT_WIDGET_MAP };
     settingsQuery.data?.widgets.forEach((w) => { map[w.id] = w.on; });
     return map;
   }, [settingsQuery.data]);
-  const wOrder = useMemo(() => settingsQuery.data?.widgets.map((w) => w.id) ?? [], [settingsQuery.data]);
 
   // 저장된 계정 수 위젯 — 켜진 경우에만 조회
   const credCountOn = wMap['cred-count'];
@@ -121,55 +111,20 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {(wMap['budget-bars'] || wMap['recent-activity']) && (() => {
-        const budgetCard = (
-          <Card key="budget-bars">
-            <CardHeader>
-              <CardTitle>카테고리별 지출</CardTitle>
-              <Button href="/transactions" variant="ghost" size="sm">전체 보기</Button>
-            </CardHeader>
-            <CardBody>
-              {s && s.budgets.length === 0 && <p className="text-[0.82rem] text-muted">설정에서 카테고리 예산을 지정하세요.</p>}
-              {s?.budgets.map((b) => {
-                const tone = budgetTone(b.percent);
-                return (
-                  <div className="flex flex-col gap-1.5 mb-3.5 last:mb-0" key={b.category}>
-                    <div className="flex justify-between text-[0.8rem]">
-                      <span className="text-secondary font-medium">{CATEGORY_LABEL[b.category] ?? b.category}</span>
-                      <span className="text-muted">{won(b.spent)} / {won(b.budget)}</span>
-                    </div>
-                    <div className="h-1.5 bg-elevated rounded-[3px] overflow-hidden">
-                      <div className={`h-full rounded-[3px] transition-[width] duration-700 ${FILL_COLOR[tone]}`} style={{ width: `${Math.min(b.percent, 100)}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </CardBody>
-          </Card>
-        );
-        const recentCard = (
-          <Card key="recent-activity">
-            <CardHeader>
-              <CardTitle>최근 활동</CardTitle>
-              <Badge tone="success">{s?.recent.length ?? 0}건</Badge>
-            </CardHeader>
-            <CardBody compact>
-              {s && s.recent.length === 0 && <div className="py-2.5 text-muted text-[0.84rem]">최근 활동이 없습니다.</div>}
-              {s?.recent.map((r, i) => (
-                <ActivityRow key={i} dot={TX_DOT[r.type]} text={<><strong>{r.title}</strong> {signedWon(r.type, r.amount)}</>} time={r.date} />
-              ))}
-            </CardBody>
-          </Card>
-        );
-        // 설정에서 지정한 위젯 순서대로 두 카드 정렬 (표시 토글된 것만)
-        const cards = [
-          { id: 'budget-bars', node: budgetCard, on: wMap['budget-bars'] },
-          { id: 'recent-activity', node: recentCard, on: wMap['recent-activity'] },
-        ]
-          .filter((c) => c.on)
-          .sort((a, b) => (wOrder.indexOf(a.id) - wOrder.indexOf(b.id)));
-        return <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">{cards.map((c) => c.node)}</div>;
-      })()}
+      {wMap['recent-activity'] && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>최근 활동</CardTitle>
+            <Badge tone="success">{s?.recent.length ?? 0}건</Badge>
+          </CardHeader>
+          <CardBody compact>
+            {s && s.recent.length === 0 && <div className="py-2.5 text-muted text-[0.84rem]">최근 활동이 없습니다.</div>}
+            {s?.recent.map((r, i) => (
+              <ActivityRow key={i} dot={TX_DOT[r.type]} text={<><strong>{r.title}</strong> {signedWon(r.type, r.amount)}</>} time={r.date} />
+            ))}
+          </CardBody>
+        </Card>
+      )}
 
       {wMap['ai-summary'] && (
         <Card className="mb-6">

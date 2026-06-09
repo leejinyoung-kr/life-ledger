@@ -5,7 +5,6 @@
  */
 import type { SeedFn } from './helpers';
 
-const BUDGETS = { food: 400000, transport: 150000, subscription: 200000, shopping: 300000, etc: 150000 };
 const CATEGORIES = [
   { emoji: '☕', name: '식비' },
   { emoji: '🚇', name: '교통' },
@@ -15,7 +14,6 @@ const CATEGORIES = [
 ];
 const WIDGETS = [
   { id: 'stat-cards', on: true },
-  { id: 'budget-bars', on: true },
   { id: 'recent-activity', on: true },
   { id: 'quick-actions', on: true },
   { id: 'cred-count', on: false },
@@ -29,14 +27,12 @@ export const seedSettings: SeedFn = async (prisma, userId) => {
     data: {
       user_id: userId,
       display_name: '데모 사용자',
-      notif_budget: true,
       notif_monthly: true,
       notif_upload: false,
       session_expiry: '7d',
       pw_auto_hide: '10s',
       openai_api_key: 'sk-proj-demo-0000000000000000',
       openai_model: 'gpt-4o-mini',
-      budgets: BUDGETS,
       categories: CATEGORIES,
       widgets: WIDGETS,
     },

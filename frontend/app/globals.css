@@ -310,12 +310,7 @@
 .dot.warning { background: var(--warning); }
 .dot.muted { background: var(--text-muted); }
 
-/* ── Dashboard widgets (예산/활동/빠른실행) ── */
-.budget-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.budget-row:last-child { margin-bottom: 0; }
-.budget-meta { display: flex; justify-content: space-between; font-size: .8rem; }
-.budget-label { color: var(--text-secondary); font-weight: 500; }
-.budget-amount { color: var(--text-muted); }
+/* ── Dashboard widgets (활동/빠른실행) ── */
 .activity-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-subtle); }
 .activity-item:last-child { border-bottom: none; }
 .activity-text { font-size: .838rem; color: var(--text-secondary); line-height: 1.5; }

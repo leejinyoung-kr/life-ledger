@@ -23,7 +23,6 @@ export interface WidgetPref {
 export interface Settings {
   user: SettingsUser;
   displayName: string;
-  notifBudget: boolean;
   notifMonthly: boolean;
   notifUpload: boolean;
   notifMaturity: boolean;
@@ -33,7 +32,6 @@ export interface Settings {
   openaiApiKeySet: boolean;
   openaiApiKeyMasked: string | null;
   openaiModel: string;
-  budgets: Record<string, number>;
   categories: Category[];
   widgets: WidgetPref[];
   menuOrder: string[] | null; // 사이드바 1차 메뉴 순서 (key 배열). null=기본
@@ -56,15 +54,6 @@ export function normalizeMenuOrder(order: string[] | null | undefined): string[]
   const missing = DEFAULT_MENU_ORDER.filter((k) => !valid.includes(k));
   return [...valid, ...missing];
 }
-
-// 예산 카테고리 코드 → 라벨 (렌더 순서 = 키 순서)
-export const BUDGET_LABEL: Record<string, string> = {
-  food: '식비',
-  transport: '교통',
-  subscription: '구독',
-  shopping: '쇼핑',
-  etc: '기타',
-};
 
 export const SESSION_EXPIRY_OPTIONS: { value: string; label: string }[] = [
   { value: '7d', label: '7일' },

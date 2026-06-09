@@ -39,36 +39,13 @@ export class NotificationCronService {
     return 1;
   }
 
-  // 한 사용자의 알림 후보를 생성 (예산초과·예적금만기·구독결제/체험·신원만료·할일마감)
+  // 한 사용자의 알림 후보를 생성 (예적금만기·구독결제/체험·신원만료·할일마감·비번회전)
   private async runForUser(userId: number): Promise<number> {
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     let n = 0;
 
-    // 1) 예산 80% 초과 (settings.notif_budget 켜진 경우만)
     const settings = await this.prisma.userSettings.findUnique({ where: { user_id: userId } });
-    if (settings?.notif_budget) {
-      const budgets = (settings.budgets as Record<string, number> | null) ?? {};
-      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-      const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
-      const byCat = await this.prisma.transaction.groupBy({
-        by: ['category'],
-        where: { user_id: userId, deleted_at: null, type: 'expense', date: { gte: monthStart, lt: monthEnd } },
-        _sum: { amount: true },
-      });
-      for (const [cat, budget] of Object.entries(budgets)) {
-        if (!budget) continue;
-        const spent = byCat.find((b) => b.category === cat)?._sum.amount?.toNumber() ?? 0;
-        if (spent >= budget * 0.8) {
-          n += await this.emit(userId, {
-            group: 'ledger', tone: 'warning',
-            title: `${cat} 예산 ${Math.round((spent / budget) * 100)}% 사용`,
-            description: `이번 달 ${cat} 지출이 예산의 80%를 넘었습니다.`,
-            source: '가계부',
-          });
-        }
-      }
-    }
 
     // 만기/결제 임박 알림(예적금·구독) — settings.notif_maturity 켜진 경우만
     if (settings?.notif_maturity ?? true) {

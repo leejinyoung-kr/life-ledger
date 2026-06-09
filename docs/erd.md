@@ -14,7 +14,6 @@
 | Subscription | 구독 서비스 |
 | Asset | 자산/부채 항목 |
 | NetWorthSnapshot | 순자산 월별 스냅샷 |
-| MonthlyBudget | 월별 예산 오버라이드 (이월 carryover) |
 | UserSettings | 사용자 설정 (1:1) |
 | Notification | 알림 |
 | Task | 할 일 |
@@ -39,7 +38,7 @@
 
 ```text
 User 1 ─── N (Transaction, Saving, Investment, Subscription, Asset, NetWorthSnapshot,
-              MonthlyBudget, Notification, Task, Goal, Note, CalendarEvent,
+              Notification, Task, Goal, Note, CalendarEvent,
               SecurityRisk, LoginSession, Category, IdentityCard, Credential,
               EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport)
 User 1 ─── 1 UserSettings
@@ -64,19 +63,18 @@ StorageFile    1 ─── N IdentityCard(file_id, 사본 이미지)
 - `Saving` — `type`(savings/deposit/subscription/etc), `interest_rate`, `monthly_amount`, `maturity_date`, `balance`
 - `Investment` — `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `current_value`, `purchase_date`
 
-### 자산·예산 — Subscription / Asset / NetWorthSnapshot / MonthlyBudget
+### 자산 — Subscription / Asset / NetWorthSnapshot
 
 - `Subscription` — `cycle`(monthly/yearly/weekly), `status`(active/trial/paused), `next_payment_date`, `last_used_at`
 - `Asset` — `type`(cash/savings/investment/realestate/debt/etc), `amount`, `interest_rate?` — debt 는 순자산에서 차감
 - `NetWorthSnapshot` — `month`(YYYY-MM), `total_assets`, `total_debt` (`@@unique([user_id, month])`)
-- `MonthlyBudget` — 기본 예산(UserSettings.budgets) 대신 특정 달 오버라이드 + `carried_over_amount`(이월)
 
 ### 설정 — UserSettings (1:1)
 
-- 알림: `notif_budget`·`notif_monthly`·`notif_upload`·`notif_maturity`·`notif_deadline`
+- 알림: `notif_monthly`·`notif_upload`·`notif_maturity`·`notif_deadline`
 - 보안: `session_expiry`, `pw_auto_hide`, `master_lock_enabled`·`master_lock_hash`(scrypt)·`master_lock_timeout`
 - API: `openai_api_key`, `openai_model`
-- JSON: `budgets`{코드:금액}, `categories`[{emoji,name}], `widgets`[{id,on}](순서=표시순서), `menu_order`(사이드바 1차 메뉴 순서)
+- JSON: `categories`[{emoji,name}], `widgets`[{id,on}](순서=표시순서), `menu_order`(사이드바 1차 메뉴 순서)
 
 ### 보관함 — IdentityCard / Credential / EnvProject / EnvVar / EnvVarHistory
 

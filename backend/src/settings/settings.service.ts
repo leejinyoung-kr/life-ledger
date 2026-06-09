@@ -3,7 +3,7 @@ import { Prisma, UserSettings } from '@prisma/client';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
-import { DEFAULT_BUDGETS, DEFAULT_CATEGORIES, DEFAULT_WIDGETS } from './settings.defaults';
+import { DEFAULT_CATEGORIES, DEFAULT_WIDGETS } from './settings.defaults';
 
 // API 키 노출 최소화 — 앞 7자만 남기고 마스킹
 function maskKey(key: string): string {
@@ -21,7 +21,6 @@ export class SettingsService {
     return this.prisma.userSettings.create({
       data: {
         user_id: userId,
-        budgets: DEFAULT_BUDGETS,
         categories: DEFAULT_CATEGORIES,
         widgets: DEFAULT_WIDGETS,
       },
@@ -33,7 +32,6 @@ export class SettingsService {
     return {
       user: { email: user.email, name: user.name, picture: user.picture },
       displayName: s.display_name ?? user.name,
-      notifBudget: s.notif_budget,
       notifMonthly: s.notif_monthly,
       notifUpload: s.notif_upload,
       notifMaturity: s.notif_maturity,
@@ -43,7 +41,6 @@ export class SettingsService {
       openaiApiKeySet: !!s.openai_api_key,
       openaiApiKeyMasked: s.openai_api_key ? maskKey(s.openai_api_key) : null,
       openaiModel: s.openai_model,
-      budgets: s.budgets,
       categories: s.categories,
       widgets: s.widgets,
       menuOrder: s.menu_order ?? null,
@@ -62,7 +59,6 @@ export class SettingsService {
 
     const data: Prisma.UserSettingsUpdateInput = {
       display_name: dto.displayName,
-      notif_budget: dto.notifBudget,
       notif_monthly: dto.notifMonthly,
       notif_upload: dto.notifUpload,
       notif_maturity: dto.notifMaturity,
@@ -70,7 +66,6 @@ export class SettingsService {
       session_expiry: dto.sessionExpiry,
       pw_auto_hide: dto.pwAutoHide,
       openai_model: dto.openaiModel,
-      budgets: dto.budgets as Prisma.InputJsonValue,
       categories: dto.categories as Prisma.InputJsonValue,
       widgets: dto.widgets as Prisma.InputJsonValue,
       menu_order: dto.menuOrder as Prisma.InputJsonValue,

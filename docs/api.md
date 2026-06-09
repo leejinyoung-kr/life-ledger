@@ -112,7 +112,7 @@ Base URL: `http://localhost:8000/api/v1`
 | DELETE | /notifications/bulk | 선택 일괄 삭제 |
 | DELETE | /notifications | 전체 삭제 |
 
-> 알림 자동생성 크론(매일 9시): 예산초과·예적금만기·구독결제/체험·신원만료·할일마감·비번회전(90일). `notif_maturity`·`notif_deadline` 설정으로 게이팅.
+> 알림 자동생성 크론(매일 9시): 예적금만기·구독결제/체험·신원만료·할일마감·비번회전(90일). `notif_maturity`·`notif_deadline` 설정으로 게이팅.
 
 ## 할 일
 
@@ -194,19 +194,9 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /dashboard/summary | 요약 — 이번 달 수입/지출·순자산·활성구독 + 카테고리 예산·최근 거래·다가오는 일정 |
+| GET | /dashboard/summary | 요약 — 이번 달 수입/지출·순자산·활성구독 + 최근 거래·다가오는 일정 |
 | GET | /dashboard/cashflow-forecast | 현금흐름 예측 — 활성 구독 + 반복 지출거래 월 환산·합산 |
 | GET | /dashboard/deadlines | 통합 D-day — 신원만료·예적금만기·구독결제·할일마감 임박순 |
-
-## 예산
-
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| GET | /budget/status?month= | 월별 예산 현황 (기본+오버라이드+이월) |
-| GET | /budget/history | 예산 이월 이력 |
-| POST | /budget | 월별 예산 오버라이드 저장 |
-| POST | /budget/carryover | 이월 적용 |
-| DELETE | /budget/carryover | 이월 해제 |
 
 ## 신원 지갑
 

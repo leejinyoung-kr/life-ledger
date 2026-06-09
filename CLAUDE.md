@@ -33,7 +33,6 @@ doc-nexus/
 │       ├── investment/    # 투자
 │       ├── subscription/  # 구독 서비스
 │       ├── asset/         # 자산 (순자산)
-│       ├── budget/        # 월별 예산 (이월 carryover)
 │       ├── note/          # 메모
 │       ├── calendar/      # 캘린더 이벤트
 │       ├── notification/  # 알림
@@ -93,8 +92,7 @@ doc-nexus/
 | Subscription | user_id, name, amount, cycle, status, next_payment_date | 구현 완료 |
 | Asset | user_id, name, type(cash/savings/investment/realestate/debt/etc), amount | 구현 완료 |
 | NetWorthSnapshot | user_id, month, total_assets, total_debt | 구현 완료 |
-| MonthlyBudget | user_id, year_month, category, amount, carried_over_amount | 구현 완료 |
-| UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, budgets/categories/widgets(JSON), menu_order | 구현 완료 |
+| UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, categories/widgets(JSON), menu_order | 구현 완료 |
 | Notification | user_id, group, tone, title, description, source, read_at | 구현 완료 |
 | Task | user_id, text, due_date, done, priority | 구현 완료 |
 | Goal | user_id, name, current_val, target_val, pct, tone | 구현 완료 |
@@ -139,7 +137,7 @@ doc-nexus/
 | Frontend — AI 리포트 | 구현 완료 (백엔드 연동) |
 | Frontend — React Query 전환 | 전 페이지·공통 컴포넌트 완료 |
 | Backend — Google OAuth + JWT (전역 가드 + Rate-limit) | 구현 완료 |
-| Backend — 가계부/구독/자산/예산/메모/캘린더/할일/목표 | 구현 완료 |
+| Backend — 가계부/구독/자산/메모/캘린더/할일/목표 | 구현 완료 |
 | Backend — 알림/보안/설정/휴지통/통합검색/대시보드 | 구현 완료 |
 | Backend — 보관함 (신원/계정/ENV, AES 암호화) | 구현 완료 |
 | Backend — 마스터 잠금·접근로그·보안점수추이·유출검사·강도통계 | 구현 완료 |
@@ -148,7 +146,7 @@ doc-nexus/
 | Backend — 영수증 OCR(클라이언트)·현금흐름 예측·통합 D-day | 구현 완료 |
 | Backend — AI 리포트 / 자연어 거래 파싱 (OpenAI, 사용자별 키) | 구현 완료 |
 | Backend — 시세 자동연동 | 미구현 |
-| DB | 27개 테이블 구현 완료 |
+| DB | 26개 테이블 구현 완료 |
 
 ---
 

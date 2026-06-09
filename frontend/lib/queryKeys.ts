@@ -47,7 +47,6 @@ export const qk = {
   notifications: { all: ['notifications'] as const, list: () => ['notifications', 'list'] as const, unread: () => ['notifications', 'unread'] as const },
   trash: { all: ['trash'] as const, list: () => ['trash', 'list'] as const },
   files: { all: ['files'] as const, list: (folderId?: number) => ['files', folderId ?? 'root'] as const },
-  budget: { all: ['budget'] as const, status: (month: string) => ['budget', 'status', month] as const, history: () => ['budget', 'history'] as const },
   security: {
     all: ['security'] as const,
     summary: () => ['security', 'summary'] as const,

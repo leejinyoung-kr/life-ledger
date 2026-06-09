@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/com
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { DEFAULT_BUDGETS, DEFAULT_CATEGORIES, DEFAULT_WIDGETS } from '../settings/settings.defaults';
+import { DEFAULT_CATEGORIES, DEFAULT_WIDGETS } from '../settings/settings.defaults';
 
 // 마스터 잠금(보관함 2차 잠금) — 마스터 비번 해시 관리 + 잠금해제 토큰 발급.
 // Google 로그인 외에 민감 보관함 진입 시 별도 비번을 요구해 reveal 류 호출을 막는다.
@@ -36,7 +36,6 @@ export class VaultService {
     return this.prisma.userSettings.create({
       data: {
         user_id: userId,
-        budgets: DEFAULT_BUDGETS,
         categories: DEFAULT_CATEGORIES,
         widgets: DEFAULT_WIDGETS,
       },
