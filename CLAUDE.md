@@ -110,8 +110,9 @@ doc-nexus/
 | StorageFile | user_id, folder_id, object_key(B2), name, size, mime_type, hash(SHA-256) | 구현 완료 |
 | AccessLog | user_id, action, target_type/id/name, ip, user_agent | 구현 완료 |
 | SecurityScoreSnapshot | user_id, date, score, reuse/weak/no2fa | 구현 완료 |
+| PushSubscription | user_id, endpoint, p256dh, auth (웹 푸시 구독) | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 26개 테이블
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 27개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---

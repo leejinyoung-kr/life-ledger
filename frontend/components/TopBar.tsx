@@ -64,7 +64,7 @@ export default function TopBar({ label }: TopBarProps) {
   return (
     <div className="h-[60px] border-b border-border flex items-center justify-between px-8 bg-background sticky top-0 z-50 gap-3 max-md:px-4">
       <div className="flex items-center gap-3">
-        {label && <span className="text-[0.78rem] text-muted">{label}</span>}
+        {label && <span className="text-[0.78rem] text-muted max-[600px]:hidden">{label}</span>}
       </div>
 
       {/* 통합 검색 (공통 컴포넌트 재사용) */}

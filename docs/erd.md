@@ -33,6 +33,7 @@
 | AccessLog | 보관함 접근 감사 로그 |
 | SecurityScoreSnapshot | 보안 점수 일별 스냅샷 |
 | AiReport | AI 리포트 (가계부 분석·소비 패턴·절약 인사이트) |
+| PushSubscription | 웹 푸시 구독 (endpoint·p256dh·auth) |
 
 ## 주요 관계
 

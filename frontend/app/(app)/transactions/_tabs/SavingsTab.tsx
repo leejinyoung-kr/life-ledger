@@ -175,7 +175,12 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
                     <td className="td-right"><span className="savings-meta-value accent">{c.interestRate}%</span></td>
                     <td className="td-center td-muted">{dotDate(c.startDate)}</td>
                     <td className={`td-center ${near ? 'savings-meta-value warning' : 'td-muted'}`}>
-                      {c.maturityDate ? `${dotDate(c.maturityDate)}${near ? ` ⚠️ D-${dleft}` : ''}` : '-'}
+                      {c.maturityDate ? (
+                        <span className="flex flex-col items-center leading-tight">
+                          <span>{dotDate(c.maturityDate)}</span>
+                          {near && <span className="text-xs mt-0.5">⚠️ D-{dleft}</span>}
+                        </span>
+                      ) : '-'}
                     </td>
                     <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => remove(c.id)} /></td>
                   </tr>

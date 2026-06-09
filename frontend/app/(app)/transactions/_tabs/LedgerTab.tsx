@@ -363,7 +363,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
               <col style={{ width: '40px' }} />
               <col style={{ width: '64px' }} />
               <col style={{ width: '88px' }} />
-              <col style={{ width: '100px' }} />
+              <col style={{ width: '130px' }} />
               <col />
               <col style={{ width: '112px' }} />
               <col style={{ width: '132px' }} />

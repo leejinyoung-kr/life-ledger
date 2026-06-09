@@ -61,7 +61,7 @@ const WIDGET_META: Record<string, WidgetMeta> = {
 const DEFAULT_WIDGETS: WidgetPref[] = [
   { id: 'stat-cards', on: true }, { id: 'recent-activity', on: true },
   { id: 'quick-actions', on: true }, { id: 'cred-count', on: false },
-  { id: 'ai-summary', on: false },
+  { id: 'ai-summary', on: true },
 ];
 
 // 위젯 아이콘 배경색 (tone → Tailwind)
@@ -130,7 +130,6 @@ export default function SettingsPage() {
   const [newCatName, setNewCatName] = useState('');
   const [newCatEmoji, setNewCatEmoji] = useState('');
   const [widgets, setWidgets] = useState<WidgetPref[]>(DEFAULT_WIDGETS);
-  const [dragId, setDragId] = useState<string | null>(null);
   const [menuOrder, setMenuOrder] = useState<string[]>(DEFAULT_MENU_ORDER);
   const [menuDragId, setMenuDragId] = useState<string | null>(null);
 
@@ -279,20 +278,6 @@ export default function SettingsPage() {
     await patch({ widgets: next }, `${label}을(를) ${toggled?.on ? '켰습니다.' : '껐습니다.'}`);
   }
 
-  // 드래그한 위젯을 대상 위치로 재배치 (로컬)
-  function onDrop(targetId: string) {
-    if (!dragId || dragId === targetId) return;
-    setWidgets((prev) => {
-      const arr = [...prev];
-      const from = arr.findIndex((w) => w.id === dragId);
-      const to = arr.findIndex((w) => w.id === targetId);
-      const [moved] = arr.splice(from, 1);
-      arr.splice(to, 0, moved);
-      return arr;
-    });
-    setDragId(null);
-  }
-
   // 드래그한 1차 메뉴를 대상 위치로 재배치 (로컬)
   function onMenuDrop(targetKey: string) {
     if (!menuDragId || menuDragId === targetKey) return;
@@ -399,35 +384,39 @@ export default function SettingsPage() {
               </Row>
 
               {/* 마스터 잠금 — Google 로그인 외 보관함 2차 잠금 */}
-              <div className="mt-6 pt-5 border-t border-border-subtle">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[0.9rem] font-semibold text-primary">보관함 마스터 잠금</span>
-                  <Badge tone={vault?.enabled ? 'success' : 'warning'}>{vault?.enabled ? '사용 중' : '미설정'}</Badge>
+              <div className="flex items-start justify-between px-5 py-3.5 border-t border-border-subtle gap-10">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[0.875rem] font-medium text-primary">보관함 마스터 잠금</span>
+                    <Badge tone={vault?.enabled ? 'success' : 'warning'}>{vault?.enabled ? '사용 중' : '미설정'}</Badge>
+                  </div>
+                  <div className="text-[0.78rem] text-muted [word-break:keep-all]">
+                    켜두면 비밀번호·신원번호·ENV 값을 열람할 때마다 마스터 비밀번호가 필요합니다.
+                  </div>
+                  {vault?.enabled && (
+                    <div className="text-[0.74rem] text-muted mt-1">자동잠금: {vault.timeoutMin > 0 ? `${vault.timeoutMin}분` : '수동'} · 변경하려면 해제 후 다시 설정하세요.</div>
+                  )}
                 </div>
-                <p className="text-[0.78rem] text-secondary leading-relaxed mb-3 [word-break:keep-all]">
-                  켜두면 비밀번호·신원번호·ENV 값을 열람할 때마다 마스터 비밀번호가 필요합니다. 설정한 시간 동안 비활성 시 자동으로 다시 잠깁니다.
-                </p>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col gap-1.5 shrink-0 w-52">
                   <input
                     type="password"
-                    className="input w-50"
+                    className="input"
                     placeholder={vault?.enabled ? '현재 마스터 비밀번호' : '새 마스터 비밀번호 (4자 이상)'}
                     value={vaultPw}
                     onChange={(e) => setVaultPw(e.target.value)}
                     aria-label="마스터 비밀번호"
                   />
-                  {!vault?.enabled && (
-                    <select className="input w-auto" aria-label="자동잠금 시간" value={vaultTimeout} onChange={(e) => setVaultTimeout(Number(e.target.value))}>
-                      {VAULT_TIMEOUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  )}
-                  {vault?.enabled
-                    ? <Button variant="danger" disabled={vaultBusy || !vaultPw} onClick={disableVault}>잠금 해제</Button>
-                    : <Button disabled={vaultBusy || !vaultPw} onClick={setupVault}>잠금 설정</Button>}
+                  <div className="flex items-center gap-1.5">
+                    {!vault?.enabled && (
+                      <select className="input w-auto" aria-label="자동잠금 시간" value={vaultTimeout} onChange={(e) => setVaultTimeout(Number(e.target.value))}>
+                        {VAULT_TIMEOUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    )}
+                    {vault?.enabled
+                      ? <Button variant="danger" disabled={vaultBusy || !vaultPw} onClick={disableVault}>잠금 해제</Button>
+                      : <Button disabled={vaultBusy || !vaultPw} onClick={setupVault}>잠금 설정</Button>}
+                  </div>
                 </div>
-                {vault?.enabled && (
-                  <p className="text-[0.74rem] text-muted mt-2">자동잠금: {vault.timeoutMin > 0 ? `${vault.timeoutMin}분` : '수동'} · 변경하려면 해제 후 다시 설정하세요.</p>
-                )}
               </div>
             </Group>
           )}
@@ -451,7 +440,7 @@ export default function SettingsPage() {
           {tab === 'widgets' && (
             <>
               <Group title="대시보드 위젯 표시 설정">
-                <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">표시할 위젯을 켜고 끌 수 있습니다. 드래그로 순서를 변경하세요.</p>
+                <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">표시할 위젯을 켜고 끌 수 있습니다.</p>
                 {widgets.map((w) => {
                   const meta = WIDGET_META[w.id];
                   if (!meta) return null;
@@ -459,12 +448,7 @@ export default function SettingsPage() {
                     <div
                       key={w.id}
                       className="flex items-center gap-3.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface"
-                      draggable
-                      onDragStart={() => setDragId(w.id)}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => onDrop(w.id)}
                     >
-                      <span className="text-muted cursor-grab active:cursor-grabbing shrink-0 flex"><IconDrag width={14} height={14} /></span>
                       <div className={`w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 ${WIDGET_ICON_BG[meta.tone]}`}>{meta.icon}</div>
                       <div className="flex-1">
                         <div className="text-[0.875rem] font-medium text-primary">{meta.name}</div>
@@ -571,29 +555,62 @@ function Row({ label, desc, labelClass, children }: { label: string; desc?: stri
   );
 }
 
-// 대시보드 실제 레이아웃을 그대로 미니맵으로 표현
+// 대시보드 실제 레이아웃(2-컬럼)을 미니맵으로 표현
 function WidgetPreview({ widgets }: { widgets: WidgetPref[] }) {
   const wp = Object.fromEntries(widgets.map((w) => [w.id, w.on]));
-  const cell = 'bg-background border border-border-subtle rounded-[var(--radius)] px-2 py-2 text-[0.65rem] text-muted transition-opacity';
+
+  // 토글 가능 위젯 셀 — on/off 상태 반영
+  function W({ id, children, center }: { id: string; children: ReactNode; center?: boolean }) {
+    const on = wp[id];
+    return (
+      <div className={`bg-background border rounded-[var(--radius)] px-2 py-1.5 text-[0.68rem] transition-all
+        ${on ? 'border-border text-secondary' : 'border-border-subtle text-muted opacity-40 line-through'}
+        ${center ? 'text-center' : ''}`}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  // 항상 표시되는 셀 (데이터 조건부)
+  const AlwaysCell = ({ children }: { children: ReactNode }) => (
+    <div className="bg-surface border border-dashed border-border rounded-[var(--radius)] px-2 py-1.5 text-[0.68rem] text-muted">
+      {children}
+    </div>
+  );
+
   return (
-    <div className="border border-border rounded-[var(--radius-lg)] bg-surface p-3 flex flex-col gap-1.5 select-none">
-      {/* stat-cards: 4열 그리드 */}
-      <div className={`grid grid-cols-4 gap-1.5 transition-opacity ${wp['stat-cards'] ? 'opacity-100' : 'opacity-25'}`}>
+    <div className="border border-border rounded-[var(--radius-lg)] bg-surface p-3 flex flex-col gap-2 select-none">
+      {/* 현황 카드 — 전체 너비 4열 */}
+      <div className="grid grid-cols-4 gap-1.5">
         {['지출', '수입', '순자산', '구독'].map((l) => (
-          <div key={l} className={`${cell} text-center`}>{l}</div>
+          <W key={l} id="stat-cards" center>{l}</W>
         ))}
       </div>
-      {/* recent-activity */}
-      <div className={`${cell} ${wp['recent-activity'] ? 'opacity-100' : 'opacity-25'}`}>🕐 최근 활동</div>
-      {/* ai-summary: 풀 너비 */}
-      <div className={`${cell} ${wp['ai-summary'] ? 'opacity-100' : 'opacity-25'}`}>🤖 AI 리포트 요약</div>
-      {/* 다가오는 일정: 항상 표시 */}
-      <div className={cell}>📅 다가오는 일정 <span className="opacity-50">(항상 표시)</span></div>
-      {/* quick-actions: 4열 그리드 */}
-      <div className={`grid grid-cols-4 gap-1.5 transition-opacity ${wp['quick-actions'] ? 'opacity-100' : 'opacity-25'}`}>
+
+      {/* 2-컬럼: 좌(메인) + 우(사이드바) */}
+      <div className="grid grid-cols-[2fr_1fr] gap-1.5 items-start">
+        <div className="flex flex-col gap-1.5">
+          <W id="recent-activity">🕐 최근 활동</W>
+          <W id="ai-summary">🤖 AI 리포트 요약</W>
+          <AlwaysCell>💸 고정지출 예측</AlwaysCell>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <AlwaysCell>⏳ 만료·마감</AlwaysCell>
+          <AlwaysCell>📅 다가오는 일정</AlwaysCell>
+        </div>
+      </div>
+
+      {/* 빠른 실행 — 전체 너비 4열 */}
+      <div className="grid grid-cols-4 gap-1.5">
         {['지출 기록', '계정 추가', '파일 업로드', 'AI 리포트'].map((l) => (
-          <div key={l} className={`${cell} text-center`}>{l}</div>
+          <W key={l} id="quick-actions" center>{l}</W>
         ))}
+      </div>
+
+      <div className="flex items-center gap-3 pt-1 text-[0.62rem] text-muted">
+        <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-[2px] border border-border bg-background" /> 토글 위젯</span>
+        <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-[2px] border border-dashed border-border bg-surface" /> 항상 표시</span>
       </div>
     </div>
   );

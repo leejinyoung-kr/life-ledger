@@ -63,6 +63,14 @@ function highlight(text: string, q: string) {
   );
 }
 
+function useIsMac() {
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => {
+    setIsMac(/Mac|iPhone|iPad|iPod/.test(navigator.platform));
+  }, []);
+  return isMac;
+}
+
 export default function GlobalSearch() {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
@@ -70,6 +78,7 @@ export default function GlobalSearch() {
   const [filter, setFilter] = useState<SearchType | 'all'>('all');
   const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isMac = useIsMac();
 
   // 최근 검색어 초기 로드
   useEffect(() => { setRecent(loadRecent()); }, []);
@@ -117,13 +126,13 @@ export default function GlobalSearch() {
   const isEmpty = query.trim() !== '' && filtered.length === 0;
 
   return (
-    <div className="relative flex items-center flex-1 max-w-[480px] max-[600px]:hidden">
+    <div className="relative flex items-center flex-1 max-w-[480px]">
       <IconSearchInline />
       <input
         ref={inputRef}
         className="w-full h-[34px] bg-surface border border-border rounded-[var(--radius)] pl-8 pr-[70px] text-[0.82rem] text-primary outline-none transition-[border-color,box-shadow] placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-dim)]"
         type="text"
-        placeholder="통합 검색... (가계부·메모·계정·신원·ENV)"
+        placeholder="통합 검색..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setOpen(true); commitRecent(); } }}
@@ -131,9 +140,11 @@ export default function GlobalSearch() {
         onBlur={() => setTimeout(() => setOpen(false), 200)}
         autoComplete="off"
       />
-      <span className="absolute right-2.5 text-[0.68rem] text-muted bg-elevated border border-border rounded-[4px] px-[5px] py-px pointer-events-none [font-family:var(--font-mono)] max-[900px]:hidden">⌘K</span>
+      <span className="absolute right-2.5 text-[0.68rem] text-muted bg-elevated border border-border rounded-[4px] px-[5px] py-px pointer-events-none [font-family:var(--font-mono)] max-[900px]:hidden">
+        {isMac ? '⌘K' : 'Ctrl K'}
+      </span>
 
-      <div className={`${open ? 'block' : 'hidden'} absolute top-[calc(100%+6px)] left-0 w-full min-w-[320px] bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] z-[300] overflow-hidden`}>
+      <div className={`${open ? 'block' : 'hidden'} absolute top-[calc(100%+6px)] left-0 w-full bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] z-[300] overflow-hidden`}>
         {/* 도메인 필터 칩 (검색어 있을 때만) */}
         {query.trim() && (
           <div className="flex gap-1.5 px-3 py-2 border-b border-border-subtle bg-surface overflow-x-auto">
