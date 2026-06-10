@@ -21,6 +21,20 @@ export class AiController {
     return this.service.parseLedgerEntry(user.id, dto.text);
   }
 
+  // 저장된 OpenAI 키 연결 확인
+  @ApiOperation({ summary: 'OpenAI API 키 연결 확인' })
+  @Post('verify-key')
+  verifyKey(@CurrentUser() user: AuthUser) {
+    return this.service.verifyApiKey(user.id);
+  }
+
+  // 이번 달 AI 사용량 집계
+  @ApiOperation({ summary: '이번 달 AI 사용량 조회 (토큰·비용)' })
+  @Get('usage')
+  usage(@CurrentUser() user: AuthUser) {
+    return this.service.getUsageSummary(user.id);
+  }
+
   // 저장된 AI 리포트 목록
   @ApiOperation({ summary: '저장된 AI 리포트 목록 조회' })
   @Get('reports')

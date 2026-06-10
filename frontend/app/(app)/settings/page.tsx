@@ -24,7 +24,7 @@ import { isPushSupported, fetchPushStatus, getCurrentSubscription, enablePush, d
 import {
   SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS, OPENAI_MODEL_OPTIONS,
   MENU_ITEMS, DEFAULT_MENU_ORDER, normalizeMenuOrder,
-  type Settings, type Category, type WidgetPref,
+  type Settings, type Category, type WidgetPref, type AiUsageSummary,
 } from '@/lib/settings';
 import type { VaultStatus } from '@/lib/security';
 
@@ -78,6 +78,9 @@ export default function SettingsPage() {
   const settingsQuery = useApiQuery<Settings>(qk.settings.detail(), '/settings');
   const s = settingsQuery.data ?? null;
   const error = settingsQuery.error?.message ?? null;
+  // 이번 달 AI 사용량 — API 탭 진입 시에만 조회
+  const usageQuery = useApiQuery<AiUsageSummary>(qk.aiUsage.summary(), '/ai/usage', { enabled: tab === 'api' });
+  const usage = usageQuery.data ?? null;
   // 마스터 잠금
   const [vault, setVault] = useState<VaultStatus | null>(null);
   const [vaultPw, setVaultPw] = useState('');
@@ -127,6 +130,9 @@ export default function SettingsPage() {
   const [displayName, setDisplayName] = useState('');
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [openaiModel, setOpenaiModel] = useState('gpt-4o-mini');
+  // OpenAI 키 연결 확인 결과 (null=미확인)
+  const [keyCheck, setKeyCheck] = useState<{ ok: boolean; model: string; modelAvailable: boolean } | null>(null);
+  const [keyCheckBusy, setKeyCheckBusy] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [newCatEmoji, setNewCatEmoji] = useState('');
   const [widgets, setWidgets] = useState<WidgetPref[]>(DEFAULT_WIDGETS);
@@ -217,6 +223,24 @@ export default function SettingsPage() {
       loadVault();
     } catch (e) { notify.error((e as Error).message); }
     finally { setVaultBusy(false); }
+  }
+
+  // OpenAI 키 연결 확인 — 서버가 저장된 키로 /v1/models 호출해 유효성·모델 가용성 검사
+  async function verifyApiKey() {
+    if (keyCheckBusy) return;
+    setKeyCheckBusy(true);
+    setKeyCheck(null);
+    try {
+      const r = await api.post<{ ok: boolean; model: string; modelAvailable: boolean }>('/ai/verify-key', {});
+      setKeyCheck(r);
+      if (r.modelAvailable) notify.success('연결 정상 · 모델 사용 가능');
+      else notify.error(`연결됨 · 단 '${r.model}' 모델에 접근할 수 없습니다.`);
+    } catch (e) {
+      setKeyCheck({ ok: false, model: openaiModel, modelAvailable: false });
+      notify.error((e as Error).message);
+    } finally {
+      setKeyCheckBusy(false);
+    }
   }
 
   // 마스터 잠금 해제(비활성화) — 현재 비번 확인
@@ -423,17 +447,58 @@ export default function SettingsPage() {
 
           {/* ── API 키 ── */}
           {tab === 'api' && (
+            <>
             <Group title="OpenAI API">
               <Row label="API 키" desc={s.openaiApiKeySet ? `저장됨 (${s.openaiApiKeyMasked})` : 'AI 리포트 생성에 사용됩니다.'}>
                 <input type="password" className="input w-50 font-mono" placeholder={s.openaiApiKeySet ? '변경하려면 입력' : 'sk-proj-...'} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} aria-label="API 키" />
-                <Button onClick={() => patch({ openaiApiKey: apiKeyInput || undefined }).then(() => setApiKeyInput(''))}>저장</Button>
+                <Button onClick={() => patch({ openaiApiKey: apiKeyInput || undefined }).then(() => { setApiKeyInput(''); setKeyCheck(null); })}>저장</Button>
               </Row>
               <Row label="모델" desc="리포트 생성에 사용할 OpenAI 모델">
-                <select className="input w-50 font-mono" aria-label="모델" value={openaiModel} onChange={(e) => { setOpenaiModel(e.target.value); patch({ openaiModel: e.target.value }); }}>
+                <select className="input w-50 font-mono" aria-label="모델" value={openaiModel} onChange={(e) => { setOpenaiModel(e.target.value); setKeyCheck(null); patch({ openaiModel: e.target.value }); }}>
                   {OPENAI_MODEL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </Row>
+              <Row label="연결 확인" desc="저장된 키로 OpenAI 연결 상태와 선택한 모델의 접근 가능 여부를 확인합니다.">
+                {keyCheck && (
+                  <Badge tone={keyCheck.modelAvailable ? 'success' : keyCheck.ok ? 'warning' : 'danger'}>
+                    {keyCheck.modelAvailable ? '정상' : keyCheck.ok ? '모델 접근 불가' : '연결 실패'}
+                  </Badge>
+                )}
+                <Button variant="ghost" disabled={!s.openaiApiKeySet || keyCheckBusy} onClick={verifyApiKey}>
+                  {keyCheckBusy ? '확인 중...' : '연결 확인'}
+                </Button>
+              </Row>
+              <Row label="크레딧 잔액" desc="OpenAI는 잔액 조회 API를 제공하지 않습니다. 사용량·잔액은 OpenAI 대시보드에서 확인하세요.">
+                <Button variant="ghost" href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">대시보드 열기</Button>
+              </Row>
             </Group>
+
+            <Group title={`이번 달 사용량${usage ? ` (${usage.month})` : ''}`}>
+              <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">앱에서 발생한 OpenAI 호출의 토큰·비용 누적입니다. 단가표 기준 추정치이며 실제 청구액과 다를 수 있습니다.</p>
+              {!usage ? (
+                <p className="px-5 py-4 text-[0.82rem] text-secondary">{usageQuery.isLoading ? '불러오는 중...' : '데이터가 없습니다.'}</p>
+              ) : usage.calls === 0 ? (
+                <p className="px-5 py-4 text-[0.82rem] text-secondary">이번 달 사용 내역이 없습니다.</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-3 px-5 py-4 max-md:grid-cols-1">
+                    <UsageStat label="예상 비용" value={`$${usage.costUsd.toFixed(4)}`} tone="accent" />
+                    <UsageStat label="총 토큰" value={usage.totalTokens.toLocaleString()} tone="blue" />
+                    <UsageStat label="호출 수" value={`${usage.calls.toLocaleString()}회`} tone="muted" />
+                  </div>
+                  <div className="px-5 pb-2 text-[0.74rem] text-muted">
+                    입력 {usage.promptTokens.toLocaleString()} · 출력 {usage.completionTokens.toLocaleString()} 토큰
+                    {usage.lastUsedAt && ` · 최근 ${new Date(usage.lastUsedAt).toLocaleString('ko-KR')}`}
+                  </div>
+                  {usage.byModel.map((bm) => (
+                    <Row key={bm.model} label={bm.model} desc={`${bm.calls.toLocaleString()}회 · ${bm.totalTokens.toLocaleString()} 토큰`}>
+                      <span className="text-[0.82rem] font-mono text-secondary">${bm.costUsd.toFixed(4)}</span>
+                    </Row>
+                  ))}
+                </>
+              )}
+            </Group>
+            </>
           )}
 
           {/* ── 위젯 설정 ── */}
@@ -551,6 +616,21 @@ function Row({ label, desc, labelClass, children }: { label: string; desc?: stri
         {desc && <div className="text-[0.78rem] text-muted mt-0.5">{desc}</div>}
       </div>
       <div className="shrink-0 flex items-center gap-2.5">{children}</div>
+    </div>
+  );
+}
+
+// 사용량 통계 카드 (라벨 + 큰 값 + tone 색)
+function UsageStat({ label, value, tone }: { label: string; value: string; tone: 'accent' | 'blue' | 'muted' }) {
+  const toneCls: Record<string, string> = {
+    accent: 'text-accent',
+    blue: 'text-blue',
+    muted: 'text-primary',
+  };
+  return (
+    <div className="bg-surface border border-border-subtle rounded-[var(--radius)] px-4 py-3">
+      <div className="text-[0.74rem] text-muted">{label}</div>
+      <div className={`[font-family:var(--font-display)] text-[1.25rem] font-bold mt-1 ${toneCls[tone]}`}>{value}</div>
     </div>
   );
 }

@@ -22,6 +22,13 @@ export type InsightTone = 'green' | 'warning' | 'danger';
 // 가계부 등록 폼과 동일한 결제수단 목록 (frontend/lib/finance.ts PAY_METHODS)
 const PAY_METHODS = ['신한카드', '카카오페이', '현금', '계좌이체'];
 
+// 모델별 단가 (USD per 1M tokens) — [입력, 출력]. 호출 시점에 비용 산정해 저장(과거 정확성 보존)
+// 미등록 모델은 0원 처리 (단가 불명 → 사용량만 기록)
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  'gpt-4o-mini': { input: 0.15, output: 0.6 },
+  'gpt-4o': { input: 2.5, output: 10.0 },
+};
+
 const PERIOD_LABEL: Record<ReportPeriod, (from: Date) => string> = {
   this_month: (from) => `${from.getUTCFullYear()}년 ${from.getUTCMonth() + 1}월`,
   last_month: (from) => `${from.getUTCFullYear()}년 ${from.getUTCMonth() + 1}월`,
@@ -50,6 +57,96 @@ export class AiService {
       throw new ServiceUnavailableException('OpenAI API 키가 설정되지 않았습니다. 설정 페이지에서 등록해주세요.');
     }
     return { openai: new OpenAI({ apiKey: settings.openai_api_key }), model: settings.openai_model };
+  }
+
+  // 저장된 OpenAI 키 연결 확인 — /v1/models 호출로 키 유효성 + 설정 모델 접근 가능 여부 검사
+  // (OpenAI는 크레딧 잔액 조회 API를 제공하지 않으므로, 연결·모델 가용성만 확인한다)
+  async verifyApiKey(userId: number): Promise<{ ok: boolean; model: string; modelAvailable: boolean }> {
+    const { openai, model } = await this.getClient(userId);
+    try {
+      const list = await openai.models.list();
+      const modelAvailable = list.data.some((m) => m.id === model);
+      return { ok: true, model, modelAvailable };
+    } catch {
+      // 401·403 등 → 키 무효/만료
+      throw new BadRequestException('OpenAI 키 검증에 실패했습니다. 키가 유효하지 않거나 만료되었습니다.');
+    }
+  }
+
+  // OpenAI 응답의 usage 를 사용량 로그로 저장. 기록 실패는 본 기능을 막지 않도록 무시한다.
+  private async logUsage(
+    userId: number,
+    model: string,
+    source: 'parse' | 'report',
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null,
+  ): Promise<void> {
+    if (!usage) return;
+    const price = MODEL_PRICING[model] ?? { input: 0, output: 0 };
+    const prompt = usage.prompt_tokens ?? 0;
+    const completion = usage.completion_tokens ?? 0;
+    const cost = (prompt / 1e6) * price.input + (completion / 1e6) * price.output;
+    try {
+      await this.prisma.aiUsageLog.create({
+        data: {
+          user_id: userId,
+          model,
+          source,
+          prompt_tokens: prompt,
+          completion_tokens: completion,
+          total_tokens: usage.total_tokens ?? prompt + completion,
+          cost_usd: cost,
+        },
+      });
+    } catch {
+      /* 사용량 기록 실패는 무시 */
+    }
+  }
+
+  // 이번 달(KST) AI 사용량 집계 — 호출 수·토큰·비용 합계 + 모델별 분해
+  async getUsageSummary(userId: number) {
+    const nowKst = new Date(Date.now() + 9 * 3600 * 1000);
+    const y = nowKst.getUTCFullYear();
+    const m = nowKst.getUTCMonth();
+    // created_at은 KST 벽시계 naive 값으로 저장됨 → 월초도 KST 기준 naive(UTC라벨)로 비교
+    const monthStart = new Date(Date.UTC(y, m, 1));
+
+    const rows = await this.prisma.aiUsageLog.findMany({
+      where: { user_id: userId, created_at: { gte: monthStart } },
+      orderBy: { created_at: 'desc' },
+    });
+
+    let promptTokens = 0;
+    let completionTokens = 0;
+    let totalTokens = 0;
+    let costUsd = 0;
+    const byModelMap = new Map<string, { calls: number; totalTokens: number; costUsd: number }>();
+    for (const r of rows) {
+      promptTokens += r.prompt_tokens;
+      completionTokens += r.completion_tokens;
+      totalTokens += r.total_tokens;
+      costUsd += r.cost_usd.toNumber();
+      const cur = byModelMap.get(r.model) ?? { calls: 0, totalTokens: 0, costUsd: 0 };
+      cur.calls += 1;
+      cur.totalTokens += r.total_tokens;
+      cur.costUsd += r.cost_usd.toNumber();
+      byModelMap.set(r.model, cur);
+    }
+
+    return {
+      month: `${y}-${String(m + 1).padStart(2, '0')}`,
+      calls: rows.length,
+      promptTokens,
+      completionTokens,
+      totalTokens,
+      costUsd: Number(costUsd.toFixed(6)),
+      lastUsedAt: rows[0] ? rows[0].created_at.toISOString() : null,
+      byModel: Array.from(byModelMap.entries()).map(([model, v]) => ({
+        model,
+        calls: v.calls,
+        totalTokens: v.totalTokens,
+        costUsd: Number(v.costUsd.toFixed(6)),
+      })),
+    };
   }
 
   // 분석 기간 코드 → 시작일/종료일/표시 라벨
@@ -152,6 +249,7 @@ ${categoryList}
       response_format: { type: 'json_object' },
       temperature: 0,
     });
+    await this.logUsage(userId, model, 'parse', response.usage);
 
     const raw = response.choices[0].message.content ?? '{}';
     const parsed = JSON.parse(raw) as Record<string, unknown>;
@@ -264,6 +362,7 @@ ${breakdown}
       response_format: { type: 'json_object' },
       temperature: 0.5,
     });
+    await this.logUsage(userId, model, 'report', response.usage);
 
     const raw = response.choices[0].message.content ?? '{}';
     const parsed = JSON.parse(raw) as Record<string, unknown>;

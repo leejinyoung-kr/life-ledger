@@ -60,4 +60,5 @@ export const qk = {
   },
   categories: { all: ['categories'] as const },
   aiReports: { all: ['ai-reports'] as const, list: () => ['ai-reports', 'list'] as const },
+  aiUsage: { all: ['ai-usage'] as const, summary: () => ['ai-usage', 'summary'] as const },
 } as const;

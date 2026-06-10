@@ -70,3 +70,21 @@ export const PW_AUTO_HIDE_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export const OPENAI_MODEL_OPTIONS = ['gpt-4o-mini', 'gpt-4o'];
+
+// 이번 달 AI 사용량 집계 (GET /ai/usage)
+export interface AiUsageByModel {
+  model: string;
+  calls: number;
+  totalTokens: number;
+  costUsd: number;
+}
+export interface AiUsageSummary {
+  month: string; // YYYY-MM
+  calls: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  costUsd: number;
+  lastUsedAt: string | null;
+  byModel: AiUsageByModel[];
+}

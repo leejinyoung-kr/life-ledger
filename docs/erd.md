@@ -3,7 +3,7 @@
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
 > 마이그레이션: `20260610000000_init_consolidated`(전 도메인 통합) + `20260610010000_phase17a_security_core` · `20260610020000_phase17b_dataflow` · `20260610030000_phase17c_enhance` · `20260610040000_phase17d_extras`
 
-## 테이블 목록 (27)
+## 테이블 목록 (28)
 
 | 테이블 | 설명 |
 | --- | --- |
@@ -34,6 +34,7 @@
 | SecurityScoreSnapshot | 보안 점수 일별 스냅샷 |
 | AiReport | AI 리포트 (가계부 분석·소비 패턴·절약 인사이트) |
 | PushSubscription | 웹 푸시 구독 (endpoint·p256dh·auth) |
+| AiUsageLog | AI 사용량 로그 (OpenAI 호출별 모델·토큰·비용 — 잔액 API 부재 대체) |
 
 ## 주요 관계
 

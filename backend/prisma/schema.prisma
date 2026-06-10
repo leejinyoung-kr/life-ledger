@@ -24,6 +24,7 @@ model User {
   settings      UserSettings?
   notifications Notification[]
   aiReports     AiReport[]
+  aiUsageLogs   AiUsageLog[]
   tasks         Task[]
   goals         Goal[]
   notes         Note[]
@@ -313,6 +314,23 @@ model AiReport {
 
   @@index([user_id, created_at])
   @@map("ai_report")
+}
+
+model AiUsageLog {
+  id                Int      @id @default(autoincrement())
+  user_id           Int /// user.id FK
+  model             String   @db.VarChar(50) /// 호출에 사용한 OpenAI 모델
+  source            String   @db.VarChar(20) /// 호출 출처: parse(거래파싱) | report(리포트)
+  prompt_tokens     Int /// 입력 토큰 수
+  completion_tokens Int /// 출력 토큰 수
+  total_tokens      Int /// 총 토큰 수
+  cost_usd          Decimal  @db.Decimal(10, 6) /// 비용(USD) — 호출 시점 모델 단가로 산정
+  created_at        DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, created_at])
+  @@map("ai_usage_log")
 }
 
 /// 할일 우선순위: low(낮음) | normal(보통) | high(높음)
