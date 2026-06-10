@@ -24,7 +24,7 @@ import {
 
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Saving };
 
-export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Category[]; addTrigger: number }) {
+export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savingCats: Category[]; bankCats: Category[]; addTrigger: number }) {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const { confirm, confirmElement } = useConfirm();
@@ -225,6 +225,7 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
 
       <SavingsModal
         state={modal}
+        bankCats={bankCats}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setModal((s) => ({ ...s, open: false })); reload(); }}
       />
@@ -233,7 +234,7 @@ export default function SavingsTab({ savingCats, addTrigger }: { savingCats: Cat
   );
 }
 
-function SavingsModal({ state, onClose, onSaved }: { state: ModalState; onClose: () => void; onSaved: () => void }) {
+function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState; bankCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
   const [bank, setBank] = useState('');
   const [name, setName] = useState('');
@@ -298,7 +299,12 @@ function SavingsModal({ state, onClose, onSaved }: { state: ModalState; onClose:
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '예적금 수정' : '예적금 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="은행/기관" required error={errors.bank}>
-        <input type="text" className={`input${errors.bank ? ' is-invalid' : ''}`} placeholder="예: 카카오뱅크" value={bank} onChange={(ev) => { setBank(ev.target.value); clearErr('bank'); }} />
+        <select className={`input${errors.bank ? ' is-invalid' : ''}`} aria-label="은행/기관" value={bank} onChange={(ev) => { setBank(ev.target.value); clearErr('bank'); }}>
+          <option value="" disabled>은행/기관 선택</option>
+          {/* 기존 자유텍스트 값이 목록에 없으면 그대로 옵션으로 노출 */}
+          {bank && !bankCats.some((b) => b.label === bank) && <option value={bank}>{bank}</option>}
+          {bankCats.map((b) => <option key={b.code} value={b.label}>{b.label}</option>)}
+        </select>
       </Field>
       <Field label="상품명" required error={errors.name}>
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 26주 적금" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />

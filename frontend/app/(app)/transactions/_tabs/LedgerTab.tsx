@@ -60,7 +60,7 @@ function parseReceipt(text: string): LedgerDraft {
   return { date, amount, title: title?.slice(0, 40) };
 }
 
-export default function LedgerTab({ categories, addTrigger }: { categories: Category[]; addTrigger: number }) {
+export default function LedgerTab({ categories, bankCats, addTrigger }: { categories: Category[]; bankCats: Category[]; addTrigger: number }) {
   const [pendingFrom, setPendingFrom] = useState(() => monthsAgo(1));
   const [pendingTo, setPendingTo] = useState(toDay);
   const [pendingType, setPendingType] = useState('');
@@ -438,6 +438,7 @@ export default function LedgerTab({ categories, addTrigger }: { categories: Cate
       <LedgerModal
         state={modal}
         categories={categories}
+        bankCats={bankCats}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setModal((s) => ({ ...s, open: false })); reload(); }}
       />
@@ -510,7 +511,7 @@ function parentTypeOf(parentCode: string | null | undefined): TransactionType {
   return 'expense';
 }
 
-function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalState; categories: Category[]; onClose: () => void; onSaved: () => void }) {
+function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state: ModalState; categories: Category[]; bankCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
   const parents = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
   const leaves = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
@@ -549,7 +550,7 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
     setParentCode(initParent);
     setCategory(initLeaf);
     setAmount(e ? String(e.amount) : pf?.amount ? String(pf.amount) : '');
-    setPayMethod(e?.payMethod ?? pf?.payMethod ?? PAY_METHODS[0]);
+    setPayMethod(e?.payMethod ?? pf?.payMethod ?? (initType === 'income' ? (bankCats[0]?.label ?? '') : initType === 'transfer' ? '' : PAY_METHODS[0]));
     setMemo(e?.memo ?? pf?.memo ?? '');
     setIsRecurring(e?.isRecurring ?? false);
     setRecurringCycle((e?.recurringRule?.cycle as RecurringCycle) ?? 'monthly');
@@ -568,12 +569,14 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
 
   function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
-  // 유형 변경 시 해당 유형의 첫 대분류·소분류로 초기화 (지출↔수입↔이체 카테고리 분리)
+  // 유형 변경 시 해당 유형의 첫 대분류·소분류 + 결제수단/은행 기본값으로 초기화 (지출↔수입↔이체 분리)
   function changeType(t: TransactionType) {
     setType(t);
     const fp = parents.find((p) => parentTypeOf(p.code) === t);
     setParentCode(fp?.code ?? '');
     setCategory(leaves.find((l) => l.parentCode === fp?.code)?.code ?? '');
+    // 지출=결제수단, 수입=입금은행, 이체=없음
+    setPayMethod(t === 'expense' ? PAY_METHODS[0] : t === 'income' ? (bankCats[0]?.label ?? '') : '');
   }
 
   // 대분류 변경 시 그 대분류의 첫 소분류로 설정
@@ -591,7 +594,8 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
     try {
       const payload = {
         type, date, title, category, amount: Number(amount),
-        payMethod: type === 'expense' ? payMethod : undefined,
+        // 지출=결제수단, 수입=입금은행 둘 다 저장, 이체는 없음
+        payMethod: type === 'transfer' ? undefined : payMethod,
         memo: memo || undefined,
         isRecurring,
         recurringRule: isRecurring ? { cycle: recurringCycle, day: recurringDay, weekendAdjust } : undefined,
@@ -649,8 +653,18 @@ function LedgerModal({ state, categories, onClose, onSaved }: { state: ModalStat
       </Field>
       {type === 'expense' && (
         <Field label="결제수단" required>
-          <select className="input" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
+          <select className="input" aria-label="결제수단" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
             {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </Field>
+      )}
+      {type === 'income' && (
+        <Field label="입금 은행" required>
+          <select className="input" aria-label="입금 은행" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
+            <option value="" disabled>은행 선택</option>
+            {/* 기존 값이 목록에 없으면 그대로 노출 */}
+            {payMethod && !bankCats.some((b) => b.label === payMethod) && <option value={payMethod}>{payMethod}</option>}
+            {bankCats.map((b) => <option key={b.code} value={b.label}>{b.label}</option>)}
           </select>
         </Field>
       )}

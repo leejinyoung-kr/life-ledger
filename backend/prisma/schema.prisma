@@ -500,6 +500,7 @@ enum CategoryDomain {
   investment
   saving
   pay_method
+  bank
   credential_cat
   id_type
   env_group
