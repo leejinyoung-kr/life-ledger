@@ -196,7 +196,7 @@ export class AiService {
     const { openai, model } = await this.getClient(userId);
 
     const categories = await this.prisma.category.findMany({
-      where: { user_id: userId, domain: 'transaction', is_active: true },
+      where: { domain: 'transaction', is_active: true },
       orderBy: { sort_order: 'asc' },
     });
     // 2계층: 대분류(parent_code=null) 아래 소분류를 묶어 제시. AI 는 소분류 code 만 선택
@@ -307,7 +307,7 @@ ${categoryList}
     }
 
     const categories = await this.prisma.category.findMany({
-      where: { user_id: userId, domain: 'transaction' },
+      where: { domain: 'transaction' },
       select: { code: true, label: true },
     });
     const catLabel = new Map(categories.map((c) => [c.code, c.label]));

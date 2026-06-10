@@ -51,7 +51,7 @@ export class ExportService {
       this.prisma.calendarEvent.findMany(where),
       this.prisma.notification.findMany({ where: { user_id: userId } }),
       this.prisma.securityRisk.findMany({ where: { user_id: userId } }),
-      this.prisma.category.findMany({ where: { user_id: userId } }),
+      this.prisma.category.findMany(), // 전역 공용 분류표 스냅샷 (user 무관)
       this.prisma.identityCard.findMany(where),
       this.prisma.credential.findMany(where),
       this.prisma.envProject.findMany(where),

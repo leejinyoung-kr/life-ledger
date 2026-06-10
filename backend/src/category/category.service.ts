@@ -117,26 +117,25 @@ export class CategoryService {
     };
   }
 
-  // 도메인별 카테고리 조회 (is_active 포함 전체 반환, 정렬: sort_order → id)
-  async findAll(userId: number, domain?: CategoryDomain) {
-    const where = domain ? { user_id: userId, domain } : { user_id: userId };
+  // 도메인별 카테고리 조회 (전역 공용, is_active 포함 전체 반환, 정렬: sort_order → id)
+  async findAll(domain?: CategoryDomain) {
     const rows = await this.prisma.category.findMany({
-      where,
+      where: domain ? { domain } : {},
       orderBy: [{ sort_order: 'asc' }, { id: 'asc' }],
     });
     return rows.map((r) => this.toDto(r));
   }
 
-  // 카테고리 추가
+  // 카테고리 추가 (전역 공용 — created_by 로 생성자만 감사 기록)
   async create(userId: number, dto: CreateCategoryDto) {
-    // 같은 도메인+code 중복 방지
+    // 같은 도메인+code 중복 방지 (전역 유니크)
     const exist = await this.prisma.category.findUnique({
-      where: { user_id_domain_code: { user_id: userId, domain: dto.domain, code: dto.code } },
+      where: { domain_code: { domain: dto.domain, code: dto.code } },
     });
     if (exist) throw new ConflictException('이미 존재하는 코드입니다.');
 
     const maxOrder = await this.prisma.category.aggregate({
-      where: { user_id: userId, domain: dto.domain },
+      where: { domain: dto.domain },
       _max: { sort_order: true },
     });
     // sort_order는 1부터 시작 (moneymate 컨벤션)
@@ -144,20 +143,20 @@ export class CategoryService {
 
     const created = await this.prisma.category.create({
       data: {
-        user_id: userId,
         domain: dto.domain,
         code: dto.code,
         label: dto.label,
         parent_code: dto.parentCode ?? null,
         sort_order: dto.sortOrder ?? nextOrder,
+        created_by: userId,
       },
     });
     return this.toDto(created);
   }
 
-  // 카테고리 수정 (라벨·정렬순서·활성 여부)
-  async update(userId: number, id: number, dto: UpdateCategoryDto) {
-    const row = await this.prisma.category.findFirst({ where: { id, user_id: userId } });
+  // 카테고리 수정 (전역 공용 — 라벨·정렬순서·활성 여부)
+  async update(id: number, dto: UpdateCategoryDto) {
+    const row = await this.prisma.category.findUnique({ where: { id } });
     if (!row) throw new NotFoundException('카테고리를 찾을 수 없습니다.');
 
     const updated = await this.prisma.category.update({
@@ -172,9 +171,9 @@ export class CategoryService {
     return this.toDto(updated);
   }
 
-  // 카테고리 삭제
-  async remove(userId: number, id: number) {
-    const row = await this.prisma.category.findFirst({ where: { id, user_id: userId } });
+  // 카테고리 삭제 (전역 공용 — 기존 거래는 code 문자열 참조라 삭제 시 라벨만 사라짐. 숨김은 is_active=false 권장)
+  async remove(id: number) {
+    const row = await this.prisma.category.findUnique({ where: { id } });
     if (!row) throw new NotFoundException('카테고리를 찾을 수 없습니다.');
     await this.prisma.category.delete({ where: { id } });
     return { id };
@@ -191,10 +190,10 @@ export class CategoryService {
         const { code, label, parent } = SEED[d][i];
         try {
           await this.prisma.category.upsert({
-            where: { user_id_domain_code: { user_id: userId, domain: d, code } },
+            where: { domain_code: { domain: d, code } },
             // 기존 행은 부모 코드만 보강(2계층 도입 전 시드된 행 호환)
             update: { parent_code: parent ?? null },
-            create: { user_id: userId, domain: d, code, label, parent_code: parent ?? null, sort_order: i + 1 },
+            create: { domain: d, code, label, parent_code: parent ?? null, sort_order: i + 1, created_by: userId },
           });
           created++;
         } catch { /* skip duplicates */ }

@@ -113,12 +113,13 @@ const CATEGORIES: CatSeed[] = [
   { domain: 'env_group', code: 'etc',      label: '기타' },
 ];
 
-// 카테고리 시드 — 기존 전체 삭제 후 재삽입 (idempotent)
+// 카테고리 시드 — 전역 공용(user 무관). 기존 전체 삭제 후 재삽입 (idempotent)
+// 오케스트레이터가 유저별로 호출해도 전역 1세트만 유지(전체 wipe+재삽입). created_by 에 실행 유저 기록(감사용)
 export const seedCategories: SeedFn = async (prisma, userId) => {
-  // 기존 데이터 삭제
-  await prisma.category.deleteMany({ where: { user_id: userId } });
+  // 전역 카테고리 전체 삭제
+  await prisma.category.deleteMany({});
 
-  // 도메인별 정렬 순서(sort_order)를 0부터 부여해 삽입
+  // 도메인별 정렬 순서(sort_order)를 1부터 부여해 삽입
   const domainCounters: Record<string, number> = {};
 
   await prisma.category.createMany({
@@ -126,13 +127,13 @@ export const seedCategories: SeedFn = async (prisma, userId) => {
       domainCounters[c.domain] ??= 1;
       const sort_order = domainCounters[c.domain]++;
       return {
-        user_id:     userId,
         domain:      c.domain,
         code:        c.code,
         label:       c.label,
         parent_code: c.parent_code ?? null,
         sort_order,
         is_active:   true,
+        created_by:  userId,
       };
     }),
   });

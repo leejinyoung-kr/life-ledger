@@ -18,13 +18,10 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 export class CategoryController {
   constructor(private readonly service: CategoryService) {}
 
-  // 카테고리 목록 (도메인 필터 선택)
+  // 카테고리 목록 (전역 공용, 도메인 필터 선택)
   @Get()
-  findAll(
-    @CurrentUser() user: AuthUser,
-    @Query('domain') domain?: CategoryDomain,
-  ) {
-    return this.service.findAll(user.id, domain);
+  findAll(@Query('domain') domain?: CategoryDomain) {
+    return this.service.findAll(domain);
   }
 
   // 카테고리 추가
@@ -42,19 +39,18 @@ export class CategoryController {
     return this.service.seed(user.id, domain);
   }
 
-  // 카테고리 수정
+  // 카테고리 수정 (전역 공용 — 전체 사용자에 반영)
   @Patch(':id')
   update(
-    @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCategoryDto,
   ) {
-    return this.service.update(user.id, id, dto);
+    return this.service.update(id, dto);
   }
 
-  // 카테고리 삭제
+  // 카테고리 삭제 (전역 공용 — 전체 사용자에 반영)
   @Delete(':id')
-  remove(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
-    return this.service.remove(user.id, id);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.service.remove(id);
   }
 }

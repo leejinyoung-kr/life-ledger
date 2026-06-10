@@ -158,7 +158,7 @@ export class AuthService {
       this.prisma.calendarEvent.deleteMany(w),
       this.prisma.securityRisk.deleteMany(w),
       this.prisma.loginSession.deleteMany(w),
-      this.prisma.category.deleteMany(w),
+      // category 는 전역 공용 — 특정 유저 삭제로 지우지 않음 (created_by 만 남고 데이터 보존)
       this.prisma.user.delete({ where: { id: userId } }),
     ]);
     return { ok: true };

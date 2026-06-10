@@ -299,7 +299,7 @@ export class TransactionService {
 
     // 카테고리 라벨 → 코드 (소분류만 — 대분류는 거래에 직접 저장 안 함, 동명 라벨 충돌 방지)
     const cats = await this.prisma.category.findMany({
-      where: { user_id: userId, domain: 'transaction', parent_code: { not: null } },
+      where: { domain: 'transaction', parent_code: { not: null } },
       select: { code: true, label: true },
     });
     const catCode = new Map(cats.map((c) => [c.label, c.code]));
@@ -368,7 +368,7 @@ export class TransactionService {
   async streamExport(userId: number, query: QueryTransactionDto, stream: Writable): Promise<void> {
     const where = this.buildWhere(userId, query);
     const cats = await this.prisma.category.findMany({
-      where: { user_id: userId, domain: 'transaction' },
+      where: { domain: 'transaction' },
       select: { code: true, label: true },
     });
     const catLabel = new Map(cats.map((c) => [c.code, c.label]));

@@ -31,7 +31,6 @@ model User {
   calendarEvents CalendarEvent[]
   securityRisks SecurityRisk[]
   loginSessions LoginSession[]
-  categories     Category[]
   identityCards  IdentityCard[]
   credentials    Credential[]
   envProjects    EnvProject[]
@@ -509,23 +508,22 @@ enum CategoryDomain {
 }
 
 /// 카테고리 (설정 > 카테고리 관리) — 도메인별 사용자 정의 카테고리
+// 전역 공용 분류표 (user 무관). 모든 사용자가 동일 카테고리 세트를 공유·편집
 model Category {
-  id         Int            @id @default(autoincrement())
-  user_id    Int            /// user.id FK
-  domain     CategoryDomain
-  code        String        @db.VarChar(50)
-  label       String        @db.VarChar(100)
-  parent_code String?       @db.VarChar(50) /// 대분류 code (소분류만 채움, 대분류·단일계층 도메인은 NULL)
-  sort_order Int            @default(1) @map("sort_order")
-  is_active  Boolean        @default(true) @map("is_active")
-  created_at DateTime       @default(now()) @map("created_at")
-  updated_at DateTime       @updatedAt @map("updated_at")
+  id          Int            @id @default(autoincrement())
+  domain      CategoryDomain
+  code        String         @db.VarChar(50)
+  label       String         @db.VarChar(100)
+  parent_code String?        @db.VarChar(50) /// 대분류 code (소분류만 채움, 대분류·단일계층 도메인은 NULL)
+  sort_order  Int            @default(1) @map("sort_order")
+  is_active   Boolean        @default(true) @map("is_active")
+  created_by  Int?           /// 생성자 user.id (감사용, FK 아님 — 유저 삭제와 무관하게 보존)
+  created_at  DateTime       @default(now()) @map("created_at")
+  updated_at  DateTime       @updatedAt @map("updated_at")
 
-  user User @relation(fields: [user_id], references: [id])
-
-  @@unique([user_id, domain, code])
-  @@index([user_id, domain])
-  @@index([user_id, domain, parent_code])
+  @@unique([domain, code])
+  @@index([domain])
+  @@index([domain, parent_code])
   @@map("category")
 }
 
