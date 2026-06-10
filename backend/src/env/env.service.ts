@@ -129,8 +129,15 @@ export class EnvService {
   }
 
   // 특정 프로젝트·환경 변수를 원문 포함으로 내보내기 (.env 복사/다운로드용)
-  async exportVars(userId: number, projectId: number, env: EnvKindDto) {
-    await this.findOwnedProject(userId, projectId);
+  // 전체 평문 덤프이므로 reveal 과 동일하게 감사 로그에 기록
+  async exportVars(userId: number, projectId: number, env: EnvKindDto, client?: ClientInfo) {
+    const project = await this.findOwnedProject(userId, projectId);
+    await this.accessLog.log(
+      userId,
+      'env_reveal',
+      { type: 'env', id: projectId, name: `export:${project.name}:${env}` },
+      client,
+    );
     const rows = await this.prisma.envVar.findMany({
       where: { user_id: userId, project_id: projectId, env, deleted_at: null },
       orderBy: { created_at: 'desc' },
@@ -239,8 +246,21 @@ export class EnvService {
   }
 
   // 두 환경 변수 비교(diff) — 누락(한쪽에만 있음) + 값 불일치(양쪽 있으나 값 다름)
-  async diff(userId: number, projectId: number, base: EnvKindDto, target: EnvKindDto) {
-    await this.findOwnedProject(userId, projectId);
+  // 양쪽 평문을 모두 복호화하므로 reveal 과 동일하게 감사 로그에 기록
+  async diff(
+    userId: number,
+    projectId: number,
+    base: EnvKindDto,
+    target: EnvKindDto,
+    client?: ClientInfo,
+  ) {
+    const project = await this.findOwnedProject(userId, projectId);
+    await this.accessLog.log(
+      userId,
+      'env_reveal',
+      { type: 'env', id: projectId, name: `diff:${project.name}:${base}↔${target}` },
+      client,
+    );
     const load = async (env: EnvKindDto) => {
       const rows = await this.prisma.envVar.findMany({
         where: { user_id: userId, project_id: projectId, env, deleted_at: null },

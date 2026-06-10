@@ -6,6 +6,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -21,7 +22,9 @@ export class ImportController {
   constructor(private readonly service: ImportService) {}
 
   // 계정 보관함 JSON 백업 복원 (multipart 필드명: file)
+  // 대량 삽입 — 반복 업로드 남용 방지 위해 분당 5회 제한
   @Post('credentials')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
   restoreCredentials(@CurrentUser() user: AuthUser, @UploadedFile() file?: Express.Multer.File) {

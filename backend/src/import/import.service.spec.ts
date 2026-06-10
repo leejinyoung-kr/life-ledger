@@ -6,8 +6,12 @@ import { ImportService } from './import.service';
 describe('ImportService (계정 복원)', () => {
   let created: any[];
 
+  let existingRows: any[];
+
   const prisma: any = {
     credential: {
+      // 멱등성 dedup 용 — 기존 계정 (name|username) 조회
+      findMany: jest.fn(async () => existingRows),
       createMany: jest.fn(async ({ data }: any) => {
         created.push(...data);
         return { count: data.length };
@@ -20,6 +24,7 @@ describe('ImportService (계정 복원)', () => {
 
   beforeEach(() => {
     created = [];
+    existingRows = [];
     jest.clearAllMocks();
   });
 
@@ -83,5 +88,26 @@ describe('ImportService (계정 복원)', () => {
       { name: 'A', username: 'u', password_enc: CIPHER },
     ]));
     expect(res.imported).toBe(1);
+  });
+
+  it('기존 계정과 (name|username) 중복이면 skip (멱등성)', async () => {
+    existingRows = [{ name: 'GitHub', username: 'me' }];
+    const res = await svc().restoreCredentials(1, buf([
+      { name: 'GitHub', username: 'me', password_enc: CIPHER }, // 이미 존재 → skip
+      { name: 'GitHub', username: 'other', password_enc: CIPHER }, // 신규 → 삽입
+    ]));
+    expect(res.imported).toBe(1);
+    expect(res.skipped).toBe(1);
+    expect(created).toHaveLength(1);
+    expect(created[0].username).toBe('other');
+  });
+
+  it('같은 파일 내 중복도 한 번만 삽입', async () => {
+    const res = await svc().restoreCredentials(1, buf([
+      { name: 'Dup', username: 'u', password_enc: CIPHER },
+      { name: 'Dup', username: 'u', password_enc: CIPHER },
+    ]));
+    expect(res.imported).toBe(1);
+    expect(res.skipped).toBe(1);
   });
 });

@@ -73,7 +73,7 @@ model Transaction {
   created_at     DateTime        @default(now())
   updated_at     DateTime        @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, date])
   @@index([recurring_parent_id])
@@ -107,7 +107,7 @@ model Saving {
   created_at     DateTime   @default(now())
   updated_at     DateTime   @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("saving")
@@ -139,7 +139,7 @@ model Investment {
   created_at    DateTime       @default(now())
   updated_at    DateTime       @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("investment")
@@ -180,7 +180,7 @@ model Subscription {
   created_at        DateTime           @default(now())
   updated_at        DateTime           @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("subscription")
@@ -211,7 +211,7 @@ model Asset {
   created_at    DateTime  @default(now())
   updated_at    DateTime  @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("asset")
@@ -226,7 +226,7 @@ model NetWorthSnapshot {
   total_debt   Decimal  @db.Decimal(15, 2)
   created_at   DateTime @default(now())
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, month])
   @@index([user_id])
@@ -255,7 +255,7 @@ model UserSettings {
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_settings")
 }
@@ -290,7 +290,7 @@ model Notification {
   occurred_at DateTime  @default(now()) /// 알림 발생 시각(화면 표시용)
   created_at  DateTime  @default(now())
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, created_at])
   @@map("notification")
@@ -309,7 +309,7 @@ model AiReport {
   tags         Json /// 키워드 태그 목록
   created_at   DateTime @default(now())
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, created_at])
   @@map("ai_report")
@@ -326,7 +326,7 @@ model AiUsageLog {
   cost_usd          Decimal  @db.Decimal(10, 6) /// 비용(USD) — 호출 시점 모델 단가로 산정
   created_at        DateTime @default(now())
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, created_at])
   @@map("ai_usage_log")
@@ -355,7 +355,7 @@ model Task {
   created_at DateTime     @default(now())
   updated_at DateTime     @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("task")
@@ -384,7 +384,7 @@ model Goal {
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("goal")
@@ -401,7 +401,7 @@ model Note {
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("note")
@@ -429,7 +429,7 @@ model CalendarEvent {
   created_at DateTime     @default(now())
   updated_at DateTime     @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, date])
   @@map("calendar_event")
@@ -469,7 +469,7 @@ model SecurityRisk {
   created_at   DateTime             @default(now())
   updated_at   DateTime             @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("security_risk")
@@ -541,7 +541,7 @@ model LoginSession {
   revoked_at     DateTime? /// 로그아웃/차단 시각, null=활성
   created_at     DateTime          @default(now())
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("login_session")
@@ -573,8 +573,8 @@ model IdentityCard {
   created_at  DateTime     @default(now())
   updated_at  DateTime     @updatedAt
 
-  user User         @relation(fields: [user_id], references: [id])
-  file StorageFile? @relation(fields: [file_id], references: [id])
+  user User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  file StorageFile? @relation(fields: [file_id], references: [id], onDelete: SetNull)
 
   @@index([user_id])
   @@map("identity_card")
@@ -597,7 +597,7 @@ model Credential {
   created_at   DateTime  @default(now())
   updated_at   DateTime  @updatedAt
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("credential")
@@ -622,7 +622,7 @@ model EnvProject {
   created_at  DateTime  @default(now())
   updated_at  DateTime  @updatedAt
 
-  user User     @relation(fields: [user_id], references: [id])
+  user User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   vars EnvVar[]
 
   @@index([user_id])
@@ -639,8 +639,8 @@ model StorageFolder {
   created_at DateTime      @default(now())
   updated_at DateTime      @updatedAt
 
-  user     User            @relation(fields: [user_id], references: [id])
-  parent   StorageFolder?  @relation("FolderTree", fields: [parent_id], references: [id])
+  user     User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  parent   StorageFolder?  @relation("FolderTree", fields: [parent_id], references: [id], onDelete: SetNull)
   children StorageFolder[] @relation("FolderTree")
   files    StorageFile[]
 
@@ -663,8 +663,8 @@ model StorageFile {
   created_at  DateTime       @default(now())
   updated_at  DateTime       @updatedAt
 
-  user   User           @relation(fields: [user_id], references: [id])
-  folder StorageFolder? @relation(fields: [folder_id], references: [id])
+  user   User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  folder StorageFolder? @relation(fields: [folder_id], references: [id], onDelete: SetNull)
   identityCards IdentityCard[]
 
   @@index([user_id])
@@ -687,8 +687,8 @@ model EnvVar {
   created_at DateTime  @default(now())
   updated_at DateTime  @updatedAt
 
-  user    User            @relation(fields: [user_id], references: [id])
-  project EnvProject      @relation(fields: [project_id], references: [id])
+  user    User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  project EnvProject      @relation(fields: [project_id], references: [id], onDelete: Cascade)
   history EnvVarHistory[]
 
   @@index([user_id])
@@ -704,7 +704,7 @@ model EnvVarHistory {
   value_enc  String   @db.Text /// 이전 값(암호문)
   created_at DateTime @default(now())
 
-  envVar EnvVar @relation(fields: [env_var_id], references: [id])
+  envVar EnvVar @relation(fields: [env_var_id], references: [id], onDelete: Cascade)
 
   @@index([env_var_id, created_at])
   @@map("env_var_history")
@@ -733,7 +733,7 @@ model AccessLog {
   user_agent  String?      @db.VarChar(300)
   created_at  DateTime     @default(now())
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, created_at])
   @@map("access_log")
@@ -750,7 +750,7 @@ model SecurityScoreSnapshot {
   no2fa      Int      @default(0) /// 2FA 미설정 건수
   created_at DateTime @default(now())
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, date])
   @@index([user_id])
@@ -767,7 +767,7 @@ model PushSubscription {
   user_agent String?  @db.VarChar(300) /// 구독 생성 기기 식별용(선택)
   created_at DateTime @default(now())
 
-  user User @relation(fields: [user_id], references: [id])
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@map("push_subscription")

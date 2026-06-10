@@ -72,25 +72,31 @@ export class EnvController {
     return this.service.findVars(user.id, id, env);
   }
 
-  // 두 환경 변수 비교(diff)
+  // 두 환경 변수 비교(diff). 평문 값을 양쪽 모두 반환하므로 reveal 과 동일하게 마스터 잠금·rate-limit 적용
   @Get('env-projects/:id/diff')
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @UseGuards(VaultGuard)
   diff(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) id: number,
     @Query('base') base: EnvKindDto,
     @Query('target') target: EnvKindDto,
+    @Client() client: ClientInfo,
   ) {
-    return this.service.diff(user.id, id, base, target);
+    return this.service.diff(user.id, id, base, target, client);
   }
 
-  // 프로젝트·환경 변수 원문 내보내기 (.env 복사/다운로드)
+  // 프로젝트·환경 변수 원문 내보내기 (.env 복사/다운로드). 전체 평문 덤프이므로 마스터 잠금·rate-limit 적용
   @Get('env-projects/:id/export')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @UseGuards(VaultGuard)
   exportVars(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) id: number,
     @Query('env') env: EnvKindDto,
+    @Client() client: ClientInfo,
   ) {
-    return this.service.exportVars(user.id, id, env);
+    return this.service.exportVars(user.id, id, env, client);
   }
 
   // 변수 추가 (선택 환경마다 생성)
