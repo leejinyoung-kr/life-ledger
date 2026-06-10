@@ -26,6 +26,8 @@ export interface SubscriptionSummary {
   yearlyTotal: number;
   activeCount: number;
   nextPayment: { days: number; name: string } | null;
+  // 체험 종료 임박 배너용 — 첫 체험 구독 (목록 페이징과 무관). 결제일은 항상 존재
+  trial: { id: number; name: string; amount: number; cycle: SubscriptionCycle; nextPaymentDate: string } | null;
 }
 
 export interface UnusedSubscription {

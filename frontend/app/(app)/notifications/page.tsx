@@ -9,7 +9,7 @@
  */
 import { useMemo, useState, type ReactNode } from 'react';
 import { notify } from '@/lib/toast';
-import { useApiQuery, useInvalidate } from '@/lib/query';
+import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
@@ -51,9 +51,19 @@ export default function NotificationsPage() {
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
 
-  // 알림 목록 (React Query 캐시)
-  const itemsQuery = useApiQuery<Noti[]>(qk.notifications.list(), '/notifications');
-  const items = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
+  // 알림 목록 (React Query 캐시) — 서버 페이징/그룹필터. 미읽음 수는 별도 집계 엔드포인트
+  const listQs = useMemo(() => {
+    const params = new URLSearchParams();
+    if (tab !== 'all') params.set('group', tab);
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    return params.toString();
+  }, [tab, page, limit]);
+  const itemsQuery = useApiQuery<Paginated<Noti>>(qk.notifications.list({ tab, page, limit }), `/notifications?${listQs}`);
+  const unreadQuery = useApiQuery<{ count: number }>(qk.notifications.unread(), '/notifications/unread-count');
+  const items = useMemo(() => itemsQuery.data?.items ?? [], [itemsQuery.data]);
+  const total = itemsQuery.data?.total ?? 0;
+  const unreadCount = unreadQuery.data?.count ?? 0;
   const error = itemsQuery.error?.message ?? null;
   const reload = () => invalidate(qk.notifications.all);
 
@@ -102,7 +112,7 @@ export default function NotificationsPage() {
 
   // 전체삭제
   async function removeAll() {
-    if (!items.length) return;
+    if (!total) return;
     if (!await confirm('모든 알림을 삭제할까요?', 'danger')) return;
     try {
       await api.del('/notifications');
@@ -125,16 +135,8 @@ export default function NotificationsPage() {
     }
   }
 
-  const unreadCount = items.filter((n) => !n.read).length;
-
-  // 탭 기준 필터링
-  const filtered = items.filter((n) => {
-    if (tab === 'all') return true;
-    return n.group === tab;
-  });
-
-  const totalPages = Math.ceil(filtered.length / limit);
-  const paged = filtered.slice((page - 1) * limit, page * limit);
+  const totalPages = Math.ceil(total / limit);
+  const paged = items; // 서버가 이미 그룹필터+페이지 단위로 잘라서 보냄
 
   return (
     <AppShell activePath="/notifications" topbarLabel="알림">
@@ -206,7 +208,7 @@ export default function NotificationsPage() {
             </div>
           </div>
         ))}
-        <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
       </div>
 
       {/* 상세 모달 */}

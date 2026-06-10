@@ -12,7 +12,7 @@ import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
 import { notify } from '@/lib/toast';
-import { useApiQuery, useInvalidate } from '@/lib/query';
+import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { IconAlertCircle, IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
@@ -27,9 +27,19 @@ export default function TrashPage() {
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
 
-  // 삭제 항목 통합 목록 (React Query 캐시)
-  const itemsQuery = useApiQuery<TrashItem[]>(qk.trash.list(), '/trash');
-  const items = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
+  // 삭제 항목 통합 목록 (React Query 캐시) — 서버 페이징/필터. types=유형 드롭다운용
+  const listQs = useMemo(() => {
+    const params = new URLSearchParams();
+    if (type !== '전체 유형') params.set('type', type);
+    if (query.trim()) params.set('q', query.trim());
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    return params.toString();
+  }, [type, query, page, limit]);
+  const itemsQuery = useApiQuery<Paginated<TrashItem> & { types: string[] }>(qk.trash.list({ type, q: query.trim(), page, limit }), `/trash?${listQs}`);
+  const items = useMemo(() => itemsQuery.data?.items ?? [], [itemsQuery.data]);
+  const total = itemsQuery.data?.total ?? 0;
+  const serverTypes = useMemo(() => itemsQuery.data?.types ?? [], [itemsQuery.data]);
   const error = itemsQuery.error?.message ?? null;
   // 복구/삭제는 휴지통 + 복원 대상 도메인에 영향 → 전체 무효화
   const reload = () => invalidate();
@@ -100,7 +110,7 @@ export default function TrashPage() {
 
   // 전체 복구
   async function restoreAll() {
-    if (items.length === 0) return;
+    if (total === 0) return;
     if (!await confirm('모든 삭제 항목을 복구할까요?', 'primary')) return;
     try {
       await api.post('/trash/restore-all', {});
@@ -111,7 +121,7 @@ export default function TrashPage() {
 
   // 휴지통 비우기 (전체 영구 삭제)
   async function emptyTrash() {
-    if (items.length === 0) return;
+    if (total === 0) return;
     if (!await confirm('휴지통을 비울까요? 모든 항목이 영구 삭제됩니다.', 'danger')) return;
     try {
       await api.post('/trash/empty', {});
@@ -120,18 +130,11 @@ export default function TrashPage() {
     } catch (e) { notify.error((e as Error).message); }
   }
 
-  // 유형 필터 옵션 — 현재 항목의 종류에서 동적 구성
-  const types = useMemo(() => ['전체 유형', ...Array.from(new Set(items.map((it) => it.type)))], [items]);
+  // 유형 필터 옵션 — 서버가 준 distinct 라벨에서 구성
+  const types = useMemo(() => ['전체 유형', ...serverTypes], [serverTypes]);
 
-  // 검색어 + 유형으로 필터
-  const filtered = items.filter((it) => {
-    const matchType = type === '전체 유형' || it.type === type;
-    const matchQuery = !query.trim() || it.name.toLowerCase().includes(query.toLowerCase());
-    return matchType && matchQuery;
-  });
-
-  const totalPages = Math.ceil(filtered.length / limit);
-  const paged = filtered.slice((page - 1) * limit, page * limit);
+  const totalPages = Math.ceil(total / limit);
+  const paged = items; // 서버가 이미 필터+페이지 단위로 잘라서 보냄
 
   return (
     <AppShell activePath="/trash" topbarLabel="휴지통">
@@ -151,7 +154,7 @@ export default function TrashPage() {
       <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex gap-2 items-center mb-4 max-md:flex-wrap">
         <div className="relative flex-1 min-w-[160px]">
           <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-          <input className="input pl-icon" type="text" placeholder="삭제 항목 검색..." value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} aria-label="삭제 항목 검색" />
+          <input className="input pl-icon" type="text" placeholder="삭제 항목 검색..." value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} aria-label="삭제 항목 검색" />
         </div>
         <select className="input w-auto min-w-[120px] shrink-0" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }} aria-label="유형 필터">
           {types.map((t) => <option key={t}>{t}</option>)}
@@ -163,7 +166,7 @@ export default function TrashPage() {
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
+        <span className="text-[0.78rem] text-secondary">총 {total}건</span>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
@@ -193,7 +196,7 @@ export default function TrashPage() {
               {paged.map((it, i) => (
                 <tr key={`${it.kind}-${it.id}`}>
                   <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(`${it.kind}-${it.id}`)} onChange={() => toggleSelect(`${it.kind}-${it.id}`)} aria-label="선택" /></td>
-                  <td className="td-center td-muted">{filtered.length - (page - 1) * limit - i}</td>
+                  <td className="td-center td-muted">{total - (page - 1) * limit - i}</td>
                   <td className="td-name">{it.name}</td>
                   <td className="td-center"><span className="type-chip">{it.chip}</span></td>
                   <td className="td-center td-muted">{trashDate(it.deletedAt)}</td>
@@ -234,7 +237,7 @@ export default function TrashPage() {
           ))}
         </div>
 
-        <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
       </div>
       {confirmElement}
     </AppShell>

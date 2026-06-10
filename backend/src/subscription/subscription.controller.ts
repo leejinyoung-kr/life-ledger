@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -14,6 +15,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { QuerySubscriptionDto } from './dto/query-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import { SubscriptionService } from './subscription.service';
 
@@ -36,10 +38,10 @@ export class SubscriptionController {
     return this.service.unused(user.id);
   }
 
-  // 구독 목록
+  // 구독 목록 (서비스명/카테고리 검색 + 페이지네이션)
   @Get()
-  findAll(@CurrentUser() user: AuthUser) {
-    return this.service.findAll(user.id);
+  findAll(@CurrentUser() user: AuthUser, @Query() query: QuerySubscriptionDto) {
+    return this.service.findAll(user.id, query);
   }
 
   // 구독 추가

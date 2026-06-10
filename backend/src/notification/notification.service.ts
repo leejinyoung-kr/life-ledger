@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Notification } from '@prisma/client';
+import { Notification, NotiGroup, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { parsePage } from '../common/pagination';
+import { QueryNotificationDto } from './dto/query-notification.dto';
 
 @Injectable()
 export class NotificationService {
@@ -26,12 +28,22 @@ export class NotificationService {
     return { count };
   }
 
-  // 알림 목록 (최신순)
-  async findAll(userId: number) {
-    const rows = await this.prisma.notification.findMany({
-      where: { user_id: userId },
-      orderBy: { occurred_at: 'desc' },
-    });
+  // 알림 목록 (최신순) — 그룹 필터. page 지정 시 서버 페이징, 없으면 전체 배열
+  async findAll(userId: number, query: QueryNotificationDto = {}) {
+    const where: Prisma.NotificationWhereInput = { user_id: userId };
+    if (query.group) where.group = query.group as NotiGroup;
+    const orderBy: Prisma.NotificationOrderByWithRelationInput = { occurred_at: 'desc' };
+
+    const pg = parsePage(query.page, query.limit);
+    if (pg) {
+      const [rows, total] = await this.prisma.$transaction([
+        this.prisma.notification.findMany({ where, orderBy, skip: pg.skip, take: pg.take }),
+        this.prisma.notification.count({ where }),
+      ]);
+      return { items: rows.map((r) => this.toDto(r)), total, page: pg.page, limit: pg.limit };
+    }
+
+    const rows = await this.prisma.notification.findMany({ where, orderBy });
     return rows.map((r) => this.toDto(r));
   }
 

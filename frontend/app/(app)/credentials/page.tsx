@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { notify } from '@/lib/toast';
-import { useApiQuery, useInvalidate } from '@/lib/query';
+import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Pagination, { LimitSelect } from '@/components/Pagination';
@@ -40,35 +40,39 @@ export default function CredentialsPage() {
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
 
-  // 계정 목록 (React Query 캐시)
-  const listQuery = useApiQuery<Credential[]>(qk.credentials.list(), '/credentials');
-  const list = useMemo(() => listQuery.data ?? [], [listQuery.data]);
+  // 계정 목록 (React Query 캐시) — 검색/카테고리/페이지를 서버로 전송
+  const listQs = useMemo(() => {
+    const params = new URLSearchParams();
+    const q = query.trim();
+    if (q) params.set('q', q);
+    if (category !== '전체 카테고리') params.set('category', category);
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    return params.toString();
+  }, [query, category, page, limit]);
+  const listQuery = useApiQuery<Paginated<Credential> & { no2fa: number }>(
+    qk.credentials.list({ q: query.trim(), category, page, limit }),
+    `/credentials?${listQs}`,
+  );
+  const rows = useMemo(() => listQuery.data?.items ?? [], [listQuery.data]);
+  const total = listQuery.data?.total ?? 0;
+  const no2fa = listQuery.data?.no2fa ?? 0;
   const error = listQuery.error?.message ?? null;
   // 목록 갱신 단축 — 변이 후 호출
   const reload = () => invalidate(qk.credentials.all);
 
-  // 보안센터에서 ?focus=<id> 로 진입 시 해당 계정 상세 자동 열기 (위험 항목 → 계정 바로가기)
+  // 보안센터에서 ?focus=<id> 로 진입 시 해당 계정을 단건 조회해 상세 자동 열기 (위험 항목 → 계정 바로가기)
   useEffect(() => {
-    if (typeof window === 'undefined' || list.length === 0) return;
+    if (typeof window === 'undefined') return;
     const focusId = Number(new URLSearchParams(window.location.search).get('focus'));
     if (!focusId) return;
-    const target = list.find((c) => c.id === focusId);
-    if (target) setDetail(target);
+    api.get<Credential>(`/credentials/${focusId}`).then(setDetail).catch(() => {});
     // 한 번 열고 쿼리 제거 (재오픈 방지)
     window.history.replaceState(null, '', '/credentials');
-  }, [list]);
+  }, []);
 
-  // 검색어 + 카테고리 필터
-  const rows = list.filter((c) => {
-    const matchCat = category === '전체 카테고리' || c.category === category;
-    const q = query.trim().toLowerCase();
-    const matchQuery = !q || c.name.toLowerCase().includes(q) || (c.url ?? '').toLowerCase().includes(q) || c.username.toLowerCase().includes(q);
-    return matchCat && matchQuery;
-  });
-
-  const totalPages = Math.ceil(rows.length / limit);
-  const paged = rows.slice((page - 1) * limit, page * limit);
-  const no2fa = list.filter((c) => !c.has2fa).length;
+  const totalPages = Math.ceil(total / limit);
+  const paged = rows; // 서버가 이미 필터+페이지 단위로 잘라서 보냄
 
   // 계정 삭제
   async function remove(c: Credential) {
@@ -175,13 +179,13 @@ export default function CredentialsPage() {
       <div className="flex items-center gap-2.5 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-          <input className="input pl-icon" type="text" placeholder="서비스명, URL, 아이디 검색..." value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} aria-label="계정 검색" />
+          <input className="input pl-icon" type="text" placeholder="서비스명, URL, 아이디 검색..." value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} aria-label="계정 검색" />
         </div>
         <select className="input w-auto min-w-[130px] shrink-0" value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }} aria-label="카테고리 필터">
           {FILTER_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
         </select>
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-muted text-[0.82rem]">총 {rows.length}개</span>
+          <span className="text-muted text-[0.82rem]">총 {total}개</span>
           <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
         </div>
@@ -243,7 +247,7 @@ export default function CredentialsPage() {
           ))}
         </div>
 
-        <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
       </div>
 
       {/* 상세 모달 */}

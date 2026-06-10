@@ -39,13 +39,16 @@ export class AssetController {
   }
 
   // 자산/부채 목록 (type 쿼리로 필터 — 없으면 realestate+debt 반환)
+  // page 지정 시 서버 페이징(Paginated + 합계), 없으면 전체 배열(순자산/대시보드 호환)
   @Get()
   findAll(
     @CurrentUser() user: AuthUser,
     @Query('type') type?: AssetType,
     @Query('take') take?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.service.findAll(user.id, type, take ? Number(take) : undefined);
+    return this.service.findAll(user.id, type, take ? Number(take) : undefined, page, limit);
   }
 
   // 자산/부채 추가

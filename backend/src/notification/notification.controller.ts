@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { QueryNotificationDto } from './dto/query-notification.dto';
 import { NotificationService } from './notification.service';
 
 @ApiTags('알림')
@@ -12,10 +13,10 @@ import { NotificationService } from './notification.service';
 export class NotificationController {
   constructor(private readonly service: NotificationService) {}
 
-  // 알림 목록
+  // 알림 목록 (그룹 필터 + 페이지네이션)
   @Get()
-  findAll(@CurrentUser() user: AuthUser) {
-    return this.service.findAll(user.id);
+  findAll(@CurrentUser() user: AuthUser, @Query() query: QueryNotificationDto) {
+    return this.service.findAll(user.id, query);
   }
 
   // 미읽음 알림 수 (TopBar 벨 배지)

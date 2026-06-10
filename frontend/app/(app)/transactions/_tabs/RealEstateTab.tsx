@@ -7,7 +7,7 @@ import { useConfirm } from '@/components/ConfirmModal';
 import { IconHome } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
-import { useApiQuery, useInvalidate } from '@/lib/query';
+import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { won } from '@/lib/finance';
 import { type Asset } from '@/lib/networth';
@@ -32,10 +32,14 @@ export default function RealEstateTab({ addTrigger }: { addTrigger: number }) {
     }
   }, [addTrigger]);
 
-  // 부동산 목록 (React Query 캐시)
-  const rowsQuery = useApiQuery<Asset[]>(['assets', 'realestate'], '/assets?type=realestate');
-  const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
-  const total = useMemo(() => rows.reduce((s, r) => s + r.amount, 0), [rows]);
+  // 부동산 목록 (React Query 캐시) — 서버 페이징. sum=전체 금액 합계, count=전체 건수
+  const rowsQuery = useApiQuery<Paginated<Asset> & { sum: number }>(
+    qk.assets.list({ type: 'realestate', page, limit }),
+    `/assets?type=realestate&page=${page}&limit=${limit}`,
+  );
+  const rows = useMemo(() => rowsQuery.data?.items ?? [], [rowsQuery.data]);
+  const count = rowsQuery.data?.total ?? 0;
+  const sum = rowsQuery.data?.sum ?? 0;
   const reload = () => invalidate(qk.assets.all);
 
   async function remove(id: number) {
@@ -49,17 +53,17 @@ export default function RealEstateTab({ addTrigger }: { addTrigger: number }) {
     }
   }
 
-  const totalPages = Math.ceil(rows.length / limit);
-  const paged = rows.slice((page - 1) * limit, page * limit);
+  const totalPages = Math.ceil(count / limit);
+  const paged = rows; // 서버가 이미 페이지 단위로 잘라서 보냄
 
   return (
     <>
       <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={<IconHome />} tone="blue" value={won(total)} label="총 부동산" change={`${rows.length}건`} changeDir="neutral" />
+        <StatCard icon={<IconHome />} tone="blue" value={won(sum)} label="총 부동산" change={`${count}건`} changeDir="neutral" />
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {rows.length}건</span>
+        <span className="text-[0.78rem] text-secondary">총 {count}건</span>
         <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </div>
 
@@ -77,7 +81,7 @@ export default function RealEstateTab({ addTrigger }: { addTrigger: number }) {
               {paged.length === 0 && <tr><td colSpan={5} className="td-center td-muted">부동산 항목이 없습니다.</td></tr>}
               {paged.map((row, i) => (
                 <tr key={row.id}>
-                  <td className="td-center td-muted">{rows.length - (page - 1) * limit - i}</td>
+                  <td className="td-center td-muted">{count - (page - 1) * limit - i}</td>
                   <td className="td-strong">{row.name}</td>
                   <td className="td-mono td-right">{won(row.amount)}</td>
                   <td className="td-center td-muted">{row.memo ?? '-'}</td>
@@ -100,7 +104,7 @@ export default function RealEstateTab({ addTrigger }: { addTrigger: number }) {
             </div>
           ))}
         </div>
-        <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} totalItems={count} onPageChange={setPage} />
       </div>
 
       <AssetModal

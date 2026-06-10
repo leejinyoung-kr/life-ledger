@@ -15,6 +15,15 @@ import {
 } from '@tanstack/react-query';
 import { api } from './api';
 
+// 서버 페이지네이션 응답 형태 — 백엔드 Paginated<T> 와 1:1.
+// 추가 집계(no2fa·doneCount·sum 등)는 호출부에서 교집합 타입으로 확장한다.
+export interface Paginated<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 // GET 쿼리 — 키 + 경로만 주면 캐싱·중복제거·로딩/에러 제공
 export function useApiQuery<T>(
   key: QueryKey,

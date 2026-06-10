@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
-import { useApiQuery, useInvalidate } from '@/lib/query';
+import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Pagination, { LimitSelect } from '@/components/Pagination';
@@ -35,10 +35,20 @@ export default function TasksPage() {
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
 
-  // 할일/목표 (React Query 캐시)
-  const tasksQuery = useApiQuery<Task[]>(qk.tasks.list(), '/tasks');
+  // 할일/목표 (React Query 캐시). 할일은 서버 페이징/검색. allCount/done 은 전체 기준(완료 배지)
+  const listQs = useMemo(() => {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set('q', search.trim());
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    return params.toString();
+  }, [search, page, limit]);
+  const tasksQuery = useApiQuery<Paginated<Task> & { allCount: number; done: number }>(qk.tasks.list({ q: search.trim(), page, limit }), `/tasks?${listQs}`);
   const goalsQuery = useApiQuery<Goal[]>(qk.tasks.goals(), '/goals');
-  const tasks = useMemo(() => tasksQuery.data ?? [], [tasksQuery.data]);
+  const tasks = useMemo(() => tasksQuery.data?.items ?? [], [tasksQuery.data]);
+  const total = tasksQuery.data?.total ?? 0;
+  const allCount = tasksQuery.data?.allCount ?? 0;
+  const doneCount = tasksQuery.data?.done ?? 0;
   const goals = useMemo(() => goalsQuery.data ?? [], [goalsQuery.data]);
   const error = (tasksQuery.error ?? goalsQuery.error)?.message ?? null;
   const reload = () => invalidate(qk.tasks.all);
@@ -109,10 +119,8 @@ export default function TasksPage() {
     }
   }
 
-  const searchedTasks = search.trim() ? tasks.filter((t) => t.text.toLowerCase().includes(search.toLowerCase())) : tasks;
-  const doneCount = tasks.filter((t) => t.done).length;
-  const totalPages = Math.ceil(searchedTasks.length / limit);
-  const pagedTasks = searchedTasks.slice((page - 1) * limit, page * limit);
+  const totalPages = Math.ceil(total / limit);
+  const pagedTasks = tasks; // 서버가 이미 검색+페이지 단위로 잘라서 보냄
 
   return (
     <AppShell activePath="/tasks" topbarLabel="할일 / 목표">
@@ -138,7 +146,7 @@ export default function TasksPage() {
               </div>
               <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
               <Button variant="danger" disabled={selectedTasks.size === 0} onClick={removeSelectedTasks}>선택삭제</Button>
-              <Badge tone="neutral">{doneCount} / {tasks.length} 완료</Badge>
+              <Badge tone="neutral">{doneCount} / {allCount} 완료</Badge>
             </div>
           </CardHeader>
           <div>
@@ -166,7 +174,7 @@ export default function TasksPage() {
               </div>
             ))}
           </div>
-          <Pagination page={page} totalPages={totalPages} totalItems={tasks.length} onPageChange={setPage} />
+          <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
         </Card>
 
         {/* 목표 */}

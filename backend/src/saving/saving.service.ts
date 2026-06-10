@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Saving } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { parsePage } from '../common/pagination';
 import { CreateSavingDto } from './dto/create-saving.dto';
+import { QuerySavingDto } from './dto/query-saving.dto';
 import { UpdateSavingDto } from './dto/update-saving.dto';
 
 // Date → 'YYYY-MM-DD'
@@ -29,12 +31,23 @@ export class SavingService {
     };
   }
 
-  // 예적금 목록
-  async findAll(userId: number) {
-    const rows = await this.prisma.saving.findMany({
-      where: { user_id: userId, deleted_at: null },
-      orderBy: { start_date: 'desc' },
-    });
+  // 예적금 목록 — 유형/상품명 필터. page 지정 시 서버 페이징, 없으면 전체 배열
+  async findAll(userId: number, query: QuerySavingDto = {}) {
+    const where: Prisma.SavingWhereInput = { user_id: userId, deleted_at: null };
+    if (query.type) where.type = query.type;
+    if (query.q) where.name = { contains: query.q };
+    const orderBy: Prisma.SavingOrderByWithRelationInput = { start_date: 'desc' };
+
+    const pg = parsePage(query.page, query.limit);
+    if (pg) {
+      const [rows, total] = await this.prisma.$transaction([
+        this.prisma.saving.findMany({ where, orderBy, skip: pg.skip, take: pg.take }),
+        this.prisma.saving.count({ where }),
+      ]);
+      return { items: rows.map((r) => this.toDto(r)), total, page: pg.page, limit: pg.limit };
+    }
+
+    const rows = await this.prisma.saving.findMany({ where, orderBy });
     return rows.map((r) => this.toDto(r));
   }
 

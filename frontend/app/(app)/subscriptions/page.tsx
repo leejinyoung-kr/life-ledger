@@ -8,7 +8,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
-import { useApiQuery, useInvalidate } from '@/lib/query';
+import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
@@ -45,11 +45,19 @@ export default function SubscriptionsPage() {
   // mutation 후 구독 관련 쿼리 무효화
   const bump = () => invalidate(qk.subscriptions.all);
 
-  // 목록/요약/미사용 (React Query 캐시)
-  const subsQuery = useApiQuery<Subscription[]>(qk.subscriptions.list(), '/subscriptions');
+  // 목록/요약/미사용 (React Query 캐시). 목록은 서버 페이징/검색
+  const listQs = useMemo(() => {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set('q', search.trim());
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    return params.toString();
+  }, [search, page, limit]);
+  const subsQuery = useApiQuery<Paginated<Subscription>>(qk.subscriptions.list({ q: search.trim(), page, limit }), `/subscriptions?${listQs}`);
   const summaryQuery = useApiQuery<SubscriptionSummary>(['subscriptions', 'summary'], '/subscriptions/summary');
   const unusedQuery = useApiQuery<UnusedSubscription[]>(['subscriptions', 'unused'], '/subscriptions/unused');
-  const subs = useMemo(() => subsQuery.data ?? [], [subsQuery.data]);
+  const subs = useMemo(() => subsQuery.data?.items ?? [], [subsQuery.data]);
+  const total = subsQuery.data?.total ?? 0;
   const summary = summaryQuery.data ?? null;
   const unused = unusedQuery.data ?? [];
   const error = (subsQuery.error ?? summaryQuery.error)?.message ?? null;
@@ -66,8 +74,8 @@ export default function SubscriptionsPage() {
     }
   }
 
-  // 체험 종료 임박 — 첫 체험 구독 (배너 노출용)
-  const trial = subs.find((s) => s.status === 'trial');
+  // 체험 종료 임박 — 첫 체험 구독 (배너 노출용). 목록 페이징과 무관하게 요약에서 받음
+  const trial = summary?.trial ?? null;
 
   const stats = summary
     ? [
@@ -78,11 +86,8 @@ export default function SubscriptionsPage() {
       ]
     : [];
 
-  const searchFiltered = search.trim()
-    ? subs.filter((s) => s.name.toLowerCase().includes(search.toLowerCase()) || (SUB_CATEGORY_LABEL[s.category] ?? s.category).toLowerCase().includes(search.toLowerCase()))
-    : subs;
-  const totalPages = Math.ceil(searchFiltered.length / limit);
-  const paged = searchFiltered.slice((page - 1) * limit, page * limit);
+  const totalPages = Math.ceil(total / limit);
+  const paged = subs; // 서버가 이미 검색+페이지 단위로 잘라서 보냄
 
   return (
     <AppShell activePath="/subscriptions" topbarLabel="구독 관리">
@@ -160,7 +165,7 @@ export default function SubscriptionsPage() {
           );
         })}
       </div>
-      <Pagination page={page} totalPages={totalPages} totalItems={subs.length} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
 
       {/* 미사용 의심 구독 */}
       <Card className="mt-6">

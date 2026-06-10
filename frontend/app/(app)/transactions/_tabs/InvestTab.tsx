@@ -10,7 +10,7 @@ import { useConfirm } from '@/components/ConfirmModal';
 import { IconTrendUp, IconWon, IconChart, IconSearch } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
-import { useApiQuery, useInvalidate } from '@/lib/query';
+import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import {
   INVEST_TYPE_LABEL, won,
@@ -46,10 +46,19 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   function search() { setApplied({ name: pendingName, type: pendingType }); setPage(1); }
   function reset() { setPendingName(''); setPendingType(''); setApplied({ name: '', type: '' }); setPage(1); }
 
-  // 투자 목록 + 요약 (React Query 캐시)
-  const rowsQuery = useApiQuery<Investment[]>(qk.investments.list(), '/investments');
+  // 투자 목록 + 요약 (React Query 캐시). 목록은 서버 페이징/필터
+  const listQs = useMemo(() => {
+    const params = new URLSearchParams();
+    if (applied.type) params.set('type', applied.type);
+    if (applied.name) params.set('q', applied.name);
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    return params.toString();
+  }, [applied, page, limit]);
+  const rowsQuery = useApiQuery<Paginated<Investment>>(qk.investments.list({ ...applied, page, limit }), `/investments?${listQs}`);
   const summaryQuery = useApiQuery<InvestmentSummary>(['investments', 'summary'], '/investments/summary');
-  const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
+  const rows = useMemo(() => rowsQuery.data?.items ?? [], [rowsQuery.data]);
+  const total = rowsQuery.data?.total ?? 0;
   const summary = summaryQuery.data ?? null;
   const reload = () => invalidate(qk.investments.all);
 
@@ -93,11 +102,8 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   }
 
   const profitUp = (summary?.totalProfit ?? 0) >= 0;
-  const filtered = rows
-    .filter((r) => !applied.type || r.type === applied.type)
-    .filter((r) => !applied.name || r.name.includes(applied.name));
-  const totalPages = Math.ceil(filtered.length / limit);
-  const paged = filtered.slice((page - 1) * limit, page * limit);
+  const totalPages = Math.ceil(total / limit);
+  const paged = rows; // 서버가 이미 필터+페이지 단위로 잘라서 보냄
 
   return (
     <>
@@ -125,7 +131,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
+        <span className="text-[0.78rem] text-secondary">총 {total}건</span>
         <div className="flex items-center gap-2">
           <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
@@ -163,7 +169,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                 return (
                   <tr key={row.id}>
                     <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" /></td>
-                    <td className="td-center td-muted">{filtered.length - (page - 1) * limit - i}</td>
+                    <td className="td-center td-muted">{total - (page - 1) * limit - i}</td>
                     <td className="td-center"><span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span></td>
                     <td className="td-strong">{row.name}</td>
                     <td className="td-mono td-right">{won(row.principal)}</td>
@@ -203,7 +209,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
             );
           })}
         </div>
-        <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
       </div>
 
       <InvestModal

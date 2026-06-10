@@ -1,7 +1,8 @@
 import { TransactionType } from '@prisma/client';
 import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
+import { PageQueryDto } from '../../common/dto/page-query.dto';
 
-export class QueryTransactionDto {
+export class QueryTransactionDto extends PageQueryDto {
   // 조회 시작일 (YYYY-MM-DD)
   @IsOptional()
   @IsDateString()

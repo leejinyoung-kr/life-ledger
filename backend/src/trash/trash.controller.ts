@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { QueryTrashDto } from './dto/query-trash.dto';
 import { TrashActionDto } from './dto/trash-action.dto';
 import { TrashService } from './trash.service';
 
@@ -13,10 +14,10 @@ import { TrashService } from './trash.service';
 export class TrashController {
   constructor(private readonly service: TrashService) {}
 
-  // 전체 삭제 항목 통합 목록
+  // 전체 삭제 항목 통합 목록 (유형/이름 필터 + 페이지네이션)
   @Get()
-  findAll(@CurrentUser() user: AuthUser) {
-    return this.service.findAll(user.id);
+  findAll(@CurrentUser() user: AuthUser, @Query() query: QueryTrashDto) {
+    return this.service.findAll(user.id, query);
   }
 
   // 단일 복구

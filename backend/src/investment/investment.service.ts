@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Investment, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { parsePage } from '../common/pagination';
 import { CreateInvestmentDto } from './dto/create-investment.dto';
+import { QueryInvestmentDto } from './dto/query-investment.dto';
 import { UpdateInvestmentDto } from './dto/update-investment.dto';
 
 @Injectable()
@@ -26,12 +28,23 @@ export class InvestmentService {
     };
   }
 
-  // 투자 목록
-  async findAll(userId: number) {
-    const rows = await this.prisma.investment.findMany({
-      where: { user_id: userId, deleted_at: null },
-      orderBy: { created_at: 'desc' },
-    });
+  // 투자 목록 — 유형/종목명 필터. page 지정 시 서버 페이징, 없으면 전체 배열
+  async findAll(userId: number, query: QueryInvestmentDto = {}) {
+    const where: Prisma.InvestmentWhereInput = { user_id: userId, deleted_at: null };
+    if (query.type) where.type = query.type;
+    if (query.q) where.name = { contains: query.q };
+    const orderBy: Prisma.InvestmentOrderByWithRelationInput = { created_at: 'desc' };
+
+    const pg = parsePage(query.page, query.limit);
+    if (pg) {
+      const [rows, total] = await this.prisma.$transaction([
+        this.prisma.investment.findMany({ where, orderBy, skip: pg.skip, take: pg.take }),
+        this.prisma.investment.count({ where }),
+      ]);
+      return { items: rows.map((r) => this.toDto(r)), total, page: pg.page, limit: pg.limit };
+    }
+
+    const rows = await this.prisma.investment.findMany({ where, orderBy });
     return rows.map((r) => this.toDto(r));
   }
 

@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { QueryTransactionDto } from './dto/query-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
+import { parsePage } from '../common/pagination';
 import {
   RRule, toDateStr, periodOf, adjustWeekend, monthlyDate, nthOccurrence, monthRange,
 } from './recurring.util';
@@ -161,12 +162,22 @@ export class TransactionService {
 
   // 내역 목록 — 날짜범위/유형/카테고리/검색어 필터.
   // 조회 시점에 반복 회차를 현재 월까지 자동 채운다(idempotent).
+  // page 지정 시 서버 페이징(Paginated), 없으면 전체 배열.
   async findAll(userId: number, query: QueryTransactionDto) {
     await this.materializeRecurring(userId);
-    const rows = await this.prisma.transaction.findMany({
-      where: this.buildWhere(userId, query),
-      orderBy: [{ date: 'desc' }, { id: 'desc' }],
-    });
+    const where = this.buildWhere(userId, query);
+    const orderBy: Prisma.TransactionOrderByWithRelationInput[] = [{ date: 'desc' }, { id: 'desc' }];
+
+    const pg = parsePage(query.page, query.limit);
+    if (pg) {
+      const [rows, total] = await this.prisma.$transaction([
+        this.prisma.transaction.findMany({ where, orderBy, skip: pg.skip, take: pg.take }),
+        this.prisma.transaction.count({ where }),
+      ]);
+      return { items: rows.map((r) => this.toDto(r)), total, page: pg.page, limit: pg.limit };
+    }
+
+    const rows = await this.prisma.transaction.findMany({ where, orderBy });
     return rows.map((r) => this.toDto(r));
   }
 

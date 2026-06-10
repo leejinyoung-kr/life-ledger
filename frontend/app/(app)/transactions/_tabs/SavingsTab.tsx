@@ -11,7 +11,7 @@ import { useConfirm } from '@/components/ConfirmModal';
 import { IconBank, IconWon, IconTrendUp, IconAlertTriangle, IconSearch } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
-import { useApiQuery, useInvalidate } from '@/lib/query';
+import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import {
   SAVING_TYPE_LABEL, won, dotDate, daysUntil,
@@ -47,10 +47,19 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
   function search() { setApplied({ type: pendingType, name: pendingName }); setPage(1); }
   function reset() { setPendingType(''); setPendingName(''); setApplied({ type: '', name: '' }); setPage(1); }
 
-  // 예적금 목록 + 요약 (React Query 캐시)
-  const rowsQuery = useApiQuery<Saving[]>(qk.savings.list(), '/savings');
+  // 예적금 목록 + 요약 (React Query 캐시). 목록은 서버 페이징/필터
+  const listQs = useMemo(() => {
+    const params = new URLSearchParams();
+    if (applied.type) params.set('type', applied.type);
+    if (applied.name) params.set('q', applied.name);
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    return params.toString();
+  }, [applied, page, limit]);
+  const rowsQuery = useApiQuery<Paginated<Saving>>(qk.savings.list({ ...applied, page, limit }), `/savings?${listQs}`);
   const summaryQuery = useApiQuery<SavingSummary>(['savings', 'summary'], '/savings/summary');
-  const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
+  const rows = useMemo(() => rowsQuery.data?.items ?? [], [rowsQuery.data]);
+  const total = rowsQuery.data?.total ?? 0;
   const summary = summaryQuery.data ?? null;
   const reload = () => invalidate(qk.savings.all);
 
@@ -93,11 +102,8 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
     }
   }
 
-  const filtered = rows
-    .filter((c) => !applied.type || c.type === applied.type)
-    .filter((c) => !applied.name || c.name.includes(applied.name));
-  const totalPages = Math.ceil(filtered.length / limit);
-  const paged = filtered.slice((page - 1) * limit, page * limit);
+  const totalPages = Math.ceil(total / limit);
+  const paged = rows; // 서버가 이미 필터+페이지 단위로 잘라서 보냄
 
   return (
     <>
@@ -126,7 +132,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
+        <span className="text-[0.78rem] text-secondary">총 {total}건</span>
         <div className="flex items-center gap-2">
           <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
@@ -166,7 +172,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                 return (
                   <tr key={c.id}>
                     <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} aria-label="선택" /></td>
-                    <td className="td-center td-muted">{filtered.length - (page - 1) * limit - i}</td>
+                    <td className="td-center td-muted">{total - (page - 1) * limit - i}</td>
                     <td className="td-center"><span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span></td>
                     <td className="td-center td-muted">{c.bank}</td>
                     <td className="td-name">{c.name}</td>
@@ -220,7 +226,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
             );
           })}
         </div>
-        <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
       </div>
 
       <SavingsModal

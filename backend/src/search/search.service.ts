@@ -64,7 +64,7 @@ export class SearchService {
         sub: `${n.updated_at.toISOString().slice(0, 10)} · 메모`, href: '/notes',
       })),
       ...creds.map((c): SearchResult => ({
-        type: 'cred', icon: c.emoji ?? '🔑', title: c.name,
+        type: 'cred', icon: '🔑', title: c.name,
         sub: `${c.username} · 계정`, href: '/credentials',
       })),
       ...ids.map((i): SearchResult => ({
@@ -72,7 +72,7 @@ export class SearchService {
         sub: '신원 지갑', href: '/id-wallet',
       })),
       ...projects.map((p): SearchResult => ({
-        type: 'env', icon: p.emoji ?? '📦', title: p.name,
+        type: 'env', icon: '📦', title: p.name,
         sub: 'ENV 프로젝트', href: '/envs',
       })),
       ...vars.map((v): SearchResult => ({

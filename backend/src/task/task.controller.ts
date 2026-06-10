@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -14,6 +15,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { QueryTaskDto } from './dto/query-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskService } from './task.service';
 
@@ -24,10 +26,10 @@ import { TaskService } from './task.service';
 export class TaskController {
   constructor(private readonly service: TaskService) {}
 
-  // 할일 목록
+  // 할일 목록 (내용 검색 + 페이지네이션)
   @Get()
-  findAll(@CurrentUser() user: AuthUser) {
-    return this.service.findAll(user.id);
+  findAll(@CurrentUser() user: AuthUser, @Query() query: QueryTaskDto) {
+    return this.service.findAll(user.id, query);
   }
 
   // 할일 추가

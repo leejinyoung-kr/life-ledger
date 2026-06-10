@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   Res,
   UploadedFile,
   UseGuards,
@@ -23,6 +24,7 @@ import { VaultGuard } from '../security/vault.guard';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { Client, type ClientInfo } from '../common/client-info.decorator';
 import { CreateCredentialDto } from './dto/create-credential.dto';
+import { QueryCredentialDto } from './dto/query-credential.dto';
 import { UpdateCredentialDto } from './dto/update-credential.dto';
 import { CredentialService } from './credential.service';
 
@@ -33,10 +35,10 @@ import { CredentialService } from './credential.service';
 export class CredentialController {
   constructor(private readonly service: CredentialService) {}
 
-  // 계정 목록
+  // 계정 목록 (검색어/카테고리 필터 + 페이지네이션. page 지정 시 no2fa 집계 포함)
   @Get()
-  findAll(@CurrentUser() user: AuthUser) {
-    return this.service.findAll(user.id);
+  findAll(@CurrentUser() user: AuthUser, @Query() query: QueryCredentialDto) {
+    return this.service.findAll(user.id, query);
   }
 
   // 빈 엑셀 양식 다운로드
@@ -67,6 +69,13 @@ export class CredentialController {
       'Content-Disposition': `attachment; filename="credentials.xlsx"; filename*=UTF-8''${filename}`,
     });
     res.end(buf);
+  }
+
+  // 단일 계정 조회 (목록 DTO 형태) — 보안센터 ?focus=<id> 딥링크 등에서 사용.
+  // 정적 경로(template/export) 뒤에 선언해 단일 세그먼트 id 만 매칭한다.
+  @Get(':id')
+  findOne(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.service.findOne(user.id, id);
   }
 
   // 엑셀 양식 업로드 → 일괄 추가 (multipart 필드명: file)

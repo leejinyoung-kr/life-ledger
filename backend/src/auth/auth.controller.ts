@@ -11,7 +11,7 @@ import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiExcludeController } from '@nestjs/swagger';
-import type { Request, Response } from 'express';
+import type { CookieOptions, Request, Response } from 'express';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
@@ -21,7 +21,7 @@ import { AuthService, GoogleUser } from './auth.service';
 const REFRESH_COOKIE = 'refresh_token';
 
 // 갱신 토큰 쿠키 옵션 — 운영(교차 도메인)은 SameSite=None+Secure, 개발은 Lax
-function refreshCookieOptions() {
+function refreshCookieOptions(): CookieOptions {
   const isProd = process.env.NODE_ENV === 'production';
   return {
     httpOnly: true,

@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Subscription, SubscriptionCycle } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { parsePage } from '../common/pagination';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { QuerySubscriptionDto } from './dto/query-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 
 // Date → 'YYYY-MM-DD' (@db.Date 는 시각 정보 없음)
@@ -42,12 +44,28 @@ export class SubscriptionService {
     };
   }
 
-  // 구독 목록 (해지=soft delete 제외)
-  async findAll(userId: number) {
-    const rows = await this.prisma.subscription.findMany({
-      where: { user_id: userId, deleted_at: null },
-      orderBy: { created_at: 'desc' },
-    });
+  // 구독 목록 (해지=soft delete 제외) — 서비스명/카테고리 검색.
+  // page 지정 시 서버 페이징, 없으면 전체 배열.
+  async findAll(userId: number, query: QuerySubscriptionDto = {}) {
+    const where: Prisma.SubscriptionWhereInput = { user_id: userId, deleted_at: null };
+    if (query.q) {
+      where.OR = [
+        { name: { contains: query.q } },
+        { category: { contains: query.q } },
+      ];
+    }
+    const orderBy: Prisma.SubscriptionOrderByWithRelationInput = { created_at: 'desc' };
+
+    const pg = parsePage(query.page, query.limit);
+    if (pg) {
+      const [rows, total] = await this.prisma.$transaction([
+        this.prisma.subscription.findMany({ where, orderBy, skip: pg.skip, take: pg.take }),
+        this.prisma.subscription.count({ where }),
+      ]);
+      return { items: rows.map((r) => this.toDto(r)), total, page: pg.page, limit: pg.limit };
+    }
+
+    const rows = await this.prisma.subscription.findMany({ where, orderBy });
     return rows.map((r) => this.toDto(r));
   }
 
@@ -73,11 +91,24 @@ export class SubscriptionService {
       ? Math.ceil((upcoming.next_payment_date.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
       : null;
 
+    // 체험 종료 임박 배너용 — 첫 체험 구독 (목록이 페이징되어도 배너가 동작하도록 요약에 동봉)
+    const trialRow = rows.find((r) => r.status === 'trial');
+    const trial = trialRow
+      ? {
+          id: trialRow.id,
+          name: trialRow.name,
+          amount: trialRow.amount.toNumber(),
+          cycle: trialRow.cycle,
+          nextPaymentDate: toDateStr(trialRow.next_payment_date),
+        }
+      : null;
+
     return {
       monthlyTotal,
       yearlyTotal: monthlyTotal * 12,
       activeCount: billing.length,
       nextPayment: upcoming ? { days: nextDays, name: upcoming.name } : null,
+      trial,
     };
   }
 

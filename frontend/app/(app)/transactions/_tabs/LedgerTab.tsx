@@ -14,7 +14,7 @@ import {
 } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
-import { useApiQuery, useInvalidate } from '@/lib/query';
+import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { downloadTransactionTemplate } from '@/lib/excel';
 import {
@@ -104,7 +104,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
     setActivePreset(months);
   }
 
-  // 거래 목록 — 필터(applied) 별 캐시
+  // 거래 목록 — 필터(applied)+페이지 별 캐시. 페이징은 서버에서 처리(page/limit 전송)
   const listQs = useMemo(() => {
     const params = new URLSearchParams();
     if (applied.from) params.set('from', applied.from);
@@ -112,15 +112,18 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
     if (applied.type) params.set('type', applied.type);
     if (applied.cat) params.set('category', applied.cat);
     if (applied.q) params.set('q', applied.q);
+    params.set('page', String(page));
+    params.set('limit', String(limit));
     return params.toString();
-  }, [applied]);
+  }, [applied, page, limit]);
   const month = applied.to.slice(0, 7);
 
-  const rowsQuery = useApiQuery<Transaction[]>(qk.transactions.list(applied), `/transactions?${listQs}`);
+  const rowsQuery = useApiQuery<Paginated<Transaction>>(qk.transactions.list({ ...applied, page, limit }), `/transactions?${listQs}`);
   const summaryQuery = useApiQuery<TransactionSummary>(qk.transactions.summary(month), `/transactions/summary?month=${month}`);
   const trendQuery = useApiQuery<TrendBucket[]>(qk.transactions.monthlyTrend(month), `/transactions/monthly-trend?month=${month}`);
   const recurringQuery = useApiQuery<Transaction[]>(qk.transactions.recurring(), '/transactions/recurring');
-  const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
+  const rows = useMemo(() => rowsQuery.data?.items ?? [], [rowsQuery.data]);
+  const total = rowsQuery.data?.total ?? 0;
   const summary = summaryQuery.data ?? null;
   const trend = trendQuery.data ?? [];
   const recurring = recurringQuery.data ?? [];
@@ -232,8 +235,8 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   }
 
   const maxTrend = Math.max(1, ...trend.map((b) => b.total));
-  const totalPages = Math.ceil(rows.length / limit);
-  const pagedRows = rows.slice((page - 1) * limit, page * limit);
+  const totalPages = Math.ceil(total / limit);
+  const pagedRows = rows; // 서버가 이미 페이지 단위로 잘라서 보냄
 
   return (
     <>
@@ -361,7 +364,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
       </div>
 
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {rows.length}건</span>
+        <span className="text-[0.78rem] text-secondary">총 {total}건</span>
         <div className="flex items-center gap-2">
           <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
@@ -396,7 +399,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
               {pagedRows.map((row, i) => (
                 <tr key={row.id}>
                   <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" /></td>
-                  <td className="td-center td-muted">{rows.length - (page - 1) * limit - i}</td>
+                  <td className="td-center td-muted">{total - (page - 1) * limit - i}</td>
                   <td className="td-center"><span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span></td>
                   <td className="td-center"><span className="cat-chip">{catMap[row.category] ?? row.category}</span></td>
                   <td className="td-name">{(row.isRecurring || row.recurringParentId) && <span title="반복 거래">🔁 </span>}{row.title}</td>
@@ -432,7 +435,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
             </div>
           ))}
         </div>
-        <Pagination page={page} totalPages={totalPages} totalItems={rows.length} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
       </div>
 
       <LedgerModal

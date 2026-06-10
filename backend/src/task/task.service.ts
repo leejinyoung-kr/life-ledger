@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Task } from '@prisma/client';
+import { Prisma, Task } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { parsePage } from '../common/pagination';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { QueryTaskDto } from './dto/query-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 
 // Date → 'YYYY-MM-DD'
@@ -25,12 +27,26 @@ export class TaskService {
     };
   }
 
-  // 할일 목록 — 미완료 먼저, 마감 가까운 순
-  async findAll(userId: number) {
-    const rows = await this.prisma.task.findMany({
-      where: { user_id: userId, deleted_at: null },
-      orderBy: { created_at: 'desc' },
-    });
+  // 할일 목록 — 내용 검색. page 지정 시 서버 페이징({ items, total, page, limit, allCount, done }), 없으면 전체 배열.
+  // allCount/done 은 검색과 무관한 전체 기준(완료 배지용).
+  async findAll(userId: number, query: QueryTaskDto = {}) {
+    const base: Prisma.TaskWhereInput = { user_id: userId, deleted_at: null };
+    const where: Prisma.TaskWhereInput = { ...base };
+    if (query.q) where.text = { contains: query.q };
+    const orderBy: Prisma.TaskOrderByWithRelationInput = { created_at: 'desc' };
+
+    const pg = parsePage(query.page, query.limit);
+    if (pg) {
+      const [rows, total, allCount, done] = await this.prisma.$transaction([
+        this.prisma.task.findMany({ where, orderBy, skip: pg.skip, take: pg.take }),
+        this.prisma.task.count({ where }),
+        this.prisma.task.count({ where: base }),
+        this.prisma.task.count({ where: { ...base, done: true } }),
+      ]);
+      return { items: rows.map((r) => this.toDto(r)), total, page: pg.page, limit: pg.limit, allCount, done };
+    }
+
+    const rows = await this.prisma.task.findMany({ where, orderBy });
     return rows.map((r) => this.toDto(r));
   }
 

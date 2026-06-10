@@ -19,7 +19,6 @@ export class ExportService {
       count: rows.length,
       credentials: rows.map((c) => ({
         name: c.name,
-        emoji: c.emoji,
         url: c.url,
         category: c.category,
         username: c.username,

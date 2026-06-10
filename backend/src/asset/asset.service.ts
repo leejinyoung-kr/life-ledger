@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Asset, AssetType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { parsePage } from '../common/pagination';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 
@@ -21,14 +22,35 @@ export class AssetService {
   }
 
   // 자산/부채 목록 — 기본값은 realestate+debt만 반환 (cash/savings/investment는 각 전용 테이블에서 집계)
-  async findAll(userId: number, type?: AssetType, take?: number) {
+  // page 지정 시 서버 페이징({ items, total, page, limit, sum }), 없으면 전체 배열(take 옵션 호환)
+  async findAll(userId: number, type?: AssetType, take?: number, page?: string, limit?: string) {
+    const where: Prisma.AssetWhereInput = {
+      user_id: userId,
+      deleted_at: null,
+      type: type ? type : { in: ['realestate', 'debt'] },
+    };
+    const orderBy: Prisma.AssetOrderByWithRelationInput = { created_at: 'desc' };
+
+    const pg = parsePage(page, limit);
+    if (pg) {
+      // sum: 현재 필터 전체의 금액 합계 (StatCard 표시용 — 페이지 무관)
+      const [rows, total, agg] = await this.prisma.$transaction([
+        this.prisma.asset.findMany({ where, orderBy, skip: pg.skip, take: pg.take }),
+        this.prisma.asset.count({ where }),
+        this.prisma.asset.aggregate({ where, _sum: { amount: true } }),
+      ]);
+      return {
+        items: rows.map((r) => this.toDto(r)),
+        total,
+        page: pg.page,
+        limit: pg.limit,
+        sum: agg._sum.amount?.toNumber() ?? 0,
+      };
+    }
+
     const rows = await this.prisma.asset.findMany({
-      where: {
-        user_id: userId,
-        deleted_at: null,
-        type: type ? type : { in: ['realestate', 'debt'] },
-      },
-      orderBy: { created_at: 'desc' },
+      where,
+      orderBy,
       ...(take ? { take } : {}),
     });
     return rows.map((r) => this.toDto(r));

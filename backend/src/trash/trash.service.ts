@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { parsePage } from '../common/pagination';
+import { QueryTrashDto } from './dto/query-trash.dto';
 
 // soft-delete 패턴을 공유하는 Prisma delegate 의 최소 인터페이스
 interface SoftDeleteDelegate {
@@ -47,8 +49,10 @@ export class TrashService {
     return src;
   }
 
-  // 전체 삭제 항목 통합 목록 (삭제 최신순). daysLeft = 30 - 경과일
-  async findAll(userId: number) {
+  // 전체 삭제 항목 통합 목록 (삭제 최신순). daysLeft = 30 - 경과일.
+  // 9개 테이블을 메모리에서 합치므로 유형/이름 필터·정렬·슬라이스를 여기서 수행한다.
+  // page 지정 시 { items, total, page, limit, types }, 없으면 전체 배열(기존 호환).
+  async findAll(userId: number, query: QueryTrashDto = {}) {
     const sources = this.sources();
     const lists = await Promise.all(
       (Object.keys(sources) as Kind[]).map(async (kind) => {
@@ -72,7 +76,27 @@ export class TrashService {
         });
       }),
     );
-    return lists.flat().sort((a, b) => (a.deletedAt < b.deletedAt ? 1 : -1));
+    const all = lists.flat().sort((a, b) => (a.deletedAt < b.deletedAt ? 1 : -1));
+
+    const pg = parsePage(query.page, query.limit);
+    if (!pg) return all;
+
+    // 유형 라벨 필터 + 이름 검색
+    const q = query.q?.trim().toLowerCase();
+    const filtered = all.filter(
+      (it) =>
+        (!query.type || it.type === query.type) &&
+        (!q || it.name.toLowerCase().includes(q)),
+    );
+    // 유형 드롭다운용 — 필터 무관 전체 기준 distinct 라벨
+    const types = [...new Set(all.map((it) => it.type))];
+    return {
+      items: filtered.slice(pg.skip, pg.skip + pg.take),
+      total: filtered.length,
+      page: pg.page,
+      limit: pg.limit,
+      types,
+    };
   }
 
   // 단일 복구 (deleted_at = null)

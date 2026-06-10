@@ -6,8 +6,10 @@ import { authenticator } from 'otplib';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto.service';
 import { AccessLogService } from '../access-log/access-log.service';
+import { parsePage } from '../common/pagination';
 import type { ClientInfo } from '../common/client-info.decorator';
 import { CreateCredentialDto } from './dto/create-credential.dto';
+import { QueryCredentialDto } from './dto/query-credential.dto';
 import { UpdateCredentialDto } from './dto/update-credential.dto';
 
 // 엑셀 내보내기/양식 공통 컬럼
@@ -58,13 +60,38 @@ export class CredentialService {
     };
   }
 
-  // 계정 목록 (최근 수정순)
-  async findAll(userId: number) {
-    const rows = await this.prisma.credential.findMany({
-      where: { user_id: userId, deleted_at: null },
-      orderBy: { updated_at: 'desc' },
-    });
+  // 계정 목록 (최근 수정순) — 검색어/카테고리 필터.
+  // page 지정 시 서버 페이징 + no2fa(2FA 미설정 전체 건수, 페이지 무관) 동봉, 없으면 전체 배열.
+  async findAll(userId: number, query: QueryCredentialDto = {}) {
+    const where: Prisma.CredentialWhereInput = { user_id: userId, deleted_at: null };
+    if (query.category) where.category = query.category;
+    if (query.q) {
+      where.OR = [
+        { name: { contains: query.q } },
+        { url: { contains: query.q } },
+        { username: { contains: query.q } },
+      ];
+    }
+    const orderBy: Prisma.CredentialOrderByWithRelationInput = { updated_at: 'desc' };
+
+    const pg = parsePage(query.page, query.limit);
+    if (pg) {
+      const [rows, total, no2fa] = await this.prisma.$transaction([
+        this.prisma.credential.findMany({ where, orderBy, skip: pg.skip, take: pg.take }),
+        this.prisma.credential.count({ where }),
+        // no2fa 는 검색/필터와 무관한 전체 기준 (배너용)
+        this.prisma.credential.count({ where: { user_id: userId, deleted_at: null, totp_enc: null } }),
+      ]);
+      return { items: rows.map((r) => this.toDto(r)), total, page: pg.page, limit: pg.limit, no2fa };
+    }
+
+    const rows = await this.prisma.credential.findMany({ where, orderBy });
     return rows.map((r) => this.toDto(r));
+  }
+
+  // 단일 계정 조회 (목록 DTO) — 딥링크 진입 시 사용
+  async findOne(userId: number, id: number) {
+    return this.toDto(await this.findOwned(userId, id));
   }
 
   // 계정 추가 (비밀번호·TOTP 암호화 저장). 비번 회전 기준일로 password_changed_at 기록

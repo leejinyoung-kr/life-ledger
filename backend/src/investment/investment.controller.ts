@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -14,6 +15,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { CreateInvestmentDto } from './dto/create-investment.dto';
+import { QueryInvestmentDto } from './dto/query-investment.dto';
 import { UpdateInvestmentDto } from './dto/update-investment.dto';
 import { InvestmentService } from './investment.service';
 
@@ -30,10 +32,10 @@ export class InvestmentController {
     return this.service.summary(user.id);
   }
 
-  // 투자 목록
+  // 투자 목록 (유형/종목명 필터 + 페이지네이션)
   @Get()
-  findAll(@CurrentUser() user: AuthUser) {
-    return this.service.findAll(user.id);
+  findAll(@CurrentUser() user: AuthUser, @Query() query: QueryInvestmentDto) {
+    return this.service.findAll(user.id, query);
   }
 
   // 투자 추가
