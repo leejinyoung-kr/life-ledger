@@ -37,6 +37,7 @@ type Domain =
   | 'asset'
   | 'investment'
   | 'saving'
+  | 'bank'
   | 'credential_cat'
   | 'id_type'
   | 'env_group';
@@ -48,6 +49,7 @@ const DOMAINS: { key: Domain; label: string; desc: string }[] = [
   { key: 'asset',          label: '자산 유형',        desc: '현금성·예적금·투자 등' },
   { key: 'investment',     label: '투자 유형',        desc: '국내외 주식·ETF·코인 등' },
   { key: 'saving',         label: '예적금 유형',      desc: '적금·예금·청약 등' },
+  { key: 'bank',           label: '은행/기관',        desc: '예적금·계좌의 은행/금융기관' },
   { key: 'credential_cat', label: '계정 카테고리',    desc: '개발·금융·소셜 등' },
   { key: 'id_type',        label: '신원지갑 종류',    desc: '여권·주민등록증·자격증 등' },
   { key: 'env_group',      label: 'ENV 그룹',         desc: 'Database·Auth·Storage 등' },

@@ -38,6 +38,15 @@ pnpm run dev
 - Swagger: <http://localhost:8000/api-docs>
 - Prisma Studio: <http://localhost:5555>
 
+### 배포 (Docker)
+
+```bash
+cp .env.example .env
+# .env 편집 — MARIADB_ROOT_PASSWORD (backend/.env의 DB_PASSWORD/DATABASE_URL과 동일하게)
+
+docker compose up -d --build
+```
+
 ## 기술 스택
 
 - **Frontend**: Next.js 16.2, React 19, TypeScript, Tailwind CSS v4, **TanStack Query(React Query)**

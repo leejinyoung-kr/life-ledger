@@ -3,7 +3,7 @@ services:
     image: mariadb:11
     restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: "123456789"
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
       MARIADB_DATABASE: docnexus
     ports:
       - "3308:3306"
@@ -25,7 +25,7 @@ services:
     env_file:
       - backend/.env
     environment:
-      DATABASE_URL: "mysql://root:123456789@db:3306/docnexus"
+      DATABASE_URL: "mysql://root:${MARIADB_ROOT_PASSWORD}@db:3306/docnexus"
     depends_on:
       db:
         condition: service_healthy
