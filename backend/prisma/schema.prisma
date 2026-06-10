@@ -40,6 +40,7 @@ model User {
   accessLogs     AccessLog[]
   scoreSnapshots SecurityScoreSnapshot[]
   pushSubscriptions PushSubscription[]
+  refreshTokens  RefreshToken[]
 
   @@map("user")
 }
@@ -542,9 +543,28 @@ model LoginSession {
   created_at     DateTime          @default(now())
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
 
   @@index([user_id])
   @@map("login_session")
+}
+
+/// 갱신 토큰 화이트리스트 — refresh 발급 시 jti 기록, rotation/로그아웃/세션revoke 시 폐기
+model RefreshToken {
+  id         Int       @id @default(autoincrement())
+  user_id    Int /// user.id FK
+  session_id Int? /// login_session.id FK
+  jti        String    @unique @db.VarChar(36)
+  expires_at DateTime /// 만료일(KST)
+  revoked_at DateTime? /// 폐기일(KST), null=유효
+  created_at DateTime  @default(now()) /// 발급일(KST)
+
+  user    User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  session LoginSession? @relation(fields: [session_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id])
+  @@index([session_id])
+  @@map("refresh_token")
 }
 
 /// 신원 문서 종류: passport(여권) | idcard(주민등록증) | license(운전면허) | cert(자격증) | etc(기타)

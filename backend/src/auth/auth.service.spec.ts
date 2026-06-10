@@ -13,17 +13,25 @@ describe('AuthService', () => {
     jwt = {
       sign: jest.fn((payload: any) => `tok:${payload.type}:${payload.sub}`),
       verify: jest.fn(),
+      decode: jest.fn(),
     };
     prisma = {
-      user: { upsert: jest.fn(), findUnique: jest.fn() },
+      user: { upsert: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
       loginSession: {
         count: jest.fn(),
         findFirst: jest.fn(),
         updateMany: jest.fn(),
         update: jest.fn(),
+        create: jest.fn().mockResolvedValue({ id: 1 }),
+      },
+      refreshToken: {
         create: jest.fn(),
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn(),
       },
       notification: { create: jest.fn() },
+      $transaction: jest.fn((ops: any[]) => Promise.all(ops)),
     };
     push = { sendToUser: jest.fn() };
   });
@@ -45,16 +53,66 @@ describe('AuthService', () => {
       await expect(svc().refresh('x')).rejects.toThrow(UnauthorizedException);
     });
 
+    it('jti 가 화이트리스트에 없으면 Unauthorized', async () => {
+      jwt.verify.mockReturnValue({ sub: 1, jti: 'missing', type: 'refresh' });
+      prisma.refreshToken.findUnique.mockResolvedValue(null);
+      await expect(svc().refresh('x')).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('jti 가 폐기된 상태면 Unauthorized', async () => {
+      jwt.verify.mockReturnValue({ sub: 1, jti: 'revoked', type: 'refresh' });
+      prisma.refreshToken.findUnique.mockResolvedValue({ id: 1, user_id: 1, session_id: null, revoked_at: new Date() });
+      await expect(svc().refresh('x')).rejects.toThrow(UnauthorizedException);
+    });
+
     it('사용자 없으면 Unauthorized', async () => {
-      jwt.verify.mockReturnValue({ sub: 1, type: 'refresh' });
+      jwt.verify.mockReturnValue({ sub: 1, jti: 'valid', type: 'refresh' });
+      prisma.refreshToken.findUnique.mockResolvedValue({ id: 1, user_id: 1, session_id: null, revoked_at: null });
       prisma.user.findUnique.mockResolvedValue(null);
       await expect(svc().refresh('x')).rejects.toThrow(UnauthorizedException);
     });
 
-    it('정상 → 새 access 토큰 발급', async () => {
-      jwt.verify.mockReturnValue({ sub: 7, type: 'refresh' });
+    it('정상 → rotation 후 새 access/refresh 토큰 발급 + 이전 jti 폐기', async () => {
+      jwt.verify.mockReturnValue({ sub: 7, jti: 'old-jti', type: 'refresh' });
+      prisma.refreshToken.findUnique.mockResolvedValue({ id: 1, user_id: 7, session_id: 9, revoked_at: null });
       prisma.user.findUnique.mockResolvedValue({ id: 7, google_id: 'g', email: 'e', name: 'n', picture: 'p' });
-      expect(await svc().refresh('x')).toBe('tok:access:7');
+
+      const out = await svc().refresh('x');
+
+      expect(out.access).toBe('tok:access:7');
+      expect(out.refresh).toBe('tok:refresh:7');
+      expect(prisma.refreshToken.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 1 }, data: expect.objectContaining({ revoked_at: expect.any(Date) }) }),
+      );
+      expect(prisma.refreshToken.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ user_id: 7, session_id: 9 }) }),
+      );
+    });
+  });
+
+  describe('logout', () => {
+    it('토큰 없으면 아무 동작 없음', async () => {
+      await svc().logout(undefined);
+      expect(prisma.refreshToken.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('jti 디코드되면 화이트리스트에서 폐기', async () => {
+      jwt.verify.mockReturnValue({ jti: 'abc' });
+      await svc().logout('x');
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { jti: 'abc', revoked_at: null } }),
+      );
+    });
+
+    it('검증 실패해도 decode 결과의 jti 로 폐기 시도', async () => {
+      jwt.verify.mockImplementation(() => {
+        throw new Error('expired');
+      });
+      jwt.decode.mockReturnValue({ jti: 'expired-jti' });
+      await svc().logout('x');
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { jti: 'expired-jti', revoked_at: null } }),
+      );
     });
   });
 
@@ -68,6 +126,9 @@ describe('AuthService', () => {
       expect(out.access).toBe('tok:access:3');
       expect(out.refresh).toBe('tok:refresh:3');
       expect(prisma.loginSession.count).not.toHaveBeenCalled();
+      expect(prisma.refreshToken.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ user_id: 3, session_id: null }) }),
+      );
     });
 
     it('최초 로그인(prior=0)은 새 기기 알림/푸시 없음', async () => {
@@ -96,6 +157,9 @@ describe('AuthService', () => {
       await svc().login(gUser, { ip: '1.2.3.4', userAgent: 'iPhone Safari' });
       expect(prisma.loginSession.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 99 } }));
       expect(prisma.loginSession.create).not.toHaveBeenCalled();
+      expect(prisma.refreshToken.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ session_id: 99 }) }),
+      );
     });
   });
 });

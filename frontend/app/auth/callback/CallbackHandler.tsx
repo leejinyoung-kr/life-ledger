@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { setAccessToken } from '@/lib/api';
 
 export default function CallbackHandler() {
   const router = useRouter();
@@ -10,7 +11,7 @@ export default function CallbackHandler() {
   useEffect(() => {
     const token = searchParams.get('token');
     if (token) {
-      localStorage.setItem('auth_token', token);
+      setAccessToken(token);
       router.replace('/dashboard');
     } else {
       router.replace('/login');

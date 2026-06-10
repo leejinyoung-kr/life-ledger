@@ -1,6 +1,6 @@
 /**
  * 백엔드 API fetch 래퍼.
- * localStorage 의 auth_token(access)을 Bearer 로 자동 첨부한다.
+ * access 토큰은 XSS 위험을 줄이기 위해 localStorage 가 아닌 메모리(모듈 변수)에만 보관한다.
  * access 만료(401) 시 httpOnly refresh 쿠키로 /auth/refresh 를 1회 시도해 토큰을 갱신하고 재요청한다.
  * 갱신도 실패하면 토큰 제거 후 로그인 페이지로 보낸다.
  */
@@ -10,16 +10,23 @@ import { getVaultToken, requestVaultUnlock } from './vault';
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
 
-// 저장된 access 토큰 반환 (브라우저에서만)
+// 메모리에 보관 중인 access 토큰 (새로고침 시 사라짐 — ensureSession 으로 복구)
+let accessToken: string | null = null;
+
+// access 토큰 반환
 function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('auth_token');
+  return accessToken;
+}
+
+// access 토큰 갱신/제거 — 로그인 콜백, 로그아웃, refresh 성공 시 호출
+export function setAccessToken(token: string | null): void {
+  accessToken = token;
 }
 
 // 토큰 제거 후 로그인으로 이동
 function toLogin(): void {
+  setAccessToken(null);
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('auth_token');
     window.location.href = '/login';
   }
 }
@@ -27,7 +34,7 @@ function toLogin(): void {
 // 동시 다발 401 에서 refresh 가 중복 호출되지 않도록 진행 중 Promise 를 공유
 let refreshing: Promise<boolean> | null = null;
 
-// refresh 쿠키로 새 access 발급 시도 — 성공 시 localStorage 갱신
+// refresh 쿠키로 새 access 발급 시도 — 성공 시 메모리 토큰 갱신
 function tryRefresh(): Promise<boolean> {
   if (typeof window === 'undefined') return Promise.resolve(false);
   if (!refreshing) {
@@ -36,13 +43,19 @@ function tryRefresh(): Promise<boolean> {
         if (!res.ok) return false;
         const body = (await res.json().catch(() => null)) as { token?: string } | null;
         if (!body?.token) return false;
-        localStorage.setItem('auth_token', body.token);
+        setAccessToken(body.token);
         return true;
       })
       .catch(() => false)
       .finally(() => { refreshing = null; });
   }
   return refreshing;
+}
+
+// 새로고침/최초 진입 시 세션 복구 — httpOnly refresh 쿠키로 access 재발급 시도
+export async function ensureSession(): Promise<boolean> {
+  if (accessToken) return true;
+  return tryRefresh();
 }
 
 // 인증 헤더를 붙여 요청하고 JSON 을 반환. 401 이면 refresh 후 1회 재시도. 실패 시 메시지로 throw
@@ -146,14 +159,14 @@ export async function apiDownload(path: string, filename: string, retried = fals
   URL.revokeObjectURL(url);
 }
 
-// 로그아웃 — 서버 refresh 쿠키 제거 + 로컬 access 토큰 제거
+// 로그아웃 — 서버 refresh 쿠키 제거 + 메모리 access 토큰 제거
 export async function apiLogout(): Promise<void> {
   try {
     await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
   } catch {
-    // 네트워크 실패해도 로컬 토큰은 제거
+    // 네트워크 실패해도 메모리 토큰은 제거
   }
-  if (typeof window !== 'undefined') localStorage.removeItem('auth_token');
+  setAccessToken(null);
 }
 
 export const api = {

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
@@ -20,6 +21,7 @@ export interface LoginClient {
 // 토큰 수명 — Access 짧게(자주 갱신), Refresh 길게(쿠키 보관)
 const ACCESS_TTL = '15m';
 const REFRESH_TTL = '7d';
+const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 // User-Agent → 기기 표기/종류 추정 (간이)
 function parseDevice(ua = ''): { device: string; type: 'desktop' | 'mobile' | 'unknown' } {
@@ -53,9 +55,9 @@ export class AuthService {
     );
   }
 
-  // 갱신 토큰 — 최소 payload(sub만), httpOnly 쿠키로만 사용
-  private signRefresh(userId: number): string {
-    return this.jwtService.sign({ sub: userId, type: 'refresh' }, { expiresIn: REFRESH_TTL });
+  // 갱신 토큰 — sub + jti(화이트리스트 식별자), httpOnly 쿠키로만 사용
+  private signRefresh(userId: number, jti: string): string {
+    return this.jwtService.sign({ sub: userId, jti, type: 'refresh' }, { expiresIn: REFRESH_TTL });
   }
 
   // Google 로그인 시 user upsert 후 access/refresh 토큰 발급. 클라이언트 정보가 있으면 세션 기록·신규 기기 감지
@@ -75,12 +77,16 @@ export class AuthService {
       },
     });
 
-    if (client) await this.recordLogin(user.id, client);
-    return { access: this.signAccess(user), refresh: this.signRefresh(user.id) };
+    const sessionId = client ? await this.recordLogin(user.id, client) : null;
+    const jti = randomUUID();
+    await this.prisma.refreshToken.create({
+      data: { user_id: user.id, session_id: sessionId, jti, expires_at: new Date(Date.now() + REFRESH_TTL_MS) },
+    });
+    return { access: this.signAccess(user), refresh: this.signRefresh(user.id, jti) };
   }
 
-  // 로그인 세션 기록 — 동일 기기/IP면 활동시각 갱신, 새 조합이면 세션 생성 + (첫 로그인 제외) 새 기기 알림
-  private async recordLogin(userId: number, client: LoginClient): Promise<void> {
+  // 로그인 세션 기록 — 동일 기기/IP면 활동시각 갱신, 새 조합이면 세션 생성 + (첫 로그인 제외) 새 기기 알림. 발급될 refresh 토큰과 연결할 세션 id 반환
+  private async recordLogin(userId: number, client: LoginClient): Promise<number> {
     const { device, type } = parseDevice(client.userAgent);
     const location = client.ip?.slice(0, 100) || '알 수 없음';
 
@@ -97,10 +103,10 @@ export class AuthService {
         where: { id: existing.id },
         data: { is_current: true, last_active_at: new Date(), status: 'active' },
       });
-      return;
+      return existing.id;
     }
 
-    await this.prisma.loginSession.create({
+    const created = await this.prisma.loginSession.create({
       data: { user_id: userId, device, device_type: type, location, is_current: true, status: 'active' },
     });
 
@@ -123,21 +129,59 @@ export class AuthService {
         url: '/security',
       });
     }
+
+    return created.id;
   }
 
-  // 갱신 토큰 검증 → 새 access 발급 (type=refresh 만 허용, 사용자 존재 확인)
-  async refresh(refreshToken: string): Promise<string> {
+  // 갱신 토큰 검증 → 화이트리스트 확인 후 rotation(이전 jti 폐기 + 신규 access/refresh 발급)
+  async refresh(refreshToken: string): Promise<{ access: string; refresh: string }> {
     if (!refreshToken) throw new UnauthorizedException('갱신 토큰이 없습니다.');
-    let payload: { sub: number; type?: string };
+    let payload: { sub: number; jti?: string; type?: string };
     try {
       payload = this.jwtService.verify(refreshToken);
     } catch {
       throw new UnauthorizedException('갱신 토큰이 유효하지 않습니다.');
     }
-    if (payload.type !== 'refresh') throw new UnauthorizedException('갱신 토큰이 아닙니다.');
+    if (payload.type !== 'refresh' || !payload.jti) throw new UnauthorizedException('갱신 토큰이 아닙니다.');
+
+    const stored = await this.prisma.refreshToken.findUnique({ where: { jti: payload.jti } });
+    if (!stored || stored.revoked_at || stored.user_id !== payload.sub) {
+      throw new UnauthorizedException('갱신 토큰이 유효하지 않습니다.');
+    }
+
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user) throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
-    return this.signAccess(user);
+
+    const newJti = randomUUID();
+    await this.prisma.$transaction([
+      this.prisma.refreshToken.update({ where: { id: stored.id }, data: { revoked_at: new Date() } }),
+      this.prisma.refreshToken.create({
+        data: {
+          user_id: user.id,
+          session_id: stored.session_id,
+          jti: newJti,
+          expires_at: new Date(Date.now() + REFRESH_TTL_MS),
+        },
+      }),
+    ]);
+
+    return { access: this.signAccess(user), refresh: this.signRefresh(user.id, newJti) };
+  }
+
+  // 로그아웃 — refresh 토큰의 jti 를 화이트리스트에서 폐기 (서명 검증 실패해도 디코드되면 폐기 시도)
+  async logout(refreshToken?: string): Promise<void> {
+    if (!refreshToken) return;
+    let payload: { jti?: string } | null;
+    try {
+      payload = this.jwtService.verify(refreshToken);
+    } catch {
+      payload = this.jwtService.decode(refreshToken) as { jti?: string } | null;
+    }
+    if (!payload?.jti) return;
+    await this.prisma.refreshToken.updateMany({
+      where: { jti: payload.jti, revoked_at: null },
+      data: { revoked_at: new Date() },
+    });
   }
 
   // 계정 영구 삭제 — 전 도메인 데이터 + 사용자 제거 (되돌릴 수 없음)

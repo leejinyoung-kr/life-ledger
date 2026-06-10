@@ -3,7 +3,7 @@
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
 > 마이그레이션: `20260610000000_init_consolidated`(전 도메인 통합) + `20260610010000_phase17a_security_core` · `20260610020000_phase17b_dataflow` · `20260610030000_phase17c_enhance` · `20260610040000_phase17d_extras`
 
-## 테이블 목록 (28)
+## 테이블 목록 (29)
 
 | 테이블 | 설명 |
 | --- | --- |
@@ -35,6 +35,7 @@
 | AiReport | AI 리포트 (가계부 분석·소비 패턴·절약 인사이트) |
 | PushSubscription | 웹 푸시 구독 (endpoint·p256dh·auth) |
 | AiUsageLog | AI 사용량 로그 (OpenAI 호출별 모델·토큰·비용 — 잔액 API 부재 대체) |
+| RefreshToken | 갱신 토큰 화이트리스트 (jti, rotation/로그아웃/세션revoke 시 폐기) |
 
 ## 주요 관계
 
@@ -42,12 +43,13 @@
 User 1 ─── N (Transaction, Saving, Investment, Subscription, Asset, NetWorthSnapshot,
               Notification, Task, Goal, Note, CalendarEvent,
               SecurityRisk, LoginSession, Category, IdentityCard, Credential,
-              EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport)
+              EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport, RefreshToken)
 User 1 ─── 1 UserSettings
 EnvProject     1 ─── N EnvVar
 EnvVar         1 ─── N EnvVarHistory
 StorageFolder  1 ─── N StorageFolder(parent_id, 자기참조) · N StorageFile
 StorageFile    1 ─── N IdentityCard(file_id, 사본 이미지)
+LoginSession   1 ─── N RefreshToken(session_id)
 ```
 
 ## 암호화 (보관함)
@@ -105,6 +107,12 @@ StorageFile    1 ─── N IdentityCard(file_id, 사본 이미지)
 - 거래(`Transaction.category`)는 **소분류 code** 만 저장 — 대분류는 `parent_code` 로 파생
 - 그 외 도메인(결제수단·구독·자산 등)은 단일 계층(`parent_code` NULL)
 - 엑셀→앱 카테고리 매칭·마이그레이션: [category-migration.md](category-migration.md)
+
+### 인증 — RefreshToken
+
+- access 토큰은 클라이언트 메모리에만 보관(localStorage 미사용), refresh 토큰은 httpOnly 쿠키 + `RefreshToken` 화이트리스트(`jti`)로 관리
+- `/auth/refresh` 호출 시 rotation: 기존 `jti` 폐기(`revoked_at`) + 신규 발급
+- `/auth/logout`, 세션 단건/전체 차단(`SecurityService.revokeSession/revokeAll`) 시 연결된 `RefreshToken` 도 함께 폐기
 
 ## KST 타임스탬프
 

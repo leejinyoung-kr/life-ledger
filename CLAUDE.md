@@ -112,8 +112,9 @@ doc-nexus/
 | SecurityScoreSnapshot | user_id, date, score, reuse/weak/no2fa | 구현 완료 |
 | PushSubscription | user_id, endpoint, p256dh, auth (웹 푸시 구독) | 구현 완료 |
 | AiUsageLog | user_id, model, source, prompt/completion/total_tokens, cost_usd (OpenAI 호출별 토큰·비용) | 구현 완료 |
+| RefreshToken | user_id, session_id, jti, expires_at, revoked_at (refresh 토큰 화이트리스트, rotation/로그아웃/세션revoke 시 폐기) | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 28개 테이블
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 29개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---
@@ -147,7 +148,7 @@ doc-nexus/
 | Backend — 데이터 내보내기/가져오기 (JSON·ZIP·복원) | 구현 완료 |
 | Backend — 영수증 OCR(클라이언트)·현금흐름 예측·통합 D-day | 구현 완료 |
 | Backend — AI 리포트 / 자연어 거래 파싱 (OpenAI, 사용자별 키) | 구현 완료 |
-| DB | 26개 테이블 구현 완료 |
+| DB | 29개 테이블 구현 완료 |
 
 ---
 

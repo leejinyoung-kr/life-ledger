@@ -18,7 +18,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
 import { IconWon, IconClock, IconZap, IconLock, IconCube, IconDrag } from '@/components/icons';
-import { api, apiDownload } from '@/lib/api';
+import { api, apiDownload, setAccessToken } from '@/lib/api';
 import { clearVaultToken } from '@/lib/vault';
 import { isPushSupported, fetchPushStatus, getCurrentSubscription, enablePush, disablePush } from '@/lib/push';
 import {
@@ -118,7 +118,7 @@ export default function SettingsPage() {
     if (!await confirm('계정을 영구 삭제할까요? 모든 데이터가 사라지며 되돌릴 수 없습니다.', 'danger')) return;
     try {
       await api.del('/auth/me');
-      localStorage.removeItem('auth_token');
+      setAccessToken(null);
       notify.success('계정이 삭제됐습니다.');
       router.push('/login');
     } catch {

@@ -93,14 +93,20 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const token = (req.cookies?.[REFRESH_COOKIE] as string | undefined) ?? '';
-    const access = await this.authService.refresh(token);
+    const { access, refresh } = await this.authService.refresh(token);
+    res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions());
     return { token: access };
   }
 
-  // 로그아웃 — refresh 쿠키 제거 (access 는 클라이언트가 폐기)
+  // 로그아웃 — refresh 토큰 화이트리스트 폐기 + 쿠키 제거 (access 는 클라이언트가 폐기)
   @Public()
   @Post('logout')
-  logout(@Res({ passthrough: true }) res: Response) {
+  async logout(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const token = (req.cookies?.[REFRESH_COOKIE] as string | undefined) ?? '';
+    await this.authService.logout(token);
     res.clearCookie(REFRESH_COOKIE, {
       ...refreshCookieOptions(),
       maxAge: undefined,

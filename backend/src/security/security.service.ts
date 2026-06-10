@@ -215,23 +215,37 @@ export class SecurityService {
     return rows.map((s) => this.sessionDto(s));
   }
 
-  // 단일 세션 로그아웃/차단 (현재 기기는 불가)
+  // 단일 세션 로그아웃/차단 (현재 기기는 불가) — 연결된 refresh 토큰도 함께 폐기
   async revokeSession(userId: number, id: number) {
     const session = await this.prisma.loginSession.findFirst({
       where: { id, user_id: userId, revoked_at: null },
     });
     if (!session) throw new NotFoundException('세션을 찾을 수 없습니다.');
     if (session.is_current) throw new NotFoundException('현재 기기는 로그아웃할 수 없습니다.');
-    await this.prisma.loginSession.update({ where: { id }, data: { revoked_at: new Date() } });
+    await this.prisma.$transaction([
+      this.prisma.loginSession.update({ where: { id }, data: { revoked_at: new Date() } }),
+      this.prisma.refreshToken.updateMany({
+        where: { session_id: id, revoked_at: null },
+        data: { revoked_at: new Date() },
+      }),
+    ]);
     return { id };
   }
 
-  // 현재 기기 제외 전체 로그아웃
+  // 현재 기기 제외 전체 로그아웃 — 연결된 refresh 토큰도 함께 폐기
   async revokeAll(userId: number) {
-    const res = await this.prisma.loginSession.updateMany({
+    const sessions = await this.prisma.loginSession.findMany({
       where: { user_id: userId, revoked_at: null, is_current: false },
-      data: { revoked_at: new Date() },
+      select: { id: true },
     });
-    return { revoked: res.count };
+    const ids = sessions.map((s) => s.id);
+    await this.prisma.$transaction([
+      this.prisma.loginSession.updateMany({ where: { id: { in: ids } }, data: { revoked_at: new Date() } }),
+      this.prisma.refreshToken.updateMany({
+        where: { session_id: { in: ids }, revoked_at: null },
+        data: { revoked_at: new Date() },
+      }),
+    ]);
+    return { revoked: ids.length };
   }
 }
