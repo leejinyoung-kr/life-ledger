@@ -16,8 +16,22 @@ async function bootstrap() {
     // 숫자(홉 수) 또는 'true'/CIDR 문자열 허용
     app.set('trust proxy', /^\d+$/.test(trustProxy) ? Number(trustProxy) : trustProxy);
   }
-  // 보안 헤더 — CSP/HSTS/X-Frame-Options 등. API+Swagger 호환 위해 CSP는 비활성
-  app.use(helmet({ contentSecurityPolicy: false }));
+  // 보안 헤더 — CSP/HSTS/X-Frame-Options 등. API+Swagger UI(api-docs) 호환을 위해
+  // script/style 은 'unsafe-inline' 허용, 그 외는 'self' 로 제한
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:'],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+        },
+      },
+    }),
+  );
   app.use(cookieParser());
   // request-id 부여 + 구조화 접근로그 (함수형 전역 등록 — forRoutes('*') 금지)
   app.use(requestLogger);

@@ -31,11 +31,6 @@ pnpm test        # 테스트
 `.env.example` 참고:
 
 ```env
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=docnexus
 PORT=8000
 DATABASE_URL="mysql://root:password@localhost:3306/docnexus"
 
