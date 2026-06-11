@@ -34,6 +34,86 @@ function isAllowedMime(mime: string): boolean {
   return ALLOWED_MIME_PREFIXES.some((p) => mime.startsWith(p)) || ALLOWED_MIME_EXACT.has(mime);
 }
 
+// inline 미리보기 시 브라우저가 직접 실행/렌더링하면 XSS 위험이 있는 형식 — attachment 로 강제
+const INLINE_BLOCKED_MIME = new Set([
+  'text/html',
+  'application/xhtml+xml',
+  'image/svg+xml',
+  'text/xml',
+  'application/xml',
+]);
+
+// ZIP 컨테이너 기반 오피스 포맷 — PK 시그니처 허용 대상
+const ZIP_FAMILY_MIME = new Set([
+  'application/zip',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+]);
+
+// 레거시 OLE 복합문서 기반 오피스 포맷 — D0CF11E0 시그니처 허용 대상
+const OLE_FAMILY_MIME = new Set([
+  'application/msword',
+  'application/vnd.ms-excel',
+  'application/vnd.ms-powerpoint',
+]);
+
+function startsWithBytes(buf: Buffer, sig: number[]): boolean {
+  return buf.length >= sig.length && sig.every((b, i) => buf[i] === b);
+}
+
+// 매직바이트 시그니처 → 선언 mimetype 허용 여부 검사 규칙.
+// 시그니처가 매칭되는데 declared mime 이 허용되지 않으면 위장 업로드로 간주해 차단.
+const MAGIC_RULES: { test: (buf: Buffer) => boolean; allow: (mime: string) => boolean }[] = [
+  { test: (b) => startsWithBytes(b, [0xff, 0xd8, 0xff]), allow: (m) => m === 'image/jpeg' },
+  { test: (b) => startsWithBytes(b, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), allow: (m) => m === 'image/png' },
+  { test: (b) => startsWithBytes(b, [0x47, 0x49, 0x46, 0x38]), allow: (m) => m === 'image/gif' },
+  {
+    test: (b) => startsWithBytes(b, [0x52, 0x49, 0x46, 0x46]) && b.subarray(8, 12).toString('ascii') === 'WEBP',
+    allow: (m) => m === 'image/webp',
+  },
+  {
+    test: (b) => startsWithBytes(b, [0x52, 0x49, 0x46, 0x46]) && b.subarray(8, 12).toString('ascii') === 'WAVE',
+    allow: (m) => m === 'audio/wav' || m === 'audio/x-wav' || m === 'audio/wave',
+  },
+  { test: (b) => startsWithBytes(b, [0x25, 0x50, 0x44, 0x46]), allow: (m) => m === 'application/pdf' },
+  {
+    test: (b) => startsWithBytes(b, [0x50, 0x4b, 0x03, 0x04]) || startsWithBytes(b, [0x50, 0x4b, 0x05, 0x06]),
+    allow: (m) => ZIP_FAMILY_MIME.has(m),
+  },
+  { test: (b) => startsWithBytes(b, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]), allow: (m) => OLE_FAMILY_MIME.has(m) },
+  { test: (b) => startsWithBytes(b, [0x49, 0x44, 0x33]), allow: (m) => m === 'audio/mpeg' },
+  { test: (b) => b.length >= 2 && b[0] === 0xff && (b[1] & 0xe0) === 0xe0, allow: (m) => m === 'audio/mpeg' },
+  {
+    test: (b) => b.length >= 12 && b.subarray(4, 8).toString('ascii') === 'ftyp',
+    allow: (m) => m.startsWith('video/') || m.startsWith('audio/'),
+  },
+  { test: (b) => startsWithBytes(b, [0x1a, 0x45, 0xdf, 0xa3]), allow: (m) => m === 'video/webm' || m === 'video/x-matroska' },
+  // 실행파일 시그니처 — 선언 형식과 무관하게 항상 차단
+  { test: (b) => startsWithBytes(b, [0x4d, 0x5a]), allow: () => false },
+  { test: (b) => startsWithBytes(b, [0x7f, 0x45, 0x4c, 0x46]), allow: () => false },
+  {
+    test: (b) =>
+      startsWithBytes(b, [0xfe, 0xed, 0xfa, 0xce]) ||
+      startsWithBytes(b, [0xfe, 0xed, 0xfa, 0xcf]) ||
+      startsWithBytes(b, [0xcf, 0xfa, 0xed, 0xfe]) ||
+      startsWithBytes(b, [0xce, 0xfa, 0xed, 0xfe]),
+    allow: () => false,
+  },
+];
+
+// 매직바이트로 실제 형식을 판별해 declared mimetype 과 비교 — 알려진 시그니처가 없으면 통과(text/* 등)
+function checkMagicBytes(buf: Buffer, declaredMime: string): void {
+  for (const rule of MAGIC_RULES) {
+    if (rule.test(buf)) {
+      if (!rule.allow(declaredMime)) {
+        throw new BadRequestException('파일 내용이 선언된 형식과 일치하지 않습니다.');
+      }
+      return;
+    }
+  }
+}
+
 @Injectable()
 export class FileService {
   private readonly s3: S3Client;
@@ -117,6 +197,7 @@ export class FileService {
       throw new BadRequestException('파일 크기는 50MB를 초과할 수 없습니다.');
     if (!isAllowedMime(file.mimetype))
       throw new BadRequestException(`허용되지 않는 파일 형식입니다: ${file.mimetype}`);
+    checkMagicBytes(file.buffer, file.mimetype);
 
     if (folderId) await this.findOwnedFolder(userId, folderId);
 
@@ -143,17 +224,26 @@ export class FileService {
       );
     }
 
-    const saved = await this.prisma.storageFile.create({
-      data: {
-        user_id: userId,
-        folder_id: folderId ?? null,
-        object_key: objectKey,
-        name: originalName,
-        size: file.size,
-        mime_type: file.mimetype,
-        hash,
-      },
-    });
+    let saved;
+    try {
+      saved = await this.prisma.storageFile.create({
+        data: {
+          user_id: userId,
+          folder_id: folderId ?? null,
+          object_key: objectKey,
+          name: originalName,
+          size: file.size,
+          mime_type: file.mimetype,
+          hash,
+        },
+      });
+    } catch (e) {
+      // DB 기록 실패 시 방금 올린 B2 오브젝트 보상삭제 (dup 재사용분은 보존)
+      if (!dup) {
+        await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: objectKey })).catch(() => {});
+      }
+      throw e;
+    }
 
     return {
       id: saved.id,
@@ -168,14 +258,16 @@ export class FileService {
 
   // presigned 다운로드/미리보기 URL 발급 (5분 유효)
   // disposition: 'attachment'면 다운로드, 'inline'이면 브라우저 내 미리보기
+  // text/html·image/svg+xml 등 inline 렌더링 시 XSS 위험이 있는 형식은 attachment 로 강제 전환
   async getDownloadUrl(userId: number, fileId: number, disposition: 'attachment' | 'inline' = 'attachment') {
     const file = await this.findOwnedFile(userId, fileId);
+    const safeDisposition = disposition === 'inline' && INLINE_BLOCKED_MIME.has(file.mime_type) ? 'attachment' : disposition;
     const url = await getSignedUrl(
       this.s3,
       new GetObjectCommand({
         Bucket: this.bucket,
         Key: file.object_key,
-        ResponseContentDisposition: `${disposition}; filename="${encodeURIComponent(file.name)}"`,
+        ResponseContentDisposition: `${safeDisposition}; filename="${encodeURIComponent(file.name)}"`,
       }),
       { expiresIn: 300 },
     );
@@ -246,31 +338,34 @@ export class FileService {
     return { id: folderId };
   }
 
-  // 하위 트리를 BFS로 순회하며 모두 soft delete
+  // BFS로 하위 폴더 id 전부 수집 후, 폴더·파일 soft delete를 단일 트랜잭션으로 일괄 처리
   private async deleteFolderRecursive(userId: number, folderId: number) {
-    const now = new Date();
+    const ids = [folderId];
     const queue = [folderId];
 
     while (queue.length > 0) {
       const current = queue.shift()!;
-
       const children = await this.prisma.storageFolder.findMany({
         where: { user_id: userId, parent_id: current, deleted_at: null },
         select: { id: true },
       });
-      children.forEach((c) => queue.push(c.id));
-
-      await this.prisma.$transaction([
-        this.prisma.storageFile.updateMany({
-          where: { user_id: userId, folder_id: current, deleted_at: null },
-          data: { deleted_at: now },
-        }),
-        this.prisma.storageFolder.update({
-          where: { id: current },
-          data: { deleted_at: now },
-        }),
-      ]);
+      for (const c of children) {
+        ids.push(c.id);
+        queue.push(c.id);
+      }
     }
+
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.storageFile.updateMany({
+        where: { user_id: userId, folder_id: { in: ids }, deleted_at: null },
+        data: { deleted_at: now },
+      }),
+      this.prisma.storageFolder.updateMany({
+        where: { id: { in: ids }, deleted_at: null },
+        data: { deleted_at: now },
+      }),
+    ]);
   }
 
   private async findOwnedFile(userId: number, fileId: number) {

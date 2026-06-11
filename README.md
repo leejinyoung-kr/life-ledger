@@ -53,7 +53,7 @@ docker compose up -d --build
 - **Backend**: NestJS 11, Prisma, MariaDB, `@nestjs/throttler`(Rate-limit)
 - **인증**: Google OAuth 2.0 + JWT (전역 가드 — 로그인 외 전 엔드포인트 토큰 필수, 새 기기 로그인 감지)
 - **암호화**: AES-256-GCM (계정·신원·ENV 보관함 민감 필드) / 마스터 잠금 scrypt
-- **스토리지**: Backblaze B2 (파일 보관함 — presigned·MIME검증·SHA-256 중복제거)
+- **스토리지**: Backblaze B2 (파일 보관함 — presigned·MIME/매직바이트 검증·SHA-256 중복제거)
 - **외부 연동**: HIBP 유출 비밀번호 검사 · tesseract.js 영수증 OCR
 - **AI**: OpenAI API (사용자별 키·모델 — AI 리포트, 자연어→거래 파싱)
 
