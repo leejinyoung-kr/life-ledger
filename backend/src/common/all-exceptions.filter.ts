@@ -34,10 +34,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
           : ((body as { message?: unknown }).message ?? body);
     }
 
+    const rid = req.requestId;
+
     // 5xx는 원본 예외 로깅(관측), 4xx는 노이즈라 미로깅
     if (status >= 500) {
       this.logger.error(
-        `${req.method} ${req.url} -> ${status}`,
+        `${req.method} ${req.url} -> ${status} rid=${rid}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
     }
@@ -47,6 +49,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message,
       path: req.url,
       timestamp: new Date().toISOString(),
+      requestId: rid,
     });
   }
 }

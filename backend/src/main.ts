@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { requestLogger } from './common/request-logger.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -18,6 +19,8 @@ async function bootstrap() {
   // 보안 헤더 — CSP/HSTS/X-Frame-Options 등. API+Swagger 호환 위해 CSP는 비활성
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cookieParser());
+  // request-id 부여 + 구조화 접근로그 (함수형 전역 등록 — forRoutes('*') 금지)
+  app.use(requestLogger);
 
   const allowedOrigins = (
     process.env.CORS_ORIGINS ?? 'http://localhost:3000'

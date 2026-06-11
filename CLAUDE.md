@@ -50,7 +50,7 @@ doc-nexus/
 │       ├── file/          # 파일 보관함 (Backblaze B2)
 │       ├── export/        # 데이터 내보내기 (계정 JSON·전체 ZIP)
 │       ├── import/        # 데이터 가져오기 (계정 JSON 복원)
-│       ├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수 스냅샷)
+│       ├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수 스냅샷·DB 백업)
 │       ├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
 │       └── prisma/        # PrismaService / PrismaModule
 ├── docs/              # 설계 문서

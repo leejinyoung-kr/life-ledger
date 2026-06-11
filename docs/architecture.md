@@ -58,7 +58,7 @@
 | file | /files (Backblaze B2) | 구현 완료 |
 | export | /export | 구현 완료 |
 | import | /import | 구현 완료 |
-| maintenance | (크론 — 알림·휴지통·보안점수 스냅샷) | 구현 완료 |
+| maintenance | (크론 — 알림·휴지통·보안점수 스냅샷·DB 백업) | 구현 완료 |
 | ai | /ai (자연어 거래 파싱·AI 리포트, 사용자별 OpenAI 키) | 구현 완료 |
 
 ## 프론트엔드 페이지

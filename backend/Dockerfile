@@ -17,6 +17,8 @@ RUN pnpm --filter backend run build
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# DB 백업 크론(mysqldump)용
+RUN apk add --no-cache mariadb-client
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/backend/node_modules ./backend/node_modules
 COPY --from=build /app/backend/package.json ./backend/package.json
