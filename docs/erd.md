@@ -97,7 +97,7 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 - `SecurityRisk` — `category`(reuse/weak/no2fa/breach), `severity`, `resolved` (실시간 분석은 별도, 이 테이블은 시드/표시용)
 - `LoginSession` — `device`, `device_type`, `location`, `is_current`, `status`, `revoked_at` (새 기기 로그인 감지 시 기록)
-- `AccessLog` — `action`(cred_reveal/cred_totp/cred_backup/identity_reveal/env_reveal), `target_type/id/name`, `ip`, `user_agent`
+- `AccessLog` — `action`(cred_reveal/cred_totp/cred_backup/identity_reveal/env_reveal/backup_codes_generate/vault_unlock/vault_disable/session_revoke/data_export), `target_type`(credential/identity/env/security/account), `target_id/name`, `ip`, `user_agent`
 - `SecurityScoreSnapshot` — `date`(YYYY-MM-DD), `score`, `reuse/weak/no2fa` — 크론이 매일 1건 적재 → 추이 차트
 
 ### 카테고리 — Category

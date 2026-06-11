@@ -1,14 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import AdmZip from 'adm-zip';
 import { PrismaService } from '../prisma/prisma.service';
+import { AccessLogService } from '../access-log/access-log.service';
+import type { ClientInfo } from '../common/client-info.decorator';
 
 @Injectable()
 export class ExportService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private accessLog: AccessLogService,
+  ) {}
 
   // 계정 보관함 JSON 백업 — 비밀번호/TOTP 는 암호문(v1:...) 그대로 보존.
   // 복원은 동일한 CREDENTIAL_SECRET 환경에서만 복호화 가능하다.
-  async credentialsJson(userId: number) {
+  async credentialsJson(userId: number, client?: ClientInfo) {
+    await this.accessLog.log(userId, 'data_export', { type: 'account', id: userId, name: 'export:credentials' }, client);
     const rows = await this.prisma.credential.findMany({
       where: { user_id: userId, deleted_at: null },
       orderBy: { id: 'asc' },
@@ -32,7 +38,8 @@ export class ExportService {
 
   // 전체 데이터 백업 ZIP — 도메인별 JSON + 메모 마크다운.
   // 암호화 컬럼은 암호문 그대로 포함(복호화하지 않음).
-  async backupZip(userId: number): Promise<Buffer> {
+  async backupZip(userId: number, client?: ClientInfo): Promise<Buffer> {
+    await this.accessLog.log(userId, 'data_export', { type: 'account', id: userId, name: 'export:backup' }, client);
     const where = { where: { user_id: userId, deleted_at: null } };
     const [
       transactions, savings, investments, subscriptions, assets,

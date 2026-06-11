@@ -731,12 +731,19 @@ model EnvVarHistory {
 }
 
 /// 보관함 열람 동작: cred_reveal(계정 비번/2FA) | cred_totp(TOTP 코드) | cred_backup(백업코드) | identity_reveal(신원번호) | env_reveal(ENV 값)
+/// | backup_codes_generate(백업코드 생성) | vault_unlock(보관함 잠금해제) | vault_disable(보관함 잠금 해제설정)
+/// | session_revoke(세션 강제로그아웃) | data_export(전체 데이터 export)
 enum AccessAction {
   cred_reveal
   cred_totp
   cred_backup
   identity_reveal
   env_reveal
+  backup_codes_generate
+  vault_unlock
+  vault_disable
+  session_revoke
+  data_export
 
   @@map("access_action")
 }
@@ -746,7 +753,7 @@ model AccessLog {
   id          Int          @id @default(autoincrement())
   user_id     Int /// user.id FK
   action      AccessAction
-  target_type String       @db.VarChar(20) /// 대상 종류 (credential|identity|env)
+  target_type String       @db.VarChar(20) /// 대상 종류 (credential|identity|env|security|account)
   target_id   Int /// 대상 레코드 id
   target_name String       @db.VarChar(200) /// 대상 표시명(열람 시점 스냅샷)
   ip          String?      @db.VarChar(60)

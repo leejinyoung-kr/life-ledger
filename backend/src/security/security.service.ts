@@ -3,6 +3,8 @@ import { createHash } from 'crypto';
 import { LoginSession } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto.service';
+import { AccessLogService } from '../access-log/access-log.service';
+import type { ClientInfo } from '../common/client-info.decorator';
 
 type RiskCategory = 'reuse' | 'weak' | 'no2fa' | 'breach';
 type RiskSeverity = 'critical' | 'danger' | 'warning' | 'info';
@@ -22,6 +24,7 @@ export class SecurityService {
   constructor(
     private prisma: PrismaService,
     private crypto: CryptoService,
+    private accessLog: AccessLogService,
   ) {}
 
   // 비밀번호 강도 점수(0~100) — 프론트 pwStrength 와 동일 로직
@@ -216,7 +219,7 @@ export class SecurityService {
   }
 
   // 단일 세션 로그아웃/차단 (현재 기기는 불가) — 연결된 refresh 토큰도 함께 폐기
-  async revokeSession(userId: number, id: number) {
+  async revokeSession(userId: number, id: number, client?: ClientInfo) {
     const session = await this.prisma.loginSession.findFirst({
       where: { id, user_id: userId, revoked_at: null },
     });
@@ -229,11 +232,12 @@ export class SecurityService {
         data: { revoked_at: new Date() },
       }),
     ]);
+    await this.accessLog.log(userId, 'session_revoke', { type: 'security', id, name: session.device }, client);
     return { id };
   }
 
   // 현재 기기 제외 전체 로그아웃 — 연결된 refresh 토큰도 함께 폐기
-  async revokeAll(userId: number) {
+  async revokeAll(userId: number, client?: ClientInfo) {
     const sessions = await this.prisma.loginSession.findMany({
       where: { user_id: userId, revoked_at: null, is_current: false },
       select: { id: true },
@@ -246,6 +250,7 @@ export class SecurityService {
         data: { revoked_at: new Date() },
       }),
     ]);
+    await this.accessLog.log(userId, 'session_revoke', { type: 'security', id: userId, name: `all:${ids.length}` }, client);
     return { revoked: ids.length };
   }
 }

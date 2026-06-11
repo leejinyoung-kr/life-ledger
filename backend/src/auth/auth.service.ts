@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -34,6 +34,8 @@ function parseDevice(ua = ''): { device: string; type: 'desktop' | 'mobile' | 'u
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
@@ -185,7 +187,9 @@ export class AuthService {
   }
 
   // 계정 영구 삭제 — 전 도메인 데이터 + 사용자 제거 (되돌릴 수 없음)
+  // access_log 는 user_id FK cascade 로 함께 삭제되므로 DB 기록 대신 서버 로그로 남긴다
   async deleteAccount(userId: number): Promise<{ ok: true }> {
+    this.logger.warn(`계정 영구 삭제: user_id=${userId}`);
     const w = { where: { user_id: userId } };
     await this.prisma.$transaction([
       this.prisma.transaction.deleteMany(w),

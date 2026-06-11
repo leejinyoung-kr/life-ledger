@@ -5,7 +5,7 @@ import type { ClientInfo } from '../common/client-info.decorator';
 
 // 로그 기록 대상 (열람한 보관함 레코드)
 export interface AccessTarget {
-  type: 'credential' | 'identity' | 'env';
+  type: 'credential' | 'identity' | 'env' | 'security' | 'account';
   id: number;
   name: string;
 }

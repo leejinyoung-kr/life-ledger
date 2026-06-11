@@ -14,7 +14,8 @@ describe('VaultService (마스터 잠금)', () => {
     },
   };
   const jwt: any = { sign: jest.fn(() => 'signed-token') };
-  const svc = () => new VaultService(prisma, jwt);
+  const accessLog: any = { log: jest.fn(async () => {}) };
+  const svc = () => new VaultService(prisma, jwt, accessLog);
 
   beforeEach(() => {
     row = {

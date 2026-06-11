@@ -3,6 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { DEFAULT_CATEGORIES, DEFAULT_WIDGETS } from '../settings/settings.defaults';
+import { AccessLogService } from '../access-log/access-log.service';
+import type { ClientInfo } from '../common/client-info.decorator';
 
 // 마스터 잠금(보관함 2차 잠금) — 마스터 비번 해시 관리 + 잠금해제 토큰 발급.
 // Google 로그인 외에 민감 보관함 진입 시 별도 비번을 요구해 reveal 류 호출을 막는다.
@@ -11,6 +13,7 @@ export class VaultService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
+    private accessLog: AccessLogService,
   ) {}
 
   // 마스터 비번 → scrypt 해시 문자열(saltHex:hashHex)
@@ -72,7 +75,7 @@ export class VaultService {
   }
 
   // 마스터 잠금 해제(비활성화) — 현재 비번 확인 후 해제
-  async disable(userId: number, password: string) {
+  async disable(userId: number, password: string, client?: ClientInfo) {
     const row = await this.ensureSettings(userId);
     if (row.master_lock_enabled && row.master_lock_hash && !this.matches(password, row.master_lock_hash)) {
       throw new ForbiddenException('마스터 비밀번호가 일치하지 않습니다.');
@@ -81,11 +84,12 @@ export class VaultService {
       where: { user_id: userId },
       data: { master_lock_enabled: false, master_lock_hash: null },
     });
+    await this.accessLog.log(userId, 'vault_disable', { type: 'security', id: userId, name: 'vault' }, client);
     return { enabled: false };
   }
 
   // 잠금 해제 — 비번 확인 후 만료시간이 있는 vault 토큰 발급. 자동잠금=토큰 만료
-  async unlock(userId: number, password: string) {
+  async unlock(userId: number, password: string, client?: ClientInfo) {
     const row = await this.ensureSettings(userId);
     if (!row.master_lock_enabled || !row.master_lock_hash) {
       throw new BadRequestException('마스터 잠금이 설정되어 있지 않습니다.');
@@ -96,6 +100,7 @@ export class VaultService {
     // timeout 0(수동 잠금만) 은 12시간으로 길게 둔다
     const ttlSec = row.master_lock_timeout > 0 ? row.master_lock_timeout * 60 : 12 * 3600;
     const token = this.jwt.sign({ sub: userId, scope: 'vault' }, { expiresIn: ttlSec });
+    await this.accessLog.log(userId, 'vault_unlock', { type: 'security', id: userId, name: 'vault' }, client);
     return { token, expiresIn: ttlSec };
   }
 }

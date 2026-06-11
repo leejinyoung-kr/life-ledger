@@ -173,7 +173,7 @@ export class CredentialService {
   }
 
   // 2FA 백업코드 생성 — 8자리 코드 N개를 만들어 JSON 배열로 암호화 저장. 평문은 이 응답에서만 1회 노출
-  async generateBackupCodes(userId: number, id: number, count = 10) {
+  async generateBackupCodes(userId: number, id: number, count = 10, client?: ClientInfo) {
     const row = await this.findOwned(userId, id);
     const codes = Array.from({ length: count }, () =>
       randomBytes(4).toString('hex').toUpperCase().replace(/(.{4})(.{4})/, '$1-$2'),
@@ -182,6 +182,7 @@ export class CredentialService {
       where: { id },
       data: { backup_codes_enc: this.crypto.encrypt(JSON.stringify(codes)) },
     });
+    await this.accessLog.log(userId, 'backup_codes_generate', { type: 'credential', id, name: row.name }, client);
     return { name: row.name, codes };
   }
 

@@ -122,8 +122,9 @@ export class CredentialController {
   generateBackupCodes(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) id: number,
+    @Client() client: ClientInfo,
   ) {
-    return this.service.generateBackupCodes(user.id, id);
+    return this.service.generateBackupCodes(user.id, id, undefined, client);
   }
 
   // 저장된 2FA 백업코드 조회

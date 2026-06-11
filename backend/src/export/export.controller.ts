@@ -5,6 +5,7 @@ import type { Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { Client, type ClientInfo } from '../common/client-info.decorator';
 import { ExportService } from './export.service';
 
 @ApiTags('데이터 내보내기')
@@ -21,8 +22,9 @@ export class ExportController {
   async credentials(
     @CurrentUser() user: AuthUser,
     @Res() res: Response,
+    @Client() client: ClientInfo,
   ): Promise<void> {
-    const data = await this.service.credentialsJson(user.id);
+    const data = await this.service.credentialsJson(user.id, client);
     const filename = encodeURIComponent('계정백업.json');
     res.set({
       'Content-Type': 'application/json; charset=utf-8',
@@ -36,8 +38,9 @@ export class ExportController {
   async backup(
     @CurrentUser() user: AuthUser,
     @Res() res: Response,
+    @Client() client: ClientInfo,
   ): Promise<void> {
-    const buf = await this.service.backupZip(user.id);
+    const buf = await this.service.backupZip(user.id, client);
     const filename = encodeURIComponent('docnexus-백업.zip');
     res.set({
       'Content-Type': 'application/zip',
