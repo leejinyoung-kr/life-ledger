@@ -6,9 +6,11 @@
  * stateless — 서버(B2/DB)에 저장하지 않고 변환 결과만 응답받아 받는다.
  * PDF→이미지는 출력 포맷(PNG/JPG)을 고를 수 있고, 여러 페이지면 ZIP 으로 묶여 내려온다.
  */
-import { useRef, useState, type DragEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
+import Image from 'next/image';
 import AppShell from '@/components/AppShell';
 import Button from '@/components/ui/Button';
+import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { IconImage, IconFileBlank, IconUpload, IconClose } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import {
@@ -38,7 +40,20 @@ export default function ConvertPage() {
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   const accept = dir === 'image-to-pdf' ? IMAGE_INPUT_ACCEPT : PDF_INPUT_ACCEPT;
+
+  // 선택 파일 미리보기(이미지/PDF 공통) — 파일 변경마다 이전 URL 해제
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   // 방향 전환 — 선택 파일은 형식이 안 맞으므로 초기화
   const switchDir = (next: Direction) => {
@@ -93,107 +108,137 @@ export default function ConvertPage() {
 
   return (
     <AppShell activePath="/convert" topbarLabel="파일 변환">
-      <div className="max-w-[640px] mx-auto flex flex-col gap-6">
-        <header>
-          <h1 className="[font-family:var(--font-display)] text-[1.4rem] font-extrabold tracking-[-0.02em] text-primary">파일 변환</h1>
-          <p className="text-[0.85rem] text-secondary mt-1">이미지와 PDF를 서로 변환합니다. 파일은 변환에만 쓰이고 서버에 저장되지 않습니다.</p>
-        </header>
+      <div className="mb-7">
+        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">파일 변환</h1>
+        <p className="text-sm text-secondary mt-1.5">이미지와 PDF를 서로 변환합니다. 파일은 변환에만 쓰이고 서버에 저장되지 않습니다.</p>
+      </div>
 
-        {/* 방향 선택 */}
-        <div className="grid grid-cols-2 gap-2">
-          <DirCard
-            active={dir === 'image-to-pdf'}
-            onClick={() => switchDir('image-to-pdf')}
-            icon={<IconImage />}
-            title="이미지 → PDF"
-            desc="JPEG · PNG → PDF"
-          />
-          <DirCard
-            active={dir === 'pdf-to-image'}
-            onClick={() => switchDir('pdf-to-image')}
-            icon={<IconFileBlank />}
-            title="PDF → 이미지"
-            desc="PDF → PNG · JPG"
-          />
-        </div>
-
-        {/* PDF→이미지 출력 포맷 선택 */}
-        {dir === 'pdf-to-image' && (
-          <div className="flex items-center gap-3">
-            <span className="text-[0.85rem] font-medium text-secondary">출력 형식</span>
-            <div className="flex gap-2">
-              {(['png', 'jpg'] as ImageFormat[]).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFormat(f)}
-                  className={`px-3 py-1.5 rounded-[var(--radius)] text-[0.82rem] font-semibold border transition-colors ${
-                    format === f
-                      ? 'bg-accent-dim text-accent border-accent'
-                      : 'bg-transparent text-secondary border-border hover:bg-surface hover:text-primary'
-                  }`}
-                >
-                  {f.toUpperCase()}
-                </button>
-              ))}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6 items-start">
+        <Card>
+          <CardHeader>
+            <CardTitle>변환할 파일</CardTitle>
+          </CardHeader>
+          <CardBody className="flex flex-col gap-5">
+            {/* 방향 선택 */}
+            <div className="grid grid-cols-2 gap-2">
+              <DirCard
+                active={dir === 'image-to-pdf'}
+                onClick={() => switchDir('image-to-pdf')}
+                icon={<IconImage />}
+                title="이미지 → PDF"
+                desc="JPEG · PNG → PDF"
+              />
+              <DirCard
+                active={dir === 'pdf-to-image'}
+                onClick={() => switchDir('pdf-to-image')}
+                icon={<IconFileBlank />}
+                title="PDF → 이미지"
+                desc="PDF → PNG · JPG"
+              />
             </div>
-          </div>
-        )}
 
-        {/* 드롭존 / 파일 선택 */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => inputRef.current?.click()}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-          className={`flex flex-col items-center justify-center gap-3 px-6 py-12 rounded-[var(--radius)] border-2 border-dashed cursor-pointer transition-colors text-center ${
-            dragging ? 'border-accent bg-accent-dim' : 'border-border hover:border-accent hover:bg-surface'
-          }`}
-        >
-          <input
-            ref={inputRef}
-            type="file"
-            accept={accept}
-            className="hidden"
-            onChange={(e) => { pickFile(e.target.files?.[0] ?? null); e.target.value = ''; }}
-          />
-          <div className="[&_svg]:w-8 [&_svg]:h-8 text-muted"><IconUpload /></div>
-          <div className="text-[0.88rem] text-secondary">
-            <span className="text-accent font-semibold">클릭</span> 또는 드래그하여 파일 선택
-          </div>
-          <div className="text-[0.75rem] text-muted">
-            {dir === 'image-to-pdf' ? 'JPEG · PNG' : 'PDF'} · 최대 50MB
-          </div>
-        </div>
+            {/* PDF→이미지 출력 포맷 선택 */}
+            {dir === 'pdf-to-image' && (
+              <div className="flex items-center gap-3">
+                <span className="text-[0.85rem] font-medium text-secondary">출력 형식</span>
+                <div className="flex gap-2">
+                  {(['png', 'jpg'] as ImageFormat[]).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setFormat(f)}
+                      className={`px-3 py-1.5 rounded-[var(--radius)] text-[0.82rem] font-semibold border transition-colors ${
+                        format === f
+                          ? 'bg-accent-dim text-accent border-accent'
+                          : 'bg-transparent text-secondary border-border hover:bg-surface hover:text-primary'
+                      }`}
+                    >
+                      {f.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {/* 선택된 파일 */}
-        {file && (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius)] border border-border bg-surface">
-            <div className="[&_svg]:w-5 [&_svg]:h-5 text-accent shrink-0">
-              {dir === 'image-to-pdf' ? <IconImage /> : <IconFileBlank />}
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <div className="text-[0.85rem] font-medium text-primary truncate">{file.name}</div>
-              <div className="text-[0.72rem] text-muted">{humanSize(file.size)}</div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFile(null)}
-              className="w-7 h-7 flex items-center justify-center rounded-[var(--radius)] text-muted hover:bg-danger-dim hover:text-danger [&_svg]:w-4 [&_svg]:h-4 shrink-0"
-              aria-label="파일 제거"
+            {/* 드롭존 / 파일 선택 */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => inputRef.current?.click()}
+              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={onDrop}
+              className={`flex flex-col items-center justify-center gap-3 px-6 py-14 rounded-[var(--radius)] border-2 border-dashed cursor-pointer transition-colors text-center ${
+                dragging ? 'border-accent bg-accent-dim' : 'border-border hover:border-accent hover:bg-surface'
+              }`}
             >
-              <IconClose />
-            </button>
-          </div>
-        )}
+              <input
+                ref={inputRef}
+                type="file"
+                accept={accept}
+                className="hidden"
+                onChange={(e) => { pickFile(e.target.files?.[0] ?? null); e.target.value = ''; }}
+              />
+              <div className="[&_svg]:w-8 [&_svg]:h-8 text-muted"><IconUpload /></div>
+              <div className="text-[0.88rem] text-secondary">
+                <span className="text-accent font-semibold">클릭</span> 또는 드래그하여 파일 선택
+              </div>
+              <div className="text-[0.75rem] text-muted">
+                {dir === 'image-to-pdf' ? 'JPEG · PNG' : 'PDF'} · 최대 50MB
+              </div>
+            </div>
 
-        {/* 실행 */}
-        <Button onClick={run} disabled={!file || busy} className="w-full">
-          {busy ? '변환 중…' : '변환하기'}
-        </Button>
+            {/* 선택된 파일 */}
+            {file && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius)] border border-border bg-surface">
+                <div className="[&_svg]:w-5 [&_svg]:h-5 text-accent shrink-0">
+                  {dir === 'image-to-pdf' ? <IconImage /> : <IconFileBlank />}
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <div className="text-[0.85rem] font-medium text-primary truncate">{file.name}</div>
+                  <div className="text-[0.72rem] text-muted">{humanSize(file.size)}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFile(null)}
+                  className="w-7 h-7 flex items-center justify-center rounded-[var(--radius)] text-muted hover:bg-danger-dim hover:text-danger [&_svg]:w-4 [&_svg]:h-4 shrink-0"
+                  aria-label="파일 제거"
+                >
+                  <IconClose />
+                </button>
+              </div>
+            )}
+
+            {/* 실행 */}
+            <Button onClick={run} disabled={!file || busy} className="w-full">
+              {busy ? '변환 중…' : '변환하기'}
+            </Button>
+          </CardBody>
+        </Card>
+
+        {/* 미리보기 */}
+        <Card className="lg:sticky lg:top-6">
+          <CardHeader>
+            <CardTitle>미리보기</CardTitle>
+          </CardHeader>
+          <CardBody>
+            {!file || !previewUrl ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-24 text-center text-muted">
+                <div className="[&_svg]:w-9 [&_svg]:h-9">
+                  {dir === 'image-to-pdf' ? <IconImage /> : <IconFileBlank />}
+                </div>
+                <div className="text-[0.85rem]">파일을 선택하면 미리보기가 표시됩니다.</div>
+              </div>
+            ) : dir === 'image-to-pdf' ? (
+              <div className="relative w-full h-[70vh] min-h-[360px] rounded-[var(--radius)] overflow-hidden bg-elevated">
+                <Image src={previewUrl} alt={file.name} fill unoptimized className="object-contain" />
+              </div>
+            ) : (
+              <iframe src={previewUrl} title={file.name} className="w-full h-[70vh] min-h-[360px] rounded-[var(--radius)] border border-border" />
+            )}
+          </CardBody>
+        </Card>
       </div>
     </AppShell>
   );
