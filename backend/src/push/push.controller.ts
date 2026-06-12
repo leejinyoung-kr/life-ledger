@@ -35,4 +35,11 @@ export class PushController {
   unsubscribe(@CurrentUser() user: AuthUser, @Body() dto: UnsubscribeDto) {
     return this.service.unsubscribe(user.id, dto.endpoint);
   }
+
+  // 본인에게 테스트 푸시 발송 (발송 동작 확인용)
+  @ApiOperation({ summary: '테스트 푸시 발송' })
+  @Post('test')
+  sendTest(@CurrentUser() user: AuthUser) {
+    return this.service.sendTest(user.id);
+  }
 }

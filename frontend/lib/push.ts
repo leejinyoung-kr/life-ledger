@@ -73,6 +73,11 @@ export async function enablePush(): Promise<boolean> {
   return true;
 }
 
+// 테스트 푸시 발송 — 본인 모든 기기로 더미 알림. 서버활성/구독수 반환(진단용)
+export async function sendTestPush(): Promise<{ enabled: boolean; subscriptions: number }> {
+  return api.post<{ enabled: boolean; subscriptions: number }>('/push/test', {});
+}
+
 // 푸시 구독 해제 — 브라우저 구독 취소 + 서버 삭제
 export async function disablePush(): Promise<void> {
   const sub = await getCurrentSubscription();

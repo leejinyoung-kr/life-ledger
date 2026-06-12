@@ -75,6 +75,19 @@ export class PushService implements OnModuleInit {
     return { ok: true };
   }
 
+  // 테스트 발송 — 본인 모든 기기로 더미 푸시. 진단용 상태(서버활성/구독수)도 반환
+  async sendTest(userId: number): Promise<{ enabled: boolean; subscriptions: number }> {
+    const subscriptions = await this.prisma.pushSubscription.count({ where: { user_id: userId } });
+    if (this.enabled && subscriptions > 0) {
+      await this.sendToUser(userId, {
+        title: '테스트 푸시',
+        body: '푸시 알림이 정상 작동합니다.',
+        url: '/settings',
+      });
+    }
+    return { enabled: this.enabled, subscriptions };
+  }
+
   // 한 사용자의 모든 기기로 푸시 발송 — 비활성이면 즉시 반환(no-op). 만료(404/410) 구독은 정리
   async sendToUser(userId: number, payload: PushPayload): Promise<void> {
     if (!this.enabled) return;

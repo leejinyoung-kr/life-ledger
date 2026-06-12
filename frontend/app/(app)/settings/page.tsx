@@ -20,7 +20,7 @@ import Toggle from '@/components/ui/Toggle';
 import { IconWon, IconClock, IconZap, IconLock, IconCube, IconDrag } from '@/components/icons';
 import { api, apiDownload, setAccessToken } from '@/lib/api';
 import { clearVaultToken } from '@/lib/vault';
-import { isPushSupported, fetchPushStatus, getCurrentSubscription, enablePush, disablePush } from '@/lib/push';
+import { isPushSupported, fetchPushStatus, getCurrentSubscription, enablePush, disablePush, sendTestPush } from '@/lib/push';
 import {
   SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS, OPENAI_MODEL_OPTIONS,
   MENU_ITEMS, DEFAULT_MENU_ORDER, normalizeMenuOrder,
@@ -171,6 +171,22 @@ export default function SettingsPage() {
         setPushOn(true);
         notify.success('푸시 알림을 켰습니다.');
       }
+    } catch (e) {
+      notify.error((e as Error).message);
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
+  // 테스트 푸시 — 본인 기기로 더미 알림 발송. 구독 없거나 서버 비활성이면 안내
+  async function handleTestPush() {
+    if (pushBusy) return;
+    setPushBusy(true);
+    try {
+      const res = await sendTestPush();
+      if (!res.enabled) notify.error('서버에 푸시 키(VAPID)가 설정되지 않았습니다.');
+      else if (res.subscriptions === 0) notify.error('구독된 기기가 없습니다. 먼저 푸시를 켜세요.');
+      else notify.success(`테스트 푸시를 발송했습니다. (${res.subscriptions}개 기기)`);
     } catch (e) {
       notify.error((e as Error).message);
     } finally {
@@ -371,7 +387,14 @@ export default function SettingsPage() {
                         : '서버에 푸시 키(VAPID)가 설정되지 않아 사용할 수 없습니다.'
                     }
                   >
-                    <Toggle on={pushOn} onToggle={togglePush} disabled={!pushServerReady || pushBusy} />
+                    <div className="flex items-center gap-2">
+                      {pushOn && (
+                        <Button variant="ghost" size="sm" onClick={handleTestPush} disabled={pushBusy}>
+                          테스트 발송
+                        </Button>
+                      )}
+                      <Toggle on={pushOn} onToggle={togglePush} disabled={!pushServerReady || pushBusy} />
+                    </div>
                   </Row>
                 )}
                 <Row label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
