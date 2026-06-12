@@ -42,6 +42,8 @@ async function bootstrap() {
   app.enableCors({
     origin: allowedOrigins,
     credentials: true,
+    // 변환 결과 다운로드 시 프론트가 실제 파일명(확장자 포함)을 읽을 수 있도록 노출
+    exposedHeaders: ['Content-Disposition'],
   });
 
   app.useGlobalPipes(

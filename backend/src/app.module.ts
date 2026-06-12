@@ -30,6 +30,7 @@ import { EnvModule } from './env/env.module';
 import { ExportModule } from './export/export.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { FileModule } from './file/file.module';
+import { ConvertModule } from './convert/convert.module';
 import { AccessLogModule } from './access-log/access-log.module';
 import { ImportModule } from './import/import.module';
 import { AiModule } from './ai/ai.module';
@@ -68,6 +69,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     ExportModule,
     MaintenanceModule,
     FileModule,
+    ConvertModule,
     ImportModule,
     AiModule,
     PushModule,

@@ -13,7 +13,7 @@ import {
   IconLogo, IconGrid, IconChart, IconWon, IconRepeat, IconPie, IconFolder,
   IconLock, IconCode, IconIdCard, IconDoc, IconCheckSquare, IconCalendar,
   IconCube, IconSettings, IconShield, IconBell, IconTrash,
-  IconCaret, IconLogout, IconBars,
+  IconCaret, IconLogout, IconBars, IconImage,
 } from './icons';
 
 interface NavLeaf {
@@ -64,6 +64,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: '메모', href: '/notes', icon: <IconDoc /> },
       { label: '할일/목표', href: '/tasks', icon: <IconCheckSquare /> },
       { label: '캘린더', href: '/calendar', icon: <IconCalendar /> },
+      { label: '파일 변환', href: '/convert', icon: <IconImage /> },
     ],
   },
   {
