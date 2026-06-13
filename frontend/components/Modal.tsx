@@ -75,7 +75,12 @@ export default function Modal({ open, title, onClose, children, footer, header, 
 
   return (
     // 오버레이 클릭으로 닫히지 않음 — 폼 입력 중 실수 방지
-    <div className={`fixed inset-0 bg-[rgba(15,25,35,0.45)] backdrop-blur-[4px] z-[200] flex items-center justify-center p-6 transition-opacity ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+    // 닫혀 있을 때는 접근성 트리에서 제외 + 포커스/상호작용 차단 (ghost dialog 방지)
+    <div
+      className={`fixed inset-0 bg-[rgba(15,25,35,0.45)] backdrop-blur-[4px] z-[200] flex items-center justify-center p-6 transition-opacity ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      aria-hidden={!open}
+      inert={!open}
+    >
       <div
         ref={dialogRef}
         className={`bg-background border border-border rounded-2xl w-full max-w-[480px] shadow-[var(--shadow-lg)] max-h-[calc(100vh-48px)] flex flex-col ${open ? '[animation:slideUp_0.25s_ease]' : ''} ${className ?? ''}`}
