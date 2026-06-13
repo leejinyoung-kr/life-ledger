@@ -91,7 +91,8 @@ export default function CredentialsPage() {
   function toggleSelect(id: number) {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -276,6 +277,7 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
 
   // 모달이 바뀌면 원문을 새로 받아오고 비밀번호는 다시 가린다
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 선택된 자격증명 변경 시 표시 상태 초기화
     setPwVisible(false);
     setSecret(null);
     setBackupCodes(null);
@@ -287,6 +289,7 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
 
   // 2FA 계정이면 현재 TOTP 코드를 받아 1초마다 카운트다운, 만료 시 재요청
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 선택된 자격증명 변경 시 TOTP 코드 초기화
     setTotp(null);
     if (!cred?.has2fa) return;
     let active = true;
@@ -457,6 +460,7 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
 
   useEffect(() => {
     if (!state.open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
     setServiceName(editing?.name ?? '');
     setUrl(editing?.url ?? '');

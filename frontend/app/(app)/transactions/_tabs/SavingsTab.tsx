@@ -5,7 +5,6 @@ import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
-import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import { IconBank, IconWon, IconTrendUp, IconAlertTriangle, IconSearch } from '@/components/icons';
@@ -18,7 +17,7 @@ import {
   type Category, type Saving, type SavingSummary, type SavingType,
 } from '@/lib/finance';
 import {
-  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TOP, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
+  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
   RowActions, CardActions,
 } from '../_shared';
 
@@ -78,7 +77,8 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
   function toggleSelect(id: number) {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -256,6 +256,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
 
   useEffect(() => {
     if (!state.open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
     setBank(e?.bank ?? '');
     setName(e?.name ?? '');

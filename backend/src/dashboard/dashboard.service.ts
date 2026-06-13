@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { AssetService } from '../asset/asset.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 // 주기별 금액을 월 단위로 환산 (yearly/12, weekly*52/12, monthly 그대로)
@@ -10,7 +11,10 @@ function toMonthly(amount: number, cycle: string): number {
 
 @Injectable()
 export class DashboardService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private assetService: AssetService,
+  ) {}
 
   // 대시보드 요약 — 이번 달 수입/지출·순자산·활성구독 + 최근거래·다가오는일정
   async summary(userId: number) {
@@ -21,13 +25,13 @@ export class DashboardService {
     const monthEnd = new Date(Date.UTC(y, m + 1, 1));
     const today = new Date(Date.UTC(y, m, now.getUTCDate()));
 
-    const [byType, assets, activeSubs, recent, upcoming] = await Promise.all([
+    const [byType, assetSummary, activeSubs, recent, upcoming] = await Promise.all([
       this.prisma.transaction.groupBy({
         by: ['type'],
         where: { user_id: userId, deleted_at: null, date: { gte: monthStart, lt: monthEnd } },
         _sum: { amount: true },
       }),
-      this.prisma.asset.findMany({ where: { user_id: userId, deleted_at: null }, select: { type: true, amount: true } }),
+      this.assetService.summary(userId),
       this.prisma.subscription.count({ where: { user_id: userId, deleted_at: null, status: 'active' } }),
       this.prisma.transaction.findMany({
         where: { user_id: userId, deleted_at: null },
@@ -42,7 +46,7 @@ export class DashboardService {
     ]);
 
     const sumType = (t: string) => byType.find((g) => g.type === t)?._sum.amount?.toNumber() ?? 0;
-    const netWorth = assets.reduce((s, a) => (a.type === 'debt' ? s - a.amount.toNumber() : s + a.amount.toNumber()), 0);
+    const netWorth = assetSummary.netWorth;
 
     return {
       stats: {

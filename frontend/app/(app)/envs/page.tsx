@@ -47,6 +47,7 @@ export default function EnvsPage() {
 
   // 프로젝트 로드 시 선택 보정 (기존 선택 유지, 없으면 첫 항목)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 프로젝트 목록 로드/변경 시 선택값 보정
     if (projects.length === 0) { setSelectedId(null); return; }
     setSelectedId((prev) => (prev && projects.some((p) => p.id === prev) ? prev : projects[0].id));
   }, [projects]);
@@ -60,6 +61,7 @@ export default function EnvsPage() {
   const vars = useMemo(() => varsQuery.data ?? [], [varsQuery.data]);
 
   // 프로젝트/환경 전환 시 표시값·검색 초기화
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setRevealed({}); setVarSearch(''); }, [selectedId, env]);
 
   const error = (projectsQuery.error ?? varsQuery.error)?.message ?? null;
@@ -206,7 +208,8 @@ export default function EnvsPage() {
   function toggleSelectVar(id: number) {
     setSelectedVars((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -482,6 +485,7 @@ function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; edi
 
   useEffect(() => {
     if (!state.open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
     setName(editing?.name ?? '');
     setDescription(editing?.description ?? '');
@@ -526,6 +530,7 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
 
   useEffect(() => {
     if (!state.open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
     setGroup(editing?.group ?? '');
     setKey(editing?.key ?? '');
@@ -617,6 +622,7 @@ function HistoryModal({ envVar, onClose, onRolledBack, confirm }: {
 
   // 모달 열릴 때 이력 조회
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 대상 변수 변경 시 이력 목록 초기화
     if (!envVar) { setList([]); return; }
     setLoading(true);
     api.get<EnvVarHistoryEntry[]>(`/env-vars/${envVar.id}/history`)

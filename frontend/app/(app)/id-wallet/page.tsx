@@ -8,6 +8,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
+import { eulreul } from '@/lib/korean';
 import { useApiQuery, useInvalidate } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
@@ -58,7 +59,7 @@ export default function IdWalletPage() {
 
   // 신원 문서 삭제
   async function remove(card: IdCard) {
-    if (!await confirm(`'${card.name}'을(를) 삭제할까요?`, 'danger')) return;
+    if (!await confirm(`'${card.name}'${eulreul(card.name)} 삭제할까요?`, 'danger')) return;
     try {
       await api.del(`/identities/${card.id}`);
       notify.deleted('신분증');
@@ -180,6 +181,7 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
 
   useEffect(() => {
     if (!state.open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
     setType(editing?.type ?? 'passport');
     setName(editing?.name ?? '');

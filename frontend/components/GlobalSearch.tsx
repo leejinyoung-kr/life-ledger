@@ -66,6 +66,7 @@ function highlight(text: string, q: string) {
 function useIsMac() {
   const [isMac, setIsMac] = useState(false);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 클라이언트 마운트 시점에 플랫폼 감지 (SSR 시 navigator 없음)
     setIsMac(/Mac|iPhone|iPad|iPod/.test(navigator.platform));
   }, []);
   return isMac;
@@ -81,6 +82,7 @@ export default function GlobalSearch() {
   const isMac = useIsMac();
 
   // 최근 검색어 초기 로드
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage는 클라이언트 마운트 후에만 접근 가능
   useEffect(() => { setRecent(loadRecent()); }, []);
 
   // 검색어 확정 시 최근 검색어에 기록 (Enter·결과 클릭)

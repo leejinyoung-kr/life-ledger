@@ -31,6 +31,7 @@ export default function TopBar({ label }: TopBarProps) {
   useEffect(() => {
     const saved = localStorage.getItem('theme');
     if (saved === 'dark') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage는 클라이언트 마운트 후에만 접근 가능
       setDark(true);
       document.documentElement.setAttribute('data-theme', 'dark');
     }

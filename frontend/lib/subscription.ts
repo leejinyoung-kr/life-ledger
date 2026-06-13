@@ -48,6 +48,8 @@ export const SUB_CATEGORY_LABEL: Record<string, string> = {
   cloud: '클라우드',
   shopping: '쇼핑 멤버십',
   ai: 'AI · 생산성',
+  software: '소프트웨어',
+  news: '뉴스 · 잡지',
   etc: '기타',
 };
 
@@ -58,6 +60,8 @@ export const SUB_CATEGORY_EMOJI: Record<string, string> = {
   cloud: '☁️',
   shopping: '📦',
   ai: '🤖',
+  software: '💻',
+  news: '📰',
   etc: '🧩',
 };
 
@@ -68,6 +72,8 @@ export const SUB_CATEGORY_OPTIONS: { value: string; label: string }[] = [
   { value: 'cloud', label: '클라우드' },
   { value: 'shopping', label: '쇼핑 멤버십' },
   { value: 'ai', label: 'AI · 생산성' },
+  { value: 'software', label: '소프트웨어' },
+  { value: 'news', label: '뉴스 · 잡지' },
   { value: 'etc', label: '기타' },
 ];
 

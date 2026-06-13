@@ -24,7 +24,7 @@ import {
   type TransactionType, type RecurringCycle, type WeekendAdjust,
 } from '@/lib/finance';
 import {
-  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TOP, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
+  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
   AMT_COLOR, RowActions, CardActions, toDay, monthsAgo,
 } from '../_shared';
 
@@ -145,7 +145,8 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   function toggleSelect(id: number) {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -538,6 +539,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
 
   useEffect(() => {
     if (!state.open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
     setScope('one');
     const pf = state.prefill;
@@ -559,6 +561,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
     setRecurringCycle((e?.recurringRule?.cycle as RecurringCycle) ?? 'monthly');
     setRecurringDay(e?.recurringRule?.day ?? 1);
     setWeekendAdjust((e?.recurringRule?.weekendAdjust as WeekendAdjust) ?? 'none');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
   }, [state.open, e]);
 
   function validate() {

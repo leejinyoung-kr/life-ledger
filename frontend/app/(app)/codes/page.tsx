@@ -96,6 +96,7 @@ export default function CodesPage() {
     }
   }, [domain]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- domain 변경 시 목록 재조회
   useEffect(() => { load(); }, [load]);
 
   // 드래그 종료 — 순서 바뀐 항목만 PATCH(최소 요청)

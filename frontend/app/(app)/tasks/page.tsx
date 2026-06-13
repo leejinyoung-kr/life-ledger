@@ -83,7 +83,8 @@ export default function TasksPage() {
   function toggleSelectTask(id: number) {
     setSelectedTasks((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -236,6 +237,7 @@ function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
     setName(editing?.name ?? '');
     setUnit(editing?.unit ?? 'won');
@@ -318,6 +320,7 @@ function AddTaskModal({ open, onClose, onSaved }: { open: boolean; onClose: () =
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({}); setText(''); setDueDate(''); setPriority('normal'); setMemo('');
   }, [open]);
 

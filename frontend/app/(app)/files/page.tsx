@@ -239,7 +239,7 @@ export default function FilesPage() {
         <IconUpload width={32} height={32} />
         <div>
           <div className="text-[0.875rem] text-secondary font-medium">파일을 드래그하거나 클릭하여 업로드</div>
-          <div className="text-[0.78rem] text-muted mt-1">JPG · PNG · PDF · DOCX · 최대 50MB/파일</div>
+          <div className="text-[0.78rem] text-muted mt-1">이미지 · 동영상 · 오디오 · 문서(PDF/Word/Excel/PPT/TXT) · 최대 50MB/파일</div>
         </div>
       </div>
 

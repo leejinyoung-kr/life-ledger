@@ -12,6 +12,7 @@ import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
 import { notify } from '@/lib/toast';
+import { eulreul } from '@/lib/korean';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { IconAlertCircle, IconSearch } from '@/components/icons';
@@ -46,17 +47,17 @@ export default function TrashPage() {
 
   // 단일 복구
   async function restore(it: TrashItem) {
-    if (!await confirm(`'${it.name}'을(를) 복구할까요?`, 'primary')) return;
+    if (!await confirm(`'${it.name}'${eulreul(it.name)} 복구할까요?`, 'primary')) return;
     try {
       await api.post('/trash/restore', { kind: it.kind, id: it.id });
-      notify.success(`'${it.name}'을(를) 복구했습니다.`);
+      notify.success(`'${it.name}'${eulreul(it.name)} 복구했습니다.`);
       reload();
     } catch (e) { notify.error((e as Error).message); }
   }
 
   // 단일 영구 삭제
   async function purge(it: TrashItem) {
-    if (!await confirm(`'${it.name}'을(를) 영구 삭제할까요? 되돌릴 수 없습니다.`, 'danger')) return;
+    if (!await confirm(`'${it.name}'${eulreul(it.name)} 영구 삭제할까요? 되돌릴 수 없습니다.`, 'danger')) return;
     try {
       await api.post('/trash/purge', { kind: it.kind, id: it.id });
       notify.purged();
@@ -67,7 +68,8 @@ export default function TrashPage() {
   function toggleSelect(key: string) {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }

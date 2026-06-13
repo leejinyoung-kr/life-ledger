@@ -26,11 +26,15 @@ export class ConvertService {
     if (!isJpeg && !isPng)
       throw new BadRequestException('JPEG 또는 PNG 이미지만 변환할 수 있습니다.');
 
-    const doc = await PDFDocument.create();
-    const img = isJpeg ? await doc.embedJpg(buf) : await doc.embedPng(buf);
-    const page = doc.addPage([img.width, img.height]);
-    page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
-    return Buffer.from(await doc.save());
+    try {
+      const doc = await PDFDocument.create();
+      const img = isJpeg ? await doc.embedJpg(buf) : await doc.embedPng(buf);
+      const page = doc.addPage([img.width, img.height]);
+      page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+      return Buffer.from(await doc.save());
+    } catch {
+      throw new BadRequestException('지원하지 않는 파일 형식이거나 손상된 파일입니다.');
+    }
   }
 
   // PDF → 페이지별 이미지(PNG/JPG 선택). 1페이지면 이미지 단일 파일, 여러 페이지면 ZIP 으로 묶어 반환
@@ -43,18 +47,24 @@ export class ConvertService {
     if (!startsWithBytes(buf, [0x25, 0x50, 0x44, 0x46]))
       throw new BadRequestException('PDF 파일만 변환할 수 있습니다.');
 
-    const { pdf } = await esmImport('pdf-to-img');
-    const document = await pdf(buf, { scale: 2 });
+    let pages: Buffer[];
+    try {
+      const { pdf } = await esmImport('pdf-to-img');
+      const document = await pdf(buf, { scale: 2 });
 
-    // pdf-to-img 는 PNG 만 출력 → jpg 선택 시 sharp 로 변환(흰 배경 합성: PDF 투명영역이 검게 나오는 것 방지)
-    const pages: Buffer[] = [];
-    for await (const image of document) {
-      const png = image as Buffer;
-      pages.push(
-        format === 'jpg'
-          ? await sharp(png).flatten({ background: '#ffffff' }).jpeg({ quality: 90 }).toBuffer()
-          : png,
-      );
+      // pdf-to-img 는 PNG 만 출력 → jpg 선택 시 sharp 로 변환(흰 배경 합성: PDF 투명영역이 검게 나오는 것 방지)
+      pages = [];
+      for await (const image of document) {
+        const png = image as Buffer;
+        pages.push(
+          format === 'jpg'
+            ? await sharp(png).flatten({ background: '#ffffff' }).jpeg({ quality: 90 }).toBuffer()
+            : png,
+        );
+      }
+    } catch (e) {
+      if (e instanceof BadRequestException) throw e;
+      throw new BadRequestException('지원하지 않는 파일 형식이거나 손상된 파일입니다.');
     }
     if (pages.length === 0)
       throw new BadRequestException('변환할 페이지가 없습니다.');

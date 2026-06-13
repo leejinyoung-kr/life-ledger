@@ -249,6 +249,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
 
   useEffect(() => {
     if (!state.open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
     setName(e?.name ?? '');
     setCategory(e?.category ?? 'ott');

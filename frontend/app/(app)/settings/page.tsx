@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { notify } from '@/lib/toast';
+import { eulreul } from '@/lib/korean';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
@@ -24,7 +25,7 @@ import { isPushSupported, fetchPushStatus, getCurrentSubscription, enablePush, d
 import {
   SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS, OPENAI_MODEL_OPTIONS,
   MENU_ITEMS, DEFAULT_MENU_ORDER, normalizeMenuOrder,
-  type Settings, type Category, type WidgetPref, type AiUsageSummary,
+  type Settings, type WidgetPref, type AiUsageSummary,
 } from '@/lib/settings';
 import type { VaultStatus } from '@/lib/security';
 
@@ -133,8 +134,6 @@ export default function SettingsPage() {
   // OpenAI 키 연결 확인 결과 (null=미확인)
   const [keyCheck, setKeyCheck] = useState<{ ok: boolean; model: string; modelAvailable: boolean } | null>(null);
   const [keyCheckBusy, setKeyCheckBusy] = useState(false);
-  const [newCatName, setNewCatName] = useState('');
-  const [newCatEmoji, setNewCatEmoji] = useState('');
   const [widgets, setWidgets] = useState<WidgetPref[]>(DEFAULT_WIDGETS);
   const [menuOrder, setMenuOrder] = useState<string[]>(DEFAULT_MENU_ORDER);
   const [menuDragId, setMenuDragId] = useState<string | null>(null);
@@ -148,6 +147,7 @@ export default function SettingsPage() {
   // 마운트 시 푸시 지원/서버활성/구독상태 조회
   useEffect(() => {
     if (!isPushSupported()) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 마운트 시 푸시 지원 여부 동기화
     setPushSupported(true);
     (async () => {
       const status = await fetchPushStatus();
@@ -198,6 +198,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const data = settingsQuery.data;
     if (!data) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 설정 데이터 로드 시 편집 상태 동기화
     setDisplayName(data.displayName);
     setOpenaiModel(data.openaiModel);
     setWidgets(data.widgets.length ? data.widgets : DEFAULT_WIDGETS);
@@ -226,6 +227,7 @@ export default function SettingsPage() {
       setVaultTimeout(v.timeoutMin);
     } catch { /* 무시 */ }
   }, []);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- 보안 탭 진입 시 잠금 상태 조회
   useEffect(() => { if (tab === 'security') loadVault(); }, [tab, loadVault]);
 
   // 마스터 잠금 설정/변경
@@ -293,21 +295,8 @@ export default function SettingsPage() {
   const toggleNotif = (key: 'notifMonthly' | 'notifUpload' | 'notifMaturity' | 'notifDeadline') => {
     const next = !s[key];
     const label = NOTIF_LABEL[key];
-    patch({ [key]: next }, `${label}을(를) ${next ? '켰습니다.' : '껐습니다.'}`);
+    patch({ [key]: next }, `${label}${eulreul(label)} ${next ? '켰습니다.' : '껐습니다.'}`);
   };
-
-  // 카테고리 삭제 — 즉시 저장
-  function removeCategory(idx: number) {
-    const next = s!.categories.filter((_, i) => i !== idx);
-    patch({ categories: next });
-  }
-
-  // 카테고리 추가 — 즉시 저장
-  function addCategory() {
-    if (!newCatName.trim()) return;
-    const next: Category[] = [...s!.categories, { emoji: newCatEmoji.trim() || '📁', name: newCatName.trim() }];
-    patch({ categories: next }).then(() => { setNewCatName(''); setNewCatEmoji(''); });
-  }
 
   // 위젯 표시 토글 — 즉시 저장
   async function toggleWidget(id: string) {
@@ -315,7 +304,7 @@ export default function SettingsPage() {
     setWidgets(next);
     const toggled = next.find((w) => w.id === id);
     const label = WIDGET_META[id]?.name ?? '위젯';
-    await patch({ widgets: next }, `${label}을(를) ${toggled?.on ? '켰습니다.' : '껐습니다.'}`);
+    await patch({ widgets: next }, `${label}${eulreul(label)} ${toggled?.on ? '켰습니다.' : '껐습니다.'}`);
   }
 
   // 드래그한 1차 메뉴를 대상 위치로 재배치 (로컬)
@@ -658,44 +647,45 @@ function UsageStat({ label, value, tone }: { label: string; value: string; tone:
   );
 }
 
-// 대시보드 실제 레이아웃(2-컬럼)을 미니맵으로 표현
-function WidgetPreview({ widgets }: { widgets: WidgetPref[] }) {
-  const wp = Object.fromEntries(widgets.map((w) => [w.id, w.on]));
+// 토글 가능 위젯 셀 — on/off 상태 반영
+function WidgetCell({ on, children, center }: { on: boolean; children: ReactNode; center?: boolean }) {
+  return (
+    <div className={`bg-background border rounded-[var(--radius)] px-2 py-1.5 text-[0.68rem] transition-all
+      ${on ? 'border-border text-secondary' : 'border-border-subtle text-muted opacity-40 line-through'}
+      ${center ? 'text-center' : ''}`}
+    >
+      {children}
+    </div>
+  );
+}
 
-  // 토글 가능 위젯 셀 — on/off 상태 반영
-  function W({ id, children, center }: { id: string; children: ReactNode; center?: boolean }) {
-    const on = wp[id];
-    return (
-      <div className={`bg-background border rounded-[var(--radius)] px-2 py-1.5 text-[0.68rem] transition-all
-        ${on ? 'border-border text-secondary' : 'border-border-subtle text-muted opacity-40 line-through'}
-        ${center ? 'text-center' : ''}`}
-      >
-        {children}
-      </div>
-    );
-  }
-
-  // 항상 표시되는 셀 (데이터 조건부)
-  const AlwaysCell = ({ children }: { children: ReactNode }) => (
+// 항상 표시되는 셀 (데이터 조건부)
+function AlwaysCell({ children }: { children: ReactNode }) {
+  return (
     <div className="bg-surface border border-dashed border-border rounded-[var(--radius)] px-2 py-1.5 text-[0.68rem] text-muted">
       {children}
     </div>
   );
+}
+
+// 대시보드 실제 레이아웃(2-컬럼)을 미니맵으로 표현
+function WidgetPreview({ widgets }: { widgets: WidgetPref[] }) {
+  const wp = Object.fromEntries(widgets.map((w) => [w.id, w.on]));
 
   return (
     <div className="border border-border rounded-[var(--radius-lg)] bg-surface p-3 flex flex-col gap-2 select-none">
       {/* 현황 카드 — 전체 너비 4열 */}
       <div className="grid grid-cols-4 gap-1.5">
         {['지출', '수입', '순자산', '구독'].map((l) => (
-          <W key={l} id="stat-cards" center>{l}</W>
+          <WidgetCell key={l} on={wp['stat-cards']} center>{l}</WidgetCell>
         ))}
       </div>
 
       {/* 2-컬럼: 좌(메인) + 우(사이드바) */}
       <div className="grid grid-cols-[2fr_1fr] gap-1.5 items-start">
         <div className="flex flex-col gap-1.5">
-          <W id="recent-activity">🕐 최근 활동</W>
-          <W id="ai-summary">🤖 AI 리포트 요약</W>
+          <WidgetCell on={wp['recent-activity']}>🕐 최근 활동</WidgetCell>
+          <WidgetCell on={wp['ai-summary']}>🤖 AI 리포트 요약</WidgetCell>
           <AlwaysCell>💸 고정지출 예측</AlwaysCell>
         </div>
         <div className="flex flex-col gap-1.5">
@@ -707,7 +697,7 @@ function WidgetPreview({ widgets }: { widgets: WidgetPref[] }) {
       {/* 빠른 실행 — 전체 너비 4열 */}
       <div className="grid grid-cols-4 gap-1.5">
         {['지출 기록', '계정 추가', '파일 업로드', 'AI 리포트'].map((l) => (
-          <W key={l} id="quick-actions" center>{l}</W>
+          <WidgetCell key={l} on={wp['quick-actions']} center>{l}</WidgetCell>
         ))}
       </div>
 

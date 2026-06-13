@@ -4,16 +4,7 @@
  * 한글 받침 유무로 조사(이/가·을/를)를 자동 선택한다.
  */
 import { toast } from 'sonner';
-
-// 마지막 글자에 받침이 있는지 (한글이 아니면 false)
-function hasBatchim(word: string): boolean {
-  if (!word) return false;
-  const code = word.charCodeAt(word.length - 1);
-  if (code < 0xac00 || code > 0xd7a3) return false; // 한글 음절 범위 밖
-  return (code - 0xac00) % 28 !== 0;
-}
-const iga = (w: string) => (hasBatchim(w) ? '이' : '가');
-const eulreul = (w: string) => (hasBatchim(w) ? '을' : '를');
+import { iga, eulreul } from './korean';
 
 export const notify = {
   // ── 성공 ──────────────────────────────────────────

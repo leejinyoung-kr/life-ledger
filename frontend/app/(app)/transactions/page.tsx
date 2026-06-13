@@ -8,7 +8,6 @@ import {
   IconWon, IconBank, IconTrendUp, IconHome, IconCreditCard,
 } from '@/components/icons';
 import { useApiQuery } from '@/lib/query';
-import { qk } from '@/lib/queryKeys';
 import type { Category } from '@/lib/finance';
 import LedgerTab from './_tabs/LedgerTab';
 import SavingsTab from './_tabs/SavingsTab';

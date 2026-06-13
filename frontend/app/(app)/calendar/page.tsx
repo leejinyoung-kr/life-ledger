@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { IconTrash } from '@/components/icons';
 import { notify } from '@/lib/toast';
+import { withEulReul } from '@/lib/korean';
 import { useApiQuery, useInvalidate } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
@@ -70,6 +71,7 @@ export default function CalendarPage() {
 
   useEffect(() => {
     const now = new Date();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 클라이언트 마운트 시점의 오늘 날짜로 초기화 (SSR과 클라이언트 시각 불일치 방지)
     setTodayIso(isoOf(now.getFullYear(), now.getMonth(), now.getDate()));
     setView({ year: now.getFullYear(), month: now.getMonth() });
   }, []);
@@ -100,7 +102,7 @@ export default function CalendarPage() {
   async function removeEvent(ev: CalEvent) {
     const label = ev.virtual && ev.sourceType ? `${VIRT_SOURCE_META[ev.sourceType].label} 항목` : '일정';
     const msg = ev.virtual
-      ? `이 ${label}을(를) 삭제할까요? 해당 페이지에서도 삭제됩니다.`
+      ? `이 ${withEulReul(label)} 삭제할까요? 해당 페이지에서도 삭제됩니다.`
       : '이 일정을 삭제할까요?';
     if (!await confirm(msg, 'danger')) return;
     try {
@@ -261,6 +263,7 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({}); setTitle(''); setType('pay'); setMemo('');
     setDate(new Date().toISOString().slice(0, 10));
   }, [open]);

@@ -17,7 +17,7 @@ import {
   type Category, type Investment, type InvestmentSummary, type InvestmentType,
 } from '@/lib/finance';
 import {
-  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TOP, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
+  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
   RowActions, CardActions,
 } from '../_shared';
 
@@ -77,7 +77,8 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   function toggleSelect(id: number) {
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -235,6 +236,7 @@ function InvestModal({ state, onClose, onSaved }: { state: ModalState; onClose: 
 
   useEffect(() => {
     if (!state.open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
     setName(e?.name ?? '');
     setType(e?.type ?? 'domestic_stock');

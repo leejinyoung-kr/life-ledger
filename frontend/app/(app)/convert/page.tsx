@@ -47,6 +47,7 @@ export default function ConvertPage() {
   // 선택 파일 미리보기(이미지/PDF 공통) — 파일 변경마다 이전 URL 해제
   useEffect(() => {
     if (!file) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 파일 선택 해제 시 미리보기 초기화
       setPreviewUrl(null);
       return;
     }
