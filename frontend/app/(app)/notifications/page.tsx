@@ -147,26 +147,25 @@ export default function NotificationsPage() {
             {unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개가 있습니다.` : '모든 알림을 읽었습니다.'}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
-          <Button variant="ghost" onClick={removeAll}>전체삭제</Button>
-          <Button variant="ghost" onClick={markAllRead}>모두 읽음</Button>
-        </div>
       </div>
 
       {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
 
-      {/* 필터 탭 + 검색 + 페이지당 항목 수 */}
-      {/* 필터 탭 + 페이지당 항목 수 */}
+      {/* 필터 탭 + 선택삭제/전체삭제/모두읽음 + 페이지당 항목 수 */}
       <div className="flex items-center justify-between gap-2.5 mb-5 max-md:flex-wrap">
         <div className="flex gap-1 flex-wrap">
           {NOTI_TABS.map((t) => (
-            <Button key={t.kind} size="sm" variant={tab === t.kind ? 'primary' : 'ghost'} onClick={() => changeTab(t.kind)}>
+            <Button key={t.kind} variant={tab === t.kind ? 'primary' : 'ghost'} onClick={() => changeTab(t.kind)}>
               {t.label}
             </Button>
           ))}
         </div>
-        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
+          <Button variant="ghost" onClick={removeAll}>전체삭제</Button>
+          <Button variant="ghost" onClick={markAllRead}>모두 읽음</Button>
+          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+        </div>
       </div>
 
       {/* 알림 리스트 — 리스트에서는 desc 미노출, 클릭 시 상세 모달 */}

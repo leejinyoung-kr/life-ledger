@@ -53,6 +53,11 @@ export default function DebtTab({ addTrigger }: { addTrigger: number }) {
     }
   }
 
+  // 부채 항목 복사 — 해당 데이터로 채운 추가 모달을 열어 확인 후 저장
+  function duplicate(row: Asset) {
+    setModal({ open: true, mode: 'add', prefill: row });
+  }
+
   const totalPages = Math.ceil(count / limit);
   const paged = rows; // 서버가 이미 페이지 단위로 잘라서 보냄
 
@@ -72,7 +77,7 @@ export default function DebtTab({ addTrigger }: { addTrigger: number }) {
           <table>
             <colgroup>
               <col style={{ width: '64px' }} /><col /><col style={{ width: '160px' }} />
-              <col style={{ width: '80px' }} /><col style={{ width: '220px' }} /><col style={{ width: '72px' }} />
+              <col style={{ width: '80px' }} /><col style={{ width: '180px' }} /><col style={{ width: '72px' }} />
             </colgroup>
             <thead>
               <tr><th>번호</th><th>항목명</th><th>잔액</th><th>금리</th><th>메모</th><th>관리</th></tr>
@@ -86,7 +91,7 @@ export default function DebtTab({ addTrigger }: { addTrigger: number }) {
                   <td className="td-mono td-right">{won(row.amount)}</td>
                   <td className="td-right">{row.interestRate !== null ? `${row.interestRate}%` : '-'}</td>
                   <td className="td-center td-muted">{row.memo ?? '-'}</td>
-                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} /></td>
+                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} /></td>
                 </tr>
               ))}
             </tbody>
@@ -104,7 +109,7 @@ export default function DebtTab({ addTrigger }: { addTrigger: number }) {
                 {row.interestRate !== null && <span>금리 {row.interestRate}%</span>}
                 {row.memo && <span>{row.memo}</span>}
               </div>
-              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} />
+              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} />
             </div>
           ))}
         </div>

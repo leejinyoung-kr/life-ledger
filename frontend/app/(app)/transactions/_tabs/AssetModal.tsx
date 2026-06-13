@@ -7,7 +7,7 @@ import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
 import { ASSET_TYPE_LABEL, type Asset } from '@/lib/networth';
 
-export type AssetModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Asset };
+export type AssetModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Asset; prefill?: Asset };
 
 export function AssetModal({ assetType, state, onClose, onSaved }: {
   assetType: 'realestate' | 'debt';
@@ -29,11 +29,12 @@ export function AssetModal({ assetType, state, onClose, onSaved }: {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
-    setName(e?.name ?? '');
-    setAmount(e ? String(e.amount) : '');
-    setInterestRate(e?.interestRate != null ? String(e.interestRate) : '');
-    setMemo(e?.memo ?? '');
-  }, [state.open, e]);
+    const src = e ?? state.prefill;
+    setName(src?.name ?? '');
+    setAmount(src ? String(src.amount) : '');
+    setInterestRate(src?.interestRate != null ? String(src.interestRate) : '');
+    setMemo(src?.memo ?? '');
+  }, [state.open, e, state.prefill]);
 
   function validate() {
     const err: Record<string, string> = {};

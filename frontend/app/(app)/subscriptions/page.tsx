@@ -96,10 +96,7 @@ export default function SubscriptionsPage() {
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">구독 관리</h1>
           <p className="text-sm text-secondary mt-1.5">정기 결제를 한눈에 — 결제 예정일·연 환산·미사용 구독을 추적합니다.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
-          <Button onClick={() => setModal({ open: true, mode: 'add' })}>구독 추가</Button>
-        </div>
+        <Button onClick={() => setModal({ open: true, mode: 'add' })}>구독 추가</Button>
       </div>
 
       {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
@@ -127,9 +124,15 @@ export default function SubscriptionsPage() {
       )}
 
       {/* 검색 */}
-      <div className="relative mb-4 max-w-90">
-        <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-        <input className="input pl-icon" type="text" placeholder="서비스명, 카테고리 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="구독 검색" />
+      <div className="flex items-center gap-2.5 mb-4 flex-wrap">
+        <span className="text-muted text-[0.82rem] shrink-0">총 {total}건</span>
+        <div className="relative flex-1 min-w-50 max-w-90">
+          <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
+          <input className="input pl-icon" type="text" placeholder="서비스명, 카테고리 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="구독 검색" />
+        </div>
+        <div className="ml-auto">
+          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+        </div>
       </div>
 
       {/* 구독 카드 그리드 (도메인 특성상 카드형 유지) */}
@@ -159,7 +162,7 @@ export default function SubscriptionsPage() {
               </div>
               <div className="flex gap-2 pt-3 border-t border-border-subtle">
                 <Button variant="ghost" className="flex-1" onClick={() => setModal({ open: true, mode: 'edit', editing: sub })}>수정</Button>
-                <Button variant="danger" onClick={() => cancel(sub.id)}>해지</Button>
+                <Button variant="danger" className="flex-1" onClick={() => cancel(sub.id)}>해지</Button>
               </div>
             </div>
           );

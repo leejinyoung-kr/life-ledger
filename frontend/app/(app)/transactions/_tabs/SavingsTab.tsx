@@ -18,10 +18,10 @@ import {
 } from '@/lib/finance';
 import {
   TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
-  RowActions, CardActions,
+  RowActions, CardActions, toDay,
 } from '../_shared';
 
-type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Saving };
+type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Saving; prefill?: Saving };
 
 export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savingCats: Category[]; bankCats: Category[]; addTrigger: number }) {
   const [page, setPage] = useState(1);
@@ -72,6 +72,11 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
     } catch {
       notify.deleteFailed();
     }
+  }
+
+  // 예적금 복사 — 해당 데이터로 채운 추가 모달을 오늘 날짜로 열어 확인 후 저장
+  function duplicate(row: Saving) {
+    setModal({ open: true, mode: 'add', prefill: row });
   }
 
   function toggleSelect(id: number) {
@@ -153,6 +158,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
               <col style={{ width: '80px' }} />
               <col style={{ width: '110px' }} />
               <col style={{ width: '150px' }} />
+              <col style={{ width: '180px' }} />
               <col style={{ width: '72px' }} />
             </colgroup>
             <thead>
@@ -161,11 +167,12 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                 <th>번호</th><th>유형</th><th>은행/기관</th><th>상품명</th>
                 <th>잔액</th><th>월 납입</th>
                 <th>금리</th><th>가입일</th><th>만기일</th>
+                <th>메모</th>
                 <th>관리</th>
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && <tr><td colSpan={11} className="td-center td-muted">예적금 내역이 없습니다.</td></tr>}
+              {paged.length === 0 && <tr><td colSpan={12} className="td-center td-muted">예적금 내역이 없습니다.</td></tr>}
               {paged.map((c, i) => {
                 const dleft = daysUntil(c.maturityDate);
                 const near = dleft !== null && dleft >= 0 && dleft <= 30;
@@ -188,7 +195,8 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                         </span>
                       ) : '-'}
                     </td>
-                    <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => remove(c.id)} /></td>
+                    <td className="td-center td-muted">{c.memo ?? '-'}</td>
+                    <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => remove(c.id)} onCopy={() => duplicate(c)} /></td>
                   </tr>
                 );
               })}
@@ -220,8 +228,9 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                       만기 {dotDate(c.maturityDate)}{near ? ` ⚠️ D-${dleft}` : ''}
                     </span>
                   )}
+                  {c.memo && <span>{c.memo}</span>}
                 </div>
-                <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => remove(c.id)} />
+                <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => remove(c.id)} onCopy={() => duplicate(c)} />
               </div>
             );
           })}
@@ -258,16 +267,17 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
-    setBank(e?.bank ?? '');
-    setName(e?.name ?? '');
-    setType(e?.type ?? 'savings');
-    setInterestRate(e ? String(e.interestRate) : '');
-    setMonthlyAmount(e ? String(e.monthlyAmount) : '');
-    setStartDate(e?.startDate ?? '');
-    setMaturityDate(e?.maturityDate ?? '');
-    setBalance(e ? String(e.balance) : '');
-    setMemo(e?.memo ?? '');
-  }, [state.open, e]);
+    const src = e ?? state.prefill;
+    setBank(src?.bank ?? '');
+    setName(src?.name ?? '');
+    setType(src?.type ?? 'savings');
+    setInterestRate(src ? String(src.interestRate) : '');
+    setMonthlyAmount(src ? String(src.monthlyAmount) : '');
+    setStartDate(e?.startDate ?? (state.prefill ? toDay() : ''));
+    setMaturityDate(src?.maturityDate ?? '');
+    setBalance(src ? String(src.balance) : '');
+    setMemo(src?.memo ?? '');
+  }, [state.open, e, state.prefill]);
 
   function validate() {
     const err: Record<string, string> = {};

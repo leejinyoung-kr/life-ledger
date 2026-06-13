@@ -142,6 +142,17 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
     }
   }
 
+  // 내역 복사 — 해당 데이터로 채운 추가 모달을 오늘 날짜로 열어 확인 후 저장
+  function duplicate(row: Transaction) {
+    setModal({
+      open: true, mode: 'add',
+      prefill: {
+        date: toDay(), title: row.title, amount: row.amount, type: row.type,
+        category: row.category, payMethod: row.payMethod, memo: row.memo ?? undefined,
+      },
+    });
+  }
+
   function toggleSelect(id: number) {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -408,7 +419,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
                   <td className={`td-right amount-${row.type}`}>{signedWon(row.type, row.amount)}</td>
                   <td className="td-center td-muted">{row.memo ?? '-'}</td>
                   <td className="td-center td-muted">{dotDate(row.date)}</td>
-                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} /></td>
+                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} /></td>
                 </tr>
               ))}
             </tbody>
@@ -432,7 +443,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
                 <span>{dotDate(row.date)}</span>
                 {row.memo && <span>· {row.memo}</span>}
               </div>
-              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} />
+              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} />
             </div>
           ))}
         </div>

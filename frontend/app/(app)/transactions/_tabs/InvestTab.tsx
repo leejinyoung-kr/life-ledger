@@ -18,10 +18,10 @@ import {
 } from '@/lib/finance';
 import {
   TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
-  RowActions, CardActions,
+  RowActions, CardActions, toDay,
 } from '../_shared';
 
-type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Investment };
+type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Investment; prefill?: Investment };
 
 export default function InvestTab({ investCats, addTrigger }: { investCats: Category[]; addTrigger: number }) {
   const [page, setPage] = useState(1);
@@ -72,6 +72,11 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
     } catch {
       notify.deleteFailed();
     }
+  }
+
+  // 투자 항목 복사 — 해당 데이터로 채운 추가 모달을 오늘 날짜로 열어 확인 후 저장
+  function duplicate(row: Investment) {
+    setModal({ open: true, mode: 'add', prefill: row });
   }
 
   function toggleSelect(id: number) {
@@ -178,7 +183,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                     <td className={`td-right amount-${up ? 'income' : 'expense'}`}>{up ? '+' : '-'}{won(row.profit)}</td>
                     <td className="td-center"><span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span></td>
                     <td className="td-center td-muted">{row.memo ?? '-'}</td>
-                    <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} /></td>
+                    <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} /></td>
                   </tr>
                 );
               })}
@@ -205,7 +210,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                   <span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span>
                   {row.memo && <span>· {row.memo}</span>}
                 </div>
-                <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} />
+                <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} />
               </div>
             );
           })}
@@ -238,13 +243,14 @@ function InvestModal({ state, onClose, onSaved }: { state: ModalState; onClose: 
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setErrors({});
-    setName(e?.name ?? '');
-    setType(e?.type ?? 'domestic_stock');
-    setPrincipal(e ? String(e.principal) : '');
-    setCurrentValue(e ? String(e.currentValue) : '');
-    setPurchaseDate(e?.purchaseDate ?? '');
-    setMemo(e?.memo ?? '');
-  }, [state.open, e]);
+    const src = e ?? state.prefill;
+    setName(src?.name ?? '');
+    setType(src?.type ?? 'domestic_stock');
+    setPrincipal(src ? String(src.principal) : '');
+    setCurrentValue(src ? String(src.currentValue) : '');
+    setPurchaseDate(e?.purchaseDate ?? (state.prefill ? toDay() : ''));
+    setMemo(src?.memo ?? '');
+  }, [state.open, e, state.prefill]);
 
   function validate() {
     const err: Record<string, string> = {};

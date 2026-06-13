@@ -1,5 +1,5 @@
 import Button from '@/components/ui/Button';
-import { IconEdit, IconTrash } from '@/components/icons';
+import { IconEdit, IconTrash, IconCopy } from '@/components/icons';
 import type { TransactionType } from '@/lib/finance';
 
 export const TABLE_CARD = 'bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] overflow-hidden';
@@ -23,18 +23,20 @@ export function monthsAgo(n: number): string {
   const d = new Date(); d.setMonth(d.getMonth() - n); return d.toISOString().slice(0, 10);
 }
 
-export function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+export function RowActions({ onEdit, onDelete, onCopy }: { onEdit: () => void; onDelete: () => void; onCopy?: () => void }) {
   return (
     <div className="flex justify-center gap-1">
+      {onCopy && <button type="button" className="icon-btn-bordered" onClick={onCopy} aria-label="복사"><IconCopy width={14} height={14} /></button>}
       <button type="button" className="icon-btn-bordered" onClick={onEdit} aria-label="수정"><IconEdit width={14} height={14} /></button>
       <button type="button" className="icon-btn-danger" onClick={onDelete} aria-label="삭제"><IconTrash width={14} height={14} /></button>
     </div>
   );
 }
 
-export function CardActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+export function CardActions({ onEdit, onDelete, onCopy }: { onEdit: () => void; onDelete: () => void; onCopy?: () => void }) {
   return (
     <div className="flex gap-2 mt-3">
+      {onCopy && <Button variant="ghost" className="flex-1" onClick={onCopy}>복사</Button>}
       <Button variant="ghost" className="flex-1" onClick={onEdit}>수정</Button>
       <Button variant="danger" className="flex-1" onClick={onDelete}>삭제</Button>
     </div>
