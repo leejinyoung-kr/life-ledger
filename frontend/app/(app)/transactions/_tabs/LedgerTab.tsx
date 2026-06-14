@@ -207,7 +207,8 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
     }
   }
 
-  // 영수증 사진 OCR(tesseract.js) → 날짜·금액·상호 추정 후 지출 추가 모달 프리필. 자동 저장 아님(사용자 확인)
+  // 영수증 사진 OCR(tesseract.js) → AI 파싱(/ai/parse-transaction)으로 날짜·금액·상호·카테고리 추정 후
+  // 지출 추가 모달 프리필. AI 호출 실패 시 정규식 휴리스틱(parseReceipt)으로 폴백. 자동 저장 아님(사용자 확인)
   async function scanReceipt(ev: React.ChangeEvent<HTMLInputElement>) {
     const file = ev.target.files?.[0];
     ev.target.value = '';
@@ -216,7 +217,28 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
     try {
       const Tesseract = (await import('tesseract.js')).default;
       const { data } = await Tesseract.recognize(file, 'kor+eng');
-      const draft = parseReceipt(data.text);
+      let draft = parseReceipt(data.text);
+      try {
+        const r = await api.post<{
+          type: TransactionType; amount: number; category: string | null;
+          title: string; payMethod: string; memo: string; date: string;
+        }>('/ai/parse-transaction', {
+          text: `다음은 영수증에서 OCR로 추출한 텍스트입니다. 총 합계 금액, 상호명, 날짜, 카테고리를 인식해 거래 정보를 추출하세요.\n\n${data.text}`,
+        });
+        if (r.amount > 0) {
+          draft = {
+            date: r.date || draft.date,
+            title: r.title || draft.title,
+            amount: r.amount,
+            type: r.type,
+            category: r.category ?? undefined,
+            payMethod: r.payMethod || undefined,
+            memo: r.memo || undefined,
+          };
+        }
+      } catch {
+        // AI 파싱 실패 시 휴리스틱 결과(draft) 그대로 사용
+      }
       if (!draft.amount && !draft.title) {
         notify.error('영수증에서 정보를 찾지 못했습니다. 직접 입력해 주세요.');
         setModal({ open: true, mode: 'add' });

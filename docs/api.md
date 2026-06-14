@@ -285,6 +285,6 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| POST | /ai/parse-transaction | 자연어 → 가계부 거래 초안 파싱 (사용자별 OpenAI 키 사용) |
+| POST | /ai/parse-transaction | 자연어/영수증 OCR 텍스트 → 가계부 거래 초안 파싱 (사용자별 OpenAI 키 사용) |
 | GET | /ai/reports | 저장된 AI 리포트 목록 조회 |
 | POST | /ai/reports | 기간별 가계부 분석 → AI 리포트 생성·저장 |
