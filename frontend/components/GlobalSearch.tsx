@@ -146,7 +146,7 @@ export default function GlobalSearch() {
       {/* 검색 팔레트 모달 */}
       {open && (
         <div
-          className="fixed inset-0 z-[300] bg-black/40 flex items-start justify-center pt-[12vh] px-4"
+          className="fixed inset-0 z-[300] bg-[rgba(15,25,35,0.45)] backdrop-blur-[4px] flex items-start justify-center pt-[12vh] px-4 animate-[fadeIn_0.2s_ease]"
           onMouseDown={() => setOpen(false)}
         >
           <div

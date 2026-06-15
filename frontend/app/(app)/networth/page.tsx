@@ -62,7 +62,7 @@ export default function NetworthPage() {
       {summary && (
         <>
           {/* 히어로 — 총 순자산 + 도넛 + 범례 */}
-          <div className="flex gap-7 flex-wrap items-center p-7 bg-[linear-gradient(135deg,var(--accent-dim),transparent)] border border-border rounded-[var(--radius-lg)] mb-6">
+          <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left gap-7 p-7 bg-[linear-gradient(135deg,var(--accent-dim),transparent)] border border-border rounded-[var(--radius-lg)] mb-6">
             <div className="flex-1 min-w-[200px]">
               <div className="text-[0.8rem] text-secondary font-semibold uppercase tracking-[0.06em] mb-2">총 순자산</div>
               <div className="[font-family:var(--font-display)] text-[2.6rem] font-extrabold tracking-[-0.04em] text-primary leading-none">{won(summary.netWorth)}</div>
@@ -70,22 +70,24 @@ export default function NetworthPage() {
                 {up ? '▲' : '▼'} {won(summary.changeAmount)} ({summary.changeRate}%) 지난달 대비
               </div>
             </div>
-            <div
-              className="w-40 h-40 rounded-full shrink-0 flex items-center justify-center relative after:content-[''] after:w-24 after:h-24 after:rounded-full after:bg-background"
-              style={{ background: buildDonutGradient(summary.allocation) }}
-            >
-              <div className="absolute text-center">
-                <div className="text-[0.7rem] text-muted">자산</div>
-                <div className="[font-family:var(--font-display)] font-bold text-base">{wonM(summary.totalAssets)}</div>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              {summary.allocation.map((a) => (
-                <div className="flex items-center gap-2 text-[0.82rem]" key={a.type}>
-                  <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: ASSET_TYPE_COLOR[a.type] }} />
-                  {ASSET_TYPE_LABEL[a.type]} {wonM(a.amount)} ({a.percent}%)
+            <div className="flex items-center justify-center md:justify-start gap-7 flex-wrap">
+              <div
+                className="w-40 h-40 rounded-full shrink-0 flex items-center justify-center relative after:content-[''] after:w-24 after:h-24 after:rounded-full after:bg-background"
+                style={{ background: buildDonutGradient(summary.allocation) }}
+              >
+                <div className="absolute text-center">
+                  <div className="text-[0.7rem] text-muted">자산</div>
+                  <div className="[font-family:var(--font-display)] font-bold text-base">{wonM(summary.totalAssets)}</div>
                 </div>
-              ))}
+              </div>
+              <div className="flex flex-col items-center md:items-start gap-2">
+                {summary.allocation.map((a) => (
+                  <div className="flex items-center gap-2 text-[0.82rem]" key={a.type}>
+                    <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: ASSET_TYPE_COLOR[a.type] }} />
+                    {ASSET_TYPE_LABEL[a.type]} {wonM(a.amount)} ({a.percent}%)
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

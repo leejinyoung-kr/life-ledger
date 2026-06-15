@@ -91,7 +91,7 @@ export default function SubscriptionsPage() {
 
   return (
     <AppShell activePath="/subscriptions" topbarLabel="구독 관리">
-      <div className="mb-7 flex items-center justify-between gap-4">
+      <div className="mb-7 flex items-start justify-between gap-4">
         <div>
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">구독 관리</h1>
           <p className="text-sm text-secondary mt-1.5">정기 결제를 한눈에 — 결제 예정일·연 환산·미사용 구독을 추적합니다.</p>

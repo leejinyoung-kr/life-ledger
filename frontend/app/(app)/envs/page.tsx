@@ -238,7 +238,7 @@ export default function EnvsPage() {
 
   return (
     <AppShell activePath="/envs" topbarLabel="ENV 보관함">
-      <div className="mb-7 flex items-center justify-between gap-4">
+      <div className="mb-7 flex items-start justify-between gap-4">
         <div>
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">ENV 보관함</h1>
           <p className="text-sm text-secondary mt-1.5">프로젝트별 환경변수를 암호화하여 관리합니다. (AES-256-GCM)</p>
