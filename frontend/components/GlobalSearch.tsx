@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * 공통 통합 검색바.
- * 가계부/계정/파일/메모를 한 입력창에서 검색하고 타입별로 그룹핑해 드롭다운으로 보여준다.
- * ⌘K / Ctrl+K 단축키로 포커스, Esc 로 닫기.
+ * 공통 통합 검색.
+ * 헤더엔 돋보기 아이콘 트리거만 두고, 클릭/⌘K(Ctrl+K) 시 중앙 모달 팔레트를 띄운다.
+ * 가계부/계정/파일/메모를 한 입력창에서 검색하고 타입별로 그룹핑해 보여준다. Esc 로 닫기.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useApiQuery } from '@/lib/query';
@@ -101,22 +101,23 @@ export default function GlobalSearch() {
     { enabled: debounced.length > 0 },
   ).data ?? [];
 
-  // ⌘K/Ctrl+K → 검색창 포커스, Esc → 닫기
+  // ⌘K/Ctrl+K → 팔레트 토글, Esc → 닫기
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        inputRef.current?.focus();
-        inputRef.current?.select();
+        setOpen((v) => !v);
       }
-      if (e.key === 'Escape') {
-        setOpen(false);
-        inputRef.current?.blur();
-      }
+      if (e.key === 'Escape') setOpen(false);
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, []);
+
+  // 팔레트 열릴 때 입력창 포커스
+  useEffect(() => {
+    if (open) inputRef.current?.focus();
+  }, [open]);
 
   // 도메인 필터 적용 후 타입별 그룹화
   const filtered = filter === 'all' ? results : results.filter((r) => r.type === filter);
@@ -128,77 +129,101 @@ export default function GlobalSearch() {
   const isEmpty = query.trim() !== '' && filtered.length === 0;
 
   return (
-    <div className="relative flex items-center flex-1 max-w-[480px]">
-      <IconSearchInline />
-      <input
-        ref={inputRef}
-        className="w-full h-[34px] bg-surface border border-border rounded-[var(--radius)] pl-8 pr-[70px] text-[0.82rem] text-primary outline-none transition-[border-color,box-shadow] placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-dim)]"
-        type="text"
-        placeholder="통합 검색..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setOpen(true); commitRecent(); } }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 200)}
-        autoComplete="off"
-      />
-      <span className="absolute right-2.5 text-[0.68rem] text-muted bg-elevated border border-border rounded-[4px] px-[5px] py-px pointer-events-none [font-family:var(--font-mono)] max-[900px]:hidden">
-        {isMac ? '⌘K' : 'Ctrl K'}
-      </span>
+    <>
+      {/* 헤더 트리거 — 돋보기 아이콘 버튼 (⌘K 힌트 포함) */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 h-9 px-2.5 rounded-[var(--radius)] text-secondary transition-colors shrink-0 hover:bg-surface hover:text-primary"
+        aria-label="통합 검색 열기"
+      >
+        <IconSearchBtn />
+        <span className="text-[0.68rem] text-muted bg-elevated border border-border rounded-[4px] px-[5px] py-px [font-family:var(--font-mono)] max-[900px]:hidden">
+          {isMac ? '⌘K' : 'Ctrl K'}
+        </span>
+      </button>
 
-      <div className={`${open ? 'block' : 'hidden'} absolute top-[calc(100%+6px)] left-0 w-full bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] z-[300] overflow-hidden`}>
-        {/* 도메인 필터 칩 (검색어 있을 때만) */}
-        {query.trim() && (
-          <div className="flex gap-1.5 px-3 py-2 border-b border-border-subtle bg-surface overflow-x-auto">
-            {FILTERS.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); setFilter(f.key); }}
-                className={`px-2.5 py-1 rounded-full text-[0.72rem] font-medium whitespace-nowrap transition-colors ${filter === f.key ? 'bg-accent text-white' : 'bg-elevated text-secondary hover:text-primary'}`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        )}
+      {/* 검색 팔레트 모달 */}
+      {open && (
+        <div
+          className="fixed inset-0 z-[300] bg-black/40 flex items-start justify-center pt-[12vh] px-4"
+          onMouseDown={() => setOpen(false)}
+        >
+          <div
+            className="w-full max-w-[560px] bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] overflow-hidden"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {/* 입력 */}
+            <div className="relative flex items-center border-b border-border-subtle">
+              <IconSearchInline />
+              <input
+                ref={inputRef}
+                className="w-full h-12 bg-transparent pl-9 pr-3 text-[0.9rem] text-primary outline-none placeholder:text-muted"
+                type="text"
+                placeholder="가계부·메모·계정·신원·ENV 통합 검색..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitRecent(); } }}
+                autoComplete="off"
+              />
+            </div>
 
-        {isEmpty ? (
-          <div className="p-6 text-center text-[0.855rem] text-muted">검색 결과가 없습니다.</div>
-        ) : !query.trim() ? (
-          recent.length > 0 ? (
-            <div>
-              <div className="flex items-center justify-between px-3.5 pt-2.5 pb-1.5 bg-surface border-b border-border-subtle">
-                <span className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-muted">최근 검색</span>
-                <button type="button" onMouseDown={(e) => { e.preventDefault(); localStorage.removeItem(RECENT_KEY); setRecent([]); }} className="text-[0.68rem] text-muted hover:text-danger">지우기</button>
+            {/* 도메인 필터 칩 (검색어 있을 때만) */}
+            {query.trim() && (
+              <div className="flex gap-1.5 px-3 py-2 border-b border-border-subtle bg-surface overflow-x-auto">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setFilter(f.key)}
+                    className={`px-2.5 py-1 rounded-full text-[0.72rem] font-medium whitespace-nowrap transition-colors ${filter === f.key ? 'bg-accent text-white' : 'bg-elevated text-secondary hover:text-primary'}`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
               </div>
-              {recent.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  onMouseDown={(e) => { e.preventDefault(); setQuery(q); inputRef.current?.focus(); }}
-                  className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-left border-b border-border-subtle last:border-b-0 hover:bg-surface"
-                >
-                  <span className="text-muted text-[0.85rem]">🕘</span>
-                  <span className="text-[0.84rem] text-secondary">{q}</span>
-                </button>
-              ))}
+            )}
+
+            <div className="max-h-[60vh] overflow-y-auto">
+              {isEmpty ? (
+                <div className="p-6 text-center text-[0.855rem] text-muted">검색 결과가 없습니다.</div>
+              ) : !query.trim() ? (
+                recent.length > 0 ? (
+                  <div>
+                    <div className="flex items-center justify-between px-3.5 pt-2.5 pb-1.5 bg-surface border-b border-border-subtle">
+                      <span className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-muted">최근 검색</span>
+                      <button type="button" onClick={() => { localStorage.removeItem(RECENT_KEY); setRecent([]); }} className="text-[0.68rem] text-muted hover:text-danger">지우기</button>
+                    </div>
+                    {recent.map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => { setQuery(q); inputRef.current?.focus(); }}
+                        className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-left border-b border-border-subtle last:border-b-0 hover:bg-surface"
+                      >
+                        <span className="text-muted text-[0.85rem]">🕘</span>
+                        <span className="text-[0.84rem] text-secondary">{q}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-[0.855rem] text-muted">가계부·메모·계정·신원·ENV를 검색하세요.</div>
+                )
+              ) : (
+                Object.entries(groups).map(([type, items]) => (
+                  <div key={type}>
+                    <div className="px-3.5 pt-2.5 pb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-muted bg-surface border-b border-border-subtle">{TYPE_LABEL[type as SearchType]}</div>
+                    {items.slice(0, 3).map((item, i) => (
+                      <SearchResultRow key={i} item={item} query={query} onPick={() => { commitRecent(); setOpen(false); }} />
+                    ))}
+                  </div>
+                ))
+              )}
             </div>
-          ) : (
-            <div className="p-6 text-center text-[0.855rem] text-muted">가계부·메모·계정·신원·ENV를 검색하세요.</div>
-          )
-        ) : (
-          Object.entries(groups).map(([type, items]) => (
-            <div key={type}>
-              <div className="px-3.5 pt-2.5 pb-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-muted bg-surface border-b border-border-subtle">{TYPE_LABEL[type as SearchType]}</div>
-              {items.slice(0, 3).map((item, i) => (
-                <SearchResultRow key={i} item={item} query={query} onPick={commitRecent} />
-              ))}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -220,10 +245,20 @@ function SearchResultRow({ item, query, onPick }: { item: SearchEntry; query: st
   );
 }
 
-// 검색바 좌측 돋보기 아이콘
+// 팔레트 입력창 좌측 돋보기 아이콘 (absolute)
 function IconSearchInline() {
   return (
-    <svg className="absolute left-2.5 w-[15px] h-[15px] text-muted pointer-events-none shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+    <svg className="absolute left-3 w-[16px] h-[16px] text-muted pointer-events-none shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.35-4.35" />
+    </svg>
+  );
+}
+
+// 헤더 트리거 버튼용 돋보기 아이콘 (inline)
+function IconSearchBtn() {
+  return (
+    <svg className="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
       <circle cx="11" cy="11" r="8" />
       <path d="m21 21-4.35-4.35" />
     </svg>

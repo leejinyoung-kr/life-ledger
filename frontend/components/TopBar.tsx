@@ -2,12 +2,13 @@
 
 /**
  * 공통 상단 헤더 바.
- * 좌측: 기간 라벨, 중앙: 통합 검색, 우측: 다크토글/알림.
+ * 좌측: 페이지명 라벨 + AI 연동 배지, 우측: 통합 검색 · 알림 · 다크토글 (사용 빈도순).
  * 모바일 메뉴 진입은 하단 내비 '더보기'로 일원화 — 상단 햄버거는 두지 않는다.
  */
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import GlobalSearch from './GlobalSearch';
+import AiStatusBadge from './AiStatusBadge';
 import { IconBell } from './icons';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
@@ -64,14 +65,21 @@ export default function TopBar({ label }: TopBarProps) {
 
   return (
     <div className="h-[60px] border-b border-border flex items-center justify-between px-8 bg-background sticky top-0 z-50 gap-3 max-md:px-4">
-      <div className="flex items-center gap-3">
-        {label && <span className="text-[0.78rem] text-muted max-[600px]:hidden">{label}</span>}
+      {/* 좌측: 페이지명(컨텍스트) + AI 연동 배지 */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        {label && <span className="text-[0.85rem] font-semibold text-primary truncate max-[600px]:hidden">{label}</span>}
+        <AiStatusBadge />
       </div>
 
-      {/* 통합 검색 (공통 컴포넌트 재사용) */}
-      <GlobalSearch />
-
-      <div className="flex items-center gap-2">
+      {/* 우측: 통합 검색 → 알림 → 다크 (사용 빈도순) */}
+      <div className="flex items-center gap-1.5">
+        <GlobalSearch />
+        <a href="/notifications" className="relative w-9 h-9 flex items-center justify-center rounded-[var(--radius)] text-secondary transition-colors shrink-0 hover:bg-surface hover:text-primary" aria-label="알림">
+          <IconBell width={18} height={18} />
+          {unread > 0 && (
+            <span className="absolute top-1 right-1 min-w-4 h-4 bg-danger text-white text-[0.62rem] font-bold rounded-full flex items-center justify-center px-1 leading-none border-[1.5px] border-background">{unread > 99 ? '99+' : unread}</span>
+          )}
+        </a>
         <button
           type="button"
           className="text-[1.2rem] w-9 h-9 flex items-center justify-center rounded-[var(--radius)] cursor-pointer transition-[background] select-none hover:bg-surface"
@@ -80,12 +88,6 @@ export default function TopBar({ label }: TopBarProps) {
         >
           {dark ? '☀️' : '🌙'}
         </button>
-        <a href="/notifications" className="relative w-9 h-9 flex items-center justify-center rounded-[var(--radius)] text-secondary transition-colors shrink-0 hover:bg-surface hover:text-primary" aria-label="알림">
-          <IconBell width={18} height={18} />
-          {unread > 0 && (
-            <span className="absolute top-1 right-1 min-w-4 h-4 bg-danger text-white text-[0.62rem] font-bold rounded-full flex items-center justify-center px-1 leading-none border-[1.5px] border-background">{unread > 99 ? '99+' : unread}</span>
-          )}
-        </a>
       </div>
     </div>
   );
