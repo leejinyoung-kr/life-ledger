@@ -7,7 +7,9 @@ describe('AuthService', () => {
   let prisma: any;
   let jwt: any;
   let push: any;
-  const svc = () => new AuthService(jwt, prisma, push);
+  let config: any;
+  let mail: any;
+  const svc = () => new AuthService(jwt, prisma, push, config, mail);
 
   beforeEach(() => {
     jwt = {
@@ -15,6 +17,8 @@ describe('AuthService', () => {
       verify: jest.fn(),
       decode: jest.fn(),
     };
+    config = { get: jest.fn(() => '') };
+    mail = { isEnabled: true, sendLoginCode: jest.fn().mockResolvedValue(true) };
     prisma = {
       user: { upsert: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
       loginSession: {

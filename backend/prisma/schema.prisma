@@ -8,7 +8,7 @@ datasource db {
 
 model User {
   id         Int      @id @default(autoincrement())
-  google_id  String   @unique @db.VarChar(100)
+  google_id  String?  @unique @db.VarChar(100) /// 구글 OAuth ID. 이메일 코드로만 생성된 계정은 null
   email      String   @unique @db.VarChar(200)
   name       String   @db.VarChar(100)
   picture    String?  @db.VarChar(500)
@@ -565,6 +565,20 @@ model RefreshToken {
   @@index([user_id])
   @@index([session_id])
   @@map("refresh_token")
+}
+
+/// 이메일 코드 로그인 — 구글 로그인 불가 환경용 대체 인증. 6자리 코드 해시를 보관(평문 미저장), 5분 만료
+model EmailLoginCode {
+  id          Int       @id @default(autoincrement())
+  email       String    @db.VarChar(200) /// 수신 이메일(화이트리스트와 대조)
+  code_hash   String    @db.VarChar(100) /// 코드 SHA-256 해시
+  expires_at  DateTime /// 만료 시각
+  consumed_at DateTime? /// 사용/무효화 시각, null=유효
+  attempts    Int       @default(0) /// 검증 시도 횟수(무차별 대입 차단)
+  created_at  DateTime  @default(now())
+
+  @@index([email])
+  @@map("email_login_code")
 }
 
 /// 신원 문서 종류: passport(여권) | idcard(주민등록증) | license(운전면허) | cert(자격증) | etc(기타)

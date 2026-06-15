@@ -1,7 +1,9 @@
 /**
  * 로그인 페이지 (독립 풀스크린, AppShell 미사용).
- * Google OAuth 로그인 진입점. 스타일: Tailwind (토큰 var() 활용).
+ * Google OAuth + 이메일 코드 로그인 진입점. 스타일: Tailwind (토큰 var() 활용).
  */
+import EmailLoginForm from './EmailLoginForm';
+
 export default async function LoginPage({
   searchParams,
 }: {
@@ -70,7 +72,17 @@ export default async function LoginPage({
           Google 계정으로 계속하기
         </a>
 
-        <p className="text-center text-[0.69rem] text-muted leading-[1.7] [&_a]:text-accent [&_a:hover]:opacity-70">
+        {/* 구분선 */}
+        <div className="flex items-center gap-3 my-3.5 text-[0.7rem] text-muted">
+          <span className="flex-1 h-px bg-border" />
+          또는
+          <span className="flex-1 h-px bg-border" />
+        </div>
+
+        {/* 이메일 코드 로그인 (구글 불가 환경 대체 수단) */}
+        <EmailLoginForm apiBase={`${backendUrl}/api/v1`} />
+
+        <p className="text-center text-[0.69rem] text-muted leading-[1.7] mt-3.5 [&_a]:text-accent [&_a:hover]:opacity-70">
           로그인 시{' '}
           <a href="#">이용약관</a> 및{' '}
           <a href="#">개인정보 처리방침</a>에 동의합니다.

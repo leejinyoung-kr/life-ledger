@@ -1,9 +1,16 @@
-import { randomUUID } from 'node:crypto';
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { createHash, randomInt, randomUUID } from 'node:crypto';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
+import { MailService } from '../mail/mail.service.js';
 
 export interface GoogleUser {
   googleId: string;
@@ -23,6 +30,10 @@ const ACCESS_TTL = '15m';
 const REFRESH_TTL = '7d';
 const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+// 이메일 로그인 코드 — 6자리, 5분 만료, 최대 5회 검증 시도
+const EMAIL_CODE_TTL_MS = 5 * 60 * 1000;
+const EMAIL_CODE_MAX_ATTEMPTS = 5;
+
 // User-Agent → 기기 표기/종류 추정 (간이)
 function parseDevice(ua = ''): { device: string; type: 'desktop' | 'mobile' | 'unknown' } {
   if (!ua) return { device: '알 수 없는 기기', type: 'unknown' };
@@ -35,12 +46,30 @@ function parseDevice(ua = ''): { device: string; type: 'desktop' | 'mobile' | 'u
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
+  // 로그인 허용 이메일 화이트리스트 (구글 전략과 동일 기준) — 비우면 모든 이메일 허용
+  private readonly allowedEmails: string[];
 
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
     private push: PushService,
-  ) {}
+    private config: ConfigService,
+    private mail: MailService,
+  ) {
+    this.allowedEmails = (this.config.get<string>('ALLOWED_EMAILS') ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+  }
+
+  // 이메일이 화이트리스트에 있는지 (비어있으면 전체 허용)
+  private isEmailAllowed(email: string): boolean {
+    return !this.allowedEmails.length || this.allowedEmails.includes(email.toLowerCase());
+  }
+
+  private hashCode(code: string): string {
+    return createHash('sha256').update(code).digest('hex');
+  }
 
   // 접근 토큰 — 사용자 정보 포함(JwtStrategy 가 검증)
   private signAccess(user: User): string {
@@ -79,12 +108,89 @@ export class AuthService {
       },
     });
 
+    return this.issueTokens(user, client);
+  }
+
+  // access/refresh 발급 공통 로직 — 세션 기록 후 refresh 화이트리스트에 jti 등록. 구글·이메일 로그인 공유
+  private async issueTokens(user: User, client?: LoginClient): Promise<{ access: string; refresh: string }> {
     const sessionId = client ? await this.recordLogin(user.id, client) : null;
     const jti = randomUUID();
     await this.prisma.refreshToken.create({
       data: { user_id: user.id, session_id: sessionId, jti, expires_at: new Date(Date.now() + REFRESH_TTL_MS) },
     });
     return { access: this.signAccess(user), refresh: this.signRefresh(user.id, jti) };
+  }
+
+  // 이메일 코드 발송 — 화이트리스트 통과 시 6자리 코드를 메일로 보낸다.
+  // 이메일 존재 여부/허용 여부를 응답으로 노출하지 않음(열거 공격 차단) — 항상 동일 결과 반환
+  async requestEmailCode(rawEmail: string, client?: LoginClient): Promise<{ ok: true }> {
+    const email = rawEmail.trim().toLowerCase();
+
+    // 허용 이메일만 실제 발송. 그 외엔 조용히 무시(응답은 동일)
+    if (this.isEmailAllowed(email) && this.mail.isEnabled) {
+      const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+      // 이전 미사용 코드 무효화 후 새 코드 저장(해시만)
+      await this.prisma.emailLoginCode.updateMany({
+        where: { email, consumed_at: null },
+        data: { consumed_at: new Date() },
+      });
+      await this.prisma.emailLoginCode.create({
+        data: {
+          email,
+          code_hash: this.hashCode(code),
+          expires_at: new Date(Date.now() + EMAIL_CODE_TTL_MS),
+        },
+      });
+      const sent = await this.mail.sendLoginCode(email, code);
+      if (!sent) this.logger.warn(`이메일 코드 발송 실패 (to=${email})`);
+    } else if (!this.mail.isEnabled) {
+      this.logger.warn('SMTP 비활성 — 이메일 코드 발송 불가');
+    }
+
+    return { ok: true };
+  }
+
+  // 이메일 코드 검증 → 성공 시 사용자 조회/생성 후 토큰 발급
+  async verifyEmailCode(
+    rawEmail: string,
+    code: string,
+    client?: LoginClient,
+  ): Promise<{ access: string; refresh: string }> {
+    const email = rawEmail.trim().toLowerCase();
+    if (!this.isEmailAllowed(email)) {
+      throw new UnauthorizedException('허용되지 않은 계정입니다.');
+    }
+
+    // 최신 미사용 코드 1건
+    const record = await this.prisma.emailLoginCode.findFirst({
+      where: { email, consumed_at: null },
+      orderBy: { created_at: 'desc' },
+    });
+    if (!record) throw new BadRequestException('유효한 인증코드가 없습니다. 다시 요청하세요.');
+
+    if (record.expires_at.getTime() < Date.now()) {
+      await this.prisma.emailLoginCode.update({ where: { id: record.id }, data: { consumed_at: new Date() } });
+      throw new BadRequestException('인증코드가 만료되었습니다. 다시 요청하세요.');
+    }
+    if (record.attempts >= EMAIL_CODE_MAX_ATTEMPTS) {
+      await this.prisma.emailLoginCode.update({ where: { id: record.id }, data: { consumed_at: new Date() } });
+      throw new BadRequestException('시도 횟수를 초과했습니다. 다시 요청하세요.');
+    }
+
+    // 코드 불일치 — 시도 횟수만 증가
+    if (record.code_hash !== this.hashCode(code.trim())) {
+      await this.prisma.emailLoginCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
+      throw new BadRequestException('인증코드가 일치하지 않습니다.');
+    }
+
+    // 성공 — 코드 소비 후 사용자 조회/생성
+    await this.prisma.emailLoginCode.update({ where: { id: record.id }, data: { consumed_at: new Date() } });
+    const user = await this.prisma.user.upsert({
+      where: { email },
+      update: {},
+      create: { email, name: email.split('@')[0] },
+    });
+    return this.issueTokens(user, client);
   }
 
   // 로그인 세션 기록 — 동일 기기/IP면 활동시각 갱신, 새 조합이면 세션 생성 + (첫 로그인 제외) 새 기기 알림. 발급될 refresh 토큰과 연결할 세션 id 반환

@@ -35,6 +35,7 @@ import { AccessLogModule } from './access-log/access-log.module';
 import { ImportModule } from './import/import.module';
 import { AiModule } from './ai/ai.module';
 import { PushModule } from './push/push.module';
+import { MailModule } from './mail/mail.module';
 import { HealthModule } from './health/health.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
@@ -73,6 +74,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     ImportModule,
     AiModule,
     PushModule,
+    MailModule,
     HealthModule,
   ],
   controllers: [AppController],

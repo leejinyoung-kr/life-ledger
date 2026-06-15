@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -17,8 +18,16 @@ import { Public } from './decorators/public.decorator';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import type { AuthUser } from './strategies/jwt.strategy';
 import { AuthService, GoogleUser } from './auth.service';
+import { RequestEmailCodeDto, VerifyEmailCodeDto } from './dto/email-login.dto';
 
 const REFRESH_COOKIE = 'refresh_token';
+
+// 요청에서 클라이언트 IP 추출 (x-forwarded-for 우선 — 신규 기기 감지/세션 기록용)
+function clientIp(req: Request): string | undefined {
+  const fwd = req.headers['x-forwarded-for'];
+  const ip = (Array.isArray(fwd) ? fwd[0] : fwd?.split(',')[0]) ?? req.ip;
+  return ip?.trim();
+}
 
 // 갱신 토큰 쿠키 옵션 — 운영(교차 도메인)은 SameSite=None+Secure, 개발은 Lax
 function refreshCookieOptions(): CookieOptions {
@@ -81,6 +90,31 @@ export class AuthController {
     // refresh 는 httpOnly 쿠키로만, access 는 쿼리로 프론트에 전달
     res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions());
     res.redirect(`${frontendUrl}/auth/callback?token=${access}`);
+  }
+
+  // 이메일 코드 발송 — 구글 로그인 불가 환경용 대체 인증. 분당 5회 제한(스팸/열거 차단)
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Post('email/request')
+  async requestEmailCode(@Body() dto: RequestEmailCodeDto) {
+    return this.authService.requestEmailCode(dto.email);
+  }
+
+  // 이메일 코드 검증 → 성공 시 refresh 쿠키 설정 + access 반환. 분당 10회 제한
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('email/verify')
+  async verifyEmailCode(
+    @Body() dto: VerifyEmailCodeDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { access, refresh } = await this.authService.verifyEmailCode(dto.email, dto.code, {
+      ip: clientIp(req),
+      userAgent: req.headers['user-agent'],
+    });
+    res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions());
+    return { token: access };
   }
 
   // 갱신 토큰(쿠키)으로 새 access 발급 — access 만료 시 프론트가 호출
