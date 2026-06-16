@@ -1,6 +1,21 @@
+import { useEffect, useRef } from 'react';
 import Button from '@/components/ui/Button';
 import { IconEdit, IconTrash, IconCopy } from '@/components/icons';
 import type { TransactionType } from '@/lib/finance';
+
+// 상단 "추가" 버튼 클릭 횟수(addTrigger)가 바뀌면 추가 모달을 연다.
+// 탭은 마운트된 채 숨겨졌다 다시 보이므로, 부모가 넘기는 카운터 변화로 추가 동작을 트리거한다.
+export function useAddTrigger(addTrigger: number, onTrigger: () => void) {
+  const prev = useRef(addTrigger);
+  useEffect(() => {
+    if (addTrigger !== prev.current) {
+      prev.current = addTrigger;
+      onTrigger();
+    }
+    // onTrigger 는 매 렌더 새로 생성되므로 의존성에서 제외 (addTrigger 변화에만 반응)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addTrigger]);
+}
 
 export const TABLE_CARD = 'bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] overflow-hidden';
 export const TXCARDS = 'hidden max-md:flex flex-col gap-2.5 p-3';

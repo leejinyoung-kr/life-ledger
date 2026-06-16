@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
@@ -12,6 +12,8 @@ import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { useFormErrors } from '@/lib/useFormErrors';
+import { usePagination } from '@/lib/usePagination';
+import { useRowSelection } from '@/lib/useRowSelection';
 import { qk } from '@/lib/queryKeys';
 import {
   INVEST_TYPE_LABEL, won,
@@ -19,30 +21,22 @@ import {
 } from '@/lib/finance';
 import {
   TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
-  RowActions, CardActions, toDay,
+  RowActions, CardActions, toDay, useAddTrigger,
 } from '../_shared';
 
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Investment; prefill?: Investment };
 
 export default function InvestTab({ investCats, addTrigger }: { investCats: Category[]; addTrigger: number }) {
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
-  const [selected, setSelected] = useState<Set<number>>(new Set());
   const invalidate = useInvalidate();
 
   const [pendingName, setPendingName] = useState('');
   const [pendingType, setPendingType] = useState('');
   const [applied, setApplied] = useState({ name: '', type: '' });
 
-  const mountTrigger = useRef(addTrigger);
-  useEffect(() => {
-    if (addTrigger !== mountTrigger.current) {
-      mountTrigger.current = addTrigger;
-      setModal({ open: true, mode: 'add' });
-    }
-  }, [addTrigger]);
+  useAddTrigger(addTrigger, () => setModal({ open: true, mode: 'add' }));
 
   function search() { setApplied({ name: pendingName, type: pendingType }); setPage(1); }
   function reset() { setPendingName(''); setPendingType(''); setApplied({ name: '', type: '' }); setPage(1); }
@@ -68,7 +62,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
     try {
       await api.del(`/investments/${id}`);
       notify.deleted('투자 항목');
-      setSelected(new Set());
+      clear();
       reload();
     } catch {
       notify.deleteFailed();
@@ -80,28 +74,13 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
     setModal({ open: true, mode: 'add', prefill: row });
   }
 
-  function toggleSelect(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    const ids = paged.map((r) => r.id);
-    const allSelected = ids.length > 0 && ids.every((id) => selected.has(id));
-    setSelected(allSelected ? new Set() : new Set(ids));
-  }
-
   async function removeSelected() {
     if (selected.size === 0) return;
     if (!await confirm(`선택한 ${selected.size}건을 삭제할까요?`, 'danger')) return;
     try {
       await api.del('/investments/bulk', { ids: [...selected] });
       notify.deleted(`${selected.size}건`);
-      setSelected(new Set());
+      clear();
       reload();
     } catch {
       notify.deleteFailed();
@@ -111,6 +90,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   const profitUp = (summary?.totalProfit ?? 0) >= 0;
   const totalPages = Math.ceil(total / limit);
   const paged = rows; // 서버가 이미 필터+페이지 단위로 잘라서 보냄
+  const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(paged.map((r) => r.id));
 
   return (
     <>
@@ -141,7 +121,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
         <span className="text-[0.78rem] text-secondary">총 {total}건</span>
         <div className="flex items-center gap-2">
           <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
-          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+          <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
 
@@ -162,7 +142,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
             </colgroup>
             <thead>
               <tr>
-                <th className="td-center"><input type="checkbox" className="checkbox" checked={paged.length > 0 && paged.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
+                <th className="td-center"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>유형</th><th>종목</th>
                 <th>투자원금</th><th>평가금액</th>
                 <th>수익</th><th>수익률</th>
@@ -175,7 +155,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                 const up = row.profit >= 0;
                 return (
                   <tr key={row.id}>
-                    <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" /></td>
+                    <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" /></td>
                     <td className="td-center td-muted">{total - (page - 1) * limit - i}</td>
                     <td className="td-center"><span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span></td>
                     <td className="td-strong">{row.name}</td>
@@ -198,7 +178,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
             return (
               <div className={TXCARD} key={row.id}>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" />
+                  <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" />
                   <div className="flex-1 flex justify-between items-baseline gap-2.5">
                     <span className={TXCARD_TITLE}>{row.name}</span>
                     <span className={TXCARD_AMT}>{won(row.currentValue)}</span>

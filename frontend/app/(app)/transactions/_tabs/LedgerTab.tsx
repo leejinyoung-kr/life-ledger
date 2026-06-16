@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
@@ -18,6 +18,8 @@ import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { useFormErrors } from '@/lib/useFormErrors';
 import { qk } from '@/lib/queryKeys';
 import { downloadTransactionTemplate } from '@/lib/excel';
+import { usePagination } from '@/lib/usePagination';
+import { useRowSelection } from '@/lib/useRowSelection';
 import {
   PAY_METHODS, TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL,
   won, signedWon, dotDate,
@@ -26,7 +28,7 @@ import {
 } from '@/lib/finance';
 import {
   TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
-  AMT_COLOR, RowActions, CardActions, toDay, monthsAgo,
+  AMT_COLOR, RowActions, CardActions, toDay, monthsAgo, useAddTrigger,
 } from '../_shared';
 
 // prefill: 영수증 OCR · AI 자연어 입력 등으로 추가 모달을 미리 채울 때 사용
@@ -68,22 +70,14 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   const [pendingCat, setPendingCat] = useState('');
   const [pendingQ, setPendingQ] = useState('');
   const [applied, setApplied] = useState(() => ({ from: monthsAgo(1), to: toDay(), type: '', cat: '', q: '' }));
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const [activePreset, setActivePreset] = useState<number | null>(1);
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
-  const [selected, setSelected] = useState<Set<number>>(new Set());
   const [scanning, setScanning] = useState(false);
   const invalidate = useInvalidate();
 
-  const mountTrigger = useRef(addTrigger);
-  useEffect(() => {
-    if (addTrigger !== mountTrigger.current) {
-      mountTrigger.current = addTrigger;
-      setModal({ open: true, mode: 'add' });
-    }
-  }, [addTrigger]);
+  useAddTrigger(addTrigger, () => setModal({ open: true, mode: 'add' }));
 
   const catMap = Object.fromEntries(categories.map((c) => [c.code, c.label]));
   // 2계층: 대분류(parentCode 없음) / 소분류(parentCode 있음) 분리. 필터·엑셀·표시에 사용
@@ -136,7 +130,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
     try {
       await api.del(`/transactions/${id}`);
       notify.deleted('내역');
-      setSelected(new Set());
+      clear();
       reload();
     } catch {
       notify.deleteFailed();
@@ -154,28 +148,13 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
     });
   }
 
-  function toggleSelect(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    const ids = pagedRows.map((r) => r.id);
-    const allSelected = ids.length > 0 && ids.every((id) => selected.has(id));
-    setSelected(allSelected ? new Set() : new Set(ids));
-  }
-
   async function removeSelected() {
     if (selected.size === 0) return;
     if (!await confirm(`선택한 ${selected.size}건을 삭제할까요?`, 'danger')) return;
     try {
       await api.del('/transactions/bulk', { ids: [...selected] });
       notify.deleted(`${selected.size}건`);
-      setSelected(new Set());
+      clear();
       reload();
     } catch {
       notify.deleteFailed();
@@ -272,6 +251,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   const maxTrend = Math.max(1, ...trend.map((b) => b.total));
   const totalPages = Math.ceil(total / limit);
   const pagedRows = rows; // 서버가 이미 페이지 단위로 잘라서 보냄
+  const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(pagedRows.map((r) => r.id));
 
   return (
     <>
@@ -402,7 +382,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
         <span className="text-[0.78rem] text-secondary">총 {total}건</span>
         <div className="flex items-center gap-2">
           <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
-          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+          <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
 
@@ -423,7 +403,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
             </colgroup>
             <thead>
               <tr>
-                <th className="td-center"><input type="checkbox" className="checkbox" checked={pagedRows.length > 0 && pagedRows.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
+                <th className="td-center"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>유형</th><th>카테고리</th><th>내역</th>
                 <th>결제수단</th><th>금액</th><th>메모</th>
                 <th>날짜</th><th>관리</th>
@@ -433,7 +413,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
               {pagedRows.length === 0 && <tr><td colSpan={10} className="td-center td-muted">내역이 없습니다.</td></tr>}
               {pagedRows.map((row, i) => (
                 <tr key={row.id}>
-                  <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" /></td>
+                  <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" /></td>
                   <td className="td-center td-muted">{total - (page - 1) * limit - i}</td>
                   <td className="td-center"><span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span></td>
                   <td className="td-center"><span className="cat-chip">{catMap[row.category] ?? row.category}</span></td>
@@ -453,7 +433,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
           {pagedRows.map((row) => (
             <div className={TXCARD} key={row.id}>
               <div className="flex items-center gap-2 mb-1.5">
-                <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggleSelect(row.id)} aria-label="선택" />
+                <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" />
                 <div className="flex-1 flex justify-between items-baseline gap-2.5">
                   <span className={TXCARD_TITLE}>{(row.isRecurring || row.recurringParentId) && '🔁 '}{row.title}</span>
                   <span className={`${TXCARD_AMT} ${AMT_COLOR[row.type]}`}>{signedWon(row.type, row.amount)}</span>

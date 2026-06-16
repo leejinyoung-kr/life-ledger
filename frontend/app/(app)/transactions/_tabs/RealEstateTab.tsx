@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { usePagination } from '@/lib/usePagination';
 import StatCard from '@/components/StatCard';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import { useConfirm } from '@/components/ConfirmModal';
@@ -13,24 +14,17 @@ import { won } from '@/lib/finance';
 import { type Asset } from '@/lib/networth';
 import {
   TABLE_CARD, TXCARDS, TXCARD, TXCARD_TOP, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
-  RowActions, CardActions,
+  RowActions, CardActions, useAddTrigger,
 } from '../_shared';
 import { AssetModal, type AssetModalState } from './AssetModal';
 
 export default function RealEstateTab({ addTrigger }: { addTrigger: number }) {
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const [modal, setModal] = useState<AssetModalState>({ open: false, mode: 'add' });
   const invalidate = useInvalidate();
 
-  const mountTrigger = useRef(addTrigger);
-  useEffect(() => {
-    if (addTrigger !== mountTrigger.current) {
-      mountTrigger.current = addTrigger;
-      setModal({ open: true, mode: 'add' });
-    }
-  }, [addTrigger]);
+  useAddTrigger(addTrigger, () => setModal({ open: true, mode: 'add' }));
 
   // 부동산 목록 (React Query 캐시) — 서버 페이징. sum=전체 금액 합계, count=전체 건수
   const rowsQuery = useApiQuery<Paginated<Asset> & { sum: number }>(
@@ -69,7 +63,7 @@ export default function RealEstateTab({ addTrigger }: { addTrigger: number }) {
 
       <div className="flex items-center justify-between mb-2">
         <span className="text-[0.78rem] text-secondary">총 {count}건</span>
-        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+        <LimitSelect limit={limit} onLimitChange={changeLimit} />
       </div>
 
       <div className={`${TABLE_CARD} mb-4`}>
