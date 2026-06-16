@@ -12,7 +12,7 @@ import { useApiQuery, useInvalidate } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { clickable } from '@/lib/a11y';
 import AppShell from '@/components/AppShell';
-import QueryError from '@/components/QueryError';
+import QueryState from '@/components/QueryState';
 import Modal from '@/components/Modal';
 import { useConfirm } from '@/components/ConfirmModal';
 import Button, { buttonClasses } from '@/components/ui/Button';
@@ -94,7 +94,6 @@ export default function FilesPage() {
   const qs = currentFolderId !== undefined ? `?folderId=${currentFolderId}` : '';
   const dataQuery = useApiQuery<ListResponse>(qk.files.list(currentFolderId), `/files${qs}`);
   const data = dataQuery.data ?? { breadcrumb: [], folders: [], files: [], totalBytes: 0 };
-  const loading = dataQuery.isLoading;
   // 변이 후 파일 트리 무효화
   const reload = () => invalidate(qk.files.all);
 
@@ -272,11 +271,7 @@ export default function FilesPage() {
         </span>
       </div>
 
-      {dataQuery.isError ? (
-        <QueryError message="파일 목록을 불러오지 못했습니다." onRetry={() => dataQuery.refetch()} />
-      ) : loading ? (
-        <div className="text-center py-16 text-muted text-sm">불러오는 중…</div>
-      ) : (
+      <QueryState query={dataQuery} errorMessage="파일 목록을 불러오지 못했습니다.">
         <>
           {/* 폴더 섹션 */}
           {filteredFolders.length > 0 && (
@@ -369,7 +364,7 @@ export default function FilesPage() {
             </div>
           )}
         </>
-      )}
+      </QueryState>
 
       {/* 폴더 생성 모달 */}
       <Modal
