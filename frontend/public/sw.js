@@ -81,10 +81,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 동일 출처 + 민감경로 아님 + http(s) 만 캐싱 대상
+  // 동일 출처 + 민감경로·Next.js 번들 아님 + http(s) 만 캐싱 대상
+  // /_next/ 는 dev에서 content hash 없이 같은 URL로 새 코드가 나오므로 SW 캐시 제외.
+  // prod에서는 Next.js가 Cache-Control: immutable 을 붙여 브라우저 HTTP 캐시가 처리한다.
   const cacheable =
     url.origin === self.location.origin &&
-    !NO_CACHE_PREFIXES.some((p) => url.pathname.startsWith(p));
+    !NO_CACHE_PREFIXES.some((p) => url.pathname.startsWith(p)) &&
+    !url.pathname.startsWith("/_next/");
 
   if (!cacheable) return; // 기본 네트워크 동작에 위임 (캐시 안 함)
 

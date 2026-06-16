@@ -60,15 +60,15 @@ function TransactionsPageInner() {
 
   return (
     <AppShell activePath="/transactions" topbarLabel="자산 관리">
-      <div className="mb-7 flex items-start justify-between gap-4">
-        <div>
+      <div className="mb-7">
+        <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">자산 관리</h1>
-          <p className="text-sm text-secondary mt-1.5">수입/지출, 예적금, 투자, 부동산, 부채를 한 곳에서 관리하세요.</p>
+          <Button className="shrink-0" onClick={openAddModal}>
+            <span className="hidden md:inline">{ADD_LABELS[tab]}</span>
+            <span className="md:hidden">추가</span>
+          </Button>
         </div>
-        <Button className="shrink-0" onClick={openAddModal}>
-          <span className="hidden md:inline">{ADD_LABELS[tab]}</span>
-          <span className="md:hidden">추가</span>
-        </Button>
+        <p className="text-sm text-secondary mt-1.5 break-keep">수입/지출, 예적금, 투자, 부동산, 부채를 한 곳에서 관리하세요.</p>
       </div>
 
       <div className="flex items-center gap-2 border-b border-border mb-6">

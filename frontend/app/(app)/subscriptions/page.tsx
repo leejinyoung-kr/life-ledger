@@ -94,12 +94,12 @@ export default function SubscriptionsPage() {
 
   return (
     <AppShell activePath="/subscriptions" topbarLabel="구독 관리">
-      <div className="mb-7 flex items-start justify-between gap-4">
-        <div>
+      <div className="mb-7">
+        <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">구독 관리</h1>
-          <p className="text-sm text-secondary mt-1.5">정기 결제를 한눈에 — 결제 예정일·연 환산·미사용 구독을 추적합니다.</p>
+          <Button onClick={() => setModal({ open: true, mode: 'add' })}>구독 추가</Button>
         </div>
-        <Button onClick={() => setModal({ open: true, mode: 'add' })}>구독 추가</Button>
+        <p className="text-sm text-secondary mt-1.5 break-keep">정기 결제를 한눈에 — 결제 예정일·연 환산·미사용 구독을 추적합니다.</p>
       </div>
 
       <ErrorBanner message={error} />
@@ -127,13 +127,14 @@ export default function SubscriptionsPage() {
       )}
 
       {/* 검색 */}
-      <div className="flex items-center gap-2.5 mb-4 flex-wrap">
-        <span className="text-muted text-[0.82rem] shrink-0">총 {total}건</span>
-        <div className="relative flex-1 min-w-50 max-w-90">
+      <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:gap-2.5">
+        <span className="text-muted text-[0.82rem] shrink-0 hidden md:inline">총 {total}건</span>
+        <div className="relative flex-1 md:min-w-50 md:max-w-90">
           <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-          <input className="input pl-icon" type="text" placeholder="서비스명, 카테고리 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="구독 검색" />
+          <input className="input pl-icon w-full" type="text" placeholder="서비스명, 카테고리 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="구독 검색" />
         </div>
-        <div className="ml-auto">
+        <div className="flex items-center justify-between md:ml-auto md:justify-normal">
+          <span className="text-muted text-[0.82rem] md:hidden">총 {total}건</span>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>

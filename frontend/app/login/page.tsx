@@ -14,7 +14,7 @@ export default async function LoginPage({
   const isNotAllowed = (await searchParams).error === 'not_allowed';
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-surface p-6 relative">
+    <div className="flex items-center justify-center min-h-screen bg-surface px-3 py-6 sm:p-6 relative">
       {/* grid pattern */}
       <div className="fixed inset-0 pointer-events-none opacity-35 [background-image:linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] [background-size:40px_40px]" aria-hidden />
       {/* radial glow */}
@@ -32,8 +32,8 @@ export default async function LoginPage({
           Doc<span className="text-accent">Nexus</span>
         </div>
 
-        <h1 className="text-[clamp(1rem,3vw,1.15rem)] font-bold tracking-[-0.03em] text-primary mb-1.5">DocNexus가 지켜드리는 것</h1>
-        <p className="text-[0.8rem] text-secondary leading-relaxed mb-6">로그인하고 나만의 보안 관리 허브를 시작하세요.</p>
+        <h1 className="text-[clamp(1rem,3vw,1.15rem)] font-bold tracking-[-0.03em] text-primary mb-1.5 break-keep">DocNexus가 지켜드리는 것</h1>
+        <p className="text-[0.8rem] text-secondary leading-relaxed mb-6 break-keep">로그인하고 나만의 보안 관리 허브를 시작하세요.</p>
 
         {/* 접근 거부 안내 — 허용되지 않은 구글 계정 */}
         {isNotAllowed && (
@@ -55,9 +55,9 @@ export default async function LoginPage({
           {FEATURES.map((f) => (
             <li key={f.title} className="flex items-start gap-3.5 px-[18px] py-[15px] border-b border-border-subtle last:border-b-0 bg-background transition-colors hover:bg-surface">
               <CheckMark />
-              <div className="flex-1">
-                <strong className="block text-[0.845rem] font-semibold text-primary mb-0.5">{f.title}</strong>
-                <span className="text-[0.775rem] text-muted leading-normal">{f.desc}</span>
+              <div className="flex-1 min-w-0">
+                <strong className="block text-[0.845rem] font-semibold text-primary mb-0.5 break-keep">{f.title}</strong>
+                <span className="text-[0.775rem] text-muted leading-normal break-keep">{f.desc}</span>
               </div>
             </li>
           ))}
@@ -82,7 +82,7 @@ export default async function LoginPage({
         {/* 이메일 코드 로그인 (구글 불가 환경 대체 수단) */}
         <EmailLoginForm apiBase={`${backendUrl}/api/v1`} />
 
-        <p className="text-center text-[0.69rem] text-muted leading-[1.7] mt-3.5 [&_a]:text-accent [&_a:hover]:opacity-70">
+        <p className="text-center text-[0.69rem] text-muted leading-[1.7] mt-3.5 break-keep [&_a]:text-accent [&_a:hover]:opacity-70">
           로그인 시{' '}
           <a href="#">이용약관</a> 및{' '}
           <a href="#">개인정보 처리방침</a>에 동의합니다.

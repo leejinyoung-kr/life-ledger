@@ -57,7 +57,7 @@ export default function DebtTab({ addTrigger }: { addTrigger: number }) {
 
   return (
     <>
-      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
+      <div className="mb-6">
         <StatCard icon={<IconCreditCard />} tone="red" value={won(sum)} label="총 부채" change={`${count}건`} changeDir="down" />
       </div>
 

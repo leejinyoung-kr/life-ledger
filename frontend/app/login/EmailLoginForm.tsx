@@ -79,10 +79,10 @@ export default function EmailLoginForm({ apiBase }: { apiBase: string }) {
   return (
     <div className="mt-1">
       {error && (
-        <p className="text-[0.76rem] text-[#dc2626] mb-2" role="alert">{error}</p>
+        <p className="text-[0.76rem] text-[#dc2626] mb-2 break-keep" role="alert">{error}</p>
       )}
       {info && step === 'code' && (
-        <p className="text-[0.76rem] text-secondary mb-2">{info}</p>
+        <p className="text-[0.76rem] text-secondary mb-2 break-keep">{info}</p>
       )}
 
       {step === 'email' ? (

@@ -57,7 +57,7 @@ export default function RealEstateTab({ addTrigger }: { addTrigger: number }) {
 
   return (
     <>
-      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
+      <div className="mb-6">
         <StatCard icon={<IconHome />} tone="blue" value={won(sum)} label="총 부동산" change={`${count}건`} changeDir="neutral" />
       </div>
 

@@ -95,8 +95,10 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   return (
     <>
       {summary && (
-        <div className="grid grid-cols-1 min-[1100px]:grid-cols-3 gap-4 mb-6">
-          <StatCard icon={<IconTrendUp />} tone="blue" value={won(summary.totalValue)} label="총 평가금액" change={`원금 대비 ${profitUp ? '+' : ''}${summary.profitRate}%`} changeDir={profitUp ? 'up' : 'down'} />
+        <div className="grid grid-cols-2 gap-3 mb-6 min-[1100px]:grid-cols-3 min-[1100px]:gap-4">
+          <div className="col-span-2 min-[1100px]:col-span-1">
+            <StatCard icon={<IconTrendUp />} tone="blue" value={won(summary.totalValue)} label="총 평가금액" change={`원금 대비 ${profitUp ? '+' : ''}${summary.profitRate}%`} changeDir={profitUp ? 'up' : 'down'} />
+          </div>
           <StatCard icon={<IconWon />} tone="amber" value={won(summary.totalPrincipal)} label="총 투자원금" change="투자 원금 합계" changeDir="neutral" />
           <StatCard icon={<IconChart />} tone={profitUp ? 'green' : 'red'} value={`${profitUp ? '+' : '-'}${won(summary.totalProfit)}`} label="총 수익" change={`수익률 ${profitUp ? '+' : ''}${summary.profitRate}%`} changeDir={profitUp ? 'up' : 'down'} />
         </div>
