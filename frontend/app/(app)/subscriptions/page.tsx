@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { useFormErrors } from '@/lib/useFormErrors';
+import { usePagination } from '@/lib/usePagination';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
@@ -39,8 +40,7 @@ export default function SubscriptionsPage() {
   // 구독 추가/수정 모달 상태 (편집 대상 포함)
   const [modal, setModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Subscription }>({ open: false, mode: 'add' });
   const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
   // mutation 후 구독 관련 쿼리 무효화
@@ -132,7 +132,7 @@ export default function SubscriptionsPage() {
           <input className="input pl-icon" type="text" placeholder="서비스명, 카테고리 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="구독 검색" />
         </div>
         <div className="ml-auto">
-          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+          <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
 
@@ -253,8 +253,8 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
 
   useEffect(() => {
     if (!state.open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setName(e?.name ?? '');
     setCategory(e?.category ?? 'ott');
     setAmount(e ? String(e.amount) : '');

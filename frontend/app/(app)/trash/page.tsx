@@ -18,13 +18,13 @@ import { qk } from '@/lib/queryKeys';
 import { IconAlertCircle, IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
 import { trashDate, type TrashItem } from '@/lib/trash';
+import { usePagination } from '@/lib/usePagination';
+import { useRowSelection } from '@/lib/useRowSelection';
 
 export default function TrashPage() {
   const [query, setQuery] = useState('');
   const [type, setType] = useState('전체 유형');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
 
@@ -65,21 +65,6 @@ export default function TrashPage() {
     } catch (e) { notify.error((e as Error).message); }
   }
 
-  function toggleSelect(key: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    const keys = paged.map((it) => `${it.kind}-${it.id}`);
-    const allSelected = keys.length > 0 && keys.every((k) => selected.has(k));
-    setSelected(allSelected ? new Set() : new Set(keys));
-  }
-
   async function bulkRestoreSelected() {
     if (selected.size === 0) return;
     if (!await confirm(`선택한 ${selected.size}건을 복구할까요?`, 'primary')) return;
@@ -90,7 +75,7 @@ export default function TrashPage() {
     try {
       await api.post('/trash/bulk-restore', { items });
       notify.success(`${selected.size}건을 복구했습니다.`);
-      setSelected(new Set());
+      clear();
       reload();
     } catch (e) { notify.error((e as Error).message); }
   }
@@ -105,7 +90,7 @@ export default function TrashPage() {
     try {
       await api.post('/trash/bulk-purge', { items });
       notify.purged();
-      setSelected(new Set());
+      clear();
       reload();
     } catch (e) { notify.error((e as Error).message); }
   }
@@ -137,6 +122,7 @@ export default function TrashPage() {
 
   const totalPages = Math.ceil(total / limit);
   const paged = items; // 서버가 이미 필터+페이지 단위로 잘라서 보냄
+  const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection<string>(paged.map((it) => `${it.kind}-${it.id}`));
 
   return (
     <AppShell activePath="/trash" topbarLabel="휴지통">
@@ -169,7 +155,7 @@ export default function TrashPage() {
 
       <div className="flex items-center justify-between mb-2">
         <span className="text-[0.78rem] text-secondary">총 {total}건</span>
-        <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+        <LimitSelect limit={limit} onLimitChange={changeLimit} />
       </div>
 
       {/* 삭제 항목 — 표 + 모바일 카드 */}
@@ -187,7 +173,7 @@ export default function TrashPage() {
             </colgroup>
             <thead>
               <tr>
-                <th className="td-center"><input type="checkbox" className="checkbox" checked={paged.length > 0 && paged.every((it) => selected.has(`${it.kind}-${it.id}`))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
+                <th className="td-center"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>이름</th><th>유형</th><th>삭제일</th><th>남은 기간</th><th>관리</th>
               </tr>
             </thead>
@@ -197,7 +183,7 @@ export default function TrashPage() {
               )}
               {paged.map((it, i) => (
                 <tr key={`${it.kind}-${it.id}`}>
-                  <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(`${it.kind}-${it.id}`)} onChange={() => toggleSelect(`${it.kind}-${it.id}`)} aria-label="선택" /></td>
+                  <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(`${it.kind}-${it.id}`)} onChange={() => toggle(`${it.kind}-${it.id}`)} aria-label="선택" /></td>
                   <td className="td-center td-muted">{total - (page - 1) * limit - i}</td>
                   <td className="td-name">{it.name}</td>
                   <td className="td-center"><span className="type-chip">{it.chip}</span></td>
@@ -222,7 +208,7 @@ export default function TrashPage() {
             <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={`${it.kind}-${it.id}`}>
               <div className="flex items-baseline gap-2 justify-between">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <input type="checkbox" className="checkbox self-center" checked={selected.has(`${it.kind}-${it.id}`)} onChange={() => toggleSelect(`${it.kind}-${it.id}`)} aria-label="선택" />
+                  <input type="checkbox" className="checkbox self-center" checked={selected.has(`${it.kind}-${it.id}`)} onChange={() => toggle(`${it.kind}-${it.id}`)} aria-label="선택" />
                   <span className="font-semibold text-[0.95rem] break-all">{it.name}</span>
                 </div>
                 <span className={`text-[0.82rem] whitespace-nowrap ${it.daysLeft <= 2 ? 'text-danger font-semibold' : 'text-muted'}`}>{it.daysLeft}일 남음</span>

@@ -182,8 +182,8 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
 
   useEffect(() => {
     if (!state.open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setType(editing?.type ?? 'passport');
     setName(editing?.name ?? '');
     setNumber('');

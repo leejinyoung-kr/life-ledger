@@ -19,6 +19,8 @@ import { useConfirm } from '@/components/ConfirmModal';
 import { IconAlertTriangle, IconCube, IconLock, IconFolder } from '@/components/icons';
 import { api } from '@/lib/api';
 import { NOTI_TABS, relativeTime, type Noti, type NotiTone } from '@/lib/notification';
+import { usePagination } from '@/lib/usePagination';
+import { useRowSelection } from '@/lib/useRowSelection';
 
 // tone → 리스트 아이콘 배경/색 (info 는 muted 재사용)
 const ICON_TONE: Record<NotiTone, string> = {
@@ -43,11 +45,9 @@ function iconFor(n: Noti): ReactNode {
 
 export default function NotificationsPage() {
   const [tab, setTab] = useState<typeof NOTI_TABS[number]['kind']>('all');
-  const changeTab = (t: typeof tab) => { setTab(t); setPage(1); setSelected(new Set()); };
+  const changeTab = (t: typeof tab) => { setTab(t); setPage(1); clear(); };
   const [detail, setDetail] = useState<Noti | null>(null);
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
 
@@ -79,23 +79,6 @@ export default function NotificationsPage() {
     }
   }
 
-  // 체크박스 토글
-  function toggleSelect(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAll(pagedItems: Noti[]) {
-    if (selected.size === pagedItems.length && pagedItems.length > 0) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(pagedItems.map((n) => n.id)));
-    }
-  }
-
   // 선택삭제
   async function removeSelected() {
     if (!selected.size) return;
@@ -103,7 +86,7 @@ export default function NotificationsPage() {
     try {
       await api.del('/notifications/bulk', { ids: [...selected] });
       notify.deleted(`알림 ${selected.size}건`);
-      setSelected(new Set());
+      clear();
       reload();
     } catch {
       notify.deleteFailed();
@@ -117,7 +100,7 @@ export default function NotificationsPage() {
     try {
       await api.del('/notifications');
       notify.deleted('모든 알림');
-      setSelected(new Set());
+      clear();
       reload();
     } catch {
       notify.deleteFailed();
@@ -137,6 +120,7 @@ export default function NotificationsPage() {
 
   const totalPages = Math.ceil(total / limit);
   const paged = items; // 서버가 이미 그룹필터+페이지 단위로 잘라서 보냄
+  const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(paged.map((n) => n.id));
 
   return (
     <AppShell activePath="/notifications" topbarLabel="알림">
@@ -164,7 +148,7 @@ export default function NotificationsPage() {
           <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
           <Button variant="ghost" onClick={removeAll}>전체삭제</Button>
           <Button variant="ghost" onClick={markAllRead}>모두 읽음</Button>
-          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+          <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
 
@@ -175,8 +159,8 @@ export default function NotificationsPage() {
             <input
               type="checkbox"
               className="checkbox"
-              checked={selected.size === paged.length}
-              onChange={() => toggleSelectAll(paged)}
+              checked={allChecked}
+              onChange={toggleAll}
               aria-label="전체선택"
             />
             <span className="text-[0.78rem] text-muted">
@@ -195,7 +179,7 @@ export default function NotificationsPage() {
               type="checkbox"
               className="checkbox mt-1"
               checked={selected.has(n.id)}
-              onChange={() => toggleSelect(n.id)}
+              onChange={() => toggle(n.id)}
               onClick={(e) => e.stopPropagation()}
               aria-label="선택"
             />

@@ -246,9 +246,9 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
 
   useEffect(() => {
     if (!state.open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset();
     const src = e ?? state.prefill;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setBank(src?.bank ?? '');
     setName(src?.name ?? '');
     setType(src?.type ?? 'savings');

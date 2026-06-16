@@ -18,6 +18,8 @@ import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import { useFormErrors } from '@/lib/useFormErrors';
+import { usePagination } from '@/lib/usePagination';
+import { useRowSelection } from '@/lib/useRowSelection';
 import {
   IconSearch, IconEdit, IconTrash, IconClose, IconCopy, IconEye,
 } from '@/components/icons';
@@ -35,9 +37,7 @@ export default function CredentialsPage() {
   const [category, setCategory] = useState('전체 카테고리');
   const [detail, setDetail] = useState<Credential | null>(null);
   const [edit, setEdit] = useState<{ open: boolean; editing: Credential | null }>({ open: false, editing: null });
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
 
@@ -74,6 +74,7 @@ export default function CredentialsPage() {
 
   const totalPages = Math.ceil(total / limit);
   const paged = rows; // 서버가 이미 필터+페이지 단위로 잘라서 보냄
+  const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(paged.map((x) => x.id));
 
   // 계정 삭제
   async function remove(c: Credential) {
@@ -82,26 +83,11 @@ export default function CredentialsPage() {
       await api.del(`/credentials/${c.id}`);
       notify.deleted('계정');
       setDetail(null);
-      setSelected(new Set());
+      clear();
       reload();
     } catch {
       notify.deleteFailed();
     }
-  }
-
-  function toggleSelect(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAll() {
-    const ids = paged.map((r) => r.id);
-    const allSelected = ids.length > 0 && ids.every((id) => selected.has(id));
-    setSelected(allSelected ? new Set() : new Set(ids));
   }
 
   async function removeSelected() {
@@ -110,7 +96,7 @@ export default function CredentialsPage() {
     try {
       await api.del('/credentials/bulk', { ids: [...selected] });
       notify.deleted(`${selected.size}건`);
-      setSelected(new Set());
+      clear();
       reload();
     } catch {
       notify.deleteFailed();
@@ -189,7 +175,7 @@ export default function CredentialsPage() {
         <div className="ml-auto flex items-center gap-2">
           <span className="text-muted text-[0.82rem]">총 {total}개</span>
           <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
-          <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+          <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
 
@@ -199,7 +185,7 @@ export default function CredentialsPage() {
           <table>
             <thead>
               <tr>
-                <th className="td-center" style={{ width: '40px' }}><input type="checkbox" className="checkbox" checked={paged.length > 0 && paged.every((r) => selected.has(r.id))} onChange={toggleSelectAll} aria-label="전체선택" /></th>
+                <th className="td-center" style={{ width: '40px' }}><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
                 <th>서비스</th><th>카테고리</th><th>아이디</th><th>수정일</th><th>관리</th>
               </tr>
             </thead>
@@ -207,7 +193,7 @@ export default function CredentialsPage() {
               {paged.length === 0 && <tr><td colSpan={6} className="td-center td-muted">저장된 계정이 없습니다.</td></tr>}
               {paged.map((c) => (
                 <tr key={c.id} className="cursor-pointer" onClick={() => setDetail(c)}>
-                  <td className="td-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} aria-label="선택" /></td>
+                  <td className="td-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" /></td>
                   <td className="td-center">
                     <div className="font-medium text-[0.875rem] text-primary">{c.name}</div>
                     <div className="text-[0.72rem] text-muted">{c.url ?? '—'}</div>
@@ -233,7 +219,7 @@ export default function CredentialsPage() {
           {paged.map((c) => (
             <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background cursor-pointer" key={c.id} onClick={() => setDetail(c)}>
               <div className="flex items-center gap-2.5">
-                <input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} onClick={(e) => e.stopPropagation()} aria-label="선택" />
+                <input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} onClick={(e) => e.stopPropagation()} aria-label="선택" />
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-[0.95rem] text-primary truncate">{c.name}</div>
                   <div className="text-[0.72rem] text-muted truncate">{c.url ?? '—'}</div>
@@ -461,8 +447,8 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
 
   useEffect(() => {
     if (!state.open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setServiceName(editing?.name ?? '');
     setUrl(editing?.url ?? '');
     setCategory(editing?.category ?? CRED_CATEGORIES[0]);

@@ -553,8 +553,8 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
 
   useEffect(() => {
     if (!state.open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setScope('one');
     const pf = state.prefill;
     // 소분류 code(leaf) 기준으로 대분류·유형을 일관되게 파생 (leaf 없으면 유형→첫 대분류→첫 소분류)

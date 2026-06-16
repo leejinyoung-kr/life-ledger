@@ -21,6 +21,8 @@ import { useConfirm } from '@/components/ConfirmModal';
 import { IconCheck, IconEdit, IconSearch, IconTrash } from '@/components/icons';
 import { api } from '@/lib/api';
 import { useFormErrors } from '@/lib/useFormErrors';
+import { usePagination } from '@/lib/usePagination';
+import { useRowSelection } from '@/lib/useRowSelection';
 import {
   PRIORITY_OPTIONS, formatDue, isSoon, formatGoalValue,
   type Task, type Goal, type TaskPriority, type GoalTone,
@@ -30,9 +32,7 @@ export default function TasksPage() {
   const [search, setSearch] = useState('');
   const [addModal, setAddModal] = useState(false);
   const [goalModal, setGoalModal] = useState<{ open: boolean; editing?: Goal }>({ open: false });
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set());
+  const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
 
@@ -74,26 +74,11 @@ export default function TasksPage() {
     try {
       await api.del(`/tasks/${id}`);
       notify.deleted('할일');
-      setSelectedTasks(new Set());
+      clearSelectedTasks();
       reload();
     } catch {
       notify.deleteFailed();
     }
-  }
-
-  function toggleSelectTask(id: number) {
-    setSelectedTasks((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAllTasks() {
-    const ids = pagedTasks.map((t) => t.id);
-    const allSelected = ids.length > 0 && ids.every((id) => selectedTasks.has(id));
-    setSelectedTasks(allSelected ? new Set() : new Set(ids));
   }
 
   async function removeSelectedTasks() {
@@ -102,7 +87,7 @@ export default function TasksPage() {
     try {
       await api.del('/tasks/bulk', { ids: [...selectedTasks] });
       notify.deleted(`${selectedTasks.size}건`);
-      setSelectedTasks(new Set());
+      clearSelectedTasks();
       reload();
     } catch {
       notify.deleteFailed();
@@ -123,6 +108,7 @@ export default function TasksPage() {
 
   const totalPages = Math.ceil(total / limit);
   const pagedTasks = tasks; // 서버가 이미 검색+페이지 단위로 잘라서 보냄
+  const { selected: selectedTasks, toggle: toggleSelectTask, toggleAll: toggleSelectAllTasks, clear: clearSelectedTasks, allChecked: allTasksChecked } = useRowSelection(pagedTasks.map((t) => t.id));
 
   return (
     <AppShell activePath="/tasks" topbarLabel="할일 / 목표">
@@ -146,7 +132,7 @@ export default function TasksPage() {
                 <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
                 <input className="input pl-icon w-40" type="text" placeholder="할일 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="할일 검색" />
               </div>
-              <LimitSelect limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
+              <LimitSelect limit={limit} onLimitChange={changeLimit} />
               <Button variant="danger" disabled={selectedTasks.size === 0} onClick={removeSelectedTasks}>선택삭제</Button>
               <Badge tone="neutral">{doneCount} / {allCount} 완료</Badge>
             </div>
@@ -154,7 +140,7 @@ export default function TasksPage() {
           <div>
             {pagedTasks.length > 0 && (
               <div className="flex items-center gap-2.5 px-4 py-2 border-b border-border-subtle bg-surface">
-                <input type="checkbox" className="checkbox" checked={pagedTasks.every((t) => selectedTasks.has(t.id))} onChange={toggleSelectAllTasks} aria-label="전체선택" />
+                <input type="checkbox" className="checkbox" checked={allTasksChecked} onChange={toggleSelectAllTasks} aria-label="전체선택" />
                 <span className="text-[0.78rem] text-muted">{selectedTasks.size > 0 ? `${selectedTasks.size}건 선택됨` : '전체선택'}</span>
               </div>
             )}
@@ -238,8 +224,8 @@ function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing
 
   useEffect(() => {
     if (!open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setName(editing?.name ?? '');
     setUnit(editing?.unit ?? 'won');
     setCurrentVal(editing ? String(editing.currentVal) : '');

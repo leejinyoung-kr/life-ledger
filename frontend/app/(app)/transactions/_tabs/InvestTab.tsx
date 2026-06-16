@@ -222,9 +222,9 @@ function InvestModal({ state, onClose, onSaved }: { state: ModalState; onClose: 
 
   useEffect(() => {
     if (!state.open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset();
     const src = e ?? state.prefill;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setName(src?.name ?? '');
     setType(src?.type ?? 'domestic_stock');
     setPrincipal(src ? String(src.principal) : '');

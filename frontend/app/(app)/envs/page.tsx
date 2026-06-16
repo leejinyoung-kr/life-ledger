@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
 import { useApiQuery, useInvalidate } from '@/lib/query';
 import { useFormErrors } from '@/lib/useFormErrors';
+import { useRowSelection } from '@/lib/useRowSelection';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
@@ -37,7 +38,6 @@ export default function EnvsPage() {
   const [diffOpen, setDiffOpen] = useState(false);
   const [diffTarget, setDiffTarget] = useState<EnvKind>('prod');
   const [diff, setDiff] = useState<EnvDiff | null>(null);
-  const [selectedVars, setSelectedVars] = useState<Set<number>>(new Set());
   const [historyVar, setHistoryVar] = useState<EnvVar | null>(null);
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
@@ -199,26 +199,11 @@ export default function EnvsPage() {
     try {
       await api.del(`/env-vars/${v.id}`);
       notify.deleted('변수');
-      setSelectedVars(new Set());
+      clearVars();
       invalidate(qk.env.all);
     } catch {
       notify.deleteFailed();
     }
-  }
-
-  function toggleSelectVar(id: number) {
-    setSelectedVars((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function toggleSelectAllVars() {
-    const ids = filteredVars.map((v) => v.id);
-    const allSelected = ids.length > 0 && ids.every((id) => selectedVars.has(id));
-    setSelectedVars(allSelected ? new Set() : new Set(ids));
   }
 
   async function removeSelectedVars() {
@@ -227,7 +212,7 @@ export default function EnvsPage() {
     try {
       await api.del('/env-vars/bulk', { ids: [...selectedVars] });
       notify.deleted(`${selectedVars.size}개 변수`);
-      setSelectedVars(new Set());
+      clearVars();
       invalidate(qk.env.all);
     } catch {
       notify.deleteFailed();
@@ -235,6 +220,7 @@ export default function EnvsPage() {
   }
 
   const filteredVars = varSearch.trim() ? vars.filter((v) => v.key.toLowerCase().includes(varSearch.toLowerCase())) : vars;
+  const { selected: selectedVars, toggle: toggleVar, toggleAll: toggleAllVars, clear: clearVars, allChecked: allVarsChecked } = useRowSelection(filteredVars.map((v) => v.id));
   const grouped = groupVars(filteredVars);
 
   return (
@@ -316,7 +302,7 @@ export default function EnvsPage() {
               <table className="env-table min-w-130">
                 <thead>
                   <tr>
-                    <th style={{ width: '36px' }} className="td-center"><input type="checkbox" className="checkbox" checked={filteredVars.length > 0 && filteredVars.every((v) => selectedVars.has(v.id))} onChange={toggleSelectAllVars} aria-label="전체선택" /></th>
+                    <th style={{ width: '36px' }} className="td-center"><input type="checkbox" className="checkbox" checked={allVarsChecked} onChange={toggleAllVars} aria-label="전체선택" /></th>
                     <th className="env-th-key">KEY</th>
                     <th>VALUE</th>
                     <th className="env-th-action">액션</th>
@@ -337,7 +323,7 @@ export default function EnvsPage() {
                         onCopy={copyVarValue}
                         onEdit={(v) => setVarModal({ open: true, editing: v })}
                         onDelete={deleteVar}
-                        onSelect={toggleSelectVar}
+                        onSelect={toggleVar}
                         onHistory={(v) => setHistoryVar(v)}
                       />
                     ))
@@ -486,8 +472,8 @@ function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; edi
 
   useEffect(() => {
     if (!state.open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setName(editing?.name ?? '');
     setDescription(editing?.description ?? '');
   }, [state.open, editing]);
@@ -531,8 +517,8 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
 
   useEffect(() => {
     if (!state.open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setGroup(editing?.group ?? '');
     setKey(editing?.key ?? '');
     setValue('');
