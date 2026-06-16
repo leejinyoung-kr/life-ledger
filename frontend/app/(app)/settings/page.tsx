@@ -79,6 +79,7 @@ export default function SettingsPage() {
   // URL ?tab=api 진입 시 해당 탭 선택 (헤더 AI 배지 등 외부 링크용) — 클라이언트 마운트 후 1회
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('tab');
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- URL 쿼리 기반 마운트 1회 탭 동기화
     if (t && TABS.some((x) => x.id === t)) setTab(t as TabId);
   }, []);
   const qc = useQueryClient();
