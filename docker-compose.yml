@@ -5,6 +5,8 @@ services:
     environment:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
       MARIADB_DATABASE: docnexus
+      TZ: Asia/Seoul
+    command: --default-time-zone=+09:00
     ports:
       - "3308:3306"
     volumes:
@@ -25,7 +27,7 @@ services:
     env_file:
       - backend/.env
     environment:
-      DATABASE_URL: "mysql://root:${MARIADB_ROOT_PASSWORD}@db:3306/docnexus"
+      DATABASE_URL: "mysql://root:${MARIADB_ROOT_PASSWORD}@db:3306/docnexus?timezone=+09:00"
       BACKUP_DIR: /app/backend/backups
     volumes:
       - db_backups:/app/backend/backups
