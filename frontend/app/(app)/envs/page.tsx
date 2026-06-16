@@ -13,6 +13,7 @@ import { useFormErrors } from '@/lib/useFormErrors';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import ErrorBanner from '@/components/ErrorBanner';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -229,7 +230,7 @@ export default function EnvsPage() {
         <Button onClick={() => setProjectModal({ open: true, editing: null })}>프로젝트 추가</Button>
       </div>
 
-      {error && <p className="mb-4 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} className="mb-4" />
 
       <div className="grid grid-cols-[280px_1fr] gap-5 items-start max-md:grid-cols-1">
         {/* 프로젝트 목록 */}

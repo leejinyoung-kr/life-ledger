@@ -16,6 +16,8 @@ import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import StatCard from '@/components/StatCard';
+import ErrorBanner from '@/components/ErrorBanner';
+import EmptyState from '@/components/EmptyState';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -100,7 +102,7 @@ export default function SubscriptionsPage() {
         <Button onClick={() => setModal({ open: true, mode: 'add' })}>구독 추가</Button>
       </div>
 
-      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} />
 
       {/* 상단 요약 통계 */}
       <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-8">
@@ -138,7 +140,7 @@ export default function SubscriptionsPage() {
 
       {/* 구독 카드 그리드 (도메인 특성상 카드형 유지) */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4 mb-7">
-        {paged.length === 0 && <p className="text-[0.82rem] text-secondary mb-3">등록된 구독이 없습니다.</p>}
+        {paged.length === 0 && <EmptyState message="등록된 구독이 없습니다." className="text-[0.82rem] text-secondary mb-3" />}
         {paged.map((sub) => {
           const dd = daysUntil(sub.nextPaymentDate);
           return (
@@ -206,7 +208,7 @@ export default function SubscriptionsPage() {
 
           {/* 모바일 카드 */}
           <div className="hidden max-md:flex flex-col gap-2.5">
-            {unused.length === 0 && <div className="text-center text-muted py-7">미사용 의심 구독이 없습니다.</div>}
+            {unused.length === 0 && <EmptyState message="미사용 의심 구독이 없습니다." className="text-center text-muted py-7" />}
             {unused.map((u) => (
               <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={u.id}>
                 <div className="flex justify-between items-baseline gap-2.5">

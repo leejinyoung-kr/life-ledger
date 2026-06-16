@@ -8,6 +8,7 @@
  */
 import { useEffect, useState } from 'react';
 import AppShell from '@/components/AppShell';
+import ErrorBanner from '@/components/ErrorBanner';
 import { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -104,7 +105,7 @@ export default function AiReportPage() {
         <Badge tone="neutral">{reports.length}개</Badge>
       </div>
 
-      {reportsQuery.error && <p className="text-[0.78rem] text-danger mb-4">⚠️ {reportsQuery.error.message}</p>}
+      <ErrorBanner message={reportsQuery.error?.message} className="mb-4" />
       {!reportsQuery.error && reports.length === 0 && (
         <p className="text-[0.82rem] text-muted">아직 생성된 리포트가 없습니다. 위에서 분석 기간을 선택하고 리포트를 생성해보세요.</p>
       )}

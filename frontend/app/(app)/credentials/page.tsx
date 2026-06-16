@@ -11,6 +11,7 @@ import { notify, copyToClipboard } from '@/lib/toast';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import ErrorBanner from '@/components/ErrorBanner';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
@@ -141,7 +142,7 @@ export default function CredentialsPage() {
         <Button onClick={() => setEdit({ open: true, editing: null })}>계정 추가</Button>
       </div>
 
-      {error && <p className="mb-4 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} className="mb-4" />
 
       {/* 보안 경고 배너 — 2FA 미설정 계정 수 */}
       {no2fa > 0 && (

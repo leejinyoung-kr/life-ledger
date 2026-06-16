@@ -14,6 +14,8 @@ import { useApiQuery, useInvalidate } from '@/lib/query';
 import { useFormErrors } from '@/lib/useFormErrors';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import ErrorBanner from '@/components/ErrorBanner';
+import EmptyState from '@/components/EmptyState';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
@@ -139,7 +141,7 @@ export default function CalendarPage() {
         ◈ 표시 항목(구독·예적금·신원지갑·할일)은 연동된 데이터입니다. 수정은 각 페이지에서, 삭제 시 원본에서도 삭제됩니다.
       </p>
 
-      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} />
 
       <div className="grid grid-cols-1 min-[900px]:grid-cols-[1fr_300px] gap-5 items-start">
         <div>
@@ -182,7 +184,7 @@ export default function CalendarPage() {
           <Card>
             <CardHeader><CardTitle>다가오는 일정</CardTitle></CardHeader>
             <CardBody compact>
-              {upcoming.length === 0 && <div className="py-2.5 text-muted text-[0.84rem]">다가오는 일정이 없습니다.</div>}
+              {upcoming.length === 0 && <EmptyState message="다가오는 일정이 없습니다." className="py-2.5 text-muted text-[0.84rem]" />}
               {upcoming.map((u) => {
                 const [, m, d] = u.date.split('-');
                 return (

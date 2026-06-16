@@ -14,6 +14,8 @@ import { useConfirm } from '@/components/ConfirmModal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AppShell from '@/components/AppShell';
+import ErrorBanner from '@/components/ErrorBanner';
+import EmptyState from '@/components/EmptyState';
 import Button from '@/components/ui/Button';
 import { IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
@@ -176,11 +178,11 @@ export default function NotesPage() {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-2">
-            {listQuery.isError && <p className="px-2 py-1.5 text-[0.78rem] text-danger">⚠️ {listQuery.error.message}</p>}
+            <ErrorBanner message={listQuery.error?.message} className="px-2 py-1.5" />
             {listQuery.isLoading ? (
               <p className="text-center text-muted py-5 text-[0.875rem]">불러오는 중…</p>
             ) : filtered.length === 0 ? (
-              <p className="text-center text-muted py-5 text-[0.875rem]">메모가 없습니다.</p>
+              <EmptyState message="메모가 없습니다." className="text-center text-muted py-5 text-[0.875rem]" />
             ) : null}
             {filtered.map((n) => {
               const active = n.id === selectedId;

@@ -15,6 +15,8 @@ import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import Pagination, { LimitSelect } from '@/components/Pagination';
+import ErrorBanner from '@/components/ErrorBanner';
+import EmptyState from '@/components/EmptyState';
 import { useConfirm } from '@/components/ConfirmModal';
 import { IconAlertTriangle, IconCube, IconLock, IconFolder } from '@/components/icons';
 import { api } from '@/lib/api';
@@ -133,7 +135,7 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} />
 
       {/* 필터 탭 + 선택삭제/전체삭제/모두읽음 + 페이지당 항목 수 */}
       <div className="flex items-center justify-between gap-2.5 mb-5 max-md:flex-wrap">
@@ -168,7 +170,7 @@ export default function NotificationsPage() {
             </span>
           </div>
         )}
-        {paged.length === 0 && <p className="text-secondary text-center py-5">알림이 없습니다.</p>}
+        {paged.length === 0 && <EmptyState message="알림이 없습니다." className="text-secondary text-center py-5" />}
         {paged.map((n) => (
           <div
             key={n.id}

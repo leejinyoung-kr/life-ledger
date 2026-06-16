@@ -14,6 +14,7 @@ import { eulreul } from '@/lib/korean';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import ErrorBanner from '@/components/ErrorBanner';
 import { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -284,7 +285,7 @@ export default function SettingsPage() {
     return (
       <AppShell activePath="/settings" topbarLabel="설정">
         <div className="mb-7"><h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">설정</h1></div>
-        {error ? <p className="mt-3 text-[0.78rem] text-danger">⚠️ {error}</p> : <p className="text-[0.82rem] text-secondary">불러오는 중...</p>}
+        {error ? <ErrorBanner message={error} className="mt-3" /> : <p className="text-[0.82rem] text-secondary">불러오는 중...</p>}
       </AppShell>
     );
   }
@@ -343,7 +344,7 @@ export default function SettingsPage() {
         <p className="text-sm text-secondary mt-1.5">계정, 보안, 대시보드 위젯 등을 관리합니다.</p>
       </div>
 
-      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} />
 
       <div className="grid grid-cols-[192px_1fr] gap-7 items-start max-md:grid-cols-1">
         {/* 탭 네비 */}

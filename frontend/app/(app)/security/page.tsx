@@ -8,6 +8,7 @@
  */
 import { useState, type CSSProperties } from 'react';
 import AppShell from '@/components/AppShell';
+import ErrorBanner from '@/components/ErrorBanner';
 import { useConfirm } from '@/components/ConfirmModal';
 import StatCard from '@/components/StatCard';
 import Button from '@/components/ui/Button';
@@ -84,7 +85,7 @@ export default function SecurityPage() {
         <p className="text-sm text-secondary mt-1.5">계정·시크릿의 보안 상태를 점검하고 위험 요소를 관리합니다.</p>
       </div>
 
-      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} />
 
       {summary && (
         <>

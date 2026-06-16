@@ -12,6 +12,7 @@ import { eulreul } from '@/lib/korean';
 import { useApiQuery, useInvalidate } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import ErrorBanner from '@/components/ErrorBanner';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import { Field, ModalFooter } from '@/components/ui/Field';
@@ -97,7 +98,7 @@ export default function IdWalletPage() {
         <Button onClick={() => setModal({ open: true, editing: null })}>신분증 추가</Button>
       </div>
 
-      {error && <p className="mb-4 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} className="mb-4" />
 
       {/* 만료 임박 경고 */}
       {soonest && (

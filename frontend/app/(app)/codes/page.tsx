@@ -25,6 +25,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
+import EmptyState from '@/components/EmptyState';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { IconDrag, IconPlus } from '@/components/icons';
@@ -285,7 +286,7 @@ export default function CodesPage() {
           {loading && <p className="px-5 py-4 text-[0.875rem] text-muted">불러오는 중...</p>}
 
           {!loading && items.length === 0 && (
-            <p className="px-5 py-4 text-[0.875rem] text-muted">항목이 없습니다. 추가하거나 기본값을 복원하세요.</p>
+            <EmptyState message="항목이 없습니다. 추가하거나 기본값을 복원하세요." className="px-5 py-4 text-[0.875rem] text-muted" />
           )}
 
           <div className="max-h-64.5 md:max-h-118.25 overflow-y-auto">

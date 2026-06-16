@@ -18,6 +18,8 @@ import Badge from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
+import ErrorBanner from '@/components/ErrorBanner';
+import EmptyState from '@/components/EmptyState';
 import { IconCheck, IconEdit, IconSearch, IconTrash } from '@/components/icons';
 import { api } from '@/lib/api';
 import { useFormErrors } from '@/lib/useFormErrors';
@@ -120,7 +122,7 @@ export default function TasksPage() {
         <Button onClick={() => setAddModal(true)}>할일 추가</Button>
       </div>
 
-      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} />
 
       <div className="grid grid-cols-1 min-[900px]:grid-cols-2 gap-5 items-start">
         {/* 할 일 */}
@@ -144,7 +146,7 @@ export default function TasksPage() {
                 <span className="text-[0.78rem] text-muted">{selectedTasks.size > 0 ? `${selectedTasks.size}건 선택됨` : '전체선택'}</span>
               </div>
             )}
-            {pagedTasks.length === 0 && <div className="px-4 py-3 text-[0.875rem] text-muted">할 일이 없습니다.</div>}
+            {pagedTasks.length === 0 && <EmptyState message="할 일이 없습니다." className="px-4 py-3 text-[0.875rem] text-muted" />}
             {pagedTasks.map((task) => (
               <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface" key={task.id}>
                 <input type="checkbox" className="checkbox" checked={selectedTasks.has(task.id)} onChange={() => toggleSelectTask(task.id)} aria-label="선택" />
@@ -175,7 +177,7 @@ export default function TasksPage() {
             </div>
           </CardHeader>
           <div className="max-h-[504px] overflow-y-auto">
-            {goals.length === 0 && <div className="px-5 py-4 text-[0.875rem] text-muted">목표가 없습니다.</div>}
+            {goals.length === 0 && <EmptyState message="목표가 없습니다." className="px-5 py-4 text-[0.875rem] text-muted" />}
             {goals.map((goal) => (
               <div className="px-5 py-4 border-b border-border-subtle last:border-b-0" key={goal.id}>
                 <div className="flex justify-between items-center mb-2">

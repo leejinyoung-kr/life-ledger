@@ -1,6 +1,7 @@
 'use client';
 
 import AppShell from '@/components/AppShell';
+import ErrorBanner from '@/components/ErrorBanner';
 import StatCard from '@/components/StatCard';
 import Badge from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
@@ -57,7 +58,7 @@ export default function NetworthPage() {
         <p className="text-[0.78rem] text-muted mt-1">자산·부채 항목은 자산 관리에서 추가·수정할 수 있습니다.</p>
       </div>
 
-      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} />
 
       {summary && (
         <>

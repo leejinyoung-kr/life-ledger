@@ -20,6 +20,8 @@ import { api } from '@/lib/api';
 import { trashDate, type TrashItem } from '@/lib/trash';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
+import ErrorBanner from '@/components/ErrorBanner';
+import EmptyState from '@/components/EmptyState';
 
 export default function TrashPage() {
   const [query, setQuery] = useState('');
@@ -136,7 +138,7 @@ export default function TrashPage() {
         모든 보관함(가계부·예적금·투자·구독·자산·할일·목표·메모·일정)의 삭제 항목이 모입니다. 30일 경과 시 복구 불가.
       </div>
 
-      {error && <p className="mt-3 mb-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} />
 
       {/* 검색 / 유형 필터 / 일괄 액션 */}
       <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex gap-2 items-center mb-4 max-md:flex-wrap">
@@ -203,7 +205,7 @@ export default function TrashPage() {
 
         {/* 모바일 카드 */}
         <div className="hidden max-md:flex flex-col gap-2.5 p-3">
-          {paged.length === 0 && <div className="text-center text-muted py-7">휴지통이 비어 있습니다.</div>}
+          {paged.length === 0 && <EmptyState message="휴지통이 비어 있습니다." className="text-center text-muted py-7" />}
           {paged.map((it) => (
             <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={`${it.kind}-${it.id}`}>
               <div className="flex items-baseline gap-2 justify-between">
