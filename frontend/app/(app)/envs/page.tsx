@@ -7,7 +7,7 @@
  * 값 원문은 reveal/export API 로만 받는다. 스타일: Tailwind. env-table 은 공통 globals 유지.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { notify } from '@/lib/toast';
+import { notify, copyToClipboard } from '@/lib/toast';
 import { useApiQuery, useInvalidate } from '@/lib/query';
 import { useFormErrors } from '@/lib/useFormErrors';
 import { useRowSelection } from '@/lib/useRowSelection';
@@ -89,16 +89,12 @@ export default function EnvsPage() {
     }
   }
 
-  function copyText(text: string) {
-    navigator.clipboard.writeText(text).then(() => notify.copied()).catch(() => {});
-  }
-
   // 단일 변수 값 복사 — 캐시에 없으면 reveal 후 복사
   async function copyVarValue(v: EnvVar) {
-    if (revealed[v.id] !== undefined) { copyText(revealed[v.id]); return; }
+    if (revealed[v.id] !== undefined) { copyToClipboard(revealed[v.id]); return; }
     try {
       const { value } = await api.get<{ value: string }>(`/env-vars/${v.id}/reveal`);
-      copyText(value);
+      copyToClipboard(value);
     } catch {
       notify.error('값을 불러오지 못했습니다.');
     }
@@ -118,7 +114,7 @@ export default function EnvsPage() {
 
   async function copyAll() {
     const text = await fetchEnvText();
-    if (text) copyText(text);
+    if (text) copyToClipboard(text);
   }
 
   // .env 파일 다운로드

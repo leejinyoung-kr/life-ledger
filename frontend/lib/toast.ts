@@ -39,3 +39,8 @@ export const notify = {
   success: (msg: string) => toast.success(msg),
   error: (msg: string) => toast.error(msg),
 };
+
+// 텍스트를 클립보드에 복사하고 성공 토스트를 띄운다 (실패는 조용히 무시).
+export function copyToClipboard(text: string) {
+  navigator.clipboard.writeText(text).then(() => notify.copied()).catch(() => {});
+}

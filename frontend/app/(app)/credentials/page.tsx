@@ -7,7 +7,7 @@
  * 스타일: Tailwind + 공통 컴포넌트(Modal/Button/Badge/Field). 표+모바일카드 패턴.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { notify } from '@/lib/toast';
+import { notify, copyToClipboard } from '@/lib/toast';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
@@ -304,10 +304,6 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
     });
   }
 
-  function copy(text: string) {
-    navigator.clipboard.writeText(text).then(() => notify.copied()).catch(() => {});
-  }
-
   // 백업코드 생성(기존 덮어씀) — 평문은 이 응답에서만 노출
   async function genBackup() {
     if (!cred || backupBusy) return;
@@ -365,14 +361,14 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
       {/* 아이디 */}
       <DetailField label="아이디">
         <span className="flex-1 [font-family:var(--font-mono)] text-[0.875rem] text-primary truncate">{cred.username}</span>
-        <button type="button" className={ICON_BTN} onClick={() => copy(cred.username)} aria-label="아이디 복사"><IconCopy width={14} height={14} /></button>
+        <button type="button" className={ICON_BTN} onClick={() => copyToClipboard(cred.username)} aria-label="아이디 복사"><IconCopy width={14} height={14} /></button>
       </DetailField>
 
       {/* 비밀번호 */}
       <DetailField label="비밀번호">
         <span className={`flex-1 [font-family:var(--font-mono)] text-[0.875rem] truncate ${pwVisible ? 'text-primary' : 'tracking-[0.25em] text-muted'}`}>{pwVisible ? pw : maskedPw}</span>
         <button type="button" className={ICON_BTN} onClick={togglePw} aria-label="비밀번호 표시/숨김" disabled={!secret}><IconEye width={14} height={14} /></button>
-        <button type="button" className={ICON_BTN} onClick={() => copy(pw)} aria-label="비밀번호 복사" disabled={!secret}><IconCopy width={14} height={14} /></button>
+        <button type="button" className={ICON_BTN} onClick={() => copyToClipboard(pw)} aria-label="비밀번호 복사" disabled={!secret}><IconCopy width={14} height={14} /></button>
       </DetailField>
 
       {/* 2FA — 실시간 6자리 코드 + 남은 시간 */}
@@ -380,7 +376,7 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
         <DetailField label="2FA (TOTP)">
           <span className="flex-1 [font-family:var(--font-mono)] text-[1.1rem] font-bold tracking-[0.2em] text-primary">{totp ? totp.code : '••••••'}</span>
           {totp && <span className="text-[0.72rem] text-muted shrink-0">{totp.remaining}s</span>}
-          <button type="button" className={ICON_BTN} onClick={() => totp && copy(totp.code)} aria-label="TOTP 복사" disabled={!totp}><IconCopy width={14} height={14} /></button>
+          <button type="button" className={ICON_BTN} onClick={() => totp && copyToClipboard(totp.code)} aria-label="TOTP 복사" disabled={!totp}><IconCopy width={14} height={14} /></button>
         </DetailField>
       )}
 
@@ -396,7 +392,7 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
                 ))}
               </div>
               <div className="flex gap-2 mt-3 pt-3 border-t border-border-subtle">
-                <Button variant="ghost" size="sm" className="flex-1" onClick={() => copy(backupCodes.join('\n'))}>전체 복사</Button>
+                <Button variant="ghost" size="sm" className="flex-1" onClick={() => copyToClipboard(backupCodes.join('\n'))}>전체 복사</Button>
                 <Button variant="ghost" size="sm" className="flex-1" onClick={genBackup} disabled={backupBusy}>재생성</Button>
               </div>
             </div>
