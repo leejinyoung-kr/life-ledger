@@ -129,12 +129,12 @@ export default function CalendarPage() {
 
   return (
     <AppShell activePath="/calendar" topbarLabel="캘린더">
-      <div className="mb-7 flex items-center justify-between gap-4">
-        <div>
+      <div className="mb-7">
+        <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">캘린더</h1>
-          <p className="text-sm text-secondary mt-1.5">구독 결제·예적금 만기·서류 만료·할일을 한 곳에서 봅니다.</p>
+          <Button onClick={() => setAddModal(true)}>일정 추가</Button>
         </div>
-        <Button onClick={() => setAddModal(true)}>일정 추가</Button>
+        <p className="text-sm text-secondary mt-1.5 break-keep">구독 결제·예적금 만기·서류 만료·할일을 한 곳에서 봅니다.</p>
       </div>
 
       <p className="text-[0.8rem] text-muted bg-surface border border-border-subtle rounded-(--radius) px-3.5 py-2 mb-5">

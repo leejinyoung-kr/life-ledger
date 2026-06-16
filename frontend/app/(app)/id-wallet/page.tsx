@@ -90,12 +90,12 @@ export default function IdWalletPage() {
 
   return (
     <AppShell activePath="/id-wallet" topbarLabel="신원 지갑">
-      <div className="mb-7 flex items-center justify-between gap-4">
-        <div>
+      <div className="mb-7">
+        <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">신원 지갑</h1>
-          <p className="text-sm text-secondary mt-1.5">신분증·여권·자격증을 안전하게 보관하고 만료일을 추적합니다. (AES-256-GCM)</p>
+          <Button onClick={() => setModal({ open: true, editing: null })}>신분증 추가</Button>
         </div>
-        <Button onClick={() => setModal({ open: true, editing: null })}>신분증 추가</Button>
+        <p className="text-sm text-secondary mt-1.5 break-keep">신분증·여권·자격증을 안전하게 보관하고 만료일을 추적합니다. (AES-256-GCM)</p>
       </div>
 
       <ErrorBanner message={error} className="mb-4" />

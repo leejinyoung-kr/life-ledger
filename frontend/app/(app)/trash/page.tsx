@@ -140,8 +140,8 @@ export default function TrashPage() {
 
       <ErrorBanner message={error} />
 
-      {/* 검색 / 유형 필터 / 일괄 액션 */}
-      <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex gap-2 items-center mb-4 max-md:flex-wrap">
+      {/* 검색 / 유형 필터 */}
+      <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex gap-2 items-center mb-2 max-md:flex-wrap">
         <div className="relative flex-1 min-w-[160px]">
           <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
           <input className="input pl-icon" type="text" placeholder="삭제 항목 검색..." value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} aria-label="삭제 항목 검색" />
@@ -149,15 +149,18 @@ export default function TrashPage() {
         <select className="input w-auto min-w-[120px] shrink-0" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }} aria-label="유형 필터">
           {types.map((t) => <option key={t}>{t}</option>)}
         </select>
-        {selected.size > 0 && <Button variant="ghost" onClick={bulkRestoreSelected}>{selected.size}건 복구</Button>}
-        {selected.size > 0 && <Button variant="danger" onClick={bulkPurgeSelected}>{selected.size}건 영구삭제</Button>}
-        <Button variant="ghost" onClick={restoreAll}>전체 복구</Button>
-        <Button variant="danger" onClick={emptyTrash}>휴지통 비우기</Button>
       </div>
 
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {total}건</span>
-        <LimitSelect limit={limit} onLimitChange={changeLimit} />
+      {/* 총건 + 일괄 액션 + 페이지 크기 */}
+      <div className="flex items-center gap-2 justify-between mb-4 flex-wrap">
+        <span className="text-[0.78rem] text-secondary shrink-0">총 {total}건</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          {selected.size > 0 && <Button variant="ghost" onClick={bulkRestoreSelected}>{selected.size}건 복구</Button>}
+          {selected.size > 0 && <Button variant="danger" onClick={bulkPurgeSelected}>{selected.size}건 영구삭제</Button>}
+          <Button variant="ghost" onClick={restoreAll}>전체 복구</Button>
+          <Button variant="danger" onClick={emptyTrash}>휴지통 비우기</Button>
+          <LimitSelect limit={limit} onLimitChange={changeLimit} />
+        </div>
       </div>
 
       {/* 삭제 항목 — 표 + 모바일 카드 */}

@@ -126,17 +126,17 @@ export default function SubscriptionsPage() {
         </div>
       )}
 
-      {/* 검색 */}
-      <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:gap-2.5">
-        <span className="text-muted text-[0.82rem] shrink-0 hidden md:inline">총 {total}건</span>
-        <div className="relative flex-1 md:min-w-50 md:max-w-90">
+      {/* 검색 필터 — PC: 카드 박스, 모바일: 스타일 없음 */}
+      <div className="md:bg-surface md:border md:border-border md:rounded-(--radius) md:px-4 md:py-3 mb-2">
+        <div className="relative">
           <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
           <input className="input pl-icon w-full" type="text" placeholder="서비스명, 카테고리 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="구독 검색" />
         </div>
-        <div className="flex items-center justify-between md:ml-auto md:justify-normal">
-          <span className="text-muted text-[0.82rem] md:hidden">총 {total}건</span>
-          <LimitSelect limit={limit} onLimitChange={changeLimit} />
-        </div>
+      </div>
+      {/* 총건 + 페이지 크기 */}
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-muted text-[0.82rem]">총 {total}건</span>
+        <LimitSelect limit={limit} onLimitChange={changeLimit} />
       </div>
 
       {/* 구독 카드 그리드 (도메인 특성상 카드형 유지) */}

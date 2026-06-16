@@ -222,12 +222,12 @@ export default function EnvsPage() {
 
   return (
     <AppShell activePath="/envs" topbarLabel="ENV 보관함">
-      <div className="mb-7 flex items-start justify-between gap-4">
-        <div>
+      <div className="mb-7">
+        <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">ENV 보관함</h1>
-          <p className="text-sm text-secondary mt-1.5">프로젝트별 환경변수를 암호화하여 관리합니다. (AES-256-GCM)</p>
+          <Button onClick={() => setProjectModal({ open: true, editing: null })}>프로젝트 추가</Button>
         </div>
-        <Button onClick={() => setProjectModal({ open: true, editing: null })}>프로젝트 추가</Button>
+        <p className="text-sm text-secondary mt-1.5 break-keep">프로젝트별 환경변수를 암호화하여 관리합니다. (AES-256-GCM)</p>
       </div>
 
       <ErrorBanner message={error} className="mb-4" />

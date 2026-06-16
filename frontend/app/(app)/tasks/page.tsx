@@ -114,12 +114,12 @@ export default function TasksPage() {
 
   return (
     <AppShell activePath="/tasks" topbarLabel="할일 / 목표">
-      <div className="mb-7 flex items-center justify-between gap-4">
-        <div>
+      <div className="mb-7">
+        <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">할일 / 목표</h1>
-          <p className="text-sm text-secondary mt-1.5">운영 todo 와 저축·자산 목표를 함께 추적합니다.</p>
+          <Button onClick={() => setAddModal(true)}>할일 추가</Button>
         </div>
-        <Button onClick={() => setAddModal(true)}>할일 추가</Button>
+        <p className="text-sm text-secondary mt-1.5 break-keep">운영 todo 와 저축·자산 목표를 함께 추적합니다.</p>
       </div>
 
       <ErrorBanner message={error} />
@@ -128,15 +128,17 @@ export default function TasksPage() {
         {/* 할 일 */}
         <Card>
           <CardHeader>
-            <CardTitle>할 일</CardTitle>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <CardTitle>할 일</CardTitle>
+              <Badge tone="neutral">{doneCount} / {allCount} 완료</Badge>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
               <div className="relative">
                 <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
                 <input className="input pl-icon w-40" type="text" placeholder="할일 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="할일 검색" />
               </div>
               <LimitSelect limit={limit} onLimitChange={changeLimit} />
               <Button variant="danger" disabled={selectedTasks.size === 0} onClick={removeSelectedTasks}>선택삭제</Button>
-              <Badge tone="neutral">{doneCount} / {allCount} 완료</Badge>
             </div>
           </CardHeader>
           <div>
@@ -152,7 +154,7 @@ export default function TasksPage() {
                 <input type="checkbox" className="checkbox" checked={selectedTasks.has(task.id)} onChange={() => toggleSelectTask(task.id)} aria-label="선택" />
                 <button
                   type="button"
-                  className={`w-[18px] h-[18px] border-2 rounded-[5px] shrink-0 cursor-pointer flex items-center justify-center text-white ${task.done ? 'bg-accent border-accent' : 'border-border bg-transparent'}`}
+                  className={`w-4.5 h-4.5 border-2 rounded-[5px] shrink-0 cursor-pointer flex items-center justify-center text-white ${task.done ? 'bg-accent border-accent' : 'border-border bg-transparent'}`}
                   onClick={() => toggleTask(task.id)}
                   aria-label="완료 토글"
                 >
@@ -176,7 +178,7 @@ export default function TasksPage() {
               <Button size="sm" onClick={() => setGoalModal({ open: true })}>목표 추가</Button>
             </div>
           </CardHeader>
-          <div className="max-h-[504px] overflow-y-auto">
+          <div className="max-h-126 overflow-y-auto">
             {goals.length === 0 && <EmptyState message="목표가 없습니다." className="px-5 py-4 text-[0.875rem] text-muted" />}
             {goals.map((goal) => (
               <div className="px-5 py-4 border-b border-border-subtle last:border-b-0" key={goal.id}>

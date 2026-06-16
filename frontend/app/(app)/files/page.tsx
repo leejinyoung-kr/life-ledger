@@ -198,18 +198,18 @@ export default function FilesPage() {
 
   return (
     <AppShell activePath="/files" topbarLabel="파일 보관함">
-      <div className="mb-7 flex items-center justify-between gap-4">
-        <div>
+      <div className="mb-7">
+        <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">파일 보관함</h1>
-          <p className="text-sm text-secondary mt-1.5">폴더를 생성하여 파일을 정리하거나, 바로 업로드할 수 있습니다.</p>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="ghost" onClick={() => setFolderModal(true)}>폴더 생성</Button>
+            <label className={buttonClasses('primary') + (uploading ? ' opacity-60 pointer-events-none' : '')}>
+              {uploading ? '업로드 중…' : '파일 업로드'}
+              <input ref={fileInputRef} type="file" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
+            </label>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={() => setFolderModal(true)}>폴더 생성</Button>
-          <label className={buttonClasses('primary') + (uploading ? ' opacity-60 pointer-events-none' : '')}>
-            {uploading ? '업로드 중…' : '파일 업로드'}
-            <input ref={fileInputRef} type="file" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
-          </label>
-        </div>
+        <p className="text-sm text-secondary mt-1.5 break-keep">폴더를 생성하여 파일을 정리하거나, 바로 업로드할 수 있습니다.</p>
       </div>
 
       {/* 스토리지 사용량 */}
