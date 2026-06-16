@@ -245,7 +245,7 @@ model UserSettings {
   notif_deadline Boolean  @default(true) /// 신원 만료·할일 마감 임박 알림 수신
   session_expiry String   @default("7d") @db.VarChar(10) /// 7d|1d|12h|none
   pw_auto_hide   String   @default("10s") @db.VarChar(10) /// 10s|30s|1m|none
-  openai_api_key String?  @db.VarChar(200) /// OpenAI API 키 (AI 리포트 생성)
+  openai_api_key String?  @db.VarChar(512) /// OpenAI API 키 (AI 리포트 생성, AES-256-GCM 암호문 'v1:...')
   openai_model   String   @default("gpt-4o-mini") @db.VarChar(50) /// AI 리포트 생성 모델
   master_lock_enabled Boolean @default(false) /// 보관함 마스터 잠금 사용 여부 (Google 로그인 외 2차 잠금)
   master_lock_hash    String? @db.VarChar(200) /// 마스터 비번 해시 (scrypt: saltHex:hashHex)

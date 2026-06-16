@@ -1,18 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, UserSettings } from '@prisma/client';
 import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { CryptoService } from '../common/crypto.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { DEFAULT_CATEGORIES, DEFAULT_WIDGETS } from './settings.defaults';
 
-// API 키 노출 최소화 — 앞 7자만 남기고 마스킹
+// API 키 노출 최소화 — 앞 7자만 남기고 마스킹 (복호화된 평문 기준)
 function maskKey(key: string): string {
   return `${key.slice(0, 7)}••••`;
 }
 
 @Injectable()
 export class SettingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private crypto: CryptoService,
+  ) {}
+
+  // 저장된 OpenAI 키 복호화 — 신규는 'v1:' 암호문, 구버전 평문 행은 그대로 반환(하위호환)
+  private revealOpenAiKey(stored: string): string {
+    return stored.startsWith('v1:') ? this.crypto.decrypt(stored) : stored;
+  }
 
   // 설정 행 조회, 없으면 기본값으로 생성 (1:1 보장)
   private async getOrCreate(userId: number): Promise<UserSettings> {
@@ -39,7 +48,7 @@ export class SettingsService {
       sessionExpiry: s.session_expiry,
       pwAutoHide: s.pw_auto_hide,
       openaiApiKeySet: !!s.openai_api_key,
-      openaiApiKeyMasked: s.openai_api_key ? maskKey(s.openai_api_key) : null,
+      openaiApiKeyMasked: s.openai_api_key ? maskKey(this.revealOpenAiKey(s.openai_api_key)) : null,
       openaiModel: s.openai_model,
       categories: s.categories,
       widgets: s.widgets,
@@ -70,8 +79,8 @@ export class SettingsService {
       widgets: dto.widgets as Prisma.InputJsonValue,
       menu_order: dto.menuOrder as Prisma.InputJsonValue,
     };
-    // 새 키가 입력됐을 때만 교체 (빈 문자열/미전송 시 기존 유지)
-    if (dto.openaiApiKey) data.openai_api_key = dto.openaiApiKey;
+    // 새 키가 입력됐을 때만 교체 (빈 문자열/미전송 시 기존 유지). AES-256-GCM 으로 암호화 저장
+    if (dto.openaiApiKey) data.openai_api_key = this.crypto.encrypt(dto.openaiApiKey);
 
     const updated = await this.prisma.userSettings.update({
       where: { user_id: user.id },

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { AiReport, Prisma } from '@prisma/client';
 import OpenAI from 'openai';
+import { CryptoService } from '../common/crypto.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ReportPeriod } from './dto/generate-report.dto';
 
@@ -48,15 +49,22 @@ function kstDateStr(d: Date): string {
 
 @Injectable()
 export class AiService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly crypto: CryptoService,
+  ) {}
 
   // 사용자 설정의 OpenAI API 키로 클라이언트 구성. 미설정 시 503
+  // 키는 AES-256-GCM 암호문('v1:')으로 저장 — 호출 직전 복호화. 구버전 평문 행은 그대로 사용(하위호환)
   private async getClient(userId: number): Promise<{ openai: OpenAI; model: string }> {
     const settings = await this.prisma.userSettings.findUnique({ where: { user_id: userId } });
     if (!settings?.openai_api_key) {
       throw new ServiceUnavailableException('OpenAI API 키가 설정되지 않았습니다. 설정 페이지에서 등록해주세요.');
     }
-    return { openai: new OpenAI({ apiKey: settings.openai_api_key }), model: settings.openai_model };
+    const apiKey = settings.openai_api_key.startsWith('v1:')
+      ? this.crypto.decrypt(settings.openai_api_key)
+      : settings.openai_api_key;
+    return { openai: new OpenAI({ apiKey }), model: settings.openai_model };
   }
 
   // 저장된 OpenAI 키 연결 확인 — /v1/models 호출로 키 유효성 + 설정 모델 접근 가능 여부 검사

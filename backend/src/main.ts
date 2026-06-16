@@ -7,7 +7,34 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { requestLogger } from './common/request-logger.middleware';
 
+// 부팅 시 핵심 시크릿 검증 — 미설정/약함/placeholder 기본값이면 즉시 종료.
+// 약한 시크릿으로 운영 배포되는 것을 막는다(런타임 500 으로 미루지 않음).
+function validateSecrets() {
+  const PLACEHOLDERS = new Set([
+    'your_super_secret_jwt_key_change_this',
+    'change_this_to_a_long_random_secret',
+    'change_this_to_a_strong_password',
+  ]);
+  const required = ['JWT_SECRET', 'CREDENTIAL_SECRET'];
+  const errors: string[] = [];
+  for (const name of required) {
+    const v = process.env[name];
+    if (!v) {
+      errors.push(`${name} 미설정`);
+    } else if (v.length < 32) {
+      errors.push(`${name} 너무 짧음(32자 이상 필요, 현재 ${v.length})`);
+    } else if (PLACEHOLDERS.has(v)) {
+      errors.push(`${name} 가 예시 기본값 그대로임 — 고유 랜덤값으로 교체 필요`);
+    }
+  }
+  if (errors.length) {
+    // 부팅 중단 — 운영 환경에 약한 시크릿 노출 방지
+    throw new Error(`[보안] 시크릿 검증 실패:\n  - ${errors.join('\n  - ')}`);
+  }
+}
+
 async function bootstrap() {
+  validateSecrets();
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   // 신뢰 프록시 — 리버스 프록시 뒤에서 x-forwarded-for 의 첫 값을 client IP 로 사용.
   // throttler 키·새 기기 감지·접근로그 IP 정확도에 필요. 직접 노출 시 TRUST_PROXY 미설정으로 무효.
@@ -51,13 +78,16 @@ async function bootstrap() {
   );
   app.setGlobalPrefix('api/v1');
 
-  const config = new DocumentBuilder()
-    .setTitle('DocNexus API')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document);
+  // Swagger 는 비운영 환경에서만 노출 — 운영에선 전체 API 표면 정보 노출 차단
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('DocNexus API')
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api-docs', app, document);
+  }
 
   await app.listen(process.env.PORT ?? 8000);
 }
