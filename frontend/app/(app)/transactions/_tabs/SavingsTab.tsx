@@ -9,6 +9,7 @@ import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import { IconBank, IconWon, IconTrendUp, IconAlertTriangle, IconSearch } from '@/components/icons';
 import { notify } from '@/lib/toast';
+import { useFormErrors } from '@/lib/useFormErrors';
 import { api } from '@/lib/api';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
@@ -261,12 +262,12 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
   const [balance, setBalance] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   useEffect(() => {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({});
+    reset();
     const src = e ?? state.prefill;
     setBank(src?.bank ?? '');
     setName(src?.name ?? '');
@@ -287,8 +288,6 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
     setErrors(err);
     return !Object.keys(err).length;
   }
-
-  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
   async function save() {
     if (!validate()) return;
@@ -316,7 +315,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '예적금 수정' : '예적금 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="은행/기관" required error={errors.bank}>
-        <select className={`input${errors.bank ? ' is-invalid' : ''}`} aria-label="은행/기관" value={bank} onChange={(ev) => { setBank(ev.target.value); clearErr('bank'); }}>
+        <select className={`input${errors.bank ? ' is-invalid' : ''}`} aria-label="은행/기관" value={bank} onChange={(ev) => { setBank(ev.target.value); clearError('bank'); }}>
           <option value="" disabled>은행/기관 선택</option>
           {/* 기존 자유텍스트 값이 목록에 없으면 그대로 옵션으로 노출 */}
           {bank && !bankCats.some((b) => b.label === bank) && <option value={bank}>{bank}</option>}
@@ -324,7 +323,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
         </select>
       </Field>
       <Field label="상품명" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 26주 적금" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 26주 적금" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
       </Field>
       <Field label="유형" required>
         <select className="input" value={type} onChange={(ev) => setType(ev.target.value as SavingType)}>
@@ -339,7 +338,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
       </div>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="가입일" required error={errors.startDate}>
-          <input type="date" className={`input${errors.startDate ? ' is-invalid' : ''}`} aria-label="가입일" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearErr('startDate'); }} />
+          <input type="date" className={`input${errors.startDate ? ' is-invalid' : ''}`} aria-label="가입일" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
         </Field>
         <Field label="만기일"><input type="date" className="input" aria-label="만기일" value={maturityDate} onChange={(ev) => setMaturityDate(ev.target.value)} /></Field>
       </div>

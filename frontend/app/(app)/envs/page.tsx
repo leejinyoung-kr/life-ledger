@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
 import { useApiQuery, useInvalidate } from '@/lib/query';
+import { useFormErrors } from '@/lib/useFormErrors';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
@@ -481,12 +482,12 @@ function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; edi
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   useEffect(() => {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({});
+    reset();
     setName(editing?.name ?? '');
     setDescription(editing?.description ?? '');
   }, [state.open, editing]);
@@ -510,7 +511,7 @@ function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; edi
   return (
     <Modal open={state.open} onClose={onClose} title={editing ? '프로젝트 수정' : '프로젝트 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="프로젝트명" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: my-project" value={name} onChange={(e) => { setName(e.target.value); setErrors((p) => { const n = { ...p }; delete n.name; return n; }); }} />
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: my-project" value={name} onChange={(e) => { setName(e.target.value); clearError('name'); }} />
       </Field>
       <Field label="설명 (선택)"><input type="text" className="input" placeholder="프로젝트 간단 설명" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
     </Modal>
@@ -526,20 +527,18 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
   const [memo, setMemo] = useState('');
   const [envs, setEnvs] = useState<EnvKind[]>([currentEnv]);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   useEffect(() => {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({});
+    reset();
     setGroup(editing?.group ?? '');
     setKey(editing?.key ?? '');
     setValue('');
     setMemo(editing?.memo ?? '');
     setEnvs([editing?.env ?? currentEnv]);
   }, [state.open, editing, currentEnv]);
-
-  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
   function toggleEnv(e: EnvKind) {
     setEnvs((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));
@@ -585,10 +584,10 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
         </select>
       </Field>
       <Field label="KEY" required error={errors.key}>
-        <input type="text" className={`input input-mono${errors.key ? ' is-invalid' : ''}`} placeholder="예: DATABASE_URL" value={key} onChange={(e) => { setKey(e.target.value); clearErr('key'); }} />
+        <input type="text" className={`input input-mono${errors.key ? ' is-invalid' : ''}`} placeholder="예: DATABASE_URL" value={key} onChange={(e) => { setKey(e.target.value); clearError('key'); }} />
       </Field>
       <Field label={editing ? 'VALUE (변경 시에만 입력)' : 'VALUE'} required={!editing} error={errors.value}>
-        <input type="text" className={`input input-mono${errors.value ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 값 유지' : '값 입력'} value={value} onChange={(e) => { setValue(e.target.value); clearErr('value'); }} />
+        <input type="text" className={`input input-mono${errors.value ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 값 유지' : '값 입력'} value={value} onChange={(e) => { setValue(e.target.value); clearError('value'); }} />
       </Field>
       {editing ? (
         <Field label="적용 환경">

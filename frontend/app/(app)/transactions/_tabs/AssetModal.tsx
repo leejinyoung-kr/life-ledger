@@ -6,6 +6,7 @@ import { Field, ModalFooter } from '@/components/ui/Field';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
 import { ASSET_TYPE_LABEL, type Asset } from '@/lib/networth';
+import { useFormErrors } from '@/lib/useFormErrors';
 
 export type AssetModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Asset; prefill?: Asset };
 
@@ -21,14 +22,14 @@ export function AssetModal({ assetType, state, onClose, onSaved }: {
   const [interestRate, setInterestRate] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   const typeLabel = ASSET_TYPE_LABEL[assetType];
 
   useEffect(() => {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({});
+    reset();
     const src = e ?? state.prefill;
     setName(src?.name ?? '');
     setAmount(src ? String(src.amount) : '');
@@ -43,8 +44,6 @@ export function AssetModal({ assetType, state, onClose, onSaved }: {
     setErrors(err);
     return !Object.keys(err).length;
   }
-
-  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
   async function save() {
     if (!validate()) return;
@@ -81,7 +80,7 @@ export function AssetModal({ assetType, state, onClose, onSaved }: {
           className={`input${errors.name ? ' is-invalid' : ''}`}
           placeholder={assetType === 'realestate' ? '예: 전세보증금' : '예: 전세자금대출'}
           value={name}
-          onChange={(ev) => { setName(ev.target.value); clearErr('name'); }}
+          onChange={(ev) => { setName(ev.target.value); clearError('name'); }}
         />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
@@ -91,7 +90,7 @@ export function AssetModal({ assetType, state, onClose, onSaved }: {
             className={`input${errors.amount ? ' is-invalid' : ''}`}
             placeholder="0"
             value={amount}
-            onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }}
+            onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }}
           />
         </Field>
         <Field label="금리 (%, 선택)">

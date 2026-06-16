@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
+import { useFormErrors } from '@/lib/useFormErrors';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import { useConfirm } from '@/components/ConfirmModal';
@@ -248,12 +249,12 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
   const [lastUsedAt, setLastUsedAt] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   useEffect(() => {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({});
+    reset();
     setName(e?.name ?? '');
     setCategory(e?.category ?? 'ott');
     setAmount(e ? String(e.amount) : '');
@@ -273,8 +274,6 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
     setErrors(err);
     return !Object.keys(err).length;
   }
-
-  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
   async function save() {
     if (!validate()) return;
@@ -304,7 +303,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
       footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}
     >
       <Field label="서비스명" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 넷플릭스" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 넷플릭스" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
       </Field>
       <Field label="카테고리" required>
         <select className="input" aria-label="카테고리" value={category} onChange={(ev) => setCategory(ev.target.value)}>
@@ -313,7 +312,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="금액 (원)" required error={errors.amount}>
-          <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }} />
+          <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
         </Field>
         <Field label="결제 주기" required>
           <select className="input" aria-label="결제 주기" value={cycle} onChange={(ev) => setCycle(ev.target.value as SubscriptionCycle)}>
@@ -323,7 +322,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
       </div>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="다음 결제일" required error={errors.nextPaymentDate}>
-          <input type="date" className={`input${errors.nextPaymentDate ? ' is-invalid' : ''}`} aria-label="다음 결제일" value={nextPaymentDate} onChange={(ev) => { setNextPaymentDate(ev.target.value); clearErr('nextPaymentDate'); }} />
+          <input type="date" className={`input${errors.nextPaymentDate ? ' is-invalid' : ''}`} aria-label="다음 결제일" value={nextPaymentDate} onChange={(ev) => { setNextPaymentDate(ev.target.value); clearError('nextPaymentDate'); }} />
         </Field>
         <Field label="상태">
           <select className="input" aria-label="상태" value={status} onChange={(ev) => setStatus(ev.target.value as SubscriptionStatus)}>

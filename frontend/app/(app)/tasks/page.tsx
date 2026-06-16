@@ -20,6 +20,7 @@ import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import { IconCheck, IconEdit, IconSearch, IconTrash } from '@/components/icons';
 import { api } from '@/lib/api';
+import { useFormErrors } from '@/lib/useFormErrors';
 import {
   PRIORITY_OPTIONS, formatDue, isSoon, formatGoalValue,
   type Task, type Goal, type TaskPriority, type GoalTone,
@@ -233,12 +234,12 @@ function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing
   const [currentVal, setCurrentVal] = useState('');
   const [targetVal, setTargetVal] = useState('');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   useEffect(() => {
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({});
+    reset();
     setName(editing?.name ?? '');
     setUnit(editing?.unit ?? 'won');
     setCurrentVal(editing ? String(editing.currentVal) : '');
@@ -259,8 +260,6 @@ function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing
     setErrors(err);
     return !Object.keys(err).length;
   }
-
-  function clearErr(f: string) { setErrors((p) => { const n = { ...p }; delete n[f]; return n; }); }
 
   async function save() {
     if (!validate()) return;
@@ -289,7 +288,7 @@ function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing
   return (
     <Modal open={open} onClose={onClose} title={editing ? '목표 수정' : '목표 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="목표명" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 비상금 적립" value={name} onChange={(e) => { setName(e.target.value); clearErr('name'); }} />
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 비상금 적립" value={name} onChange={(e) => { setName(e.target.value); clearError('name'); }} />
       </Field>
       <Field label="단위" required>
         <select className="input" aria-label="단위" value={unit} onChange={(e) => setUnit(e.target.value as 'won' | 'percent')}>
@@ -299,10 +298,10 @@ function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="현재값" required error={errors.currentVal}>
-          <input type="number" className={`input${errors.currentVal ? ' is-invalid' : ''}`} placeholder="0" value={currentVal} onChange={(e) => { setCurrentVal(e.target.value); clearErr('currentVal'); }} />
+          <input type="number" className={`input${errors.currentVal ? ' is-invalid' : ''}`} placeholder="0" value={currentVal} onChange={(e) => { setCurrentVal(e.target.value); clearError('currentVal'); }} />
         </Field>
         <Field label="목표값" required error={errors.targetVal}>
-          <input type="number" className={`input${errors.targetVal ? ' is-invalid' : ''}`} placeholder="0" value={targetVal} onChange={(e) => { setTargetVal(e.target.value); clearErr('targetVal'); }} />
+          <input type="number" className={`input${errors.targetVal ? ' is-invalid' : ''}`} placeholder="0" value={targetVal} onChange={(e) => { setTargetVal(e.target.value); clearError('targetVal'); }} />
         </Field>
       </div>
     </Modal>
@@ -316,12 +315,12 @@ function AddTaskModal({ open, onClose, onSaved }: { open: boolean; onClose: () =
   const [priority, setPriority] = useState<TaskPriority>('normal');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   useEffect(() => {
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({}); setText(''); setDueDate(''); setPriority('normal'); setMemo('');
+    reset(); setText(''); setDueDate(''); setPriority('normal'); setMemo('');
   }, [open]);
 
   function validate() {
@@ -348,7 +347,7 @@ function AddTaskModal({ open, onClose, onSaved }: { open: boolean; onClose: () =
   return (
     <Modal open={open} onClose={onClose} title="할일 추가" footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="내용" required error={errors.text}>
-        <input type="text" className={`input${errors.text ? ' is-invalid' : ''}`} placeholder="예: 자동차 보험 갱신" value={text} onChange={(e) => { setText(e.target.value); setErrors((p) => { const n = { ...p }; delete n.text; return n; }); }} />
+        <input type="text" className={`input${errors.text ? ' is-invalid' : ''}`} placeholder="예: 자동차 보험 갱신" value={text} onChange={(e) => { setText(e.target.value); clearError('text'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="마감일"><input type="date" className="input" aria-label="마감일" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></Field>

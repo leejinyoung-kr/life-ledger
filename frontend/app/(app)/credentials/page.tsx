@@ -17,6 +17,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
+import { useFormErrors } from '@/lib/useFormErrors';
 import {
   IconSearch, IconEdit, IconTrash, IconClose, IconCopy, IconEye,
 } from '@/components/icons';
@@ -456,12 +457,12 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
   const [totp, setTotp] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   useEffect(() => {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({});
+    reset();
     setServiceName(editing?.name ?? '');
     setUrl(editing?.url ?? '');
     setCategory(editing?.category ?? CRED_CATEGORIES[0]);
@@ -470,8 +471,6 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
     setTotp('');
     setMemo(editing?.memo ?? '');
   }, [state.open, editing]);
-
-  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
   function validate() {
     const err: Record<string, string> = {};
@@ -518,7 +517,7 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
       footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} saveLabel="저장 (암호화)" />}
     >
       <Field label="서비스명" required error={errors.serviceName}>
-        <input type="text" className={`input${errors.serviceName ? ' is-invalid' : ''}`} placeholder="예: GitHub" value={serviceName} onChange={(e) => { setServiceName(e.target.value); clearErr('serviceName'); }} />
+        <input type="text" className={`input${errors.serviceName ? ' is-invalid' : ''}`} placeholder="예: GitHub" value={serviceName} onChange={(e) => { setServiceName(e.target.value); clearError('serviceName'); }} />
       </Field>
       <Field label="URL"><input type="url" className="input" placeholder="https://github.com" value={url} onChange={(e) => setUrl(e.target.value)} /></Field>
       <Field label="카테고리" required>
@@ -527,12 +526,12 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
         </select>
       </Field>
       <Field label="아이디" required error={errors.username}>
-        <input type="text" className={`input${errors.username ? ' is-invalid' : ''}`} placeholder="아이디 또는 이메일" value={username} onChange={(e) => { setUsername(e.target.value); clearErr('username'); }} />
+        <input type="text" className={`input${errors.username ? ' is-invalid' : ''}`} placeholder="아이디 또는 이메일" value={username} onChange={(e) => { setUsername(e.target.value); clearError('username'); }} />
       </Field>
       <Field label={editing ? '비밀번호 (변경 시에만 입력)' : '비밀번호'} required={!editing} error={errors.pw}>
         <div className="flex gap-2">
-          <input type="text" className={`input${errors.pw ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearErr('pw'); }} />
-          <Button variant="ghost" className="whitespace-nowrap" onClick={() => { setPw(generatePassword()); clearErr('pw'); }}>생성</Button>
+          <input type="text" className={`input${errors.pw ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearError('pw'); }} />
+          <Button variant="ghost" className="whitespace-nowrap" onClick={() => { setPw(generatePassword()); clearError('pw'); }}>생성</Button>
         </div>
         {pw && (
           <>

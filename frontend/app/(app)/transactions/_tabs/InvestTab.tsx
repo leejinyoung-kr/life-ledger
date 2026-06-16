@@ -11,6 +11,7 @@ import { IconTrendUp, IconWon, IconChart, IconSearch } from '@/components/icons'
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
+import { useFormErrors } from '@/lib/useFormErrors';
 import { qk } from '@/lib/queryKeys';
 import {
   INVEST_TYPE_LABEL, won,
@@ -237,12 +238,12 @@ function InvestModal({ state, onClose, onSaved }: { state: ModalState; onClose: 
   const [purchaseDate, setPurchaseDate] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   useEffect(() => {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({});
+    reset();
     const src = e ?? state.prefill;
     setName(src?.name ?? '');
     setType(src?.type ?? 'domestic_stock');
@@ -260,8 +261,6 @@ function InvestModal({ state, onClose, onSaved }: { state: ModalState; onClose: 
     setErrors(err);
     return !Object.keys(err).length;
   }
-
-  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
   async function save() {
     if (!validate()) return;
@@ -282,7 +281,7 @@ function InvestModal({ state, onClose, onSaved }: { state: ModalState; onClose: 
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '투자 항목 수정' : '투자 항목 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="종목명" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 삼성전자" value={name} onChange={(ev) => { setName(ev.target.value); clearErr('name'); }} />
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 삼성전자" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
       </Field>
       <Field label="유형" required>
         <select className="input" value={type} onChange={(ev) => setType(ev.target.value as InvestmentType)}>
@@ -292,10 +291,10 @@ function InvestModal({ state, onClose, onSaved }: { state: ModalState; onClose: 
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="투자원금 (원)" required error={errors.principal}>
-          <input type="number" className={`input${errors.principal ? ' is-invalid' : ''}`} placeholder="0" value={principal} onChange={(ev) => { setPrincipal(ev.target.value); clearErr('principal'); }} />
+          <input type="number" className={`input${errors.principal ? ' is-invalid' : ''}`} placeholder="0" value={principal} onChange={(ev) => { setPrincipal(ev.target.value); clearError('principal'); }} />
         </Field>
         <Field label="현재 평가금액 (원)" required error={errors.currentValue}>
-          <input type="number" className={`input${errors.currentValue ? ' is-invalid' : ''}`} placeholder="매수 당일엔 투자원금과 동일" value={currentValue} onChange={(ev) => { setCurrentValue(ev.target.value); clearErr('currentValue'); }} />
+          <input type="number" className={`input${errors.currentValue ? ' is-invalid' : ''}`} placeholder="매수 당일엔 투자원금과 동일" value={currentValue} onChange={(ev) => { setCurrentValue(ev.target.value); clearError('currentValue'); }} />
         </Field>
       </div>
       <Field label="최초 매수일"><input type="date" className="input" aria-label="최초 매수일" value={purchaseDate} onChange={(ev) => setPurchaseDate(ev.target.value)} /></Field>

@@ -11,6 +11,7 @@ import { IconTrash } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { withEulReul } from '@/lib/korean';
 import { useApiQuery, useInvalidate } from '@/lib/query';
+import { useFormErrors } from '@/lib/useFormErrors';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import Modal from '@/components/Modal';
@@ -259,12 +260,12 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
   const [type, setType] = useState<EvType>('pay');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   useEffect(() => {
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({}); setTitle(''); setType('pay'); setMemo('');
+    reset(); setTitle(''); setType('pay'); setMemo('');
     setDate(new Date().toISOString().slice(0, 10));
   }, [open]);
 
@@ -275,8 +276,6 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
     setErrors(err);
     return !Object.keys(err).length;
   }
-
-  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
   async function save() {
     if (!validate()) return;
@@ -295,11 +294,11 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
   return (
     <Modal open={open} onClose={onClose} title="일정 추가" footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
       <Field label="제목" required error={errors.title}>
-        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 보험 갱신" value={title} onChange={(e) => { setTitle(e.target.value); clearErr('title'); }} />
+        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 보험 갱신" value={title} onChange={(e) => { setTitle(e.target.value); clearError('title'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="날짜" required error={errors.date}>
-          <input type="date" className={`input${errors.date ? ' is-invalid' : ''}`} aria-label="날짜" value={date} onChange={(e) => { setDate(e.target.value); clearErr('date'); }} />
+          <input type="date" className={`input${errors.date ? ' is-invalid' : ''}`} aria-label="날짜" value={date} onChange={(e) => { setDate(e.target.value); clearError('date'); }} />
         </Field>
         <Field label="유형" required>
           <select className="input" aria-label="유형" value={type} onChange={(e) => setType(e.target.value as EvType)}>

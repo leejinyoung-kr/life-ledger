@@ -15,6 +15,7 @@ import {
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
+import { useFormErrors } from '@/lib/useFormErrors';
 import { qk } from '@/lib/queryKeys';
 import { downloadTransactionTemplate } from '@/lib/excel';
 import {
@@ -566,14 +567,14 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   const [weekendAdjust, setWeekendAdjust] = useState<WeekendAdjust>('none');
   const [scope, setScope] = useState<'one' | 'future' | 'all'>('one');
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   const editingRecurring = state.mode === 'edit' && !!(e?.isRecurring || e?.recurringParentId);
 
   useEffect(() => {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({});
+    reset();
     setScope('one');
     const pf = state.prefill;
     // 소분류 code(leaf) 기준으로 대분류·유형을 일관되게 파생 (leaf 없으면 유형→첫 대분류→첫 소분류)
@@ -605,8 +606,6 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
     setErrors(err);
     return !Object.keys(err).length;
   }
-
-  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
   // 유형 변경 시 해당 유형의 첫 대분류·소분류 + 결제수단/은행 기본값으로 초기화 (지출↔수입↔이체 분리)
   function changeType(t: TransactionType) {
@@ -670,10 +669,10 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
         </select>
       </Field>
       <Field label="날짜" required error={errors.date}>
-        <input type="date" className={`input${errors.date ? ' is-invalid' : ''}`} aria-label="날짜" value={date} onChange={(ev) => { setDate(ev.target.value); clearErr('date'); }} />
+        <input type="date" className={`input${errors.date ? ' is-invalid' : ''}`} aria-label="날짜" value={date} onChange={(ev) => { setDate(ev.target.value); clearError('date'); }} />
       </Field>
       <Field label="내역" required error={errors.title}>
-        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 스타벅스" value={title} onChange={(ev) => { setTitle(ev.target.value); clearErr('title'); }} />
+        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 스타벅스" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="대분류" required>
@@ -688,7 +687,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
         </Field>
       </div>
       <Field label="금액 (원)" required error={errors.amount}>
-        <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearErr('amount'); }} />
+        <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
       </Field>
       {type === 'expense' && (
         <Field label="결제수단" required>

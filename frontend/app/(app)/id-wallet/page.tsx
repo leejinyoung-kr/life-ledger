@@ -18,6 +18,7 @@ import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import { IconAlertCircle, IconEye, IconEdit, IconTrash } from '@/components/icons';
 import { api } from '@/lib/api';
+import { useFormErrors } from '@/lib/useFormErrors';
 import {
   ID_TYPE_LABEL, ID_TYPE_OPTIONS, ID_VARIANT_BG, fmtDate, ddayOf,
   type IdCard, type IdType,
@@ -177,12 +178,12 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
   const [fileId, setFileId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { errors, setErrors, clearError, reset } = useFormErrors();
 
   useEffect(() => {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setErrors({});
+    reset();
     setType(editing?.type ?? 'passport');
     setName(editing?.name ?? '');
     setNumber('');
@@ -208,8 +209,6 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
       setUploading(false);
     }
   }
-
-  function clearErr(field: string) { setErrors((p) => { const n = { ...p }; delete n[field]; return n; }); }
 
   async function handleSave() {
     const err: Record<string, string> = {};
@@ -248,10 +247,10 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
         </select>
       </Field>
       <Field label="명칭" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 대한민국 여권" value={name} onChange={(e) => { setName(e.target.value); clearErr('name'); }} />
+        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 대한민국 여권" value={name} onChange={(e) => { setName(e.target.value); clearError('name'); }} />
       </Field>
       <Field label={editing ? '번호 (변경 시에만 입력)' : '번호'} required={!editing} error={errors.number}>
-        <input type="text" className={`input input-mono${errors.number ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 번호 유지' : '문서 번호'} value={number} onChange={(e) => { setNumber(e.target.value); clearErr('number'); }} />
+        <input type="text" className={`input input-mono${errors.number ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 번호 유지' : '문서 번호'} value={number} onChange={(e) => { setNumber(e.target.value); clearError('number'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="발급일 (선택)"><input type="date" className="input" aria-label="발급일" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} /></Field>
