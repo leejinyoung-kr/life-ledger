@@ -257,13 +257,13 @@ export default function CodesPage() {
         <p className="text-sm text-secondary mt-1.5">선택박스 항목을 도메인별로 관리합니다. 드래그로 순서를 변경할 수 있습니다.</p>
       </div>
 
-      {/* 도메인 탭 */}
-      <div className="flex gap-1.5 flex-wrap mb-4">
+      {/* 도메인 탭 — 모바일은 가로 스크롤, 데스크탑은 줄바꿈 */}
+      <div className="flex gap-1.5 mb-4 max-md:overflow-x-auto max-md:flex-nowrap max-md:pb-1.5 md:flex-wrap">
         {DOMAINS.map((d) => (
           <button
             key={d.key}
             type="button"
-            className={`px-3.5 py-1.5 rounded-[var(--radius)] border text-[0.82rem] cursor-pointer transition-all ${domain === d.key ? 'bg-accent border-accent text-white font-semibold' : 'bg-background border-border text-secondary hover:bg-surface hover:text-primary'}`}
+            className={`px-3.5 py-1.5 rounded-[var(--radius)] border text-[0.82rem] cursor-pointer transition-all whitespace-nowrap shrink-0 ${domain === d.key ? 'bg-accent border-accent text-white font-semibold' : 'bg-background border-border text-secondary hover:bg-surface hover:text-primary'}`}
             onClick={() => setDomain(d.key)}
           >
             {d.label}
@@ -272,13 +272,13 @@ export default function CodesPage() {
       </div>
 
       <Card>
-        {/* 카드 헤더 */}
-        <CardHeader>
+        {/* 카드 헤더 — 모바일은 세로로 쌓고 버튼은 우측 정렬 */}
+        <CardHeader className="max-md:flex-col max-md:items-start max-md:gap-2">
           <div>
             <CardTitle>{currentDomain.label}</CardTitle>
             <span className="text-[0.78rem] text-muted ml-2.5">{currentDomain.desc}</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={seed}>기본값 복원</Button>
+          <Button variant="ghost" size="sm" onClick={seed} className="max-md:self-end">기본값 복원</Button>
         </CardHeader>
 
         {/* 항목 목록 (드래그 가능) */}
@@ -353,12 +353,12 @@ export default function CodesPage() {
           </div>
         </div>
 
-        {/* 추가 폼 */}
-        <div className="flex items-center gap-2 px-5 py-3 border-t border-border-subtle bg-surface">
-          <IconPlus width={14} height={14} className="text-muted shrink-0" />
+        {/* 추가 폼 — 모바일은 세로 스택(입력란들 → 추가 버튼), 데스크탑은 한 줄 */}
+        <div className="flex flex-col gap-2 px-5 py-3 border-t border-border-subtle bg-surface md:flex-row md:items-center">
+          <IconPlus width={14} height={14} className="text-muted shrink-0 max-md:hidden" />
           {hierDomain && (
             <select
-              className="input w-auto min-w-[120px] shrink-0"
+              className="input max-md:w-full md:w-auto! md:min-w-[120px] shrink-0"
               value={newParent}
               onChange={(e) => setNewParent(e.target.value)}
               aria-label="대분류"
@@ -369,7 +369,7 @@ export default function CodesPage() {
           )}
           <input
             type="text"
-            className="input flex-1"
+            className="input max-md:w-full md:flex-1"
             placeholder="코드 (영문, 예: food)"
             value={newCode}
             onChange={(e) => setNewCode(e.target.value)}
@@ -377,14 +377,14 @@ export default function CodesPage() {
           />
           <input
             type="text"
-            className="input flex-[1.5]"
+            className="input max-md:w-full md:flex-[1.5]"
             placeholder="표시명 (예: 식비)"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && add()}
             aria-label="표시명"
           />
-          <Button onClick={add} disabled={saving}>추가</Button>
+          <Button className="max-md:w-full" onClick={add} disabled={saving}>추가</Button>
         </div>
         <p className="px-5 pt-3 pb-3 text-[0.82rem] text-muted">코드는 영문 소문자·숫자·언더바만 사용 (예: public_transport)</p>
       </Card>
@@ -424,9 +424,9 @@ function SortableRow({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={`flex items-center gap-2.5 px-5 py-2.5 border-b border-border-subtle last:border-b-0 bg-background transition-colors hover:bg-surface ${item.isActive ? '' : 'opacity-55'}`}>
+    <div ref={setNodeRef} style={style} className={`flex flex-wrap items-center gap-2.5 px-5 py-2.5 border-b border-border-subtle last:border-b-0 bg-background transition-colors hover:bg-surface ${item.isActive ? '' : 'opacity-55'}`}>
       {/* 순서 번호 */}
-      <span className="min-w-6 text-[0.72rem] font-bold text-muted text-right [font-family:var(--font-mono)]">{idx + 1}</span>
+      <span className="min-w-6 text-[0.72rem] font-bold text-muted text-right [font-family:var(--font-mono)] shrink-0">{idx + 1}</span>
 
       {/* 드래그 핸들 */}
       <button
@@ -441,7 +441,7 @@ function SortableRow({
 
       {/* 인라인 편집 / 표시 */}
       {editingId === item.id ? (
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-2 flex-1 min-w-[180px]">
           <input
             type="text"
             className="input flex-1 min-w-0"
@@ -458,12 +458,12 @@ function SortableRow({
         </div>
       ) : (
         <>
-          <div className="flex-1 flex items-center gap-2 min-w-0">
+          <div className="flex-1 flex items-center gap-2 min-w-[120px]">
+            <span className="text-[0.72rem] text-muted [font-family:var(--font-mono)] bg-elevated px-[7px] py-0.5 rounded-[4px] whitespace-nowrap shrink-0">{item.code}</span>
             <span className={`text-[0.875rem] font-medium truncate ${item.isActive ? 'text-primary' : 'text-muted line-through'}`}>{item.label}</span>
             {!item.isActive && <span className="text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-warning-dim text-warning shrink-0">비활성</span>}
           </div>
-          <span className="text-[0.72rem] text-muted [font-family:var(--font-mono)] bg-elevated px-[7px] py-0.5 rounded-[4px] whitespace-nowrap shrink-0">{item.code}</span>
-          <div className="flex gap-1.5 shrink-0">
+          <div className="flex gap-1.5 shrink-0 ml-auto">
             <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>수정</Button>
             <Button variant={item.isActive ? 'ghost' : 'primary'} size="sm" onClick={() => onToggle(item.id, item.isActive)}>
               {item.isActive ? '비활성' : '활성'}
@@ -506,7 +506,7 @@ function SortableGroupRow({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={`flex items-center gap-2.5 px-5 py-2.5 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface ${isParent ? 'bg-surface' : 'bg-background pl-8'}`}>
+    <div ref={setNodeRef} style={style} className={`flex flex-wrap items-center gap-2.5 px-5 py-2.5 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface ${isParent ? 'bg-surface' : 'bg-background pl-8'}`}>
       <button
         type="button"
         className="flex items-center justify-center w-7 h-7 rounded-[var(--radius)] text-muted cursor-grab transition-colors hover:bg-elevated hover:text-secondary shrink-0 touch-none active:cursor-grabbing"
@@ -517,7 +517,7 @@ function SortableGroupRow({
         <IconDrag width={14} height={14} />
       </button>
       {editingId === item.id ? (
-        <div className="flex items-center gap-2 flex-1">
+        <div className="flex items-center gap-2 flex-1 min-w-[180px]">
           <input
             type="text"
             className="input flex-1 min-w-0"
@@ -534,12 +534,12 @@ function SortableGroupRow({
         </div>
       ) : (
         <>
-          <div className="flex-1 flex items-center gap-2 min-w-0">
+          <div className="flex-1 flex items-center gap-2 min-w-[120px]">
+            <span className="text-[0.72rem] text-muted [font-family:var(--font-mono)] bg-elevated px-[7px] py-0.5 rounded-[4px] whitespace-nowrap shrink-0">{item.code}</span>
             <span className={`truncate ${isParent ? 'text-[0.9rem] font-bold' : 'text-[0.875rem] font-medium'} ${item.isActive ? 'text-primary' : 'text-muted line-through'}`}>{item.label}</span>
             {!item.isActive && <span className="text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-warning-dim text-warning shrink-0">비활성</span>}
           </div>
-          <span className="text-[0.72rem] text-muted [font-family:var(--font-mono)] bg-elevated px-[7px] py-0.5 rounded-[4px] whitespace-nowrap shrink-0">{item.code}</span>
-          <div className="flex gap-1.5 shrink-0">
+          <div className="flex gap-1.5 shrink-0 ml-auto">
             <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>수정</Button>
             <Button variant={item.isActive ? 'ghost' : 'primary'} size="sm" onClick={() => onToggle(item.id, item.isActive)}>
               {item.isActive ? '비활성' : '활성'}

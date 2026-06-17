@@ -127,18 +127,18 @@ export default function TasksPage() {
       <div className="grid grid-cols-1 min-[900px]:grid-cols-2 gap-5 items-start">
         {/* 할 일 */}
         <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
+          <CardHeader className="max-md:flex-col max-md:items-start max-md:gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <CardTitle>할 일</CardTitle>
               <Badge tone="neutral">{doneCount} / {allCount} 완료</Badge>
             </div>
-            <div className="flex items-center gap-2 flex-wrap justify-end">
-              <div className="relative">
+            <div className="flex items-center gap-2 flex-wrap justify-end max-md:w-full">
+              <div className="relative flex-1 min-w-[120px] max-md:flex-none">
                 <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
                 <input className="input pl-icon w-40" type="text" placeholder="할일 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="할일 검색" />
               </div>
-              <LimitSelect limit={limit} onLimitChange={changeLimit} />
               <Button variant="danger" disabled={selectedTasks.size === 0} onClick={removeSelectedTasks}>선택삭제</Button>
+              <LimitSelect limit={limit} onLimitChange={changeLimit} />
             </div>
           </CardHeader>
           <div>
@@ -154,7 +154,7 @@ export default function TasksPage() {
                 <input type="checkbox" className="checkbox" checked={selectedTasks.has(task.id)} onChange={() => toggleSelectTask(task.id)} aria-label="선택" />
                 <button
                   type="button"
-                  className={`w-4.5 h-4.5 border-2 rounded-[5px] shrink-0 cursor-pointer flex items-center justify-center text-white ${task.done ? 'bg-accent border-accent' : 'border-border bg-transparent'}`}
+                  className={`w-4.5 h-4.5 border-2 rounded-full shrink-0 cursor-pointer flex items-center justify-center text-white ${task.done ? 'bg-accent border-accent' : 'border-border bg-transparent'}`}
                   onClick={() => toggleTask(task.id)}
                   aria-label="완료 토글"
                 >

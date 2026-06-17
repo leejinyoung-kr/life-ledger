@@ -40,7 +40,7 @@ export default function SecurityPage() {
   const risksQuery = useApiQuery<SecurityRisk[]>(qk.security.risks(), '/security/risks');
   const sessionsQuery = useApiQuery<LoginSession[]>(qk.security.sessions(), '/security/sessions');
   const trendQuery = useApiQuery<ScoreTrendPoint[]>(qk.security.scoreTrend(30), '/security/score-trend?days=30');
-  const logsQuery = useApiQuery<AccessLogEntry[]>(qk.security.accessLogs(20), '/security/access-logs?limit=20');
+  const logsQuery = useApiQuery<AccessLogEntry[]>(qk.security.accessLogs(10), '/security/access-logs?limit=10');
   const vaultQuery = useApiQuery<VaultStatus>(qk.security.vault(), '/security/vault');
   const strengthQuery = useApiQuery<StrengthStats>(qk.security.strengthStats(), '/security/strength-stats');
 
@@ -90,7 +90,7 @@ export default function SecurityPage() {
       {summary && (
         <>
           {/* 보안 점수 게이지 — 모바일은 줄바꿈 시 과대 간격 방지 위해 gap·패딩 축소 */}
-          <div className="flex gap-4 min-[600px]:gap-7 items-center flex-wrap p-5 min-[600px]:px-7 min-[600px]:py-6 bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] mb-6">
+          <div className="flex gap-4 min-[600px]:gap-7 items-center justify-center flex-wrap p-5 min-[600px]:px-7 min-[600px]:py-6 bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] mb-6">
             <div
               className="w-[130px] h-[130px] rounded-full shrink-0 flex items-center justify-center relative after:content-[''] after:w-24 after:h-24 after:rounded-full after:bg-background after:absolute"
               style={{ background: `conic-gradient(${gaugeColor} 0 ${score}%, var(--bg-elevated) ${score}% 100%)` } as CSSProperties}
@@ -171,19 +171,23 @@ export default function SecurityPage() {
           <CardTitle>위험 요소</CardTitle>
           <Badge tone="warning">{risks.length}건</Badge>
         </CardHeader>
-        <div>
+        <div className={risks.length > 10 ? 'max-h-112.5 overflow-y-auto' : undefined}>
           {risks.length === 0 && <div className="px-5 py-3.5 text-secondary">해결할 위험 요소가 없습니다.</div>}
           {risks.map((r) => {
             const sev = SEVERITY_BADGE[r.severity];
             return (
-              <div className="flex items-center gap-3.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0" key={r.id}>
-                <div className={`w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base ${RISK_ICON_BG[sev.tone]}`}>{RISK_CATEGORY_ICON[r.category]}</div>
-                <div className="flex-1">
-                  <div className="font-semibold text-[0.875rem]">{r.title}</div>
-                  <div className="text-[0.78rem] text-muted">{r.description}</div>
+              <div className="flex flex-wrap items-center gap-3 sm:gap-3.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0" key={r.id}>
+                <div className="flex items-center gap-3.5 flex-1 min-w-[180px]">
+                  <div className={`w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base ${RISK_ICON_BG[sev.tone]}`}>{RISK_CATEGORY_ICON[r.category]}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-[0.875rem] break-keep">{r.title}</div>
+                    <div className="text-[0.78rem] text-muted break-keep">{r.description}</div>
+                  </div>
                 </div>
-                <Badge tone={sev.tone as 'danger' | 'warning' | 'blue'}>{sev.label}</Badge>
-                <Button href={r.href} variant="ghost" size="sm">{r.actionLabel}</Button>
+                <div className="flex items-center gap-2 ml-auto">
+                  <Badge tone={sev.tone as 'danger' | 'warning' | 'blue'}>{sev.label}</Badge>
+                  <Button href={r.href} variant="ghost" size="sm">{r.actionLabel}</Button>
+                </div>
               </div>
             );
           })}
@@ -226,12 +230,12 @@ export default function SecurityPage() {
         </CardHeader>
         <div className="px-5 py-4">
           {!runBreach ? (
-            <div className="flex items-center gap-3.5">
+            <div className="flex flex-wrap items-start gap-3.5">
               <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-elevated">🛡️</div>
-              <div className="flex-1 text-[0.82rem] text-secondary leading-relaxed [word-break:keep-all]">
+              <div className="flex-1 min-w-[180px] text-[0.82rem] text-secondary leading-relaxed [word-break:keep-all]">
                 저장된 비밀번호가 외부 유출 DB에 있는지 검사합니다. 비밀번호 원문·전체 해시는 전송되지 않습니다(k-익명성).
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setRunBreach(true)}>검사 실행</Button>
+              <Button className="ml-auto" variant="ghost" size="sm" onClick={() => setRunBreach(true)}>검사 실행</Button>
             </div>
           ) : breachQuery.isFetching ? (
             <div className="text-[0.82rem] text-muted py-2">검사 중... (외부 DB 대조)</div>
@@ -239,7 +243,7 @@ export default function SecurityPage() {
             breachQuery.data.breachedCount === 0 ? (
               <div className="text-[0.82rem] text-accent py-1">✓ 검사한 {breachQuery.data.checked}건 모두 유출 이력이 없습니다.</div>
             ) : (
-              <div>
+              <div className={breachQuery.data.items.length > 5 ? 'max-h-72 overflow-y-auto' : undefined}>
                 {breachQuery.data.items.map((b) => (
                   <div className="flex items-center gap-3.5 px-0 py-2.5 border-b border-border-subtle last:border-b-0" key={b.credentialId}>
                     <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-danger-dim">🚨</div>
@@ -258,64 +262,67 @@ export default function SecurityPage() {
         </div>
       </Card>
 
-      {/* 최근 열람 (접근 감사 로그) */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>최근 열람</CardTitle>
-          <Badge tone="blue">{logs.length}건</Badge>
-        </CardHeader>
-        <div>
-          {logs.length === 0 && <div className="px-5 py-3.5 text-secondary">열람 기록이 없습니다.</div>}
-          {logs.map((l) => {
-            const meta = ACCESS_ACTION_META[l.action];
-            return (
-              <div className="flex items-center gap-3.5 px-5 py-3 border-b border-border-subtle last:border-b-0" key={l.id}>
-                <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-elevated">{meta?.icon ?? '🔓'}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-[0.85rem] truncate">{l.targetName}</div>
-                  <div className="text-[0.76rem] text-muted">{meta?.label ?? l.action}{l.ip ? ` · ${l.ip}` : ''}</div>
-                </div>
-                <div className="text-[0.74rem] text-muted shrink-0">{relativeTime(l.at)}</div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
-
-      {/* 로그인 기기 / 세션 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>로그인 기기 / 세션</CardTitle>
-          <Button variant="danger" size="sm" onClick={revokeAll}>전체 로그아웃</Button>
-        </CardHeader>
-        <div>
-          {sessions.map((s) => {
-            const tone = s.isCurrent ? 'green' : s.status === 'unverified' ? 'warning' : 'muted';
-            const mark = s.isCurrent
-              ? { text: '현재 기기', tone: 'success' as const }
-              : s.status === 'unverified'
-                ? { text: '미확인', tone: 'warning' as const }
-                : null;
-            return (
-              <div className="flex items-center gap-3.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0" key={s.id}>
-                <div className={`w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base ${RISK_ICON_BG[tone]}`}>{DEVICE_ICON[s.deviceType]}</div>
-                <div className="flex-1">
-                  <div className="font-semibold text-[0.875rem] flex items-center gap-1.5">
-                    {s.device}
-                    {mark && <Badge tone={mark.tone}>{mark.text}</Badge>}
+      {/* 최근 열람 + 로그인 기기/세션 */}
+      <div className="grid gap-4 min-[900px]:grid-cols-2">
+        {/* 최근 열람 (접근 감사 로그) */}
+        <Card>
+          <CardHeader>
+            <CardTitle>최근 열람</CardTitle>
+            <Badge tone="blue">{logs.length}건</Badge>
+          </CardHeader>
+          <div>
+            {logs.length === 0 && <div className="px-5 py-3.5 text-secondary">열람 기록이 없습니다.</div>}
+            {logs.map((l) => {
+              const meta = ACCESS_ACTION_META[l.action];
+              return (
+                <div className="flex items-center gap-3.5 px-5 py-3 border-b border-border-subtle last:border-b-0" key={l.id}>
+                  <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-elevated">{meta?.icon ?? '🔓'}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-[0.85rem] truncate">{l.targetName}</div>
+                    <div className="text-[0.76rem] text-muted">{meta?.label ?? l.action}{l.ip ? ` · ${l.ip}` : ''}</div>
                   </div>
-                  <div className="text-[0.78rem] text-muted">{s.location} · {relativeTime(s.lastActiveAt)}</div>
+                  <div className="text-[0.74rem] text-muted shrink-0">{relativeTime(l.at)}</div>
                 </div>
-                {!s.isCurrent && (
-                  <Button variant={s.status === 'unverified' ? 'danger' : 'ghost'} size="sm" onClick={() => revokeSession(s.id)}>
-                    {s.status === 'unverified' ? '차단' : '로그아웃'}
-                  </Button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </Card>
+              );
+            })}
+          </div>
+        </Card>
+
+        {/* 로그인 기기 / 세션 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>로그인 기기 / 세션</CardTitle>
+            <Button variant="danger" size="sm" onClick={revokeAll}>전체 로그아웃</Button>
+          </CardHeader>
+          <div>
+            {sessions.map((s) => {
+              const tone = s.isCurrent ? 'green' : s.status === 'unverified' ? 'warning' : 'muted';
+              const mark = s.isCurrent
+                ? { text: '현재 기기', tone: 'success' as const }
+                : s.status === 'unverified'
+                  ? { text: '미확인', tone: 'warning' as const }
+                  : null;
+              return (
+                <div className="flex items-center gap-3.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0" key={s.id}>
+                  <div className={`w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base ${RISK_ICON_BG[tone]}`}>{DEVICE_ICON[s.deviceType]}</div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-[0.875rem] flex items-center gap-1.5">
+                      {s.device}
+                      {mark && <Badge tone={mark.tone}>{mark.text}</Badge>}
+                    </div>
+                    <div className="text-[0.78rem] text-muted">{s.location} · {relativeTime(s.lastActiveAt)}</div>
+                  </div>
+                  {!s.isCurrent && (
+                    <Button variant={s.status === 'unverified' ? 'danger' : 'ghost'} size="sm" onClick={() => revokeSession(s.id)}>
+                      {s.status === 'unverified' ? '차단' : '로그아웃'}
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
       {confirmElement}
     </AppShell>
   );

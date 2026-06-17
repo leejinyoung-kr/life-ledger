@@ -144,7 +144,7 @@ export default function NotificationsPage() {
             </Button>
           ))}
         </div>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+        <div className="flex items-center gap-2 flex-wrap justify-end max-md:w-full">
           <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
           <Button variant="ghost" onClick={removeAll}>전체삭제</Button>
           <Button variant="ghost" onClick={markAllRead}>모두 읽음</Button>

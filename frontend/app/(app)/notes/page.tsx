@@ -166,7 +166,7 @@ export default function NotesPage() {
     <AppShell activePath="/notes" topbarLabel="메모" bare>
       <div className="flex h-[calc(100vh-var(--header-h))] overflow-hidden max-md:h-[calc(100vh-var(--header-h)-60px)]">
         {/* 목록 패널 */}
-        <div className={`w-[280px] border-r border-border flex flex-col overflow-hidden bg-background shrink-0 max-md:w-full max-md:border-r-0 ${mobileView === 'editor' ? 'max-md:hidden' : ''}`}>
+        <div className={`w-[280px] border-r border-border flex flex-col overflow-hidden bg-background shrink-0 max-md:w-full max-md:border-r-0 ${mobileView === 'editor' ? 'max-md:hidden!' : ''}`}>
           <div className="p-4 border-b border-border flex flex-col gap-2.5 shrink-0">
             <div className="flex items-center justify-between">
               <span className="[font-family:var(--font-display)] text-[0.9rem] font-bold text-primary">메모 <span className="text-muted font-normal text-[0.8rem]">{notes.length}개</span></span>
@@ -202,7 +202,7 @@ export default function NotesPage() {
 
         {/* 에디터 패널 */}
         {note && (
-          <div className={`flex-1 flex flex-col overflow-hidden bg-background ${mobileView === 'list' ? 'max-md:hidden' : ''}`}>
+          <div className={`flex-1 flex flex-col overflow-hidden bg-background ${mobileView === 'list' ? 'max-md:hidden!' : ''}`}>
             {/* 포맷 툴바 */}
             <div className="flex items-center gap-1 px-5 py-2.5 border-b border-border shrink-0 flex-wrap">
               <button type="button" className={`${TB} hidden max-md:flex w-auto px-2 text-[0.78rem]`} onClick={() => setMobileView('list')}>← 목록</button>
