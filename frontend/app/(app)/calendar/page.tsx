@@ -69,6 +69,8 @@ export default function CalendarPage() {
   const [todayIso, setTodayIso] = useState('');
   const [addModal, setAddModal] = useState(false);
   const [detailEvent, setDetailEvent] = useState<CalEvent | null>(null);
+  // 모바일 — 날짜 점(dot) 탭 시 그 날 일정 목록 모달
+  const [dayList, setDayList] = useState<{ day: number; events: CalEvent[] } | null>(null);
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
 
@@ -164,15 +166,30 @@ export default function CalendarPage() {
               return (
                 <div key={cell.key} className={`min-h-[92px] max-md:min-h-[64px] p-1.5 flex flex-col gap-[3px] ${cell.dim ? 'bg-surface text-muted' : 'bg-background'}`}>
                   <span className={isToday ? 'bg-accent text-white w-[22px] h-[22px] rounded-full flex items-center justify-center text-[0.78rem] font-semibold' : 'text-[0.78rem] font-semibold text-secondary'}>{cell.day}</span>
-                  {events?.map((ev) => (
-                    <span
-                      key={ev.id}
-                      className={`text-[0.65rem] px-1.25 py-px rounded-sm whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer hover:opacity-75 transition-opacity ${EV_BG[ev.type]} ${ev.virtual ? 'opacity-75 border border-current border-dashed' : ''}`}
-                      onClick={() => setDetailEvent(ev)}
+                  {/* PC/태블릿 — 제목 칩 (좁은 화면은 글자가 안 들어가 점으로 대체) */}
+                  <div className="max-md:hidden flex flex-col gap-[3px]">
+                    {events?.map((ev) => (
+                      <span
+                        key={ev.id}
+                        className={`text-[0.65rem] px-1.25 py-px rounded-sm whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer hover:opacity-75 transition-opacity ${EV_BG[ev.type]} ${ev.virtual ? 'opacity-75 border border-current border-dashed' : ''}`}
+                        onClick={() => setDetailEvent(ev)}
+                      >
+                        {ev.virtual ? '◈ ' : ''}{ev.title}
+                      </span>
+                    ))}
+                  </div>
+                  {/* 모바일 — 유형별 점만 표시, 탭하면 그 날 일정 목록 모달 */}
+                  {!!events?.length && (
+                    <button
+                      type="button"
+                      className="hidden max-md:flex items-center gap-1 flex-wrap"
+                      onClick={() => setDayList({ day: cell.day, events })}
+                      aria-label={`${cell.day}일 일정 ${events.length}건 보기`}
                     >
-                      {ev.virtual ? '◈ ' : ''}{ev.title}
-                    </span>
-                  ))}
+                      {events.slice(0, 4).map((ev) => <span key={ev.id} className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT_BG[ev.type]}`} />)}
+                      {events.length > 4 && <span className="text-[0.55rem] text-muted leading-none">+{events.length - 4}</span>}
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -226,6 +243,9 @@ export default function CalendarPage() {
       {/* 일정 상세/삭제 모달 */}
       <EventDetailModal event={detailEvent} onClose={() => setDetailEvent(null)} onDelete={(ev) => removeEvent(ev)} />
 
+      {/* 모바일 — 날짜 점 탭 시 그 날 일정 목록 모달 */}
+      <DayListModal day={dayList} onClose={() => setDayList(null)} onSelect={(ev) => { setDayList(null); setDetailEvent(ev); }} />
+
       {confirmElement}
     </AppShell>
   );
@@ -250,6 +270,29 @@ function EventDetailModal({ event, onClose, onDelete }: { event: CalEvent | null
       <div className="flex justify-between mt-5">
         <Button variant="danger" size="sm" onClick={() => onDelete(event)}>삭제</Button>
         <Button variant="ghost" size="sm" onClick={onClose}>닫기</Button>
+      </div>
+    </Modal>
+  );
+}
+
+// 모바일 — 날짜 점 탭 시 그 날 일정 목록 (항목 선택 시 EventDetailModal 로 이어짐)
+function DayListModal({ day, onClose, onSelect }: { day: { day: number; events: CalEvent[] } | null; onClose: () => void; onSelect: (ev: CalEvent) => void }) {
+  if (!day) return null;
+  return (
+    <Modal open={!!day} onClose={onClose} title={`${day.day}일 일정`}>
+      <div className="flex flex-col gap-2">
+        {day.events.map((ev) => (
+          <button
+            key={ev.id}
+            type="button"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-(--radius) border border-border-subtle text-left hover:bg-surface transition-colors"
+            onClick={() => onSelect(ev)}
+          >
+            <span className={`w-2 h-2 rounded-full shrink-0 ${DOT_BG[ev.type]}`} />
+            <span className="flex-1 min-w-0 text-[0.875rem] font-medium text-primary truncate">{ev.virtual ? '◈ ' : ''}{ev.title}</span>
+            <span className="text-[0.72rem] text-muted shrink-0">{EV_TYPE_LABEL[ev.type]}</span>
+          </button>
+        ))}
       </div>
     </Modal>
   );
