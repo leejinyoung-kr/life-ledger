@@ -266,24 +266,33 @@ export default function EnvsPage() {
                   <div className="text-[0.75rem] text-muted">AES-256-GCM 암호화 · {project.totalVars}개 변수</div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button variant="ghost" size="sm" onClick={openDiff}>환경 비교</Button>
-                <Button variant="ghost" size="sm" onClick={downloadExample}>.env.example</Button>
-                <Button variant="ghost" size="sm" onClick={() => setProjectModal({ open: true, editing: project })}>수정</Button>
-                <Button variant="danger" size="sm" onClick={() => deleteProject(project)}>삭제</Button>
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <Button size="sm" onClick={() => setVarModal({ open: true, editing: null })}>변수 추가</Button>
+                <span className="w-px h-5 bg-border max-md:hidden" />
+                <div className="flex items-center gap-1.5">
+                  <Button variant="ghost" size="sm" onClick={openDiff}>환경 비교</Button>
+                  <Button variant="ghost" size="sm" onClick={downloadExample}>.env.example</Button>
+                </div>
+                <span className="w-px h-5 bg-border max-md:hidden" />
+                <div className="flex items-center gap-1.5">
+                  <Button variant="ghost" size="sm" onClick={() => setProjectModal({ open: true, editing: project })}>수정</Button>
+                  <Button variant="danger" size="sm" onClick={() => deleteProject(project)}>삭제</Button>
+                </div>
               </div>
             </div>
 
             {/* 환경 탭 + 변수 테이블 + 전체 복사 바 */}
             <div className="bg-background border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">
-              <div className="flex border-b border-border px-4 bg-surface">
-                {ENV_TABS.map((t) => (
-                  <button type="button" key={t.key} className={`px-4 py-2 text-[0.82rem] font-medium cursor-pointer border-b-2 -mb-px transition-all flex items-center gap-1.5 ${env === t.key ? 'text-accent border-accent font-semibold' : 'text-muted border-transparent hover:text-secondary'}`} onClick={() => setEnv(t.key)}>
-                    <span className={`w-[7px] h-[7px] rounded-full ${ENV_DOT[t.key]}`} />{t.label}
-                    <span className="text-[0.7rem] text-muted">{project.counts[t.key]}</span>
-                  </button>
-                ))}
+              <div className="relative border-b border-border bg-surface">
+                <div className="flex px-4 overflow-x-auto scrollbar-none">
+                  {ENV_TABS.map((t) => (
+                    <button type="button" key={t.key} className={`px-4 py-2 text-[0.82rem] font-medium cursor-pointer border-b-2 -mb-px transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${env === t.key ? 'text-accent border-accent font-semibold' : 'text-muted border-transparent hover:text-secondary'}`} onClick={() => setEnv(t.key)}>
+                      <span className={`w-[7px] h-[7px] rounded-full ${ENV_DOT[t.key]}`} />{t.label}
+                      <span className="text-[0.7rem] text-muted">{project.counts[t.key]}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="hidden max-md:block absolute top-0 right-0 bottom-0 w-6 bg-linear-to-l from-surface to-transparent pointer-events-none" />
               </div>
 
               {/* 변수 검색 */}
@@ -331,9 +340,12 @@ export default function EnvsPage() {
 
               <div className="flex flex-wrap items-center gap-2.5 px-[18px] py-3 bg-surface border-t border-border">
                 <span className="text-[0.78rem] text-muted flex-1 max-md:hidden">.env 파일 형식으로 전체 복사</span>
+                <div className="flex items-center gap-1.5">
+                  <Button variant="ghost" onClick={copyAll}>전체 복사</Button>
+                  <Button variant="ghost" onClick={downloadEnv}>.env 다운로드</Button>
+                </div>
+                <span className="w-px h-5 bg-border max-md:hidden" />
                 <Button variant="danger" disabled={selectedVars.size === 0} onClick={removeSelectedVars}>선택삭제</Button>
-                <Button variant="ghost" onClick={copyAll}>전체 복사</Button>
-                <Button variant="ghost" onClick={downloadEnv}>.env 다운로드</Button>
               </div>
             </div>
 
