@@ -349,10 +349,13 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-[192px_1fr] gap-7 items-start max-md:grid-cols-1">
         {/* 탭 네비 */}
-        <div className="bg-background border border-border rounded-lg p-2.5 flex flex-col gap-0.5 sticky top-[calc(var(--header-h)+28px)] shadow-(--shadow-sm) max-md:static max-md:flex-row max-md:flex-wrap">
-          {TABS.map((t) => (
-            <button key={t.id} type="button" className={`px-3 py-2 rounded-(--radius) text-[0.855rem] cursor-pointer transition-all font-medium text-left ${tab === t.id ? 'bg-accent-dim text-accent font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`} onClick={() => setTab(t.id)}>{t.label}</button>
-          ))}
+        <div className="relative max-md:static">
+          <div className="bg-background border border-border rounded-lg p-2.5 flex flex-col gap-0.5 sticky top-[calc(var(--header-h)+28px)] shadow-(--shadow-sm) max-md:static max-md:flex-row max-md:flex-nowrap max-md:overflow-x-auto max-md:scrollbar-none">
+            {TABS.map((t) => (
+              <button key={t.id} type="button" className={`px-3 py-2 rounded-(--radius) text-[0.855rem] cursor-pointer transition-all font-medium text-left whitespace-nowrap shrink-0 ${tab === t.id ? 'bg-accent-dim text-accent font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`} onClick={() => setTab(t.id)}>{t.label}</button>
+            ))}
+          </div>
+          <div className="hidden max-md:block absolute top-0 right-0 bottom-0 w-6 rounded-r-lg bg-linear-to-l from-background to-transparent pointer-events-none" />
         </div>
 
         <div className="flex flex-col gap-4">
@@ -368,10 +371,16 @@ export default function SettingsPage() {
                     <div className="mt-2.5"><Badge tone="success">Google 연결됨</Badge></div>
                   </div>
                 </div>
-                <Row label="표시 이름" desc="대시보드 상단에 표시되는 이름">
-                  <input type="text" className="input w-45" value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="표시 이름" />
-                  <Button onClick={() => patch({ displayName })}>저장</Button>
-                </Row>
+                <div className="flex flex-col gap-2.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                  <div className="min-w-0">
+                    <div className="text-[0.875rem] font-medium text-primary">표시 이름</div>
+                    <div className="text-[0.78rem] text-muted mt-0.5">대시보드 상단에 표시되는 이름</div>
+                  </div>
+                  <div className="flex items-center gap-2.5 sm:shrink-0">
+                    <input type="text" className="input flex-1 min-w-0 sm:w-45 sm:flex-none" value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="표시 이름" />
+                    <Button onClick={() => patch({ displayName })}>저장</Button>
+                  </div>
+                </div>
               </Group>
               <Group title="알림">
                 {pushSupported && (
@@ -427,23 +436,23 @@ export default function SettingsPage() {
               </Row>
 
               {/* 마스터 잠금 — Google 로그인 외 보관함 2차 잠금 */}
-              <div className="flex items-start justify-between px-5 py-3.5 border-t border-border-subtle gap-10">
+              <div className="flex flex-col gap-2.5 px-5 py-3.5 border-t border-border-subtle sm:flex-row sm:items-center sm:justify-between sm:gap-6">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-[0.875rem] font-medium text-primary">보관함 마스터 잠금</span>
                     <Badge tone={vault?.enabled ? 'success' : 'warning'}>{vault?.enabled ? '사용 중' : '미설정'}</Badge>
                   </div>
-                  <div className="text-[0.78rem] text-muted [word-break:keep-all]">
+                  <div className="text-[0.78rem] text-muted break-keep">
                     켜두면 비밀번호·신원번호·ENV 값을 열람할 때마다 마스터 비밀번호가 필요합니다.
                   </div>
                   {vault?.enabled && (
                     <div className="text-[0.74rem] text-muted mt-1">자동잠금: {vault.timeoutMin > 0 ? `${vault.timeoutMin}분` : '수동'} · 변경하려면 해제 후 다시 설정하세요.</div>
                   )}
                 </div>
-                <div className="flex flex-col gap-1.5 shrink-0 w-52">
+                <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:shrink-0">
                   <input
                     type="password"
-                    className="input"
+                    className="input sm:w-56"
                     placeholder={vault?.enabled ? '현재 마스터 비밀번호' : '새 마스터 비밀번호 (4자 이상)'}
                     value={vaultPw}
                     onChange={(e) => setVaultPw(e.target.value)}
@@ -468,16 +477,22 @@ export default function SettingsPage() {
           {tab === 'api' && (
             <>
             <Group title="OpenAI API">
-              <Row label="API 키" desc={s.openaiApiKeySet ? `저장됨 (${s.openaiApiKeyMasked})` : 'AI 리포트 생성에 사용됩니다.'}>
-                <input type="password" className="input w-50 font-mono" placeholder={s.openaiApiKeySet ? '변경하려면 입력' : 'sk-proj-...'} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} aria-label="API 키" />
-                <Button onClick={() => patch({ openaiApiKey: apiKeyInput || undefined }).then(() => { setApiKeyInput(''); setKeyCheck(null); })}>저장</Button>
-              </Row>
-              <Row label="모델" desc="리포트 생성에 사용할 OpenAI 모델">
+              <div className="flex flex-col gap-2.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+                <div className="min-w-0">
+                  <div className="text-[0.875rem] font-medium text-primary">API 키</div>
+                  <div className="text-[0.78rem] text-muted mt-0.5">{s.openaiApiKeySet ? `저장됨 (${s.openaiApiKeyMasked})` : 'AI 리포트 생성에 사용됩니다.'}</div>
+                </div>
+                <div className="flex items-center gap-2.5 sm:shrink-0">
+                  <input type="password" className="input flex-1 min-w-0 font-mono sm:w-50 sm:flex-none" placeholder={s.openaiApiKeySet ? '변경하려면 입력' : 'sk-proj-...'} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} aria-label="API 키" />
+                  <Button onClick={() => patch({ openaiApiKey: apiKeyInput || undefined }).then(() => { setApiKeyInput(''); setKeyCheck(null); })}>저장</Button>
+                </div>
+              </div>
+              <Row label="모델" desc="리포트 생성에 사용할 OpenAI 모델" stack>
                 <select className="input w-50 font-mono" aria-label="모델" value={openaiModel} onChange={(e) => { setOpenaiModel(e.target.value); setKeyCheck(null); patch({ openaiModel: e.target.value }); }}>
                   {OPENAI_MODEL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </Row>
-              <Row label="연결 확인" desc="저장된 키로 OpenAI 연결 상태와 선택한 모델의 접근 가능 여부를 확인합니다.">
+              <Row label="연결 확인" desc="저장된 키로 OpenAI 연결 상태와 선택한 모델의 접근 가능 여부를 확인합니다." stack>
                 {keyCheck && (
                   <Badge tone={keyCheck.modelAvailable ? 'success' : keyCheck.ok ? 'warning' : 'danger'}>
                     {keyCheck.modelAvailable ? '정상' : keyCheck.ok ? '모델 접근 불가' : '연결 실패'}
@@ -487,7 +502,7 @@ export default function SettingsPage() {
                   {keyCheckBusy ? '확인 중...' : '연결 확인'}
                 </Button>
               </Row>
-              <Row label="크레딧 잔액" desc="OpenAI는 잔액 조회 API를 제공하지 않습니다. 사용량·잔액은 OpenAI 대시보드에서 확인하세요.">
+              <Row label="크레딧 잔액" desc="OpenAI는 잔액 조회 API를 제공하지 않습니다. 사용량·잔액은 OpenAI 대시보드에서 확인하세요." stack>
                 <Button variant="ghost" href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">대시보드 열기</Button>
               </Row>
             </Group>
@@ -627,14 +642,15 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 }
 
 // 설정 행 (라벨/설명 + 우측 컨트롤)
-function Row({ label, desc, labelClass, children }: { label: string; desc?: string; labelClass?: string; children: ReactNode }) {
+// stack: 컨트롤이 select/button 등으로 넓어 모바일에서 라벨과 줄바꿈이 필요한 행에만 true (기본은 토글류처럼 한 줄 유지)
+function Row({ label, desc, labelClass, stack, children }: { label: string; desc?: string; labelClass?: string; stack?: boolean; children: ReactNode }) {
   return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-border-subtle last:border-b-0 gap-6">
-      <div>
+    <div className={`flex px-5 py-3.5 border-b border-border-subtle last:border-b-0 gap-6 ${stack ? 'flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between' : 'items-center justify-between'}`}>
+      <div className={stack ? 'min-w-0' : 'flex-1 min-w-0'}>
         <div className={`text-[0.875rem] font-medium ${labelClass === 'danger' ? 'text-danger' : 'text-primary'}`}>{label}</div>
-        {desc && <div className="text-[0.78rem] text-muted mt-0.5">{desc}</div>}
+        {desc && <div className="text-[0.78rem] text-muted mt-0.5 break-keep">{desc}</div>}
       </div>
-      <div className="shrink-0 flex items-center gap-2.5">{children}</div>
+      <div className={`flex items-center gap-2.5 ${stack ? 'sm:shrink-0' : 'shrink-0'}`}>{children}</div>
     </div>
   );
 }
@@ -657,7 +673,7 @@ function UsageStat({ label, value, tone }: { label: string; value: string; tone:
 // 토글 가능 위젯 셀 — on/off 상태 반영
 function WidgetCell({ on, children, center }: { on: boolean; children: ReactNode; center?: boolean }) {
   return (
-    <div className={`bg-background border rounded-[var(--radius)] px-2 py-1.5 text-[0.68rem] transition-all
+    <div className={`bg-background border rounded-[var(--radius)] px-2 py-1.5 text-[0.68rem] whitespace-nowrap overflow-hidden text-ellipsis transition-all
       ${on ? 'border-border text-secondary' : 'border-border-subtle text-muted opacity-40 line-through'}
       ${center ? 'text-center' : ''}`}
     >
@@ -669,7 +685,7 @@ function WidgetCell({ on, children, center }: { on: boolean; children: ReactNode
 // 항상 표시되는 셀 (데이터 조건부)
 function AlwaysCell({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-surface border border-dashed border-border rounded-[var(--radius)] px-2 py-1.5 text-[0.68rem] text-muted">
+    <div className="bg-surface border border-dashed border-border rounded-[var(--radius)] px-2 py-1.5 text-[0.68rem] text-muted whitespace-nowrap overflow-hidden text-ellipsis">
       {children}
     </div>
   );
