@@ -25,6 +25,11 @@ COPY --from=build /app/backend/package.json ./backend/package.json
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/prisma ./backend/prisma
 
+RUN addgroup -S app && adduser -S app -G app \
+    && mkdir -p /app/backend/backups \
+    && chown -R app:app /app
+USER app
+
 WORKDIR /app/backend
 EXPOSE 8000
 CMD ["node", "dist/main"]

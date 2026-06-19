@@ -8,7 +8,7 @@ services:
       TZ: Asia/Seoul
     command: --default-time-zone=+09:00
     ports:
-      - "3308:3306"
+      - "127.0.0.1:3308:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
