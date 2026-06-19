@@ -4,7 +4,7 @@
  * 파일 보관함 페이지.
  * 중첩 폴더 탐색(브레드크럼), 업로드, 다운로드, 삭제를 B2 백엔드 API와 연동한다.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { notify } from '@/lib/toast';
 import { api, apiUpload } from '@/lib/api';
@@ -92,8 +92,12 @@ export default function FilesPage() {
   const invalidate = useInvalidate();
 
   // 현재 폴더 목록 (React Query — folderId 별 캐시)
-  const qs = currentFolderId !== undefined ? `?folderId=${currentFolderId}` : '';
-  const dataQuery = useApiQuery<ListResponse>(qk.files.list(currentFolderId), `/files${qs}`);
+  const listQs = useMemo(() => {
+    const params = new URLSearchParams();
+    if (currentFolderId !== undefined) params.set('folderId', String(currentFolderId));
+    return params.toString();
+  }, [currentFolderId]);
+  const dataQuery = useApiQuery<ListResponse>(qk.files.list(currentFolderId), `/files${listQs ? `?${listQs}` : ''}`);
   const data = dataQuery.data ?? { breadcrumb: [], folders: [], files: [], totalBytes: 0 };
   // 변이 후 파일 트리 무효화
   const reload = () => invalidate(qk.files.all);
@@ -115,9 +119,11 @@ export default function FilesPage() {
     if (!fileList || fileList.length === 0) return;
     setUploading(true);
     try {
-      const qs = currentFolderId !== undefined ? `?folderId=${currentFolderId}` : '';
+      const uploadParams = new URLSearchParams();
+      if (currentFolderId !== undefined) uploadParams.set('folderId', String(currentFolderId));
+      const uploadQs = uploadParams.toString();
       for (const f of Array.from(fileList)) {
-        await apiUpload(`/files/upload${qs}`, f);
+        await apiUpload(`/files/upload${uploadQs ? `?${uploadQs}` : ''}`, f);
       }
       notify.success('업로드 완료');
       reload();
