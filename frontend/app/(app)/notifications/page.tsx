@@ -47,7 +47,7 @@ function iconFor(n: Noti): ReactNode {
 
 export default function NotificationsPage() {
   const [tab, setTab] = useState<typeof NOTI_TABS[number]['kind']>('all');
-  const changeTab = (t: typeof tab) => { setTab(t); setPage(1); clear(); };
+  const handleChangeTab = (t: typeof tab) => { setTab(t); setPage(1); clear(); };
   const [detail, setDetail] = useState<Noti | null>(null);
   const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
@@ -70,7 +70,7 @@ export default function NotificationsPage() {
   const reload = () => invalidate(qk.notifications.all);
 
   // 알림 클릭 — 상세 모달 열기 + 읽지 않은 경우 읽음 처리
-  async function openDetail(n: Noti) {
+  async function handleOpenDetail(n: Noti) {
     setDetail(n);
     if (n.read) return;
     try {
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
   }
 
   // 선택삭제
-  async function removeSelected() {
+  async function handleRemoveSelected() {
     if (!selected.size) return;
     if (!await confirm(`선택한 알림 ${selected.size}건을 삭제할까요?`, 'danger')) return;
     try {
@@ -96,7 +96,7 @@ export default function NotificationsPage() {
   }
 
   // 전체삭제
-  async function removeAll() {
+  async function handleRemoveAll() {
     if (!total) return;
     if (!await confirm('모든 알림을 삭제할까요?', 'danger')) return;
     try {
@@ -110,7 +110,7 @@ export default function NotificationsPage() {
   }
 
   // 전체 읽음 처리
-  async function markAllRead() {
+  async function handleMarkAllRead() {
     try {
       await api.put('/notifications/read-all', {});
       notify.success('모든 알림을 읽음 처리했습니다.');
@@ -139,15 +139,15 @@ export default function NotificationsPage() {
       <div className="flex items-center justify-between gap-2.5 mb-5 max-md:flex-wrap">
         <div className="flex gap-1 flex-wrap">
           {NOTI_TABS.map((t) => (
-            <Button key={t.kind} variant={tab === t.kind ? 'primary' : 'ghost'} onClick={() => changeTab(t.kind)}>
+            <Button key={t.kind} variant={tab === t.kind ? 'primary' : 'ghost'} onClick={() => handleChangeTab(t.kind)}>
               {t.label}
             </Button>
           ))}
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end max-md:w-full">
-          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
-          <Button variant="ghost" onClick={removeAll}>전체삭제</Button>
-          <Button variant="ghost" onClick={markAllRead}>모두 읽음</Button>
+          <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+          <Button variant="ghost" onClick={handleRemoveAll}>전체삭제</Button>
+          <Button variant="ghost" onClick={handleMarkAllRead}>모두 읽음</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
@@ -173,7 +173,7 @@ export default function NotificationsPage() {
           <div
             key={n.id}
             className={`flex gap-3.5 px-5 py-4 border-b border-border-subtle last:border-b-0 transition-colors cursor-pointer hover:bg-surface ${n.read ? '' : 'bg-[rgba(0,192,127,0.04)]'}`}
-            onClick={() => openDetail(n)}
+            onClick={() => handleOpenDetail(n)}
           >
             <input
               type="checkbox"

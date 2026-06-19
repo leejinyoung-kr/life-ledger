@@ -36,7 +36,7 @@ export default function DebtTab({ addTrigger }: { addTrigger: number }) {
   const sum = rowsQuery.data?.sum ?? 0;
   const reload = () => invalidate(qk.assets.all);
 
-  async function remove(id: number) {
+  async function handleRemove(id: number) {
     if (!await confirm('이 부채 항목을 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/assets/${id}`);
@@ -48,7 +48,7 @@ export default function DebtTab({ addTrigger }: { addTrigger: number }) {
   }
 
   // 부채 항목 복사 — 해당 데이터로 채운 추가 모달을 열어 확인 후 저장
-  function duplicate(row: Asset) {
+  function handleDuplicate(row: Asset) {
     setModal({ open: true, mode: 'add', prefill: row });
   }
 
@@ -85,7 +85,7 @@ export default function DebtTab({ addTrigger }: { addTrigger: number }) {
                   <td className="td-mono td-right">{won(row.amount)}</td>
                   <td className="td-right">{row.interestRate !== null ? `${row.interestRate}%` : '-'}</td>
                   <td className="td-center td-muted">{row.memo ?? '-'}</td>
-                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} /></td>
+                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} /></td>
                 </tr>
               ))}
             </tbody>
@@ -103,7 +103,7 @@ export default function DebtTab({ addTrigger }: { addTrigger: number }) {
                 {row.interestRate !== null && <span>금리 {row.interestRate}%</span>}
                 {row.memo && <span>{row.memo}</span>}
               </div>
-              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} />
+              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} />
             </div>
           ))}
         </div>

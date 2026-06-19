@@ -30,7 +30,7 @@ const PERIOD_OPTIONS: ReportPeriod[] = ['this_month', 'last_month', 'last_3_mont
 
 export default function AiReportPage() {
   const [period, setPeriod] = useState<ReportPeriod>('this_month');
-  const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [autoMonthly, setAutoMonthly] = useState(true); // 매월 1일 자동 생성 (설정 notifMonthly 와 동기화)
   const invalidate = useInvalidate();
   const { confirm, confirmElement } = useConfirm();
@@ -41,7 +41,7 @@ export default function AiReportPage() {
   }, []);
 
   // 자동 생성 토글 — 즉시 설정 저장
-  function toggleAuto() {
+  function handleToggleAuto() {
     const next = !autoMonthly;
     setAutoMonthly(next);
     api.put('/settings', { notifMonthly: next })
@@ -53,10 +53,10 @@ export default function AiReportPage() {
   const reports = reportsQuery.data ?? [];
 
   // 리포트 생성 — 선택한 기간의 가계부 데이터를 분석해 저장 (OpenAI 비용 발생 → 컨펌 후 진행, 1일 1회 제한은 서버에서 검사)
-  async function generateReport() {
-    if (generating) return;
+  async function handleGenerateReport() {
+    if (saving) return;
     if (!await confirm(`${REPORT_PERIOD_LABEL[period]} 데이터를 분석해 리포트를 생성할까요? OpenAI API 호출 비용이 발생하며, 리포트는 하루에 한 번만 생성할 수 있습니다(자정 기준 초기화).`, 'primary')) return;
-    setGenerating(true);
+    setSaving(true);
     try {
       await api.post<AiReport>('/ai/reports', { period });
       notify.success('리포트가 생성됐습니다.');
@@ -64,7 +64,7 @@ export default function AiReportPage() {
     } catch (err) {
       notify.error((err as Error).message || '리포트 생성에 실패했습니다.');
     } finally {
-      setGenerating(false);
+      setSaving(false);
     }
   }
 
@@ -78,7 +78,7 @@ export default function AiReportPage() {
       {/* 정기 생성 토글 */}
       <div className="flex items-center justify-end gap-2 px-[18px] py-3.5 bg-surface border border-border rounded-[var(--radius-lg)] mb-5">
         <span className="text-[0.82rem] text-secondary">매월 1일 자동 생성</span>
-        <Toggle on={autoMonthly} onToggle={toggleAuto} label="매월 자동 생성 토글" />
+        <Toggle on={autoMonthly} onToggle={handleToggleAuto} label="매월 자동 생성 토글" />
       </div>
 
       {/* 새 리포트 생성 박스 */}
@@ -92,9 +92,9 @@ export default function AiReportPage() {
           <select className="input w-auto" aria-label="분석 기간" value={period} onChange={(ev) => setPeriod(ev.target.value as ReportPeriod)}>
             {PERIOD_OPTIONS.map((p) => <option key={p} value={p}>{REPORT_PERIOD_LABEL[p]}</option>)}
           </select>
-          <Button onClick={generateReport} disabled={generating}>
-            {generating && <span className="inline-block w-[18px] h-[18px] border-2 border-white/40 border-t-white rounded-full animate-spin" />}
-            {generating ? '분석 중...' : '리포트 생성'}
+          <Button onClick={handleGenerateReport} disabled={saving}>
+            {saving && <span className="inline-block w-[18px] h-[18px] border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+            {saving ? '분석 중...' : '리포트 생성'}
           </Button>
         </div>
       </div>

@@ -58,18 +58,18 @@ export default function SecurityPage() {
   const error = (summaryQuery.error ?? sessionsQuery.error)?.message ?? null;
 
   // 보관함 즉시 잠그기 (vault 토큰 폐기)
-  function lockNow() {
+  function handleLockNow() {
     clearVaultToken();
   }
 
   // 단일 세션 로그아웃/차단
-  async function revokeSession(id: number) {
+  async function handleRevokeSession(id: number) {
     try { await api.post(`/security/sessions/${id}/revoke`, {}); invalidate(qk.security.all); }
     catch (e) { notify.error((e as Error).message); }
   }
 
   // 전체 세션 로그아웃 (현재 기기 제외)
-  async function revokeAll() {
+  async function handleRevokeAll() {
     if (!await confirm('현재 기기를 제외한 모든 세션을 로그아웃할까요?', 'danger')) return;
     try { await api.post('/security/sessions/revoke-all', {}); invalidate(qk.security.all); }
     catch (e) { notify.error((e as Error).message); }
@@ -135,7 +135,7 @@ export default function SecurityPage() {
               </div>
             </div>
             {vault?.enabled
-              ? <Button variant="ghost" size="sm" onClick={lockNow}>지금 잠그기</Button>
+              ? <Button variant="ghost" size="sm" onClick={handleLockNow}>지금 잠그기</Button>
               : <Button href="/settings" variant="ghost" size="sm">설정</Button>}
           </div>
         </Card>
@@ -292,7 +292,7 @@ export default function SecurityPage() {
         <Card>
           <CardHeader>
             <CardTitle>로그인 기기 / 세션</CardTitle>
-            <Button variant="danger" size="sm" onClick={revokeAll}>전체 로그아웃</Button>
+            <Button variant="danger" size="sm" onClick={handleRevokeAll}>전체 로그아웃</Button>
           </CardHeader>
           <div>
             {sessions.map((s) => {
@@ -313,7 +313,7 @@ export default function SecurityPage() {
                     <div className="text-[0.78rem] text-muted">{s.location} · {relativeTime(s.lastActiveAt)}</div>
                   </div>
                   {!s.isCurrent && (
-                    <Button variant={s.status === 'unverified' ? 'danger' : 'ghost'} size="sm" onClick={() => revokeSession(s.id)}>
+                    <Button variant={s.status === 'unverified' ? 'danger' : 'ghost'} size="sm" onClick={() => handleRevokeSession(s.id)}>
                       {s.status === 'unverified' ? '차단' : '로그아웃'}
                     </Button>
                   )}

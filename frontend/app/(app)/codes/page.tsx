@@ -28,6 +28,7 @@ import AppShell from '@/components/AppShell';
 import EmptyState from '@/components/EmptyState';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
+import { ICON_BTN_SQUARE } from '@/components/ui/styles';
 import { IconDrag, IconPlus } from '@/components/icons';
 import { api } from '@/lib/api';
 
@@ -171,7 +172,7 @@ export default function CodesPage() {
   }
 
   // 항목 추가
-  async function add() {
+  async function handleAdd() {
     if (!newCode.trim() || !newLabel.trim()) {
       notify.error('코드와 표시명을 모두 입력하세요.');
       return;
@@ -233,7 +234,7 @@ export default function CodesPage() {
   }
 
   // 기본값 복원
-  async function seed() {
+  async function handleSeed() {
     if (!await confirm('기본 항목으로 복원할까요? 기존 항목은 유지됩니다.', 'primary')) return;
     try {
       await api.post(`/categories/seed?domain=${domain}`, {});
@@ -278,7 +279,7 @@ export default function CodesPage() {
             <CardTitle>{currentDomain.label}</CardTitle>
             <span className="text-[0.78rem] text-muted ml-2.5">{currentDomain.desc}</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={seed} className="max-md:self-end">기본값 복원</Button>
+          <Button variant="ghost" size="sm" onClick={handleSeed} className="max-md:self-end">기본값 복원</Button>
         </CardHeader>
 
         {/* 항목 목록 (드래그 가능) */}
@@ -381,10 +382,10 @@ export default function CodesPage() {
             placeholder="표시명 (예: 식비)"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && add()}
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             aria-label="표시명"
           />
-          <Button className="max-md:w-full" onClick={add} disabled={saving}>추가</Button>
+          <Button className="max-md:w-full" onClick={handleAdd} disabled={saving}>추가</Button>
         </div>
         <p className="px-5 pt-3 pb-3 text-[0.82rem] text-muted">코드는 영문 소문자·숫자·언더바만 사용 (예: public_transport)</p>
       </Card>
@@ -431,7 +432,7 @@ function SortableRow({
       {/* 드래그 핸들 */}
       <button
         type="button"
-        className="flex items-center justify-center w-7 h-7 rounded-[var(--radius)] text-muted cursor-grab transition-colors hover:bg-elevated hover:text-secondary shrink-0 touch-none active:cursor-grabbing"
+        className={ICON_BTN_SQUARE}
         aria-label="순서 변경"
         {...attributes}
         {...listeners}
@@ -509,7 +510,7 @@ function SortableGroupRow({
     <div ref={setNodeRef} style={style} className={`flex flex-wrap items-center gap-2.5 px-5 py-2.5 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface ${isParent ? 'bg-surface' : 'bg-background pl-8'}`}>
       <button
         type="button"
-        className="flex items-center justify-center w-7 h-7 rounded-[var(--radius)] text-muted cursor-grab transition-colors hover:bg-elevated hover:text-secondary shrink-0 touch-none active:cursor-grabbing"
+        className={ICON_BTN_SQUARE}
         aria-label="순서 변경"
         {...attributes}
         {...listeners}

@@ -57,7 +57,7 @@ export default function TasksPage() {
   const reload = () => invalidate(qk.tasks.all);
 
   // 완료 토글 (PUT 후 목록 무효화)
-  async function toggleTask(id: number) {
+  async function handleToggleTask(id: number) {
     const target = tasks.find((t) => t.id === id);
     if (!target) return;
     const next = !target.done;
@@ -71,7 +71,7 @@ export default function TasksPage() {
   }
 
   // 할일 삭제 (soft delete)
-  async function removeTask(id: number) {
+  async function handleRemoveTask(id: number) {
     if (!await confirm('이 할일을 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/tasks/${id}`);
@@ -83,7 +83,7 @@ export default function TasksPage() {
     }
   }
 
-  async function removeSelectedTasks() {
+  async function handleRemoveSelectedTasks() {
     if (selectedTasks.size === 0) return;
     if (!await confirm(`선택한 ${selectedTasks.size}건을 삭제할까요?`, 'danger')) return;
     try {
@@ -97,7 +97,7 @@ export default function TasksPage() {
   }
 
   // 목표 삭제
-  async function removeGoal(id: number) {
+  async function handleRemoveGoal(id: number) {
     if (!await confirm('이 목표를 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/goals/${id}`);
@@ -137,7 +137,7 @@ export default function TasksPage() {
                 <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
                 <input className="input pl-icon w-40" type="text" placeholder="할일 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="할일 검색" />
               </div>
-              <Button variant="danger" disabled={selectedTasks.size === 0} onClick={removeSelectedTasks}>선택삭제</Button>
+              <Button variant="danger" disabled={selectedTasks.size === 0} onClick={handleRemoveSelectedTasks}>선택삭제</Button>
               <LimitSelect limit={limit} onLimitChange={changeLimit} />
             </div>
           </CardHeader>
@@ -155,14 +155,14 @@ export default function TasksPage() {
                 <button
                   type="button"
                   className={`w-4.5 h-4.5 border-2 rounded-full shrink-0 cursor-pointer flex items-center justify-center text-white ${task.done ? 'bg-accent border-accent' : 'border-border bg-transparent'}`}
-                  onClick={() => toggleTask(task.id)}
+                  onClick={() => handleToggleTask(task.id)}
                   aria-label="완료 토글"
                 >
                   {task.done && <IconCheck width={11} height={11} />}
                 </button>
                 <div className={`flex-1 text-[0.875rem] ${task.done ? 'text-muted line-through' : 'text-primary'}`}>{task.text}</div>
                 <div className={`text-[0.72rem] shrink-0 ${isSoon(task) ? 'text-warning font-semibold' : 'text-muted'}`}>{formatDue(task)}</div>
-                <button type="button" className="icon-btn-danger" onClick={() => removeTask(task.id)} aria-label="할일 삭제"><IconTrash width={12} height={12} /></button>
+                <button type="button" className="icon-btn-danger" onClick={() => handleRemoveTask(task.id)} aria-label="할일 삭제"><IconTrash width={12} height={12} /></button>
               </div>
             ))}
           </div>
@@ -187,7 +187,7 @@ export default function TasksPage() {
                   <div className="flex items-center gap-1.5">
                     <span className="[font-family:var(--font-display)] font-bold text-accent mr-1">{goal.pct}%</span>
                     <button type="button" className="icon-btn-bordered" onClick={() => setGoalModal({ open: true, editing: goal })} aria-label="수정"><IconEdit width={13} height={13} /></button>
-                    <button type="button" className="icon-btn-danger" onClick={() => removeGoal(goal.id)} aria-label="삭제"><IconTrash width={13} height={13} /></button>
+                    <button type="button" className="icon-btn-danger" onClick={() => handleRemoveGoal(goal.id)} aria-label="삭제"><IconTrash width={13} height={13} /></button>
                   </div>
                 </div>
                 <div className="track"><div className={`fill ${goal.tone}`} style={{ width: `${goal.pct}%` }} /></div>
@@ -251,7 +251,7 @@ function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing
     return !Object.keys(err).length;
   }
 
-  async function save() {
+  async function handleSave() {
     if (!validate()) return;
     setSaving(true);
     const cur = Number(currentVal);
@@ -276,7 +276,7 @@ function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={editing ? '목표 수정' : '목표 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
+    <Modal open={open} onClose={onClose} title={editing ? '목표 수정' : '목표 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="목표명" required error={errors.name}>
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 비상금 적립" value={name} onChange={(e) => { setName(e.target.value); clearError('name'); }} />
       </Field>
@@ -320,7 +320,7 @@ function AddTaskModal({ open, onClose, onSaved }: { open: boolean; onClose: () =
     return !Object.keys(err).length;
   }
 
-  async function save() {
+  async function handleSave() {
     if (!validate()) return;
     setSaving(true);
     try {
@@ -335,7 +335,7 @@ function AddTaskModal({ open, onClose, onSaved }: { open: boolean; onClose: () =
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="할일 추가" footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
+    <Modal open={open} onClose={onClose} title="할일 추가" footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="내용" required error={errors.text}>
         <input type="text" className={`input${errors.text ? ' is-invalid' : ''}`} placeholder="예: 자동차 보험 갱신" value={text} onChange={(e) => { setText(e.target.value); clearError('text'); }} />
       </Field>

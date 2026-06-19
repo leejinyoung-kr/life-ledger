@@ -38,8 +38,8 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
 
   useAddTrigger(addTrigger, () => setModal({ open: true, mode: 'add' }));
 
-  function search() { setApplied({ name: pendingName, type: pendingType }); setPage(1); }
-  function reset() { setPendingName(''); setPendingType(''); setApplied({ name: '', type: '' }); setPage(1); }
+  function handleSearch() { setApplied({ name: pendingName, type: pendingType }); setPage(1); }
+  function handleReset() { setPendingName(''); setPendingType(''); setApplied({ name: '', type: '' }); setPage(1); }
 
   // 투자 목록 + 요약 (React Query 캐시). 목록은 서버 페이징/필터
   const listQs = useMemo(() => {
@@ -57,7 +57,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   const summary = summaryQuery.data ?? null;
   const reload = () => invalidate(qk.investments.all);
 
-  async function remove(id: number) {
+  async function handleRemove(id: number) {
     if (!await confirm('이 투자 항목을 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/investments/${id}`);
@@ -70,11 +70,11 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   }
 
   // 투자 항목 복사 — 해당 데이터로 채운 추가 모달을 오늘 날짜로 열어 확인 후 저장
-  function duplicate(row: Investment) {
+  function handleDuplicate(row: Investment) {
     setModal({ open: true, mode: 'add', prefill: row });
   }
 
-  async function removeSelected() {
+  async function handleRemoveSelected() {
     if (selected.size === 0) return;
     if (!await confirm(`선택한 ${selected.size}건을 삭제할까요?`, 'danger')) return;
     try {
@@ -112,17 +112,17 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
           </select>
           <div className="relative flex-1 min-w-[160px]">
             <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-            <input className="input pl-icon" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && search()} aria-label="종목명 검색" />
+            <input className="input pl-icon" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && handleSearch()} aria-label="종목명 검색" />
           </div>
-          <Button onClick={search}>조회</Button>
-          <Button variant="ghost" onClick={reset}>초기화</Button>
+          <Button onClick={handleSearch}>조회</Button>
+          <Button variant="ghost" onClick={handleReset}>초기화</Button>
         </div>
       </div>
 
       <div className="flex items-center justify-between mb-2">
         <span className="text-[0.78rem] text-secondary">총 {total}건</span>
         <div className="flex items-center gap-2">
-          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
+          <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
@@ -166,7 +166,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                     <td className={`td-right amount-${up ? 'income' : 'expense'}`}>{up ? '+' : '-'}{won(row.profit)}</td>
                     <td className="td-center"><span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span></td>
                     <td className="td-center td-muted">{row.memo ?? '-'}</td>
-                    <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} /></td>
+                    <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} /></td>
                   </tr>
                 );
               })}
@@ -193,7 +193,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                   <span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span>
                   {row.memo && <span>· {row.memo}</span>}
                 </div>
-                <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} />
+                <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} />
               </div>
             );
           })}
@@ -244,7 +244,7 @@ function InvestModal({ state, onClose, onSaved }: { state: ModalState; onClose: 
     return !Object.keys(err).length;
   }
 
-  async function save() {
+  async function handleSave() {
     if (!validate()) return;
     setSaving(true);
     try {
@@ -261,7 +261,7 @@ function InvestModal({ state, onClose, onSaved }: { state: ModalState; onClose: 
   }
 
   return (
-    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '투자 항목 수정' : '투자 항목 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
+    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '투자 항목 수정' : '투자 항목 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="종목명" required error={errors.name}>
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 삼성전자" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
       </Field>

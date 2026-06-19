@@ -54,7 +54,7 @@ function TransactionsPageInner() {
   const investCats = useMemo(() => (investCatQuery.data ?? []).filter((c) => c.isActive), [investCatQuery.data]);
   const bankCats = useMemo(() => (bankCatQuery.data ?? []).filter((c) => c.isActive), [bankCatQuery.data]);
 
-  function openAddModal() {
+  function handleOpenAddModal() {
     setAddTrigger((prev) => ({ ...prev, [tab]: prev[tab] + 1 }));
   }
 
@@ -63,7 +63,7 @@ function TransactionsPageInner() {
       <div className="mb-7">
         <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">자산 관리</h1>
-          <Button className="shrink-0" onClick={openAddModal}>
+          <Button className="shrink-0" onClick={handleOpenAddModal}>
             <span className="hidden md:inline">{ADD_LABELS[tab]}</span>
             <span className="md:hidden">추가</span>
           </Button>

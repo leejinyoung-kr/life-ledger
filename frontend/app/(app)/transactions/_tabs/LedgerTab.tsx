@@ -84,9 +84,9 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   const parentCats = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
   const leafCats = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
 
-  function search() { setApplied({ from: pendingFrom, to: pendingTo, type: pendingType, cat: pendingCat, q: pendingQ }); setPage(1); }
+  function handleSearch() { setApplied({ from: pendingFrom, to: pendingTo, type: pendingType, cat: pendingCat, q: pendingQ }); setPage(1); }
 
-  function reset() {
+  function handleReset() {
     const from = monthsAgo(1); const to = toDay();
     setPendingFrom(from); setPendingTo(to);
     setPendingType(''); setPendingCat(''); setPendingQ('');
@@ -94,7 +94,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
     setActivePreset(1); setPage(1);
   }
 
-  function applyPreset(months: number) {
+  function handleApplyPreset(months: number) {
     setPendingFrom(monthsAgo(months)); setPendingTo(toDay());
     setActivePreset(months);
   }
@@ -125,7 +125,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   const error = (rowsQuery.error ?? summaryQuery.error)?.message ?? null;
   const reload = () => invalidate(qk.transactions.all);
 
-  async function remove(id: number) {
+  async function handleRemove(id: number) {
     if (!await confirm('이 내역을 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/transactions/${id}`);
@@ -138,7 +138,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   }
 
   // 내역 복사 — 해당 데이터로 채운 추가 모달을 오늘 날짜로 열어 확인 후 저장
-  function duplicate(row: Transaction) {
+  function handleDuplicate(row: Transaction) {
     setModal({
       open: true, mode: 'add',
       prefill: {
@@ -148,7 +148,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
     });
   }
 
-  async function removeSelected() {
+  async function handleRemoveSelected() {
     if (selected.size === 0) return;
     if (!await confirm(`선택한 ${selected.size}건을 삭제할까요?`, 'danger')) return;
     try {
@@ -189,7 +189,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
 
   // 영수증 사진 OCR(tesseract.js) → AI 파싱(/ai/parse-transaction)으로 날짜·금액·상호·카테고리 추정 후
   // 지출 추가 모달 프리필. AI 호출 실패 시 정규식 휴리스틱(parseReceipt)으로 폴백. 자동 저장 아님(사용자 확인)
-  async function scanReceipt(ev: React.ChangeEvent<HTMLInputElement>) {
+  async function handleScanReceipt(ev: React.ChangeEvent<HTMLInputElement>) {
     const file = ev.target.files?.[0];
     ev.target.value = '';
     if (!file) return;
@@ -333,7 +333,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
           <div className="flex gap-2">
             <label className="excel-btn upload">
               {scanning ? '인식 중...' : '📷 영수증 스캔'}
-              <input type="file" accept="image/*" hidden aria-label="영수증 스캔" disabled={scanning} onChange={scanReceipt} />
+              <input type="file" accept="image/*" hidden aria-label="영수증 스캔" disabled={scanning} onChange={handleScanReceipt} />
             </label>
           </div>
         </div>
@@ -348,9 +348,9 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
             <input type="date" className="input date-range-input w-35" value={pendingTo} onChange={(ev) => { setPendingTo(ev.target.value); setActivePreset(null); }} aria-label="조회 종료일" />
           </div>
           <div className="flex gap-1">
-            <Button size="sm" variant={activePreset === 1 ? 'primary' : 'ghost'} onClick={() => applyPreset(1)}>1개월</Button>
-            <Button size="sm" variant={activePreset === 2 ? 'primary' : 'ghost'} onClick={() => applyPreset(2)}>2개월</Button>
-            <Button size="sm" variant={activePreset === 3 ? 'primary' : 'ghost'} onClick={() => applyPreset(3)}>3개월</Button>
+            <Button size="sm" variant={activePreset === 1 ? 'primary' : 'ghost'} onClick={() => handleApplyPreset(1)}>1개월</Button>
+            <Button size="sm" variant={activePreset === 2 ? 'primary' : 'ghost'} onClick={() => handleApplyPreset(2)}>2개월</Button>
+            <Button size="sm" variant={activePreset === 3 ? 'primary' : 'ghost'} onClick={() => handleApplyPreset(3)}>3개월</Button>
           </div>
         </div>
         {/* 유형·카테고리·검색 한 줄 */}
@@ -371,17 +371,17 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
           </select>
           <div className="relative flex-1 min-w-40">
             <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-            <input className="input pl-icon" type="text" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && search()} aria-label="내역 검색" />
+            <input className="input pl-icon" type="text" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && handleSearch()} aria-label="내역 검색" />
           </div>
-          <Button onClick={search}>조회</Button>
-          <Button variant="ghost" onClick={reset}>초기화</Button>
+          <Button onClick={handleSearch}>조회</Button>
+          <Button variant="ghost" onClick={handleReset}>초기화</Button>
         </div>
       </div>
 
       <div className="flex items-center justify-between mb-2">
         <span className="text-[0.78rem] text-secondary">총 {total}건</span>
         <div className="flex items-center gap-2">
-          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
+          <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
@@ -422,7 +422,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
                   <td className={`td-right amount-${row.type}`}>{signedWon(row.type, row.amount)}</td>
                   <td className="td-center td-muted">{row.memo ?? '-'}</td>
                   <td className="td-center td-muted">{dotDate(row.date)}</td>
-                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} /></td>
+                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} /></td>
                 </tr>
               ))}
             </tbody>
@@ -446,7 +446,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
                 <span>{dotDate(row.date)}</span>
                 {row.memo && <span>· {row.memo}</span>}
               </div>
-              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => remove(row.id)} onCopy={() => duplicate(row)} />
+              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} />
             </div>
           ))}
         </div>
@@ -468,12 +468,12 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
 // AI 자연어 입력 → /ai/parse-transaction 으로 거래 초안을 받아 추가 모달을 프리필 (자동 저장 아님, 사용자 확인)
 function AiLedgerInput({ onResult }: { onResult: (draft: LedgerDraft) => void }) {
   const [text, setText] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  async function submit() {
+  async function handleSubmit() {
     const trimmed = text.trim();
-    if (!trimmed || loading) return;
-    setLoading(true);
+    if (!trimmed || saving) return;
+    setSaving(true);
     try {
       const r = await api.post<{
         type: TransactionType; amount: number; category: string | null;
@@ -497,7 +497,7 @@ function AiLedgerInput({ onResult }: { onResult: (draft: LedgerDraft) => void })
     } catch (err) {
       notify.error((err as Error).message || 'AI 입력 처리에 실패했습니다.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
@@ -510,13 +510,13 @@ function AiLedgerInput({ onResult }: { onResult: (draft: LedgerDraft) => void })
         placeholder="예: 어제 점심 스타벅스에서 8500원 카드로 결제"
         value={text}
         onChange={(ev) => setText(ev.target.value)}
-        onKeyDown={(ev) => ev.key === 'Enter' && submit()}
+        onKeyDown={(ev) => ev.key === 'Enter' && handleSubmit()}
         aria-label="AI 자연어 입력"
-        disabled={loading}
+        disabled={saving}
       />
-      <Button onClick={submit} disabled={loading || !text.trim()}>
-        {loading && <span className="inline-block w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
-        {loading ? '분석 중...' : 'AI 입력'}
+      <Button onClick={handleSubmit} disabled={saving || !text.trim()}>
+        {saving && <span className="inline-block w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+        {saving ? '분석 중...' : 'AI 입력'}
       </Button>
     </div>
   );
@@ -588,7 +588,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   }
 
   // 유형 변경 시 해당 유형의 첫 대분류·소분류 + 결제수단/은행 기본값으로 초기화 (지출↔수입↔이체 분리)
-  function changeType(t: TransactionType) {
+  function handleChangeType(t: TransactionType) {
     setType(t);
     const fp = parents.find((p) => parentTypeOf(p.code) === t);
     setParentCode(fp?.code ?? '');
@@ -598,7 +598,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   }
 
   // 대분류 변경 시 그 대분류의 첫 소분류로 설정
-  function changeParent(pc: string) {
+  function handleChangeParent(pc: string) {
     setParentCode(pc);
     setCategory(leaves.find((l) => l.parentCode === pc)?.code ?? '');
   }
@@ -606,7 +606,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   const availableParents = parents.filter((p) => parentTypeOf(p.code) === type);
   const childLeaves = leaves.filter((l) => l.parentCode === parentCode);
 
-  async function save() {
+  async function handleSave() {
     if (!validate()) return;
     setSaving(true);
     try {
@@ -631,7 +631,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   }
 
   return (
-    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '항목 수정' : '항목 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
+    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '항목 수정' : '항목 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       {editingRecurring && (
         <div className="flex flex-col gap-2 p-3.5 bg-surface border border-border rounded-(--radius)">
           <span className="text-[0.8rem] font-medium text-secondary">🔁 반복 거래 — 수정 범위</span>
@@ -644,7 +644,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
         </div>
       )}
       <Field label="유형" required>
-        <select className="input" value={type} onChange={(ev) => changeType(ev.target.value as TransactionType)}>
+        <select className="input" value={type} onChange={(ev) => handleChangeType(ev.target.value as TransactionType)}>
           <option value="expense">지출</option><option value="income">수입</option><option value="transfer">자산이동</option>
         </select>
       </Field>
@@ -656,7 +656,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="대분류" required>
-          <select className="input" value={parentCode} onChange={(ev) => changeParent(ev.target.value)}>
+          <select className="input" value={parentCode} onChange={(ev) => handleChangeParent(ev.target.value)}>
             {availableParents.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
           </select>
         </Field>

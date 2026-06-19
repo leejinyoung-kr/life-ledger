@@ -38,8 +38,8 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
 
   useAddTrigger(addTrigger, () => setModal({ open: true, mode: 'add' }));
 
-  function search() { setApplied({ type: pendingType, name: pendingName }); setPage(1); }
-  function reset() { setPendingType(''); setPendingName(''); setApplied({ type: '', name: '' }); setPage(1); }
+  function handleSearch() { setApplied({ type: pendingType, name: pendingName }); setPage(1); }
+  function handleReset() { setPendingType(''); setPendingName(''); setApplied({ type: '', name: '' }); setPage(1); }
 
   // 예적금 목록 + 요약 (React Query 캐시). 목록은 서버 페이징/필터
   const listQs = useMemo(() => {
@@ -57,7 +57,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
   const summary = summaryQuery.data ?? null;
   const reload = () => invalidate(qk.savings.all);
 
-  async function remove(id: number) {
+  async function handleRemove(id: number) {
     if (!await confirm('이 예적금을 삭제할까요?', 'danger')) return;
     try {
       await api.del(`/savings/${id}`);
@@ -70,11 +70,11 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
   }
 
   // 예적금 복사 — 해당 데이터로 채운 추가 모달을 오늘 날짜로 열어 확인 후 저장
-  function duplicate(row: Saving) {
+  function handleDuplicate(row: Saving) {
     setModal({ open: true, mode: 'add', prefill: row });
   }
 
-  async function removeSelected() {
+  async function handleRemoveSelected() {
     if (selected.size === 0) return;
     if (!await confirm(`선택한 ${selected.size}건을 삭제할까요?`, 'danger')) return;
     try {
@@ -110,17 +110,17 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
           </select>
           <div className="relative flex-1 min-w-[160px]">
             <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-            <input className="input pl-icon" type="text" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && search()} aria-label="상품명 검색" />
+            <input className="input pl-icon" type="text" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && handleSearch()} aria-label="상품명 검색" />
           </div>
-          <Button onClick={search}>조회</Button>
-          <Button variant="ghost" onClick={reset}>초기화</Button>
+          <Button onClick={handleSearch}>조회</Button>
+          <Button variant="ghost" onClick={handleReset}>초기화</Button>
         </div>
       </div>
 
       <div className="flex items-center justify-between mb-2">
         <span className="text-[0.78rem] text-secondary">총 {total}건</span>
         <div className="flex items-center gap-2">
-          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
+          <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
@@ -177,7 +177,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                       ) : '-'}
                     </td>
                     <td className="td-center td-muted">{c.memo ?? '-'}</td>
-                    <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => remove(c.id)} onCopy={() => duplicate(c)} /></td>
+                    <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => handleRemove(c.id)} onCopy={() => handleDuplicate(c)} /></td>
                   </tr>
                 );
               })}
@@ -211,7 +211,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                   )}
                   {c.memo && <span>{c.memo}</span>}
                 </div>
-                <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => remove(c.id)} onCopy={() => duplicate(c)} />
+                <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => handleRemove(c.id)} onCopy={() => handleDuplicate(c)} />
               </div>
             );
           })}
@@ -269,7 +269,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
     return !Object.keys(err).length;
   }
 
-  async function save() {
+  async function handleSave() {
     if (!validate()) return;
     setSaving(true);
     try {
@@ -293,7 +293,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
   }
 
   return (
-    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '예적금 수정' : '예적금 추가'} footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
+    <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '예적금 수정' : '예적금 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="은행/기관" required error={errors.bank}>
         <select className={`input${errors.bank ? ' is-invalid' : ''}`} aria-label="은행/기관" value={bank} onChange={(ev) => { setBank(ev.target.value); clearError('bank'); }}>
           <option value="" disabled>은행/기관 선택</option>

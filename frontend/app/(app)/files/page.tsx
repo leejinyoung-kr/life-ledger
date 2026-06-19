@@ -17,6 +17,7 @@ import Modal from '@/components/Modal';
 import { useConfirm } from '@/components/ConfirmModal';
 import Button, { buttonClasses } from '@/components/ui/Button';
 import { Field, ModalFooter } from '@/components/ui/Field';
+import { NAV_BTN_34 } from '@/components/ui/styles';
 import {
   IconFolderPlus, IconUpload, IconFolder, IconTrash,
   IconDoc, IconImage, IconClose, IconSearch,
@@ -98,13 +99,13 @@ export default function FilesPage() {
   const reload = () => invalidate(qk.files.all);
 
   // 폴더 클릭 — 해당 폴더로 진입
-  function enterFolder(id: number) {
+  function handleEnterFolder(id: number) {
     setCurrentFolderId(id);
     setSearch('');
   }
 
   // 브레드크럼 클릭 — 루트 또는 상위 폴더로 이동
-  function navigateTo(id?: number) {
+  function handleNavigateTo(id?: number) {
     setCurrentFolderId(id);
     setSearch('');
   }
@@ -127,14 +128,14 @@ export default function FilesPage() {
     }
   }
 
-  function onDrop(e: React.DragEvent) {
+  function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
     handleFiles(e.dataTransfer.files);
   }
 
   // 폴더 생성
-  async function createFolder() {
+  async function handleCreateFolder() {
     if (!folderName.trim()) return;
     setSaving(true);
     try {
@@ -151,7 +152,7 @@ export default function FilesPage() {
   }
 
   // 파일 다운로드
-  async function downloadFile(file: FileItem) {
+  async function handleDownloadFile(file: FileItem) {
     try {
       const { url } = await api.get<{ url: string }>(`/files/${file.id}/url`);
       const a = document.createElement('a');
@@ -164,7 +165,7 @@ export default function FilesPage() {
   }
 
   // 파일 삭제
-  async function deleteFile(file: FileItem) {
+  async function handleDeleteFile(file: FileItem) {
     if (!await confirm(`"${file.name}" 파일을 삭제할까요?`, 'danger')) return;
     try {
       await api.del(`/files/${file.id}`);
@@ -176,7 +177,7 @@ export default function FilesPage() {
   }
 
   // 폴더 삭제
-  async function deleteFolder(folder: FolderItem) {
+  async function handleDeleteFolder(folder: FolderItem) {
     if (!await confirm(`"${folder.name}" 폴더를 삭제할까요?`, 'danger')) return;
     try {
       await api.del(`/files/folders/${folder.id}`);
@@ -233,7 +234,7 @@ export default function FilesPage() {
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
-        onDrop={onDrop}
+        onDrop={handleDrop}
       >
         <IconUpload width={32} height={32} />
         <div>
@@ -244,13 +245,13 @@ export default function FilesPage() {
 
       {/* 브레드크럼 */}
       <div className="flex items-center gap-1.5 text-[0.82rem] text-muted mb-4 flex-wrap">
-        <button type="button" className="text-accent hover:opacity-70" onClick={() => navigateTo(undefined)}>
+        <button type="button" className="text-accent hover:opacity-70" onClick={() => handleNavigateTo(undefined)}>
           📁 전체
         </button>
         {data.breadcrumb.map((crumb) => (
           <span key={crumb.id} className="flex items-center gap-1.5">
             <span className="text-border">/</span>
-            <button type="button" className="text-accent hover:opacity-70" onClick={() => navigateTo(crumb.id)}>
+            <button type="button" className="text-accent hover:opacity-70" onClick={() => handleNavigateTo(crumb.id)}>
               {crumb.name}
             </button>
           </span>
@@ -281,10 +282,10 @@ export default function FilesPage() {
                 {filteredFolders.map((f) => (
                   <div
                     key={f.id}
-                    {...clickable(() => enterFolder(f.id))}
+                    {...clickable(() => handleEnterFolder(f.id))}
                     aria-label={`폴더 ${f.name} 열기`}
                     className="flex flex-col items-center gap-2 px-3 pt-5 pb-3.5 bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] cursor-pointer transition-all text-center hover:border-accent hover:bg-accent-dim hover:-translate-y-px group relative"
-                    onClick={() => enterFolder(f.id)}
+                    onClick={() => handleEnterFolder(f.id)}
                   >
                     <div className="text-[2rem] leading-none">📁</div>
                     <div className="text-[0.82rem] font-semibold text-primary break-all">{f.name}</div>
@@ -294,7 +295,7 @@ export default function FilesPage() {
                     <button
                       type="button"
                       className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded text-muted hover:text-danger hover:bg-surface transition-all"
-                      onClick={(e) => { e.stopPropagation(); deleteFolder(f); }}
+                      onClick={(e) => { e.stopPropagation(); handleDeleteFolder(f); }}
                       aria-label="폴더 삭제"
                     >
                       <IconTrash width={12} height={12} />
@@ -356,8 +357,8 @@ export default function FilesPage() {
                   </div>
                   <div className="flex border-t border-border-subtle" onClick={(e) => e.stopPropagation()}>
                     <button type="button" className={FILE_BTN} onClick={() => setViewer(file)}>보기</button>
-                    <button type="button" className={FILE_BTN} onClick={() => downloadFile(file)}>다운</button>
-                    <button type="button" className={`${FILE_BTN} hover:text-danger`} onClick={() => deleteFile(file)}>삭제</button>
+                    <button type="button" className={FILE_BTN} onClick={() => handleDownloadFile(file)}>다운</button>
+                    <button type="button" className={`${FILE_BTN} hover:text-danger`} onClick={() => handleDeleteFile(file)}>삭제</button>
                   </div>
                 </div>
               ))}
@@ -374,7 +375,7 @@ export default function FilesPage() {
         footer={
           <ModalFooter
             onClose={() => { setFolderModal(false); setFolderName(''); }}
-            onSave={createFolder}
+            onSave={handleCreateFolder}
             saving={saving}
             saveLabel="생성"
           />
@@ -387,7 +388,7 @@ export default function FilesPage() {
             placeholder="예: 보험 서류"
             value={folderName}
             onChange={(e) => setFolderName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && createFolder()}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
             autoFocus
           />
         </Field>
@@ -399,7 +400,7 @@ export default function FilesPage() {
       </Modal>
 
       {/* 파일 뷰어 모달 */}
-      <ViewerModal file={viewer} onClose={() => setViewer(null)} onDownload={downloadFile} />
+      <ViewerModal file={viewer} onClose={() => setViewer(null)} onDownload={handleDownloadFile} />
 
       {confirmElement}
     </AppShell>
@@ -445,7 +446,7 @@ function ViewerModal({
         <Button variant="ghost" size="sm" onClick={() => onDownload(file)}>다운로드</Button>
         <button
           type="button"
-          className="w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] text-secondary border border-border transition-all hover:bg-surface hover:text-primary"
+          className={NAV_BTN_34}
           onClick={onClose}
           aria-label="닫기"
         >

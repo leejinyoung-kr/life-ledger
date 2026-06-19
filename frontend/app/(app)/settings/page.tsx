@@ -15,6 +15,8 @@ import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import ErrorBanner from '@/components/ErrorBanner';
+import QueryError from '@/components/QueryError';
+import { PageLoading } from '@/components/QueryState';
 import { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -93,10 +95,10 @@ export default function SettingsPage() {
   const [vault, setVault] = useState<VaultStatus | null>(null);
   const [vaultPw, setVaultPw] = useState('');
   const [vaultTimeout, setVaultTimeout] = useState(5);
-  const [vaultBusy, setVaultBusy] = useState(false);
+  const [vaultSaving, setVaultSaving] = useState(false);
 
   // 계정 보관함 JSON 백업 복원 (export 역방향) — 동일 CREDENTIAL_SECRET 전제
-  async function importCredentials(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImportCredentials(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -122,7 +124,7 @@ export default function SettingsPage() {
   }
 
   // 계정 영구 삭제 — 확인 후 전 데이터 제거 + 로그아웃
-  async function deleteAccount() {
+  async function handleDeleteAccount() {
     if (!await confirm('계정을 영구 삭제할까요? 모든 데이터가 사라지며 되돌릴 수 없습니다.', 'danger')) return;
     try {
       await api.del('/auth/me');
@@ -165,7 +167,7 @@ export default function SettingsPage() {
   }, []);
 
   // 푸시 토글 — 켜기(권한+구독+서버저장) / 끄기(구독취소+서버삭제)
-  async function togglePush() {
+  async function handleTogglePush() {
     if (pushBusy) return;
     setPushBusy(true);
     try {
@@ -238,20 +240,20 @@ export default function SettingsPage() {
   useEffect(() => { if (tab === 'security') loadVault(); }, [tab, loadVault]);
 
   // 마스터 잠금 설정/변경
-  async function setupVault() {
-    if (!vaultPw || vaultBusy) return;
-    setVaultBusy(true);
+  async function handleSetupVault() {
+    if (!vaultPw || vaultSaving) return;
+    setVaultSaving(true);
     try {
       await api.post('/security/vault/setup', { password: vaultPw, timeoutMin: vaultTimeout });
       setVaultPw('');
       notify.success('마스터 잠금을 설정했습니다.');
       loadVault();
     } catch (e) { notify.error((e as Error).message); }
-    finally { setVaultBusy(false); }
+    finally { setVaultSaving(false); }
   }
 
   // OpenAI 키 연결 확인 — 서버가 저장된 키로 /v1/models 호출해 유효성·모델 가용성 검사
-  async function verifyApiKey() {
+  async function handleVerifyApiKey() {
     if (keyCheckBusy) return;
     setKeyCheckBusy(true);
     setKeyCheck(null);
@@ -269,9 +271,9 @@ export default function SettingsPage() {
   }
 
   // 마스터 잠금 해제(비활성화) — 현재 비번 확인
-  async function disableVault() {
-    if (!vaultPw || vaultBusy) return;
-    setVaultBusy(true);
+  async function handleDisableVault() {
+    if (!vaultPw || vaultSaving) return;
+    setVaultSaving(true);
     try {
       await api.post('/security/vault/disable', { password: vaultPw });
       setVaultPw('');
@@ -279,14 +281,16 @@ export default function SettingsPage() {
       notify.success('마스터 잠금을 해제했습니다.');
       loadVault();
     } catch (e) { notify.error((e as Error).message); }
-    finally { setVaultBusy(false); }
+    finally { setVaultSaving(false); }
   }
 
   if (!s) {
     return (
       <AppShell activePath="/settings" topbarLabel="설정">
         <div className="mb-7"><h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">설정</h1></div>
-        {error ? <ErrorBanner message={error} className="mt-3" /> : <p className="text-[0.82rem] text-secondary">불러오는 중...</p>}
+        {settingsQuery.isError
+          ? <QueryError message={error ?? undefined} onRetry={settingsQuery.refetch} />
+          : <PageLoading className="py-0! text-left! text-[0.82rem] text-secondary" />}
       </AppShell>
     );
   }
@@ -299,14 +303,14 @@ export default function SettingsPage() {
   };
 
   // 알림 토글 — 즉시 저장
-  const toggleNotif = (key: 'notifMonthly' | 'notifUpload' | 'notifMaturity' | 'notifDeadline') => {
+  const handleToggleNotif = (key: 'notifMonthly' | 'notifUpload' | 'notifMaturity' | 'notifDeadline') => {
     const next = !s[key];
     const label = NOTIF_LABEL[key];
     patch({ [key]: next }, `${label}${eulreul(label)} ${next ? '켰습니다.' : '껐습니다.'}`);
   };
 
   // 위젯 표시 토글 — 즉시 저장
-  async function toggleWidget(id: string) {
+  async function handleToggleWidget(id: string) {
     const next = widgets.map((w) => (w.id === id ? { ...w, on: !w.on } : w));
     setWidgets(next);
     const toggled = next.find((w) => w.id === id);
@@ -315,7 +319,7 @@ export default function SettingsPage() {
   }
 
   // 드래그한 1차 메뉴를 대상 위치로 재배치 (로컬)
-  function onMenuDrop(targetKey: string) {
+  function handleMenuDrop(targetKey: string) {
     if (!menuDragId || menuDragId === targetKey) return;
     setMenuOrder((prev) => {
       const arr = [...prev];
@@ -329,12 +333,12 @@ export default function SettingsPage() {
   }
 
   // 메뉴 순서 저장 → patch 가 ['settings'] 캐시를 갱신하면 사이드바(useQuery)가 자동 반영
-  async function saveMenuOrder() {
+  async function handleSaveMenuOrder() {
     await patch({ menuOrder });
   }
 
   // 메뉴 순서 기본값으로 초기화 (로컬)
-  function resetMenuOrder() {
+  function handleResetMenuOrder() {
     setMenuOrder([...DEFAULT_MENU_ORDER]);
   }
 
@@ -398,21 +402,21 @@ export default function SettingsPage() {
                           테스트 발송
                         </Button>
                       )}
-                      <Toggle on={pushOn} onToggle={togglePush} disabled={!pushServerReady || pushBusy} />
+                      <Toggle on={pushOn} onToggle={handleTogglePush} disabled={!pushServerReady || pushBusy} />
                     </div>
                   </Row>
                 )}
                 <Row label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
-                  <Toggle on={s.notifMaturity} onToggle={() => toggleNotif('notifMaturity')} />
+                  <Toggle on={s.notifMaturity} onToggle={() => handleToggleNotif('notifMaturity')} />
                 </Row>
                 <Row label="만료·마감 임박 알림" desc="신원 문서 만료·할일 마감 임박 시 알림">
-                  <Toggle on={s.notifDeadline} onToggle={() => toggleNotif('notifDeadline')} />
+                  <Toggle on={s.notifDeadline} onToggle={() => handleToggleNotif('notifDeadline')} />
                 </Row>
                 <Row label="월간 리포트 자동 생성" desc="매월 1일 전월 리포트 자동 생성">
-                  <Toggle on={s.notifMonthly} onToggle={() => toggleNotif('notifMonthly')} />
+                  <Toggle on={s.notifMonthly} onToggle={() => handleToggleNotif('notifMonthly')} />
                 </Row>
                 <Row label="파일 업로드 완료 알림" desc="파일 업로드 시 알림 표시">
-                  <Toggle on={s.notifUpload} onToggle={() => toggleNotif('notifUpload')} />
+                  <Toggle on={s.notifUpload} onToggle={() => handleToggleNotif('notifUpload')} />
                 </Row>
               </Group>
             </>
@@ -465,8 +469,8 @@ export default function SettingsPage() {
                       </select>
                     )}
                     {vault?.enabled
-                      ? <Button variant="danger" disabled={vaultBusy || !vaultPw} onClick={disableVault}>잠금 해제</Button>
-                      : <Button disabled={vaultBusy || !vaultPw} onClick={setupVault}>잠금 설정</Button>}
+                      ? <Button variant="danger" disabled={vaultSaving || !vaultPw} onClick={handleDisableVault}>잠금 해제</Button>
+                      : <Button disabled={vaultSaving || !vaultPw} onClick={handleSetupVault}>잠금 설정</Button>}
                   </div>
                 </div>
               </div>
@@ -498,7 +502,7 @@ export default function SettingsPage() {
                     {keyCheck.modelAvailable ? '정상' : keyCheck.ok ? '모델 접근 불가' : '연결 실패'}
                   </Badge>
                 )}
-                <Button variant="ghost" disabled={!s.openaiApiKeySet || keyCheckBusy} onClick={verifyApiKey}>
+                <Button variant="ghost" disabled={!s.openaiApiKeySet || keyCheckBusy} onClick={handleVerifyApiKey}>
                   {keyCheckBusy ? '확인 중...' : '연결 확인'}
                 </Button>
               </Row>
@@ -553,7 +557,7 @@ export default function SettingsPage() {
                         <div className="text-[0.875rem] font-medium text-primary">{meta.name}</div>
                         <div className={`text-[0.775rem] mt-0.5 ${w.on ? 'text-muted' : 'text-danger'}`}>{w.on ? meta.desc : '숨겨짐 · 대시보드에 표시되지 않습니다'}</div>
                       </div>
-                      <Toggle on={w.on} onToggle={() => toggleWidget(w.id)} />
+                      <Toggle on={w.on} onToggle={() => handleToggleWidget(w.id)} />
                     </div>
                   );
                 })}
@@ -575,7 +579,7 @@ export default function SettingsPage() {
                     draggable
                     onDragStart={() => setMenuDragId(key)}
                     onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => onMenuDrop(key)}
+                    onDrop={() => handleMenuDrop(key)}
                   >
                     <span className="text-muted cursor-grab active:cursor-grabbing shrink-0 flex"><IconDrag width={14} height={14} /></span>
                     <div className="flex-1 text-[0.875rem] font-medium text-primary">{MENU_LABEL[key] ?? key}</div>
@@ -584,8 +588,8 @@ export default function SettingsPage() {
               </Group>
 
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={resetMenuOrder}>초기화</Button>
-                <Button onClick={saveMenuOrder}>메뉴 순서 저장</Button>
+                <Button variant="ghost" onClick={handleResetMenuOrder}>초기화</Button>
+                <Button onClick={handleSaveMenuOrder}>메뉴 순서 저장</Button>
               </div>
             </>
           )}
@@ -609,7 +613,7 @@ export default function SettingsPage() {
                 <Row label="계정 보관함 복원" desc="JSON 백업을 현재 보관함에 추가 (동일 키 필요 · 덮어쓰지 않음)">
                   <label className="excel-btn upload">
                     JSON 복원
-                    <input type="file" accept=".json,application/json" hidden onChange={importCredentials} />
+                    <input type="file" accept=".json,application/json" hidden onChange={handleImportCredentials} />
                   </label>
                 </Row>
                 <Row label="가계부 가져오기" desc="거래 내역 엑셀(.xlsx)은 가계부 페이지에서 업로드합니다.">
@@ -619,7 +623,7 @@ export default function SettingsPage() {
               <div className="bg-background border border-[rgba(240,68,56,0.2)] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">
                 <div className="px-5 py-3.5 border-b border-[rgba(240,68,56,0.15)] [font-family:var(--font-display)] font-bold text-[0.875rem] text-danger bg-danger-dim">위험 구역</div>
                 <Row labelClass="danger" label="계정 삭제" desc="모든 데이터가 영구 삭제됩니다. 되돌릴 수 없습니다.">
-                  <Button variant="danger" onClick={deleteAccount}>계정 삭제</Button>
+                  <Button variant="danger" onClick={handleDeleteAccount}>계정 삭제</Button>
                 </Row>
               </div>
             </>

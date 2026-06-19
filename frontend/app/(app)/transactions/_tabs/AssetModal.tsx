@@ -45,7 +45,7 @@ export function AssetModal({ assetType, state, onClose, onSaved }: {
     return !Object.keys(err).length;
   }
 
-  async function save() {
+  async function handleSave() {
     if (!validate()) return;
     setSaving(true);
     try {
@@ -72,7 +72,7 @@ export function AssetModal({ assetType, state, onClose, onSaved }: {
       open={state.open}
       onClose={onClose}
       title={state.mode === 'edit' ? `${typeLabel} 수정` : `${typeLabel} 추가`}
-      footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}
+      footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}
     >
       <Field label="항목명" required error={errors.name}>
         <input

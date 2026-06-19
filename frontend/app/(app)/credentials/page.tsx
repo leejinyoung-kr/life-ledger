@@ -78,7 +78,7 @@ export default function CredentialsPage() {
   const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(paged.map((x) => x.id));
 
   // 계정 삭제
-  async function remove(c: Credential) {
+  async function handleRemove(c: Credential) {
     if (!await confirm(`'${c.name}' 계정을 삭제할까요?`, 'danger')) return;
     try {
       await api.del(`/credentials/${c.id}`);
@@ -91,7 +91,7 @@ export default function CredentialsPage() {
     }
   }
 
-  async function removeSelected() {
+  async function handleRemoveSelected() {
     if (selected.size === 0) return;
     if (!await confirm(`선택한 ${selected.size}건을 삭제할까요?`, 'danger')) return;
     try {
@@ -105,20 +105,20 @@ export default function CredentialsPage() {
   }
 
   // 엑셀 양식 다운로드
-  async function downloadTemplate() {
+  async function handleDownloadTemplate() {
     try { await apiDownload('/credentials/template', '계정양식.xlsx'); notify.excelDownloaded(); }
     catch { notify.error('양식 다운로드에 실패했습니다.'); }
   }
 
   // 계정 데이터 엑셀 다운로드 — 비밀번호가 평문으로 포함되므로 확인
-  async function downloadData() {
+  async function handleDownloadData() {
     if (!await confirm('비밀번호가 평문으로 포함된 엑셀을 다운로드할까요?', 'danger')) return;
     try { await apiDownload('/credentials/export', '계정.xlsx'); notify.excelDownloaded(); }
     catch { notify.error('다운로드에 실패했습니다.'); }
   }
 
   // 엑셀 업로드 → 일괄 추가
-  async function uploadExcel(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleUploadExcel(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -157,12 +157,12 @@ export default function CredentialsPage() {
         <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
           <span className="text-[0.75rem] font-semibold text-muted">엑셀</span>
           <div className="flex gap-2 flex-wrap">
-            <button type="button" className="excel-btn" onClick={downloadTemplate}>양식 다운로드</button>
+            <button type="button" className="excel-btn" onClick={handleDownloadTemplate}>양식 다운로드</button>
             <label className="excel-btn upload">
               엑셀 업로드
-              <input type="file" accept=".xlsx,.xls" hidden onChange={uploadExcel} />
+              <input type="file" accept=".xlsx,.xls" hidden onChange={handleUploadExcel} />
             </label>
-            <button type="button" className="excel-btn" onClick={downloadData}>데이터 다운로드</button>
+            <button type="button" className="excel-btn" onClick={handleDownloadData}>데이터 다운로드</button>
           </div>
         </div>
       </div>
@@ -185,7 +185,7 @@ export default function CredentialsPage() {
       <div className="flex items-center justify-between mb-4">
         <span className="text-muted text-[0.82rem]">총 {total}개</span>
         <div className="flex items-center gap-2">
-          <Button variant="danger" disabled={selected.size === 0} onClick={removeSelected}>선택삭제</Button>
+          <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
@@ -215,7 +215,7 @@ export default function CredentialsPage() {
                   <td className="td-center" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-center gap-1">
                       <button type="button" className="icon-btn-bordered" onClick={() => setEdit({ open: true, editing: c })} aria-label="수정"><IconEdit width={14} height={14} /></button>
-                      <button type="button" className="icon-btn-danger" onClick={() => remove(c)} aria-label="삭제"><IconTrash width={14} height={14} /></button>
+                      <button type="button" className="icon-btn-danger" onClick={() => handleRemove(c)} aria-label="삭제"><IconTrash width={14} height={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -240,7 +240,7 @@ export default function CredentialsPage() {
               <div className="mt-2 text-[0.78rem] text-secondary font-mono truncate">{c.username}</div>
               <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" className="flex-1" onClick={() => setEdit({ open: true, editing: c })}>수정</Button>
-                <Button variant="danger" className="flex-1" onClick={() => remove(c)}>삭제</Button>
+                <Button variant="danger" className="flex-1" onClick={() => handleRemove(c)}>삭제</Button>
               </div>
             </div>
           ))}
@@ -254,7 +254,7 @@ export default function CredentialsPage() {
         cred={detail}
         onClose={() => setDetail(null)}
         onEdit={() => { const c = detail; setDetail(null); setEdit({ open: true, editing: c }); }}
-        onDelete={() => detail && remove(detail)}
+        onDelete={() => detail && handleRemove(detail)}
       />
 
       {/* 추가/수정 모달 */}
@@ -306,7 +306,7 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
   if (!cred) return null;
 
   // 비밀번호 표시/숨김 토글 — 표시 시 10초 뒤 자동 숨김 예약
-  function togglePw() {
+  function handleTogglePw() {
     setPwVisible((v) => {
       const next = !v;
       if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -316,7 +316,7 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
   }
 
   // 백업코드 생성(기존 덮어씀) — 평문은 이 응답에서만 노출
-  async function genBackup() {
+  async function handleGenBackup() {
     if (!cred || backupBusy) return;
     setBackupBusy(true);
     try {
@@ -328,7 +328,7 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
   }
 
   // 저장된 백업코드 조회
-  async function viewBackup() {
+  async function handleViewBackup() {
     if (!cred || backupBusy) return;
     setBackupBusy(true);
     try {
@@ -378,7 +378,7 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
       {/* 비밀번호 */}
       <DetailField label="비밀번호">
         <span className={`flex-1 font-mono text-[0.875rem] truncate ${pwVisible ? 'text-primary' : 'tracking-[0.25em] text-muted'}`}>{pwVisible ? pw : maskedPw}</span>
-        <button type="button" className={ICON_BTN} onClick={togglePw} aria-label="비밀번호 표시/숨김" disabled={!secret}><IconEye width={14} height={14} /></button>
+        <button type="button" className={ICON_BTN} onClick={handleTogglePw} aria-label="비밀번호 표시/숨김" disabled={!secret}><IconEye width={14} height={14} /></button>
         <button type="button" className={ICON_BTN} onClick={() => copyToClipboard(pw)} aria-label="비밀번호 복사" disabled={!secret}><IconCopy width={14} height={14} /></button>
       </DetailField>
 
@@ -404,15 +404,15 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
               </div>
               <div className="flex gap-2 mt-3 pt-3 border-t border-border-subtle">
                 <Button variant="ghost" size="sm" className="flex-1" onClick={() => copyToClipboard(backupCodes.join('\n'))}>전체 복사</Button>
-                <Button variant="ghost" size="sm" className="flex-1" onClick={genBackup} disabled={backupBusy}>재생성</Button>
+                <Button variant="ghost" size="sm" className="flex-1" onClick={handleGenBackup} disabled={backupBusy}>재생성</Button>
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-2 bg-surface border border-border rounded-(--radius) px-3 py-2.5">
               <span className="flex-1 text-[0.8rem] text-secondary">{cred.hasBackupCodes ? '백업코드가 저장되어 있습니다.' : '저장된 백업코드가 없습니다.'}</span>
               {cred.hasBackupCodes
-                ? <Button variant="ghost" size="sm" onClick={viewBackup} disabled={backupBusy}>보기</Button>
-                : <Button variant="ghost" size="sm" onClick={genBackup} disabled={backupBusy}>생성</Button>}
+                ? <Button variant="ghost" size="sm" onClick={handleViewBackup} disabled={backupBusy}>보기</Button>
+                : <Button variant="ghost" size="sm" onClick={handleGenBackup} disabled={backupBusy}>생성</Button>}
             </div>
           )}
         </div>

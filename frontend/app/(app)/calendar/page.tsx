@@ -20,6 +20,7 @@ import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
+import { NAV_BTN_34 } from '@/components/ui/styles';
 import { useConfirm } from '@/components/ConfirmModal';
 import { api } from '@/lib/api';
 import {
@@ -95,7 +96,7 @@ export default function CalendarPage() {
   const reload = () => invalidate(qk.calendar.all);
 
   // 월 이동 (delta: -1 이전, +1 다음)
-  function moveMonth(delta: number) {
+  function handleMoveMonth(delta: number) {
     setView((v) => {
       if (!v) return v;
       const d = new Date(v.year, v.month + delta, 1);
@@ -104,7 +105,7 @@ export default function CalendarPage() {
   }
 
   // 일정 삭제 (가상 이벤트면 원본 테이블에서도 삭제)
-  async function removeEvent(ev: CalEvent) {
+  async function handleRemoveEvent(ev: CalEvent) {
     const label = ev.virtual && ev.sourceType ? `${VIRT_SOURCE_META[ev.sourceType].label} 항목` : '일정';
     const msg = ev.virtual
       ? `이 ${withEulReul(label)} 삭제할까요? 해당 페이지에서도 삭제됩니다.`
@@ -121,13 +122,13 @@ export default function CalendarPage() {
   }
 
   // 오늘이 속한 달로 이동
-  function goToday() {
+  function handleGoToday() {
     const now = new Date();
     setView({ year: now.getFullYear(), month: now.getMonth() });
   }
 
   const cells = view ? buildMonth(view.year, view.month) : [];
-  const navBtn = 'w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] text-[1.1rem] leading-none text-secondary border border-border transition-all hover:bg-surface hover:text-primary';
+  const navBtn = `${NAV_BTN_34} text-[1.1rem] leading-none`;
 
   return (
     <AppShell activePath="/calendar" topbarLabel="캘린더">
@@ -150,11 +151,11 @@ export default function CalendarPage() {
           {/* 월 이동 툴바 */}
           <div className="flex items-center justify-between mb-3.5">
             <div className="flex items-center gap-2">
-              <button type="button" className={navBtn} onClick={() => moveMonth(-1)} aria-label="이전 달">‹</button>
+              <button type="button" className={navBtn} onClick={() => handleMoveMonth(-1)} aria-label="이전 달">‹</button>
               <span className="[font-family:var(--font-display)] font-bold text-[1.1rem]">{view ? `${view.year}년 ${view.month + 1}월` : ''}</span>
-              <button type="button" className={navBtn} onClick={() => moveMonth(1)} aria-label="다음 달">›</button>
+              <button type="button" className={navBtn} onClick={() => handleMoveMonth(1)} aria-label="다음 달">›</button>
             </div>
-            <Button variant="ghost" size="sm" onClick={goToday}>오늘</Button>
+            <Button variant="ghost" size="sm" onClick={handleGoToday}>오늘</Button>
           </div>
 
           {/* 월 그리드 */}
@@ -215,7 +216,7 @@ export default function CalendarPage() {
                     <button
                       type="button"
                       className="icon-btn-danger"
-                      onClick={() => removeEvent(u)}
+                      onClick={() => handleRemoveEvent(u)}
                       aria-label="일정 삭제"
                     ><IconTrash width={12} height={12} /></button>
                   </div>
@@ -241,7 +242,7 @@ export default function CalendarPage() {
       <AddEventModal open={addModal} onClose={() => setAddModal(false)} onSaved={() => { setAddModal(false); reload(); }} />
 
       {/* 일정 상세/삭제 모달 */}
-      <EventDetailModal event={detailEvent} onClose={() => setDetailEvent(null)} onDelete={(ev) => removeEvent(ev)} />
+      <EventDetailModal event={detailEvent} onClose={() => setDetailEvent(null)} onDelete={(ev) => handleRemoveEvent(ev)} />
 
       {/* 모바일 — 날짜 점 탭 시 그 날 일정 목록 모달 */}
       <DayListModal day={dayList} onClose={() => setDayList(null)} onSelect={(ev) => { setDayList(null); setDetailEvent(ev); }} />
@@ -322,7 +323,7 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
     return !Object.keys(err).length;
   }
 
-  async function save() {
+  async function handleSave() {
     if (!validate()) return;
     setSaving(true);
     try {
@@ -337,7 +338,7 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="일정 추가" footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}>
+    <Modal open={open} onClose={onClose} title="일정 추가" footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="제목" required error={errors.title}>
         <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 보험 갱신" value={title} onChange={(e) => { setTitle(e.target.value); clearError('title'); }} />
       </Field>

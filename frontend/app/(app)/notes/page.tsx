@@ -56,7 +56,7 @@ export default function NotesPage() {
     qc.setQueryData<Note[]>(qk.notes.list(), (prev) => fn(prev ?? []));
 
   // 노트 선택 (모바일은 에디터로 전환)
-  function selectNote(id: number) {
+  function handleSelectNote(id: number) {
     setPicked(id);
     setMobileView('editor');
   }
@@ -68,7 +68,7 @@ export default function NotesPage() {
   }
 
   // 새 메모 추가 (POST 후 캐시 prepend + 선택)
-  async function newNote() {
+  async function handleNewNote() {
     try {
       const created = await api.post<Note>('/notes', { title: '새 메모', body: '', tag: '기타' });
       setList((prev) => [created, ...prev]);
@@ -83,7 +83,7 @@ export default function NotesPage() {
   }
 
   // 현재 메모 저장 (PUT → 캐시 반영 + draft 해제)
-  async function saveNote() {
+  async function handleSaveNote() {
     if (!note) return;
     setSaving(true);
     try {
@@ -99,7 +99,7 @@ export default function NotesPage() {
   }
 
   // 현재 메모 삭제 (DELETE → 캐시에서 제거, 선택은 첫 항목으로)
-  async function deleteNote() {
+  async function handleDeleteNote() {
     if (!note) return;
     if (!await confirm('이 메모를 삭제할까요?', 'danger')) return;
     const targetId = note.id;
@@ -116,7 +116,7 @@ export default function NotesPage() {
   }
 
   // 선택 영역을 prefix/suffix 로 감싸는 마크다운 삽입
-  function wrap(prefix: string, suffix: string) {
+  function handleWrap(prefix: string, suffix: string) {
     const ta = editorRef.current;
     if (!ta) return;
     const { selectionStart: s, selectionEnd: e, value } = ta;
@@ -130,7 +130,7 @@ export default function NotesPage() {
   }
 
   // 현재 줄 맨 앞에 prefix 삽입
-  function linePrefix(prefix: string) {
+  function handleLinePrefix(prefix: string) {
     const ta = editorRef.current;
     if (!ta) return;
     const { selectionStart: s, value } = ta;
@@ -144,12 +144,12 @@ export default function NotesPage() {
   }
 
   // 현재 노트의 태그 제거
-  function removeTag() {
+  function handleRemoveTag() {
     patchNote({ tag: '' });
   }
 
   // 태그 입력 후 Enter 로 추가
-  function addTag(e: KeyboardEvent<HTMLInputElement>) {
+  function handleAddTag(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key !== 'Enter') return;
     const v = e.currentTarget.value.trim();
     if (v) patchNote({ tag: v });
@@ -170,7 +170,7 @@ export default function NotesPage() {
           <div className="p-4 border-b border-border flex flex-col gap-2.5 shrink-0">
             <div className="flex items-center justify-between">
               <span className="[font-family:var(--font-display)] text-[0.9rem] font-bold text-primary">메모 <span className="text-muted font-normal text-[0.8rem]">{notes.length}개</span></span>
-              <Button size="sm" onClick={newNote}>새 메모</Button>
+              <Button size="sm" onClick={handleNewNote}>새 메모</Button>
             </div>
             <div className="relative">
               <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
@@ -187,7 +187,7 @@ export default function NotesPage() {
             {filtered.map((n) => {
               const active = n.id === selectedId;
               return (
-                <div key={n.id} {...clickable(() => selectNote(n.id))} aria-label={`메모 ${n.title}`} className={`p-3 rounded-[var(--radius)] cursor-pointer transition-colors border border-transparent mb-0.5 hover:bg-surface ${active ? 'bg-accent-dim border-[rgba(0,192,127,0.2)]' : ''}`} onClick={() => selectNote(n.id)}>
+                <div key={n.id} {...clickable(() => handleSelectNote(n.id))} aria-label={`메모 ${n.title}`} className={`p-3 rounded-[var(--radius)] cursor-pointer transition-colors border border-transparent mb-0.5 hover:bg-surface ${active ? 'bg-accent-dim border-[rgba(0,192,127,0.2)]' : ''}`} onClick={() => handleSelectNote(n.id)}>
                   <div className={`text-[0.855rem] font-semibold truncate mb-1 ${active ? 'text-accent' : 'text-primary'}`}>{n.title}</div>
                   <div className="text-[0.75rem] text-muted truncate leading-snug">{n.body.replace(/[#>*`\-|]/g, '').trim().slice(0, 40) || '내용 없음'}</div>
                   <div className="flex items-center justify-between mt-1.5">
@@ -207,32 +207,32 @@ export default function NotesPage() {
             <div className="flex items-center gap-1 px-5 py-2.5 border-b border-border shrink-0 flex-wrap">
               <button type="button" className={`${TB} hidden max-md:flex w-auto px-2 text-[0.78rem]`} onClick={() => setMobileView('list')}>← 목록</button>
               <div className="flex items-center gap-0.5">
-                <button type="button" className={TB} onClick={() => wrap('**', '**')} title="굵게"><strong>B</strong></button>
-                <button type="button" className={TB} onClick={() => wrap('*', '*')} title="기울임"><em>I</em></button>
-                <button type="button" className={`${TB} line-through`} onClick={() => wrap('~~', '~~')} title="취소선">S</button>
-                <button type="button" className={`${TB} [font-family:var(--font-mono)] text-[0.75rem]`} onClick={() => wrap('`', '`')} title="인라인 코드">&lt;/&gt;</button>
+                <button type="button" className={TB} onClick={() => handleWrap('**', '**')} title="굵게"><strong>B</strong></button>
+                <button type="button" className={TB} onClick={() => handleWrap('*', '*')} title="기울임"><em>I</em></button>
+                <button type="button" className={`${TB} line-through`} onClick={() => handleWrap('~~', '~~')} title="취소선">S</button>
+                <button type="button" className={`${TB} [font-family:var(--font-mono)] text-[0.75rem]`} onClick={() => handleWrap('`', '`')} title="인라인 코드">&lt;/&gt;</button>
               </div>
               <div className={TB_DIV} />
               <div className="flex items-center gap-0.5">
-                <button type="button" className={`${TB} text-[0.7rem] font-bold`} onClick={() => linePrefix('# ')} title="제목 1">H1</button>
-                <button type="button" className={`${TB} text-[0.7rem] font-bold`} onClick={() => linePrefix('## ')} title="제목 2">H2</button>
-                <button type="button" className={`${TB} text-[0.7rem] font-bold`} onClick={() => linePrefix('### ')} title="제목 3">H3</button>
+                <button type="button" className={`${TB} text-[0.7rem] font-bold`} onClick={() => handleLinePrefix('# ')} title="제목 1">H1</button>
+                <button type="button" className={`${TB} text-[0.7rem] font-bold`} onClick={() => handleLinePrefix('## ')} title="제목 2">H2</button>
+                <button type="button" className={`${TB} text-[0.7rem] font-bold`} onClick={() => handleLinePrefix('### ')} title="제목 3">H3</button>
               </div>
               <div className={TB_DIV} />
               <div className="flex items-center gap-0.5">
-                <button type="button" className={TB} onClick={() => linePrefix('- ')} title="목록">•</button>
-                <button type="button" className={TB} onClick={() => linePrefix('1. ')} title="번호 목록">1.</button>
-                <button type="button" className={TB} onClick={() => linePrefix('- [ ] ')} title="체크리스트">☐</button>
-                <button type="button" className={TB} onClick={() => linePrefix('> ')} title="인용">❝</button>
+                <button type="button" className={TB} onClick={() => handleLinePrefix('- ')} title="목록">•</button>
+                <button type="button" className={TB} onClick={() => handleLinePrefix('1. ')} title="번호 목록">1.</button>
+                <button type="button" className={TB} onClick={() => handleLinePrefix('- [ ] ')} title="체크리스트">☐</button>
+                <button type="button" className={TB} onClick={() => handleLinePrefix('> ')} title="인용">❝</button>
               </div>
               <div className={TB_DIV} />
               <div className="flex items-center gap-0.5">
-                <button type="button" className={TB} onClick={() => wrap('\n```\n', '\n```\n')} title="코드 블록">{'{}'}</button>
-                <button type="button" className={TB} onClick={() => wrap('\n---\n', '')} title="구분선">―</button>
+                <button type="button" className={TB} onClick={() => handleWrap('\n```\n', '\n```\n')} title="코드 블록">{'{}'}</button>
+                <button type="button" className={TB} onClick={() => handleWrap('\n---\n', '')} title="구분선">―</button>
               </div>
               <div className="ml-auto flex gap-1.5 items-center">
-                <Button variant="primary" size="sm" onClick={saveNote} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
-                <Button variant="danger" size="sm" onClick={deleteNote}>삭제</Button>
+                <Button variant="primary" size="sm" onClick={handleSaveNote} disabled={saving}>{saving ? '저장 중...' : '저장'}</Button>
+                <Button variant="danger" size="sm" onClick={handleDeleteNote}>삭제</Button>
               </div>
             </div>
 
@@ -245,8 +245,8 @@ export default function NotesPage() {
             <div className="px-6 py-2.5 flex items-center gap-3 shrink-0 border-b border-border-subtle">
               <span className="text-[0.75rem] text-muted">{formatNoteDate(note.updatedAt)}</span>
               <div className="flex items-center gap-1.5 flex-wrap">
-                {note.tag && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-elevated text-secondary text-[0.72rem] font-medium">{note.tag} <button type="button" className="text-muted hover:text-danger" onClick={removeTag} aria-label="태그 삭제">✕</button></span>}
-                <input type="text" className="border-none outline-none bg-transparent text-[0.72rem] text-secondary w-[60px]" placeholder="+ 태그" onKeyDown={addTag} aria-label="태그 추가" />
+                {note.tag && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-elevated text-secondary text-[0.72rem] font-medium">{note.tag} <button type="button" className="text-muted hover:text-danger" onClick={handleRemoveTag} aria-label="태그 삭제">✕</button></span>}
+                <input type="text" className="border-none outline-none bg-transparent text-[0.72rem] text-secondary w-[60px]" placeholder="+ 태그" onKeyDown={handleAddTag} aria-label="태그 추가" />
               </div>
             </div>
 

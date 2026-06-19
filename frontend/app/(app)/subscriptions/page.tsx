@@ -66,7 +66,7 @@ export default function SubscriptionsPage() {
   const error = (subsQuery.error ?? summaryQuery.error)?.message ?? null;
 
   // 구독 해지 (soft delete)
-  async function cancel(id: number) {
+  async function handleCancel(id: number) {
     if (!await confirm('이 구독을 해지할까요?', 'danger')) return;
     try {
       await api.del(`/subscriptions/${id}`);
@@ -122,7 +122,7 @@ export default function SubscriptionsPage() {
               {(() => { const dd = daysUntil(trial.nextPaymentDate); return dd !== null && dd >= 0 ? ` 해지하려면 ${dd}일 남았습니다.` : ''; })()}
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => cancel(trial.id)}>지금 해지</Button>
+          <Button variant="ghost" size="sm" onClick={() => handleCancel(trial.id)}>지금 해지</Button>
         </div>
       )}
 
@@ -166,7 +166,7 @@ export default function SubscriptionsPage() {
               </div>
               <div className="flex gap-2 pt-3 border-t border-border-subtle">
                 <Button variant="ghost" className="flex-1" onClick={() => setModal({ open: true, mode: 'edit', editing: sub })}>수정</Button>
-                <Button variant="danger" className="flex-1" onClick={() => cancel(sub.id)}>해지</Button>
+                <Button variant="danger" className="flex-1" onClick={() => handleCancel(sub.id)}>해지</Button>
               </div>
             </div>
           );
@@ -199,7 +199,7 @@ export default function SubscriptionsPage() {
                     <td className="td-mono">{won(u.monthlyCost)}</td>
                     <td className="td-muted">{u.daysSince !== null ? `${u.daysSince}일 전` : `미사용${u.status === 'trial' ? ' (체험)' : ''}`}</td>
                     <td className="td-center">
-                      <Button variant="danger" size="sm" onClick={() => cancel(u.id)}>해지 검토</Button>
+                      <Button variant="danger" size="sm" onClick={() => handleCancel(u.id)}>해지 검토</Button>
                     </td>
                   </tr>
                 ))}
@@ -220,7 +220,7 @@ export default function SubscriptionsPage() {
                   {u.daysSince !== null ? `${u.daysSince}일 전` : `미사용${u.status === 'trial' ? ' (체험)' : ''}`}
                 </div>
                 <div className="flex gap-2 mt-3">
-                  <Button variant="danger" className="flex-1" onClick={() => cancel(u.id)}>해지 검토</Button>
+                  <Button variant="danger" className="flex-1" onClick={() => handleCancel(u.id)}>해지 검토</Button>
                 </div>
               </div>
             ))}
@@ -278,7 +278,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
     return !Object.keys(err).length;
   }
 
-  async function save() {
+  async function handleSave() {
     if (!validate()) return;
     setSaving(true);
     try {
@@ -303,7 +303,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
       open={state.open}
       onClose={onClose}
       title={state.mode === 'edit' ? '구독 수정' : '구독 추가'}
-      footer={<ModalFooter onClose={onClose} onSave={save} saving={saving} />}
+      footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}
     >
       <Field label="서비스명" required error={errors.name}>
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 넷플릭스" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />

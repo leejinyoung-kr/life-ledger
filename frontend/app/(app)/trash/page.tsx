@@ -48,7 +48,7 @@ export default function TrashPage() {
   const reload = () => invalidate();
 
   // 단일 복구
-  async function restore(it: TrashItem) {
+  async function handleRestore(it: TrashItem) {
     if (!await confirm(`'${it.name}'${eulreul(it.name)} 복구할까요?`, 'primary')) return;
     try {
       await api.post('/trash/restore', { kind: it.kind, id: it.id });
@@ -58,7 +58,7 @@ export default function TrashPage() {
   }
 
   // 단일 영구 삭제
-  async function purge(it: TrashItem) {
+  async function handlePurge(it: TrashItem) {
     if (!await confirm(`'${it.name}'${eulreul(it.name)} 영구 삭제할까요? 되돌릴 수 없습니다.`, 'danger')) return;
     try {
       await api.post('/trash/purge', { kind: it.kind, id: it.id });
@@ -67,7 +67,7 @@ export default function TrashPage() {
     } catch (e) { notify.error((e as Error).message); }
   }
 
-  async function bulkRestoreSelected() {
+  async function handleBulkRestoreSelected() {
     if (selected.size === 0) return;
     if (!await confirm(`선택한 ${selected.size}건을 복구할까요?`, 'primary')) return;
     const items = [...selected].map((key) => {
@@ -82,7 +82,7 @@ export default function TrashPage() {
     } catch (e) { notify.error((e as Error).message); }
   }
 
-  async function bulkPurgeSelected() {
+  async function handleBulkPurgeSelected() {
     if (selected.size === 0) return;
     if (!await confirm(`선택한 ${selected.size}건을 영구 삭제할까요? 되돌릴 수 없습니다.`, 'danger')) return;
     const items = [...selected].map((key) => {
@@ -98,7 +98,7 @@ export default function TrashPage() {
   }
 
   // 전체 복구
-  async function restoreAll() {
+  async function handleRestoreAll() {
     if (total === 0) return;
     if (!await confirm('모든 삭제 항목을 복구할까요?', 'primary')) return;
     try {
@@ -109,7 +109,7 @@ export default function TrashPage() {
   }
 
   // 휴지통 비우기 (전체 영구 삭제)
-  async function emptyTrash() {
+  async function handleEmptyTrash() {
     if (total === 0) return;
     if (!await confirm('휴지통을 비울까요? 모든 항목이 영구 삭제됩니다.', 'danger')) return;
     try {
@@ -154,13 +154,13 @@ export default function TrashPage() {
       {/* 총건 + 일괄 액션 + 페이지 크기 — 모바일: 액션 버튼 → (총건/페이지크기) 순, PC: 기존 한 줄 유지 */}
       <div className="flex flex-col gap-2 mb-2 md:hidden!">
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="ghost" onClick={restoreAll}>전체 복구</Button>
-          <Button variant="danger" onClick={emptyTrash}>휴지통 비우기</Button>
+          <Button variant="ghost" onClick={handleRestoreAll}>전체 복구</Button>
+          <Button variant="danger" onClick={handleEmptyTrash}>휴지통 비우기</Button>
         </div>
         {selected.size > 0 && (
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="ghost" onClick={bulkRestoreSelected}>{selected.size}건 복구</Button>
-            <Button variant="danger" onClick={bulkPurgeSelected}>{selected.size}건 영구삭제</Button>
+            <Button variant="ghost" onClick={handleBulkRestoreSelected}>{selected.size}건 복구</Button>
+            <Button variant="danger" onClick={handleBulkPurgeSelected}>{selected.size}건 영구삭제</Button>
           </div>
         )}
         <div className="flex items-center justify-between">
@@ -171,10 +171,10 @@ export default function TrashPage() {
       <div className="hidden md:flex items-center gap-2 justify-between mb-2">
         <span className="text-[0.78rem] text-secondary shrink-0">총 {total}건</span>
         <div className="flex items-center gap-2 flex-wrap">
-          {selected.size > 0 && <Button variant="ghost" onClick={bulkRestoreSelected}>{selected.size}건 복구</Button>}
-          {selected.size > 0 && <Button variant="danger" onClick={bulkPurgeSelected}>{selected.size}건 영구삭제</Button>}
-          <Button variant="ghost" onClick={restoreAll}>전체 복구</Button>
-          <Button variant="danger" onClick={emptyTrash}>휴지통 비우기</Button>
+          {selected.size > 0 && <Button variant="ghost" onClick={handleBulkRestoreSelected}>{selected.size}건 복구</Button>}
+          {selected.size > 0 && <Button variant="danger" onClick={handleBulkPurgeSelected}>{selected.size}건 영구삭제</Button>}
+          <Button variant="ghost" onClick={handleRestoreAll}>전체 복구</Button>
+          <Button variant="danger" onClick={handleEmptyTrash}>휴지통 비우기</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
@@ -212,8 +212,8 @@ export default function TrashPage() {
                   <td className={`td-center ${it.daysLeft <= 2 ? 'text-danger font-semibold' : 'td-muted'}`}>{it.daysLeft}일</td>
                   <td className="td-center">
                     <div className="flex justify-center gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => restore(it)}>복구</Button>
-                      <Button variant="danger" size="sm" onClick={() => purge(it)}>영구삭제</Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleRestore(it)}>복구</Button>
+                      <Button variant="danger" size="sm" onClick={() => handlePurge(it)}>영구삭제</Button>
                     </div>
                   </td>
                 </tr>
@@ -239,8 +239,8 @@ export default function TrashPage() {
                 <span>{trashDate(it.deletedAt)} 삭제</span>
               </div>
               <div className="flex gap-2 mt-3">
-                <Button variant="ghost" className="flex-1" onClick={() => restore(it)}>복구</Button>
-                <Button variant="danger" className="flex-1" onClick={() => purge(it)}>영구삭제</Button>
+                <Button variant="ghost" className="flex-1" onClick={() => handleRestore(it)}>복구</Button>
+                <Button variant="danger" className="flex-1" onClick={() => handlePurge(it)}>영구삭제</Button>
               </div>
             </div>
           ))}

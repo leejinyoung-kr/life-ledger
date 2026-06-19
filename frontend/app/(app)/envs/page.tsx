@@ -18,6 +18,7 @@ import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
+import { TOOLBAR_DIVIDER } from '@/components/ui/styles';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
   IconCode, IconEdit, IconCopy, IconEye, IconTrash, IconSearch, IconClock,
@@ -70,14 +71,14 @@ export default function EnvsPage() {
   const project = projects.find((p) => p.id === selectedId) ?? null;
 
   // 프로젝트 전환 — 환경/표시상태 초기화
-  function selectProject(id: number) {
+  function handleSelectProject(id: number) {
     setSelectedId(id);
     setEnv('dev');
     setRevealed({});
   }
 
   // 값 표시/숨김 토글 — 처음 표시할 때만 reveal API 로 원문을 받아 캐시
-  async function toggleValue(v: EnvVar) {
+  async function handleToggleValue(v: EnvVar) {
     if (revealed[v.id] !== undefined) {
       setRevealed((p) => { const n = { ...p }; delete n[v.id]; return n; });
       return;
@@ -91,7 +92,7 @@ export default function EnvsPage() {
   }
 
   // 단일 변수 값 복사 — 캐시에 없으면 reveal 후 복사
-  async function copyVarValue(v: EnvVar) {
+  async function handleCopyVarValue(v: EnvVar) {
     if (revealed[v.id] !== undefined) { copyToClipboard(revealed[v.id]); return; }
     try {
       const { value } = await api.get<{ value: string }>(`/env-vars/${v.id}/reveal`);
@@ -113,13 +114,13 @@ export default function EnvsPage() {
     }
   }
 
-  async function copyAll() {
+  async function handleCopyAll() {
     const text = await fetchEnvText();
     if (text) copyToClipboard(text);
   }
 
   // .env 파일 다운로드
-  async function downloadEnv() {
+  async function handleDownloadEnv() {
     const text = await fetchEnvText();
     if (!text) return;
     const blob = new Blob([text], { type: 'text/plain' });
@@ -132,7 +133,7 @@ export default function EnvsPage() {
   }
 
   // 붙여넣은 .env 텍스트를 일괄 저장 (백엔드 파싱)
-  async function parsePaste() {
+  async function handleParsePaste() {
     if (!project || !paste.trim()) return;
     try {
       const { count } = await api.post<{ count: number }>(`/env-projects/${project.id}/bulk`, { env, text: paste });
@@ -157,7 +158,7 @@ export default function EnvsPage() {
   }, [project, env]);
 
   // 환경 비교 모달 열기 — 현재 env 와 다른 환경을 기본 대상으로
-  function openDiff() {
+  function handleOpenDiff() {
     const target: EnvKind = env === 'prod' ? 'dev' : 'prod';
     setDiffTarget(target);
     setDiffOpen(true);
@@ -165,7 +166,7 @@ export default function EnvsPage() {
   }
 
   // 현재 환경 키만 모아 .env.example 다운로드 (값 제외)
-  function downloadExample() {
+  function handleDownloadExample() {
     if (!project) return;
     const text = toEnvExample(project.name, vars);
     const blob = new Blob([text], { type: 'text/plain' });
@@ -178,7 +179,7 @@ export default function EnvsPage() {
   }
 
   // 프로젝트 삭제 (하위 변수 포함)
-  async function deleteProject(p: EnvProject) {
+  async function handleDeleteProject(p: EnvProject) {
     if (!await confirm(`'${p.name}' 프로젝트와 모든 변수를 삭제할까요?`, 'danger')) return;
     try {
       await api.del(`/env-projects/${p.id}`);
@@ -191,7 +192,7 @@ export default function EnvsPage() {
   }
 
   // 변수 삭제
-  async function deleteVar(v: EnvVar) {
+  async function handleDeleteVar(v: EnvVar) {
     if (!await confirm(`'${v.key}' 변수를 삭제할까요?`, 'danger')) return;
     try {
       await api.del(`/env-vars/${v.id}`);
@@ -203,7 +204,7 @@ export default function EnvsPage() {
     }
   }
 
-  async function removeSelectedVars() {
+  async function handleRemoveSelectedVars() {
     if (selectedVars.size === 0) return;
     if (!await confirm(`선택한 ${selectedVars.size}개 변수를 삭제할까요?`, 'danger')) return;
     try {
@@ -244,7 +245,7 @@ export default function EnvsPage() {
             {projects.map((p) => {
               const active = p.id === selectedId;
               return (
-                <button type="button" key={p.id} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--radius)] cursor-pointer transition-colors border border-transparent w-full text-left hover:bg-surface ${active ? 'bg-accent-dim border-[rgba(0,192,127,0.2)]' : ''}`} onClick={() => selectProject(p.id)}>
+                <button type="button" key={p.id} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--radius)] cursor-pointer transition-colors border border-transparent w-full text-left hover:bg-surface ${active ? 'bg-accent-dim border-[rgba(0,192,127,0.2)]' : ''}`} onClick={() => handleSelectProject(p.id)}>
                   <div className="min-w-0">
                     <div className={`text-[0.855rem] font-semibold truncate ${active ? 'text-accent' : 'text-primary'}`}>{p.name}</div>
                     <div className="text-[0.72rem] text-muted mt-px">변수 {p.totalVars}개</div>
@@ -268,15 +269,15 @@ export default function EnvsPage() {
               </div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <Button size="sm" onClick={() => setVarModal({ open: true, editing: null })}>변수 추가</Button>
-                <span className="w-px h-5 bg-border max-md:hidden" />
+                <span className={TOOLBAR_DIVIDER} />
                 <div className="flex items-center gap-1.5">
-                  <Button variant="ghost" size="sm" onClick={openDiff}>환경 비교</Button>
-                  <Button variant="ghost" size="sm" onClick={downloadExample}>.env.example</Button>
+                  <Button variant="ghost" size="sm" onClick={handleOpenDiff}>환경 비교</Button>
+                  <Button variant="ghost" size="sm" onClick={handleDownloadExample}>.env.example</Button>
                 </div>
-                <span className="w-px h-5 bg-border max-md:hidden" />
+                <span className={TOOLBAR_DIVIDER} />
                 <div className="flex items-center gap-1.5">
                   <Button variant="ghost" size="sm" onClick={() => setProjectModal({ open: true, editing: project })}>수정</Button>
-                  <Button variant="danger" size="sm" onClick={() => deleteProject(project)}>삭제</Button>
+                  <Button variant="danger" size="sm" onClick={() => handleDeleteProject(project)}>삭제</Button>
                 </div>
               </div>
             </div>
@@ -325,10 +326,10 @@ export default function EnvsPage() {
                         items={g.items}
                         revealed={revealed}
                         selected={selectedVars}
-                        onToggle={toggleValue}
-                        onCopy={copyVarValue}
+                        onToggle={handleToggleValue}
+                        onCopy={handleCopyVarValue}
                         onEdit={(v) => setVarModal({ open: true, editing: v })}
-                        onDelete={deleteVar}
+                        onDelete={handleDeleteVar}
                         onSelect={toggleVar}
                         onHistory={(v) => setHistoryVar(v)}
                       />
@@ -341,11 +342,11 @@ export default function EnvsPage() {
               <div className="flex flex-wrap items-center gap-2.5 px-[18px] py-3 bg-surface border-t border-border">
                 <span className="text-[0.78rem] text-muted flex-1 max-md:hidden">.env 파일 형식으로 전체 복사</span>
                 <div className="flex items-center gap-1.5">
-                  <Button variant="ghost" onClick={copyAll}>전체 복사</Button>
-                  <Button variant="ghost" onClick={downloadEnv}>.env 다운로드</Button>
+                  <Button variant="ghost" onClick={handleCopyAll}>전체 복사</Button>
+                  <Button variant="ghost" onClick={handleDownloadEnv}>.env 다운로드</Button>
                 </div>
-                <span className="w-px h-5 bg-border max-md:hidden" />
-                <Button variant="danger" disabled={selectedVars.size === 0} onClick={removeSelectedVars}>선택삭제</Button>
+                <span className={TOOLBAR_DIVIDER} />
+                <Button variant="danger" disabled={selectedVars.size === 0} onClick={handleRemoveSelectedVars}>선택삭제</Button>
               </div>
             </div>
 
@@ -363,7 +364,7 @@ export default function EnvsPage() {
               />
               <div className="flex gap-2 justify-end">
                 <Button variant="ghost" onClick={() => setPaste('')}>초기화</Button>
-                <Button onClick={parsePaste}>파싱 후 저장</Button>
+                <Button onClick={handleParsePaste}>파싱 후 저장</Button>
               </div>
             </div>
           </div>
@@ -535,7 +536,7 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
     setEnvs([editing?.env ?? currentEnv]);
   }, [state.open, editing, currentEnv]);
 
-  function toggleEnv(e: EnvKind) {
+  function handleToggleEnv(e: EnvKind) {
     setEnvs((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));
   }
 
@@ -593,7 +594,7 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
           <div className="flex gap-3 flex-wrap">
             {ENV_TABS.map((t) => (
               <label key={t.key} className="flex items-center gap-1.5 text-[0.855rem] cursor-pointer">
-                <input type="checkbox" className="accent-accent" checked={envs.includes(t.key)} onChange={() => toggleEnv(t.key)} /> {t.label}
+                <input type="checkbox" className="accent-accent" checked={envs.includes(t.key)} onChange={() => handleToggleEnv(t.key)} /> {t.label}
               </label>
             ))}
           </div>
@@ -626,7 +627,7 @@ function HistoryModal({ envVar, onClose, onRolledBack, confirm }: {
   }, [envVar]);
 
   // 선택 이력 값으로 롤백
-  async function rollback(historyId: number) {
+  async function handleRollback(historyId: number) {
     if (!envVar) return;
     if (!await confirm('이 값으로 되돌릴까요? 현재 값은 이력에 보관됩니다.', 'primary')) return;
     try {
@@ -652,7 +653,7 @@ function HistoryModal({ envVar, onClose, onRolledBack, confirm }: {
             <div key={h.id} className="flex items-center gap-2 bg-surface border border-border rounded-[var(--radius)] px-3 py-2.5">
               <span className="flex-1 [font-family:var(--font-mono)] text-[0.82rem] text-muted truncate">{h.valueMasked}</span>
               <span className="text-[0.72rem] text-muted shrink-0">{h.changedAt.slice(0, 16).replace('T', ' ')}</span>
-              <Button variant="ghost" size="sm" onClick={() => rollback(h.id)}>되돌리기</Button>
+              <Button variant="ghost" size="sm" onClick={() => handleRollback(h.id)}>되돌리기</Button>
             </div>
           ))}
         </div>

@@ -39,7 +39,7 @@ export default function IdWalletPage() {
   const reload = () => invalidate(qk.identity.all);
 
   // 번호 표시/숨김 토글 — 처음 표시할 때만 reveal API 로 원문을 받아 캐시
-  async function toggleNum(card: IdCard) {
+  async function handleToggleNum(card: IdCard) {
     const next = new Set(shown);
     if (next.has(card.id)) {
       next.delete(card.id);
@@ -60,7 +60,7 @@ export default function IdWalletPage() {
   }
 
   // 신원 문서 삭제
-  async function remove(card: IdCard) {
+  async function handleRemove(card: IdCard) {
     if (!await confirm(`'${card.name}'${eulreul(card.name)} 삭제할까요?`, 'danger')) return;
     try {
       await api.del(`/identities/${card.id}`);
@@ -72,7 +72,7 @@ export default function IdWalletPage() {
   }
 
   // 사본 이미지 미리보기 — presigned inline URL 발급 후 새 탭으로 열기
-  async function viewFile(card: IdCard) {
+  async function handleViewFile(card: IdCard) {
     if (!card.fileId) return;
     try {
       const { url } = await api.get<{ url: string }>(`/files/${card.fileId}/url?disposition=inline`);
@@ -135,18 +135,18 @@ export default function IdWalletPage() {
                 <div className="flex flex-col gap-2 items-end">
                   <span className={`px-2 py-0.5 rounded-full text-[0.7rem] font-bold ${dd.warn ? 'bg-warning text-white' : 'bg-white/20'}`}>{dd.text}</span>
                   <div className="flex gap-1.5">
-                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => toggleNum(card)} aria-label="번호 표시/숨김">
+                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => handleToggleNum(card)} aria-label="번호 표시/숨김">
                       <IconEye width={14} height={14} />
                     </button>
                     {card.fileId && (
-                      <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => viewFile(card)} aria-label="사본 보기" title="사본 이미지 보기">
+                      <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => handleViewFile(card)} aria-label="사본 보기" title="사본 이미지 보기">
                         🖼️
                       </button>
                     )}
                     <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => setModal({ open: true, editing: card })} aria-label="수정">
                       <IconEdit width={14} height={14} />
                     </button>
-                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => remove(card)} aria-label="삭제">
+                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => handleRemove(card)} aria-label="삭제">
                       <IconTrash width={14} height={14} />
                     </button>
                   </div>
@@ -195,7 +195,7 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
   }, [state.open, editing]);
 
   // 사본 이미지 업로드 — 파일 보관함에 저장 후 file.id 를 연결값으로 보관
-  async function uploadFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleUploadFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -262,7 +262,7 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
         <div className="flex items-center gap-2">
           <label className="excel-btn upload">
             {uploading ? '업로드 중...' : fileId ? '사본 변경' : '사본 업로드'}
-            <input type="file" accept="image/*,.pdf" hidden onChange={uploadFile} disabled={uploading} />
+            <input type="file" accept="image/*,.pdf" hidden onChange={handleUploadFile} disabled={uploading} />
           </label>
           {fileId && (
             <>

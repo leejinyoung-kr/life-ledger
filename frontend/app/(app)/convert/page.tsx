@@ -37,7 +37,7 @@ export default function ConvertPage() {
   const [format, setFormat] = useState<ImageFormat>('png');
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -57,7 +57,7 @@ export default function ConvertPage() {
   }, [file]);
 
   // 방향 전환 — 선택 파일은 형식이 안 맞으므로 초기화
-  const switchDir = (next: Direction) => {
+  const handleSwitchDir = (next: Direction) => {
     if (next === dir) return;
     setDir(next);
     setFile(null);
@@ -83,16 +83,16 @@ export default function ConvertPage() {
     setFile(f);
   };
 
-  const onDrop = (e: DragEvent) => {
+  const handleDrop = (e: DragEvent) => {
     e.preventDefault();
     setDragging(false);
     pickFile(e.dataTransfer.files?.[0] ?? null);
   };
 
   // 변환 실행 — 성공 시 결과 다운로드, 파일 상태는 유지(연속 변환 대비)
-  const run = async () => {
-    if (!file || busy) return;
-    setBusy(true);
+  const handleRun = async () => {
+    if (!file || uploading) return;
+    setUploading(true);
     try {
       if (dir === 'image-to-pdf') {
         await imageToPdf(file);
@@ -103,7 +103,7 @@ export default function ConvertPage() {
     } catch (e) {
       notify.error(e instanceof Error ? e.message : '변환에 실패했습니다.');
     } finally {
-      setBusy(false);
+      setUploading(false);
     }
   };
 
@@ -124,14 +124,14 @@ export default function ConvertPage() {
             <div className="grid grid-cols-2 gap-2">
               <DirCard
                 active={dir === 'image-to-pdf'}
-                onClick={() => switchDir('image-to-pdf')}
+                onClick={() => handleSwitchDir('image-to-pdf')}
                 icon={<IconImage />}
                 title="이미지 → PDF"
                 desc="JPEG · PNG → PDF"
               />
               <DirCard
                 active={dir === 'pdf-to-image'}
-                onClick={() => switchDir('pdf-to-image')}
+                onClick={() => handleSwitchDir('pdf-to-image')}
                 icon={<IconFileBlank />}
                 title="PDF → 이미지"
                 desc="PDF → PNG · JPG"
@@ -169,7 +169,7 @@ export default function ConvertPage() {
               onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
               onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
               onDragLeave={() => setDragging(false)}
-              onDrop={onDrop}
+              onDrop={handleDrop}
               className={`flex flex-col items-center justify-center gap-3 px-6 py-14 rounded-[var(--radius)] border-2 border-dashed cursor-pointer transition-colors text-center ${
                 dragging ? 'border-accent bg-accent-dim' : 'border-border hover:border-accent hover:bg-surface'
               }`}
@@ -212,8 +212,8 @@ export default function ConvertPage() {
             )}
 
             {/* 실행 */}
-            <Button onClick={run} disabled={!file || busy} className="w-full">
-              {busy ? '변환 중…' : '변환하기'}
+            <Button onClick={handleRun} disabled={!file || uploading} className="w-full">
+              {uploading ? '변환 중…' : '변환하기'}
             </Button>
           </CardBody>
         </Card>
