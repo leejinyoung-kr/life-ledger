@@ -37,7 +37,7 @@ export default function CredentialsPage() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('전체 카테고리');
   const [detail, setDetail] = useState<Credential | null>(null);
-  const [edit, setEdit] = useState<{ open: boolean; editing: Credential | null }>({ open: false, editing: null });
+  const [edit, setEdit] = useState<{ open: boolean; mode: 'add' | 'edit'; editing: Credential | null }>({ open: false, mode: 'add', editing: null });
   const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
@@ -137,7 +137,7 @@ export default function CredentialsPage() {
       <div className="mb-7">
         <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">계정 보관함</h1>
-          <Button onClick={() => setEdit({ open: true, editing: null })}>계정 추가</Button>
+          <Button onClick={() => setEdit({ open: true, mode: 'add', editing: null })}>계정 추가</Button>
         </div>
         <p className="text-sm text-secondary mt-1.5 break-keep">행을 클릭하면 상세 정보를 확인할 수 있습니다. (AES-256-GCM 암호화)</p>
       </div>
@@ -214,7 +214,7 @@ export default function CredentialsPage() {
                   <td className="td-muted td-center">{fmtCredDate(c.updatedAt)}</td>
                   <td className="td-center" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-center gap-1">
-                      <button type="button" className="icon-btn-bordered" onClick={() => setEdit({ open: true, editing: c })} aria-label="수정"><IconEdit width={14} height={14} /></button>
+                      <button type="button" className="icon-btn-bordered" onClick={() => setEdit({ open: true, mode: 'edit', editing: c })} aria-label="수정"><IconEdit width={14} height={14} /></button>
                       <button type="button" className="icon-btn-danger" onClick={() => handleRemove(c)} aria-label="삭제"><IconTrash width={14} height={14} /></button>
                     </div>
                   </td>
@@ -239,7 +239,7 @@ export default function CredentialsPage() {
               </div>
               <div className="mt-2 text-[0.78rem] text-secondary font-mono truncate">{c.username}</div>
               <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" className="flex-1" onClick={() => setEdit({ open: true, editing: c })}>수정</Button>
+                <Button variant="ghost" className="flex-1" onClick={() => setEdit({ open: true, mode: 'edit', editing: c })}>수정</Button>
                 <Button variant="danger" className="flex-1" onClick={() => handleRemove(c)}>삭제</Button>
               </div>
             </div>
@@ -253,12 +253,12 @@ export default function CredentialsPage() {
       <DetailModal
         cred={detail}
         onClose={() => setDetail(null)}
-        onEdit={() => { const c = detail; setDetail(null); setEdit({ open: true, editing: c }); }}
+        onEdit={() => { const c = detail; setDetail(null); setEdit({ open: true, mode: 'edit', editing: c }); }}
         onDelete={() => detail && handleRemove(detail)}
       />
 
       {/* 추가/수정 모달 */}
-      <EditModal state={edit} onClose={() => setEdit((s) => ({ ...s, open: false }))} onSaved={() => { setEdit({ open: false, editing: null }); reload(); }} />
+      <EditModal state={edit} onClose={() => setEdit((s) => ({ ...s, open: false }))} onSaved={() => { setEdit({ open: false, mode: 'add', editing: null }); reload(); }} />
       {confirmElement}
     </AppShell>
   );
@@ -440,7 +440,8 @@ function DetailField({ label, children }: { label: string; children: React.React
 }
 
 // 계정 추가·수정 모달 (수정 시 비밀번호는 입력해야만 변경)
-function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editing: Credential | null }; onClose: () => void; onSaved: () => void }) {
+function EditModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing: Credential | null }; onClose: () => void; onSaved: () => void }) {
+  const isEdit = state.mode === 'edit';
   const editing = state.editing;
   const [serviceName, setServiceName] = useState('');
   const [url, setUrl] = useState('');
@@ -469,7 +470,7 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
     const err: Record<string, string> = {};
     if (!serviceName.trim()) err.serviceName = '서비스명을 입력하세요.';
     if (!username.trim()) err.username = '아이디를 입력하세요.';
-    if (!editing && !pw) err.pw = '비밀번호를 입력하세요.';
+    if (!isEdit && !pw) err.pw = '비밀번호를 입력하세요.';
     setErrors(err);
     return !Object.keys(err).length;
   }
@@ -487,9 +488,9 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
     };
     setSaving(true);
     try {
-      if (editing) await api.put(`/credentials/${editing.id}`, body);
+      if (isEdit && editing) await api.put(`/credentials/${editing.id}`, body);
       else await api.post('/credentials', body);
-      notify.upserted(editing ? 'edit' : 'add', '계정');
+      notify.upserted(isEdit ? 'edit' : 'add', '계정');
       onSaved();
     } catch {
       notify.saveFailed();
@@ -506,7 +507,7 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
     <Modal
       open={state.open}
       onClose={onClose}
-      title={editing ? '계정 수정' : '계정 추가'}
+      title={isEdit ? '계정 수정' : '계정 추가'}
       footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} saveLabel="저장 (암호화)" />}
     >
       <Field label="서비스명" required error={errors.serviceName}>
@@ -521,9 +522,9 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; editin
       <Field label="아이디" required error={errors.username}>
         <input type="text" className={`input${errors.username ? ' is-invalid' : ''}`} placeholder="아이디 또는 이메일" value={username} onChange={(e) => { setUsername(e.target.value); clearError('username'); }} />
       </Field>
-      <Field label={editing ? '비밀번호 (변경 시에만 입력)' : '비밀번호'} required={!editing} error={errors.pw}>
+      <Field label={isEdit ? '비밀번호 (변경 시에만 입력)' : '비밀번호'} required={!isEdit} error={errors.pw}>
         <div className="flex gap-2">
-          <input type="text" className={`input${errors.pw ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearError('pw'); }} />
+          <input type="text" className={`input${errors.pw ? ' is-invalid' : ''}`} placeholder={isEdit ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearError('pw'); }} />
           <Button variant="ghost" className="whitespace-nowrap" onClick={() => { setPw(generatePassword()); clearError('pw'); }}>생성</Button>
         </div>
         {pw && (

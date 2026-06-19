@@ -34,8 +34,8 @@ export default function EnvsPage() {
   const [env, setEnv] = useState<EnvKind>('dev');
   const [revealed, setRevealed] = useState<Record<number, string>>({});
   const [paste, setPaste] = useState('');
-  const [projectModal, setProjectModal] = useState<{ open: boolean; editing: EnvProject | null }>({ open: false, editing: null });
-  const [varModal, setVarModal] = useState<{ open: boolean; editing: EnvVar | null }>({ open: false, editing: null });
+  const [projectModal, setProjectModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing: EnvProject | null }>({ open: false, mode: 'add', editing: null });
+  const [varModal, setVarModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing: EnvVar | null }>({ open: false, mode: 'add', editing: null });
   const [varSearch, setVarSearch] = useState('');
   const [diffOpen, setDiffOpen] = useState(false);
   const [diffTarget, setDiffTarget] = useState<EnvKind>('prod');
@@ -226,7 +226,7 @@ export default function EnvsPage() {
       <div className="mb-7">
         <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">ENV 보관함</h1>
-          <Button onClick={() => setProjectModal({ open: true, editing: null })}>프로젝트 추가</Button>
+          <Button onClick={() => setProjectModal({ open: true, mode: 'add', editing: null })}>프로젝트 추가</Button>
         </div>
         <p className="text-sm text-secondary mt-1.5 break-keep">프로젝트별 환경변수를 암호화하여 관리합니다. (AES-256-GCM)</p>
       </div>
@@ -268,7 +268,7 @@ export default function EnvsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2.5 flex-wrap">
-                <Button size="sm" onClick={() => setVarModal({ open: true, editing: null })}>변수 추가</Button>
+                <Button size="sm" onClick={() => setVarModal({ open: true, mode: 'add', editing: null })}>변수 추가</Button>
                 <span className={TOOLBAR_DIVIDER} />
                 <div className="flex items-center gap-1.5">
                   <Button variant="ghost" size="sm" onClick={handleOpenDiff}>환경 비교</Button>
@@ -276,7 +276,7 @@ export default function EnvsPage() {
                 </div>
                 <span className={TOOLBAR_DIVIDER} />
                 <div className="flex items-center gap-1.5">
-                  <Button variant="ghost" size="sm" onClick={() => setProjectModal({ open: true, editing: project })}>수정</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setProjectModal({ open: true, mode: 'edit', editing: project })}>수정</Button>
                   <Button variant="danger" size="sm" onClick={() => handleDeleteProject(project)}>삭제</Button>
                 </div>
               </div>
@@ -328,7 +328,7 @@ export default function EnvsPage() {
                         selected={selectedVars}
                         onToggle={handleToggleValue}
                         onCopy={handleCopyVarValue}
-                        onEdit={(v) => setVarModal({ open: true, editing: v })}
+                        onEdit={(v) => setVarModal({ open: true, mode: 'edit', editing: v })}
                         onDelete={handleDeleteVar}
                         onSelect={toggleVar}
                         onHistory={(v) => setHistoryVar(v)}
@@ -396,8 +396,8 @@ export default function EnvsPage() {
         )}
       </Modal>
 
-      <ProjectModal state={projectModal} onClose={() => setProjectModal((s) => ({ ...s, open: false }))} onSaved={() => { setProjectModal({ open: false, editing: null }); invalidate(qk.env.all); }} />
-      <VarModal state={varModal} projectId={selectedId} currentEnv={env} onClose={() => setVarModal((s) => ({ ...s, open: false }))} onSaved={() => { setVarModal({ open: false, editing: null }); invalidate(qk.env.all); }} />
+      <ProjectModal state={projectModal} onClose={() => setProjectModal((s) => ({ ...s, open: false }))} onSaved={() => { setProjectModal({ open: false, mode: 'add', editing: null }); invalidate(qk.env.all); }} />
+      <VarModal state={varModal} projectId={selectedId} currentEnv={env} onClose={() => setVarModal((s) => ({ ...s, open: false }))} onSaved={() => { setVarModal({ open: false, mode: 'add', editing: null }); invalidate(qk.env.all); }} />
       <HistoryModal envVar={historyVar} onClose={() => setHistoryVar(null)} onRolledBack={() => { setHistoryVar(null); setRevealed({}); invalidate(qk.env.all); }} confirm={confirm} />
       {confirmElement}
     </AppShell>
@@ -473,7 +473,8 @@ function EnvGroupRows({
 }
 
 // 프로젝트 추가·수정 모달
-function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; editing: EnvProject | null }; onClose: () => void; onSaved: () => void }) {
+function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing: EnvProject | null }; onClose: () => void; onSaved: () => void }) {
+  const isEdit = state.mode === 'edit';
   const editing = state.editing;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -493,9 +494,9 @@ function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; edi
     const body = { name: name.trim(), description: description || undefined };
     setSaving(true);
     try {
-      if (editing) await api.put(`/env-projects/${editing.id}`, body);
+      if (isEdit && editing) await api.put(`/env-projects/${editing.id}`, body);
       else await api.post('/env-projects', body);
-      notify.upserted(editing ? 'edit' : 'add', '프로젝트');
+      notify.upserted(isEdit ? 'edit' : 'add', '프로젝트');
       onSaved();
     } catch {
       notify.saveFailed();
@@ -505,7 +506,7 @@ function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; edi
   }
 
   return (
-    <Modal open={state.open} onClose={onClose} title={editing ? '프로젝트 수정' : '프로젝트 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
+    <Modal open={state.open} onClose={onClose} title={isEdit ? '프로젝트 수정' : '프로젝트 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="프로젝트명" required error={errors.name}>
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: my-project" value={name} onChange={(e) => { setName(e.target.value); clearError('name'); }} />
       </Field>
@@ -515,7 +516,8 @@ function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; edi
 }
 
 // 변수 추가·수정 모달 (추가는 적용 환경 다중 선택, 수정은 환경 고정)
-function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: { open: boolean; editing: EnvVar | null }; projectId: number | null; currentEnv: EnvKind; onClose: () => void; onSaved: () => void }) {
+function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing: EnvVar | null }; projectId: number | null; currentEnv: EnvKind; onClose: () => void; onSaved: () => void }) {
+  const isEdit = state.mode === 'edit';
   const editing = state.editing;
   const [group, setGroup] = useState('');
   const [key, setKey] = useState('');
@@ -543,14 +545,14 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
   async function handleSave() {
     const err: Record<string, string> = {};
     if (!key.trim()) err.key = 'KEY를 입력하세요.';
-    if (!editing && !value.trim()) err.value = 'VALUE를 입력하세요.';
-    if (!editing && envs.length === 0) err.envs = '적용 환경을 1개 이상 선택하세요.';
+    if (!isEdit && !value.trim()) err.value = 'VALUE를 입력하세요.';
+    if (!isEdit && envs.length === 0) err.envs = '적용 환경을 1개 이상 선택하세요.';
     setErrors(err);
     if (Object.keys(err).length) return;
 
     setSaving(true);
     try {
-      if (editing) {
+      if (isEdit && editing) {
         await api.put(`/env-vars/${editing.id}`, {
           group: group || '',
           key: key.trim(),
@@ -562,7 +564,7 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
           envs, group: group || undefined, key: key.trim(), value, memo: memo || undefined,
         });
       }
-      notify.upserted(editing ? 'edit' : 'add', '변수');
+      notify.upserted(isEdit ? 'edit' : 'add', '변수');
       onSaved();
     } catch {
       notify.saveFailed();
@@ -572,7 +574,7 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
   }
 
   return (
-    <Modal open={state.open} onClose={onClose} title={editing ? '변수 수정' : '변수 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} saveLabel="저장 (암호화)" />}>
+    <Modal open={state.open} onClose={onClose} title={isEdit ? '변수 수정' : '변수 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} saveLabel="저장 (암호화)" />}>
       <Field label="그룹 (선택)">
         <select className="input" aria-label="그룹" value={group} onChange={(e) => setGroup(e.target.value)}>
           <option value="">없음</option>
@@ -582,10 +584,10 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
       <Field label="KEY" required error={errors.key}>
         <input type="text" className={`input input-mono${errors.key ? ' is-invalid' : ''}`} placeholder="예: DATABASE_URL" value={key} onChange={(e) => { setKey(e.target.value); clearError('key'); }} />
       </Field>
-      <Field label={editing ? 'VALUE (변경 시에만 입력)' : 'VALUE'} required={!editing} error={errors.value}>
-        <input type="text" className={`input input-mono${errors.value ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 값 유지' : '값 입력'} value={value} onChange={(e) => { setValue(e.target.value); clearError('value'); }} />
+      <Field label={isEdit ? 'VALUE (변경 시에만 입력)' : 'VALUE'} required={!isEdit} error={errors.value}>
+        <input type="text" className={`input input-mono${errors.value ? ' is-invalid' : ''}`} placeholder={isEdit ? '비워두면 기존 값 유지' : '값 입력'} value={value} onChange={(e) => { setValue(e.target.value); clearError('value'); }} />
       </Field>
-      {editing ? (
+      {isEdit && editing ? (
         <Field label="적용 환경">
           <div className="text-[0.84rem] text-secondary px-3 py-2 bg-surface border border-border rounded-[var(--radius)]">{editing.env}</div>
         </Field>

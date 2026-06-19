@@ -33,7 +33,7 @@ import {
 export default function TasksPage() {
   const [search, setSearch] = useState('');
   const [addModal, setAddModal] = useState(false);
-  const [goalModal, setGoalModal] = useState<{ open: boolean; editing?: Goal }>({ open: false });
+  const [goalModal, setGoalModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Goal }>({ open: false, mode: 'add' });
   const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
@@ -175,7 +175,7 @@ export default function TasksPage() {
             <CardTitle>목표</CardTitle>
             <div className="flex items-center gap-2">
               <Badge tone="success">{goals.length}건 진행중</Badge>
-              <Button size="sm" onClick={() => setGoalModal({ open: true })}>목표 추가</Button>
+              <Button size="sm" onClick={() => setGoalModal({ open: true, mode: 'add' })}>목표 추가</Button>
             </div>
           </CardHeader>
           <div className="max-h-126 overflow-y-auto">
@@ -186,7 +186,7 @@ export default function TasksPage() {
                   <span className="font-semibold text-[0.9rem] text-primary">{goal.name}</span>
                   <div className="flex items-center gap-1.5">
                     <span className="[font-family:var(--font-display)] font-bold text-accent mr-1">{goal.pct}%</span>
-                    <button type="button" className="icon-btn-bordered" onClick={() => setGoalModal({ open: true, editing: goal })} aria-label="수정"><IconEdit width={13} height={13} /></button>
+                    <button type="button" className="icon-btn-bordered" onClick={() => setGoalModal({ open: true, mode: 'edit', editing: goal })} aria-label="수정"><IconEdit width={13} height={13} /></button>
                     <button type="button" className="icon-btn-danger" onClick={() => handleRemoveGoal(goal.id)} aria-label="삭제"><IconTrash width={13} height={13} /></button>
                   </div>
                 </div>
@@ -207,9 +207,10 @@ export default function TasksPage() {
       {/* 목표 추가/수정 모달 */}
       <GoalModal
         open={goalModal.open}
+        mode={goalModal.mode}
         editing={goalModal.editing}
-        onClose={() => setGoalModal({ open: false })}
-        onSaved={() => { setGoalModal({ open: false }); reload(); }}
+        onClose={() => setGoalModal({ open: false, mode: 'add' })}
+        onSaved={() => { setGoalModal({ open: false, mode: 'add' }); reload(); }}
       />
 
       {confirmElement}
@@ -218,7 +219,8 @@ export default function TasksPage() {
 }
 
 // 목표 추가/수정 모달
-function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing?: Goal; onClose: () => void; onSaved: () => void }) {
+function GoalModal({ open, mode, editing, onClose, onSaved }: { open: boolean; mode: 'add' | 'edit'; editing?: Goal; onClose: () => void; onSaved: () => void }) {
+  const isEdit = mode === 'edit';
   const [name, setName] = useState('');
   const [unit, setUnit] = useState<'won' | 'percent'>('won');
   const [currentVal, setCurrentVal] = useState('');
@@ -260,7 +262,7 @@ function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing
     const tone = calcTone(pct);
     const body = { name: name.trim(), unit, currentVal: cur, targetVal: tgt, pct, tone };
     try {
-      if (editing) {
+      if (isEdit && editing) {
         await api.put(`/goals/${editing.id}`, body);
         notify.success('목표를 수정했습니다.');
       } else {
@@ -276,7 +278,7 @@ function GoalModal({ open, editing, onClose, onSaved }: { open: boolean; editing
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={editing ? '목표 수정' : '목표 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
+    <Modal open={open} onClose={onClose} title={isEdit ? '목표 수정' : '목표 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="목표명" required error={errors.name}>
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 비상금 적립" value={name} onChange={(e) => { setName(e.target.value); clearError('name'); }} />
       </Field>

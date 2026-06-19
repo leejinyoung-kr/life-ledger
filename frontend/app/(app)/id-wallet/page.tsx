@@ -28,7 +28,7 @@ import {
 export default function IdWalletPage() {
   const [numbers, setNumbers] = useState<Record<number, string>>({}); // 복호화 캐시
   const [shown, setShown] = useState<Set<number>>(new Set());          // 표시 중인 카드
-  const [modal, setModal] = useState<{ open: boolean; editing: IdCard | null }>({ open: false, editing: null });
+  const [modal, setModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing: IdCard | null }>({ open: false, mode: 'add', editing: null });
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
 
@@ -93,7 +93,7 @@ export default function IdWalletPage() {
       <div className="mb-7">
         <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">신원 지갑</h1>
-          <Button onClick={() => setModal({ open: true, editing: null })}>신분증 추가</Button>
+          <Button onClick={() => setModal({ open: true, mode: 'add', editing: null })}>신분증 추가</Button>
         </div>
         <p className="text-sm text-secondary mt-1.5 break-keep">신분증·여권·자격증을 안전하게 보관하고 만료일을 추적합니다. (AES-256-GCM)</p>
       </div>
@@ -143,7 +143,7 @@ export default function IdWalletPage() {
                         🖼️
                       </button>
                     )}
-                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => setModal({ open: true, editing: card })} aria-label="수정">
+                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => setModal({ open: true, mode: 'edit', editing: card })} aria-label="수정">
                       <IconEdit width={14} height={14} />
                     </button>
                     <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => handleRemove(card)} aria-label="삭제">
@@ -160,7 +160,7 @@ export default function IdWalletPage() {
       <IdModal
         state={modal}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
-        onSaved={() => { setModal({ open: false, editing: null }); setShown(new Set()); setNumbers({}); reload(); }}
+        onSaved={() => { setModal({ open: false, mode: 'add', editing: null }); setShown(new Set()); setNumbers({}); reload(); }}
       />
       {confirmElement}
     </AppShell>
@@ -168,7 +168,8 @@ export default function IdWalletPage() {
 }
 
 // 신분증 추가·수정 모달 (수정 시 번호는 입력해야만 변경)
-function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing: IdCard | null }; onClose: () => void; onSaved: () => void }) {
+function IdModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing: IdCard | null }; onClose: () => void; onSaved: () => void }) {
+  const isEdit = state.mode === 'edit';
   const editing = state.editing;
   const [type, setType] = useState<IdType>('passport');
   const [name, setName] = useState('');
@@ -214,7 +215,7 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
   async function handleSave() {
     const err: Record<string, string> = {};
     if (!name.trim()) err.name = '명칭을 입력하세요.';
-    if (!editing && !number.trim()) err.number = '번호를 입력하세요.';
+    if (!isEdit && !number.trim()) err.number = '번호를 입력하세요.';
     setErrors(err);
     if (Object.keys(err).length) return;
 
@@ -229,9 +230,9 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
     };
     setSaving(true);
     try {
-      if (editing) await api.put(`/identities/${editing.id}`, body);
+      if (isEdit && editing) await api.put(`/identities/${editing.id}`, body);
       else await api.post('/identities', body);
-      notify.upserted(editing ? 'edit' : 'add', '신분증');
+      notify.upserted(isEdit ? 'edit' : 'add', '신분증');
       onSaved();
     } catch {
       notify.saveFailed();
@@ -241,7 +242,7 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
   }
 
   return (
-    <Modal open={state.open} onClose={onClose} title={editing ? '신분증 수정' : '신분증 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} saveLabel="저장 (암호화)" />}>
+    <Modal open={state.open} onClose={onClose} title={isEdit ? '신분증 수정' : '신분증 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} saveLabel="저장 (암호화)" />}>
       <Field label="종류" required>
         <select className="input" aria-label="종류" value={type} onChange={(e) => setType(e.target.value as IdType)}>
           {ID_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -250,8 +251,8 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; editing:
       <Field label="명칭" required error={errors.name}>
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 대한민국 여권" value={name} onChange={(e) => { setName(e.target.value); clearError('name'); }} />
       </Field>
-      <Field label={editing ? '번호 (변경 시에만 입력)' : '번호'} required={!editing} error={errors.number}>
-        <input type="text" className={`input input-mono${errors.number ? ' is-invalid' : ''}`} placeholder={editing ? '비워두면 기존 번호 유지' : '문서 번호'} value={number} onChange={(e) => { setNumber(e.target.value); clearError('number'); }} />
+      <Field label={isEdit ? '번호 (변경 시에만 입력)' : '번호'} required={!isEdit} error={errors.number}>
+        <input type="text" className={`input input-mono${errors.number ? ' is-invalid' : ''}`} placeholder={isEdit ? '비워두면 기존 번호 유지' : '문서 번호'} value={number} onChange={(e) => { setNumber(e.target.value); clearError('number'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="발급일 (선택)"><input type="date" className="input" aria-label="발급일" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} /></Field>
