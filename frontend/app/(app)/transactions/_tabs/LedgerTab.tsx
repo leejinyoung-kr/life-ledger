@@ -25,7 +25,7 @@ import {
   won, signedWon, dotDate,
   type Category, type Transaction, type TransactionSummary, type TrendBucket,
   type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget, type TransferDirection,
-  type Saving, type Investment,
+  type Saving, type InvestmentAccount,
 } from '@/lib/finance';
 import type { Asset } from '@/lib/networth';
 import {
@@ -126,7 +126,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   const recurring = recurringQuery.data ?? [];
   const error = (rowsQuery.error ?? summaryQuery.error)?.message ?? null;
   // 자산이동 거래가 예적금/투자/자산 잔액을 바꿀 수 있어 해당 탭도 함께 무효화
-  const reload = () => invalidate(qk.transactions.all, qk.savings.all, qk.investments.all, qk.assets.all);
+  const reload = () => invalidate(qk.transactions.all, qk.savings.all, qk.investments.all, qk.investmentAccounts.all, qk.assets.all);
 
   async function handleRemove(id: number) {
     if (!await confirm('이 내역을 삭제할까요?', 'danger')) return;
@@ -559,12 +559,13 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   const targetPickerOpen = state.open && type === 'transfer';
   // 이동 대상 후보 — 자산이동일 때만 조회(연동 없이 단순 기록도 허용하므로 항상 강제하지 않음)
   const savingsQuery = useApiQuery<Saving[]>(qk.savings.list('transfer-target'), '/savings', { enabled: targetPickerOpen && targetType === 'saving' });
-  const investmentsQuery = useApiQuery<Investment[]>(qk.investments.list('transfer-target'), '/investments', { enabled: targetPickerOpen && targetType === 'investment' });
+  // 투자는 종목(Investment)이 아니라 예수금을 보유한 투자 계좌(InvestmentAccount)가 자산이동 대상
+  const investmentAccountsQuery = useApiQuery<InvestmentAccount[]>(qk.investmentAccounts.list('transfer-target'), '/investment-accounts', { enabled: targetPickerOpen && targetType === 'investment' });
   const assetsQuery = useApiQuery<Asset[]>(qk.assets.list('transfer-target'), '/assets', { enabled: targetPickerOpen && targetType === 'asset' });
   const targetItems: { id: number; label: string }[] = targetType === 'saving'
     ? (savingsQuery.data ?? []).map((s) => ({ id: s.id, label: `${s.bank} · ${s.name}` }))
     : targetType === 'investment'
-      ? (investmentsQuery.data ?? []).map((v) => ({ id: v.id, label: v.name }))
+      ? (investmentAccountsQuery.data ?? []).map((a) => ({ id: a.id, label: a.name }))
       : targetType === 'asset'
         ? (assetsQuery.data ?? []).map((a) => ({ id: a.id, label: a.name }))
         : [];

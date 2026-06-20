@@ -38,6 +38,7 @@ export const qk = {
     recurring: () => ['transactions', 'recurring'] as const,
   },
   savings: { all: ['savings'] as const, list: (params?: unknown) => ['savings', 'list', params ?? null] as const },
+  investmentAccounts: { all: ['investment-accounts'] as const, list: (params?: unknown) => ['investment-accounts', 'list', params ?? null] as const },
   investments: { all: ['investments'] as const, list: (params?: unknown) => ['investments', 'list', params ?? null] as const },
   subscriptions: { all: ['subscriptions'] as const, list: (params?: unknown) => ['subscriptions', 'list', params ?? null] as const },
   assets: { all: ['assets'] as const, list: (params?: unknown) => ['assets', 'list', params ?? null] as const, networth: () => ['assets', 'networth'] as const },

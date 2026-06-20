@@ -17,6 +17,7 @@ model User {
 
   transactions  Transaction[]
   savings       Saving[]
+  investmentAccounts InvestmentAccount[]
   investments   Investment[]
   subscriptions Subscription[]
   assets        Asset[]
@@ -146,24 +147,44 @@ enum InvestmentType {
   @@map("investment_type")
 }
 
-/// 투자 (가계부 - 투자 탭)
+/// 투자 계좌 (가계부 - 투자 탭) — 예수금은 계좌 단위로 보유, 종목 여러 개가 한 계좌의 예수금을 공유(ISA 등)
+model InvestmentAccount {
+  id           Int        @id @default(autoincrement())
+  user_id      Int /// user.id FK
+  name         String     @db.VarChar(100) /// 계좌명 (예: ISA, 일반위탁)
+  cash_balance Decimal    @default(0) @db.Decimal(15, 2) /// 예수금(미투자 대기 현금) — 자산이동으로 충전, 매수/매도로 보유 종목과 전환
+  memo         String?    @db.VarChar(300)
+  deleted_at   DateTime?
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+
+  user        User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  investments Investment[]
+
+  @@index([user_id])
+  @@map("investment_account")
+}
+
+/// 투자 종목 (가계부 - 투자 탭) — 투자 계좌에 속함
 model Investment {
   id            Int            @id @default(autoincrement())
   user_id       Int /// user.id FK
+  account_id    Int /// investment_account.id FK
   name          String         @db.VarChar(100)
   type          InvestmentType
   principal     Decimal        @db.Decimal(15, 2)
   current_value Decimal        @db.Decimal(15, 2)
-  cash_balance  Decimal        @default(0) @db.Decimal(15, 2) /// 예수금(미투자 대기 현금) — 자산이동으로 충전, 매수/매도로 평가금액과 전환
   purchase_date DateTime?      @db.Date
   memo          String?        @db.VarChar(300)
   deleted_at    DateTime?
   created_at    DateTime       @default(now())
   updated_at    DateTime       @updatedAt
 
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user    User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  account InvestmentAccount @relation(fields: [account_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
+  @@index([account_id])
   @@map("investment")
 }
 

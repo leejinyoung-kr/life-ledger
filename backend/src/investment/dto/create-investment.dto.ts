@@ -2,6 +2,7 @@ import { InvestmentType } from '@prisma/client';
 import {
   IsDateString,
   IsEnum,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
@@ -9,6 +10,10 @@ import {
 } from 'class-validator';
 
 export class CreateInvestmentDto {
+  // 소속 투자 계좌 (InvestmentAccount.id) — 예수금을 공유할 계좌
+  @IsInt()
+  accountId: number;
+
   @IsString()
   @MaxLength(100)
   name: string;

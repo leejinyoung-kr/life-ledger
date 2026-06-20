@@ -71,15 +71,20 @@ export class AssetService {
         ) / 100
       : null;
 
-    // 투자 평가금액 + 예수금(미투자 대기 현금도 자산이므로 합산) 합계
-    const investments = await this.prisma.investment.findMany({
-      where: { user_id: userId, deleted_at: null },
-      select: { current_value: true, cash_balance: true },
-    });
-    const investTotal = investments.reduce(
-      (s, r) => s + r.current_value.toNumber() + r.cash_balance.toNumber(),
-      0,
-    );
+    // 투자 평가금액(종목) + 예수금(계좌 — 미투자 대기 현금도 자산이므로 합산) 합계
+    const [investments, investmentAccounts] = await Promise.all([
+      this.prisma.investment.findMany({
+        where: { user_id: userId, deleted_at: null },
+        select: { current_value: true },
+      }),
+      this.prisma.investmentAccount.findMany({
+        where: { user_id: userId, deleted_at: null },
+        select: { cash_balance: true },
+      }),
+    ]);
+    const investTotal =
+      investments.reduce((s, r) => s + r.current_value.toNumber(), 0) +
+      investmentAccounts.reduce((s, r) => s + r.cash_balance.toNumber(), 0);
 
     // 현금 = 수입 합계 - 지출 합계
     const [incAgg, expAgg] = await Promise.all([

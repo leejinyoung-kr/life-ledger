@@ -95,15 +95,16 @@ export type InvestmentType =
 
 export interface Investment {
   id: number;
+  accountId: number; // 소속 투자 계좌(InvestmentAccount.id) — 예수금은 계좌 단위로 공유
   name: string;
   type: InvestmentType;
   principal: number;
   currentValue: number;
-  cashBalance: number; // 예수금(미투자 대기 현금)
   profit: number;
   profitRate: number;
   purchaseDate: string | null;
   memo: string | null;
+  updatedAt: string; // 평가금액 최근 수정 시각(ISO) — 시세 API 연동 전까지 수동 입력 신뢰도 표시용
 }
 
 export interface InvestmentSummary {
@@ -111,6 +112,17 @@ export interface InvestmentSummary {
   totalPrincipal: number;
   totalProfit: number;
   profitRate: number;
+}
+
+// 투자 계좌 — 예수금을 보유하고 여러 종목(Investment)이 공유(예: ISA)
+export interface InvestmentAccount {
+  id: number;
+  name: string;
+  cashBalance: number;
+  memo: string | null;
+  holdingsCount: number;
+  totalPrincipal: number;
+  totalCurrentValue: number;
 }
 
 // ── 라벨맵 (코드 ↔ 화면 표시) ────────────────────────────────────

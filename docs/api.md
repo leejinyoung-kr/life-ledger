@@ -50,16 +50,28 @@ Base URL: `http://localhost:8000/api/v1`
 | PUT | /savings/:id | 예적금 수정 |
 | DELETE | /savings/:id | 예적금 삭제 (soft delete) |
 
+## 가계부 — 투자 계좌
+
+예수금은 계좌(InvestmentAccount) 단위로 보유하며, 한 계좌에 속한 여러 종목이 예수금을 공유한다(ISA 등).
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| GET | /investment-accounts | 계좌 목록 (계좌명 검색 + 페이지네이션) |
+| GET | /investment-accounts/summary | 요약 (총 예수금/계좌 수) |
+| POST | /investment-accounts | 계좌 추가 |
+| PUT | /investment-accounts/:id | 계좌 수정 |
+| DELETE | /investment-accounts/:id | 계좌 삭제 (soft delete) |
+
 ## 가계부 — 투자
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /investments | 투자 목록 (수익/수익률 파생값 포함) |
+| GET | /investments?accountId=&type=&q= | 투자 목록 (수익/수익률 파생값 포함, 계좌/유형/종목명 필터) |
 | GET | /investments/summary | 요약 (총 평가금액/원금/수익/수익률) |
-| POST | /investments | 투자 추가 |
+| POST | /investments | 투자 추가 (`accountId` 필수 — 소속 계좌) |
 | PUT | /investments/:id | 투자 수정 |
-| POST | /investments/:id/buy | 매수 — 예수금 → 투자원금·평가금액 전환 |
-| POST | /investments/:id/sell | 매도 — 평가금액 → 예수금 환입 |
+| POST | /investments/:id/buy | 매수 — 소속 계좌 예수금 → 투자원금·평가금액 전환 |
+| POST | /investments/:id/sell | 매도 — 평가금액 → 소속 계좌 예수금 환입 |
 | DELETE | /investments/:id | 투자 삭제 (soft delete) |
 
 ## 구독 관리

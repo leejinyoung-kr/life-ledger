@@ -3,14 +3,15 @@
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
 > 마이그레이션: `20260610000000_init_consolidated`(전 도메인 통합) + `20260610010000_phase17a_security_core` · `20260610020000_phase17b_dataflow` · `20260610030000_phase17c_enhance` · `20260610040000_phase17d_extras`
 
-## 테이블 목록 (29)
+## 테이블 목록 (30)
 
 | 테이블 | 설명 |
 | --- | --- |
 | User | 사용자 (Google OAuth) |
 | Transaction | 수입/지출 내역 (반복 자동생성 포함) |
 | Saving | 예적금 |
-| Investment | 투자 |
+| InvestmentAccount | 투자 계좌 (예수금 보유 — 종목 여러 개가 공유) |
+| Investment | 투자 종목 (소속 계좌의 예수금을 매수/매도로 전환) |
 | Subscription | 구독 서비스 |
 | Asset | 자산/부채 항목 |
 | NetWorthSnapshot | 순자산 월별 스냅샷 |
@@ -40,11 +41,12 @@
 ## 주요 관계
 
 ```text
-User 1 ─── N (Transaction, Saving, Investment, Subscription, Asset, NetWorthSnapshot,
+User 1 ─── N (Transaction, Saving, InvestmentAccount, Investment, Subscription, Asset, NetWorthSnapshot,
               Notification, Task, Goal, Note, CalendarEvent,
               SecurityRisk, LoginSession, Category, IdentityCard, Credential,
               EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport, RefreshToken)
 User 1 ─── 1 UserSettings
+InvestmentAccount 1 ─── N Investment(account_id)
 EnvProject     1 ─── N EnvVar
 EnvVar         1 ─── N EnvVarHistory
 StorageFolder  1 ─── N StorageFolder(parent_id, 자기참조) · N StorageFile
@@ -61,11 +63,12 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ## 도메인별 요약
 
-### 가계부 — Transaction / Saving / Investment
+### 가계부 — Transaction / Saving / InvestmentAccount / Investment
 
-- `Transaction` — `type`(income/expense/transfer), `category`(소분류 code 저장 — 대분류는 Category.parent_code 로 파생), `amount`, `pay_method`, `is_recurring`, `recurring_rule`(JSON), 반복 회차(`recurring_parent_id`·`recurring_period`·`recurring_overridden`), `target_type`(saving/investment/asset)·`target_id` — transfer 거래가 가리키는 누적 대상(FK 아님, 지정 시 대상 잔액에 자동 반영), `target_direction`(increase/decrease — asset 대상 전용, 미지정 시 부채=감소·그 외=증가), soft delete
+- `Transaction` — `type`(income/expense/transfer), `category`(소분류 code 저장 — 대분류는 Category.parent_code 로 파생), `amount`, `pay_method`, `is_recurring`, `recurring_rule`(JSON), 반복 회차(`recurring_parent_id`·`recurring_period`·`recurring_overridden`), `target_type`(saving/investment/asset)·`target_id` — transfer 거래가 가리키는 누적 대상(FK 아님, 지정 시 대상 잔액에 자동 반영. `investment` 대상은 `InvestmentAccount.id`를 가리킴), `target_direction`(increase/decrease — asset 대상 전용, 미지정 시 부채=감소·그 외=증가), soft delete
 - `Saving` — `type`(savings/deposit/subscription/etc), `interest_rate`, `monthly_amount`, `maturity_date`, `balance`
-- `Investment` — `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `current_value`, `cash_balance`(예수금 — 자산이동으로 충전, 매수/매도로 평가금액과 전환), `purchase_date`
+- `InvestmentAccount` — `name`(계좌명, 예: ISA·일반위탁), `cash_balance`(예수금 — 자산이동으로 충전, 매수/매도로 보유 종목과 전환. 계좌 내 종목들이 공유)
+- `Investment` — `account_id`(InvestmentAccount FK), `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `current_value`, `purchase_date`
 
 ### 자산 — Subscription / Asset / NetWorthSnapshot
 

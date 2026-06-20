@@ -11,6 +11,7 @@ import { CategoryModule } from './category/category.module';
 import { AuthModule } from './auth/auth.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { InvestmentModule } from './investment/investment.module';
+import { InvestmentAccountModule } from './investment-account/investment-account.module';
 import { NoteModule } from './note/note.module';
 import { NotificationModule } from './notification/notification.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -50,6 +51,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     AuthModule,
     TransactionModule,
     SavingModule,
+    InvestmentAccountModule,
     InvestmentModule,
     SubscriptionModule,
     AssetModule,

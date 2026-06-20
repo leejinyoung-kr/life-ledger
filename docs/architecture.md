@@ -36,6 +36,7 @@
 | auth | /auth | 구현 완료 |
 | transaction | /transactions | 구현 완료 |
 | saving | /savings | 구현 완료 |
+| investment-account | /investment-accounts | 구현 완료 |
 | investment | /investments | 구현 완료 |
 | subscription | /subscriptions | 구현 완료 |
 | asset | /assets | 구현 완료 |

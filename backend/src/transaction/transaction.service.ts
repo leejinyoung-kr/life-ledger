@@ -118,11 +118,12 @@ export class TransactionService {
       });
       if (!count && required) throw new BadRequestException('이동 대상 예적금을 찾을 수 없습니다.');
     } else if (targetType === 'investment') {
-      const { count } = await tx.investment.updateMany({
+      // target_id는 InvestmentAccount.id — 계좌 예수금에 누적(계좌 내 종목들이 공유)
+      const { count } = await tx.investmentAccount.updateMany({
         where: { id: targetId, user_id: userId, deleted_at: null },
         data: { cash_balance: { increment: signedAmount } },
       });
-      if (!count && required) throw new BadRequestException('이동 대상 투자 항목을 찾을 수 없습니다.');
+      if (!count && required) throw new BadRequestException('이동 대상 투자 계좌를 찾을 수 없습니다.');
     } else {
       const asset = await tx.asset.findFirst({ where: { id: targetId, user_id: userId, deleted_at: null } });
       if (!asset) {

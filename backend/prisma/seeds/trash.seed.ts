@@ -70,15 +70,18 @@ export const seedTrash: SeedFn = async (prisma, userId) => {
   });
   count++;
 
-  // 투자 — 3일 전 삭제 (27일)
-  await prisma.investment.create({
-    data: {
-      user_id: userId, name: '도지코인', type: 'crypto', principal: 300000, current_value: 180000,
-      purchase_date: d('2025-04-01'), memo: '손절 후 삭제',
-      deleted_at: daysAgo(3),
-    },
-  });
-  count++;
+  // 투자 — 3일 전 삭제 (27일). 소속 계좌는 투자 시드에서 만든 '일반위탁' 재사용
+  const account = await prisma.investmentAccount.findFirst({ where: { user_id: userId, name: '일반위탁' } });
+  if (account) {
+    await prisma.investment.create({
+      data: {
+        user_id: userId, account_id: account.id, name: '도지코인', type: 'crypto', principal: 300000, current_value: 180000,
+        purchase_date: d('2025-04-01'), memo: '손절 후 삭제',
+        deleted_at: daysAgo(3),
+      },
+    });
+    count++;
+  }
 
   // 수입/지출 — 7일 전 삭제 (23일)
   await prisma.transaction.create({

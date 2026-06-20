@@ -1,8 +1,8 @@
 import { InvestmentType } from '@prisma/client';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNumberString, IsOptional, IsString } from 'class-validator';
 import { PageQueryDto } from '../../common/dto/page-query.dto';
 
-// 투자 목록 조회 — 유형/종목명 필터 + 페이지네이션
+// 투자 목록 조회 — 유형/종목명/계좌 필터 + 페이지네이션
 export class QueryInvestmentDto extends PageQueryDto {
   @IsOptional()
   @IsEnum(InvestmentType)
@@ -12,4 +12,9 @@ export class QueryInvestmentDto extends PageQueryDto {
   @IsOptional()
   @IsString()
   q?: string;
+
+  // 소속 계좌(InvestmentAccount.id) 필터
+  @IsOptional()
+  @IsNumberString()
+  accountId?: string;
 }

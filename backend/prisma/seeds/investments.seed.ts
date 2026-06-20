@@ -1,11 +1,20 @@
 /**
- * 투자(Investment) 더미.
+ * 투자 계좌(InvestmentAccount) + 종목(Investment) 더미.
+ * ISA 계좌 하나에 ETF 3종목을 묶어 "계좌 예수금 공유" 시나리오를 보여주고, 나머지는 일반위탁 계좌에 둔다.
  * 국내/해외 주식·ETF·가상자산 섞고 손익(원금<>평가) 다양하게 구성.
  */
 import type { InvestmentType } from '@prisma/client';
 import { d, type SeedFn } from './helpers';
 
+type AccountSeed = { name: string; cashBalance: number };
+
+const ACCOUNTS: AccountSeed[] = [
+  { name: 'ISA', cashBalance: 500000 },
+  { name: '일반위탁', cashBalance: 501000 },
+];
+
 type InvestSeed = {
+  account: string; // ACCOUNTS[].name 참조
   name: string;
   type: InvestmentType;
   principal: number;
@@ -15,30 +24,42 @@ type InvestSeed = {
 };
 
 const INVESTMENTS: InvestSeed[] = [
-  { name: '삼성전자', type: 'domestic_stock', principal: 3000000, currentValue: 3420000, purchaseDate: '2024-07-10', memo: '분할매수' },
-  { name: 'S&P500 ETF', type: 'foreign_etf', principal: 5000000, currentValue: 5830000, purchaseDate: '2024-03-02', memo: '매월 적립식' },
-  { name: '카카오', type: 'domestic_stock', principal: 2000000, currentValue: 1820000, purchaseDate: '2025-01-20', memo: '장기보유' },
-  { name: '비트코인', type: 'crypto', principal: 1500000, currentValue: 1777000, purchaseDate: '2025-05-11', memo: '소액 투자' },
-  { name: '애플', type: 'foreign_stock', principal: 2500000, currentValue: 2710000, purchaseDate: '2024-11-05', memo: null },
-  { name: 'TIGER 2차전지', type: 'domestic_etf', principal: 1800000, currentValue: 1620000, purchaseDate: '2025-02-14', memo: '테마 ETF' },
-  { name: '이더리움', type: 'crypto', principal: 1000000, currentValue: 1340000, purchaseDate: '2025-03-30', memo: null },
-  { name: 'SK하이닉스', type: 'domestic_stock', principal: 2200000, currentValue: 2640000, purchaseDate: '2025-04-08', memo: 'AI 반도체' },
-  { name: '엔비디아', type: 'foreign_stock', principal: 3000000, currentValue: 4180000, purchaseDate: '2024-09-12', memo: '장기 보유' },
-  { name: 'TIGER 미국나스닥100', type: 'foreign_etf', principal: 2500000, currentValue: 2890000, purchaseDate: '2025-01-15', memo: '연금저축 운용' },
-  { name: 'KODEX 200', type: 'domestic_etf', principal: 1500000, currentValue: 1455000, purchaseDate: '2025-06-02', memo: '코스피 추종' },
-  { name: '테슬라', type: 'foreign_stock', principal: 1800000, currentValue: 1560000, purchaseDate: '2025-02-20', memo: '변동성 큼' },
-  { name: '리플', type: 'crypto', principal: 500000, currentValue: 720000, purchaseDate: '2025-05-25', memo: '소액 알트' },
-  { name: 'NAVER', type: 'domestic_stock', principal: 1700000, currentValue: 1632000, purchaseDate: '2025-03-05', memo: null },
+  // ISA 계좌 — ETF 3종목, 예수금 공유
+  { account: 'ISA', name: 'S&P500 ETF', type: 'foreign_etf', principal: 5000000, currentValue: 5830000, purchaseDate: '2024-03-02', memo: '매월 적립식' },
+  { account: 'ISA', name: 'TIGER 미국나스닥100', type: 'foreign_etf', principal: 2500000, currentValue: 2890000, purchaseDate: '2025-01-15', memo: '연금저축 운용' },
+  { account: 'ISA', name: 'KODEX 200', type: 'domestic_etf', principal: 1500000, currentValue: 1455000, purchaseDate: '2025-06-02', memo: '코스피 추종' },
+  // 일반위탁 계좌
+  { account: '일반위탁', name: '삼성전자', type: 'domestic_stock', principal: 3000000, currentValue: 3420000, purchaseDate: '2024-07-10', memo: '분할매수' },
+  { account: '일반위탁', name: '카카오', type: 'domestic_stock', principal: 2000000, currentValue: 1820000, purchaseDate: '2025-01-20', memo: '장기보유' },
+  { account: '일반위탁', name: '비트코인', type: 'crypto', principal: 1500000, currentValue: 1777000, purchaseDate: '2025-05-11', memo: '소액 투자' },
+  { account: '일반위탁', name: '애플', type: 'foreign_stock', principal: 2500000, currentValue: 2710000, purchaseDate: '2024-11-05', memo: null },
+  { account: '일반위탁', name: 'TIGER 2차전지', type: 'domestic_etf', principal: 1800000, currentValue: 1620000, purchaseDate: '2025-02-14', memo: '테마 ETF' },
+  { account: '일반위탁', name: '이더리움', type: 'crypto', principal: 1000000, currentValue: 1340000, purchaseDate: '2025-03-30', memo: null },
+  { account: '일반위탁', name: 'SK하이닉스', type: 'domestic_stock', principal: 2200000, currentValue: 2640000, purchaseDate: '2025-04-08', memo: 'AI 반도체' },
+  { account: '일반위탁', name: '엔비디아', type: 'foreign_stock', principal: 3000000, currentValue: 4180000, purchaseDate: '2024-09-12', memo: '장기 보유' },
+  { account: '일반위탁', name: '테슬라', type: 'foreign_stock', principal: 1800000, currentValue: 1560000, purchaseDate: '2025-02-20', memo: '변동성 큼' },
+  { account: '일반위탁', name: '리플', type: 'crypto', principal: 500000, currentValue: 720000, purchaseDate: '2025-05-25', memo: '소액 알트' },
+  { account: '일반위탁', name: 'NAVER', type: 'domestic_stock', principal: 1700000, currentValue: 1632000, purchaseDate: '2025-03-05', memo: null },
 ];
 
-// 한 사용자에게 투자 더미를 채운다 (idempotent)
+// 한 사용자에게 투자 계좌 + 종목 더미를 채운다 (idempotent)
 export const seedInvestments: SeedFn = async (prisma, userId) => {
   await prisma.investment.deleteMany({ where: { user_id: userId } });
+  await prisma.investmentAccount.deleteMany({ where: { user_id: userId } });
+
+  const accountId = new Map<string, number>();
+  for (const a of ACCOUNTS) {
+    const created = await prisma.investmentAccount.create({
+      data: { user_id: userId, name: a.name, cash_balance: a.cashBalance },
+    });
+    accountId.set(a.name, created.id);
+  }
 
   for (const v of INVESTMENTS) {
     await prisma.investment.create({
       data: {
         user_id: userId,
+        account_id: accountId.get(v.account)!,
         name: v.name,
         type: v.type,
         principal: v.principal,
