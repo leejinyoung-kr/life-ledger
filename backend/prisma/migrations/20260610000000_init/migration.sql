@@ -15,7 +15,7 @@ CREATE TABLE `user` (
     `name`       VARCHAR(100) NOT NULL                COMMENT '이름',
     `picture`    VARCHAR(500) NULL                    COMMENT '프로필 사진 URL',
     `created_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at` DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     UNIQUE INDEX `user_google_id_key`(`google_id`),
     UNIQUE INDEX `user_email_key`(`email`),
@@ -43,7 +43,7 @@ CREATE TABLE `transaction` (
     `recurring_overridden` BOOLEAN       NOT NULL DEFAULT false  COMMENT '사용자 개별 수정 회차(범위 수정 보존)',
     `deleted_at`           DATETIME(3)   NULL                    COMMENT '삭제일(KST)',
     `created_at`           DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`           DATETIME(3)   NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`           DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `transaction_user_id_date_idx`(`user_id`, `date`),
     INDEX `transaction_recurring_parent_id_idx`(`recurring_parent_id`),
@@ -64,7 +64,7 @@ CREATE TABLE `saving` (
     `memo`           VARCHAR(300)  NULL                    COMMENT '메모',
     `deleted_at`     DATETIME(3)   NULL                    COMMENT '삭제일(KST)',
     `created_at`     DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`     DATETIME(3)   NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`     DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `saving_user_id_idx`(`user_id`),
     PRIMARY KEY (`id`)
@@ -81,7 +81,7 @@ CREATE TABLE `investment` (
     `memo`          VARCHAR(300)  NULL                    COMMENT '메모',
     `deleted_at`    DATETIME(3)   NULL                    COMMENT '삭제일(KST)',
     `created_at`    DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`    DATETIME(3)   NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`    DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `investment_user_id_idx`(`user_id`),
     PRIMARY KEY (`id`)
@@ -105,7 +105,7 @@ CREATE TABLE `subscription` (
     `memo`              VARCHAR(300)  NULL                    COMMENT '메모',
     `deleted_at`        DATETIME(3)   NULL                    COMMENT '해지일(KST)',
     `created_at`        DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`        DATETIME(3)   NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`        DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `subscription_user_id_idx`(`user_id`),
     PRIMARY KEY (`id`)
@@ -125,7 +125,7 @@ CREATE TABLE `asset` (
     `memo`          VARCHAR(300)  NULL                    COMMENT '메모',
     `deleted_at`    DATETIME(3)   NULL                    COMMENT '삭제일(KST)',
     `created_at`    DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`    DATETIME(3)   NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`    DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `asset_user_id_idx`(`user_id`),
     PRIMARY KEY (`id`)
@@ -167,7 +167,7 @@ CREATE TABLE `user_settings` (
     `widgets`             JSON         NOT NULL                COMMENT '대시보드 위젯 표시/순서',
     `menu_order`          JSON         NULL                    COMMENT '사이드바 1차 메뉴 순서(key 배열)',
     `created_at`          DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`          DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`          DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     UNIQUE INDEX `user_settings_user_id_key`(`user_id`),
     PRIMARY KEY (`id`)
@@ -243,7 +243,7 @@ CREATE TABLE `task` (
     `done_at`    DATETIME(3)  NULL                    COMMENT '완료시각(KST)',
     `deleted_at` DATETIME(3)  NULL                    COMMENT '삭제일(KST)',
     `created_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at` DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `task_user_id_idx`(`user_id`),
     PRIMARY KEY (`id`)
@@ -260,7 +260,7 @@ CREATE TABLE `goal` (
     `tone`        ENUM('green','warning','danger') NOT NULL DEFAULT 'green' COMMENT '진행바색',
     `deleted_at`  DATETIME(3)   NULL                    COMMENT '삭제일(KST)',
     `created_at`  DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`  DATETIME(3)   NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`  DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `goal_user_id_idx`(`user_id`),
     PRIMARY KEY (`id`)
@@ -278,7 +278,7 @@ CREATE TABLE `note` (
     `tag`        VARCHAR(50)  NULL                    COMMENT '태그',
     `deleted_at` DATETIME(3)  NULL                    COMMENT '삭제일(KST)',
     `created_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at` DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `note_user_id_idx`(`user_id`),
     PRIMARY KEY (`id`)
@@ -297,7 +297,7 @@ CREATE TABLE `calendar_event` (
     `memo`       VARCHAR(300) NULL                    COMMENT '메모',
     `deleted_at` DATETIME(3)  NULL                    COMMENT '삭제일(KST)',
     `created_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at` DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `calendar_event_user_id_date_idx`(`user_id`, `date`),
     PRIMARY KEY (`id`)
@@ -318,7 +318,7 @@ CREATE TABLE `security_risk` (
     `resolved`     BOOLEAN      NOT NULL DEFAULT false  COMMENT '해결여부',
     `resolved_at`  DATETIME(3)  NULL                    COMMENT '해결시각(KST)',
     `created_at`   DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`   DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`   DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `security_risk_user_id_idx`(`user_id`),
     PRIMARY KEY (`id`)
@@ -349,7 +349,7 @@ CREATE TABLE `category` (
     `is_active`   BOOLEAN      NOT NULL DEFAULT true   COMMENT '활성 여부',
     `created_by`  INTEGER      NULL                    COMMENT '생성자 user.id(감사용, FK 아님)',
     `created_at`  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`  DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `category_domain_idx`(`domain`),
     INDEX `category_domain_parent_code_idx`(`domain`, `parent_code`),
@@ -421,7 +421,7 @@ CREATE TABLE `identity_card` (
     `memo`        VARCHAR(300) NULL                    COMMENT '메모',
     `deleted_at`  DATETIME(3)  NULL                    COMMENT '삭제일(KST)',
     `created_at`  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`  DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `identity_card_user_id_idx`(`user_id`),
     PRIMARY KEY (`id`)
@@ -441,7 +441,7 @@ CREATE TABLE `credential` (
     `memo`                VARCHAR(300) NULL                    COMMENT '메모',
     `deleted_at`          DATETIME(3)  NULL                    COMMENT '삭제일(KST)',
     `created_at`          DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`          DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`          DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `credential_user_id_idx`(`user_id`),
     PRIMARY KEY (`id`)
@@ -458,7 +458,7 @@ CREATE TABLE `env_project` (
     `description` VARCHAR(300) NULL                    COMMENT '설명',
     `deleted_at`  DATETIME(3)  NULL                    COMMENT '삭제일(KST)',
     `created_at`  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at`  DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at`  DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `env_project_user_id_idx`(`user_id`),
     PRIMARY KEY (`id`)
@@ -471,7 +471,7 @@ CREATE TABLE `storage_folder` (
     `name`       VARCHAR(200) NOT NULL                COMMENT '폴더명',
     `deleted_at` DATETIME(3)  NULL                    COMMENT '삭제일(KST)',
     `created_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at` DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `storage_folder_user_id_idx`(`user_id`),
     INDEX `storage_folder_parent_id_idx`(`parent_id`),
@@ -489,7 +489,7 @@ CREATE TABLE `storage_file` (
     `hash`       VARCHAR(64)  NULL                    COMMENT 'SHA-256(동일 내용 중복 제거용)',
     `deleted_at` DATETIME(3)  NULL                    COMMENT '삭제일(KST)',
     `created_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at` DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `storage_file_user_id_idx`(`user_id`),
     INDEX `storage_file_folder_id_idx`(`folder_id`),
@@ -512,7 +512,7 @@ CREATE TABLE `env_var` (
     `memo`       VARCHAR(300) NULL                    COMMENT '메모',
     `deleted_at` DATETIME(3)  NULL                    COMMENT '삭제일(KST)',
     `created_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '생성일(KST)',
-    `updated_at` DATETIME(3)  NOT NULL                COMMENT '수정일(KST)',
+    `updated_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3)                COMMENT '수정일(KST)',
 
     INDEX `env_var_user_id_idx`(`user_id`),
     INDEX `env_var_project_id_env_idx`(`project_id`, `env`),
