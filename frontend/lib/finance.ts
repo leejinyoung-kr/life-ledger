@@ -21,6 +21,8 @@ export type RecurringCycle = 'monthly' | 'weekly' | 'yearly';
 export type WeekendAdjust = 'none' | 'before' | 'after';
 // 자산이동(transfer) 누적 대상 — 거래 저장 시 지정하면 대상 잔액에 자동 반영됨
 export type TransferTarget = 'saving' | 'investment' | 'asset';
+// 대상 잔액 변화 방향 — asset 대상 전용(예: 할부 구매=increase, 상환=decrease)
+export type TransferDirection = 'increase' | 'decrease';
 
 export interface RecurringRule {
   cycle: RecurringCycle;
@@ -43,6 +45,7 @@ export interface Transaction {
   recurringParentId: number | null; // 반복 원본에서 자동 생성된 회차면 부모 id
   targetType: TransferTarget | null; // 자산이동 누적 대상 종류 (transfer 전용)
   targetId: number | null; // 자산이동 누적 대상 id
+  targetDirection: TransferDirection | null; // 대상 잔액 변화 방향 (asset 대상 전용)
 }
 
 export interface TransactionSummary {
@@ -121,6 +124,12 @@ export const TRANSFER_TARGET_LABEL: Record<TransferTarget, string> = {
   saving: '예적금',
   investment: '투자',
   asset: '부동산·부채',
+};
+
+// asset 대상일 때만 의미 — 할부 구매 등 증가/상환 등 감소
+export const TRANSFER_DIRECTION_LABEL: Record<TransferDirection, string> = {
+  increase: '증가 (예: 할부 구매)',
+  decrease: '감소 (예: 상환)',
 };
 
 export const CYCLE_LABEL: Record<RecurringCycle, string> = {

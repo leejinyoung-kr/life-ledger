@@ -21,10 +21,10 @@ import { downloadTransactionTemplate } from '@/lib/excel';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import {
-  PAY_METHODS, TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL,
+  PAY_METHODS, TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, TRANSFER_DIRECTION_LABEL,
   won, signedWon, dotDate,
   type Category, type Transaction, type TransactionSummary, type TrendBucket,
-  type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget,
+  type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget, type TransferDirection,
   type Saving, type Investment,
 } from '@/lib/finance';
 import type { Asset } from '@/lib/networth';
@@ -551,6 +551,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   const [scope, setScope] = useState<'one' | 'future' | 'all'>('one');
   const [targetType, setTargetType] = useState<TransferTarget | ''>('');
   const [targetId, setTargetId] = useState<number | ''>('');
+  const [targetDirection, setTargetDirection] = useState<TransferDirection>('decrease');
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
 
@@ -594,6 +595,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
     setWeekendAdjust((e?.recurringRule?.weekendAdjust as WeekendAdjust) ?? 'none');
     setTargetType(e?.targetType ?? '');
     setTargetId(e?.targetId ?? '');
+    setTargetDirection(e?.targetDirection ?? 'decrease');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
   }, [state.open, e]);
 
@@ -617,10 +619,11 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
     if (t !== 'transfer') { setTargetType(''); setTargetId(''); }
   }
 
-  // 이동 대상 종류 변경 시 항목 선택 초기화 (목록이 바뀌므로)
+  // 이동 대상 종류 변경 시 항목 선택·방향 초기화 (목록이 바뀌므로)
   function handleChangeTargetType(tt: TransferTarget | '') {
     setTargetType(tt);
     setTargetId('');
+    setTargetDirection('decrease');
   }
 
   // 대분류 변경 시 그 대분류의 첫 소분류로 설정
@@ -646,6 +649,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
         scope: editingRecurring ? scope : undefined,
         targetType: type === 'transfer' && targetType && targetId !== '' ? targetType : undefined,
         targetId: type === 'transfer' && targetType && targetId !== '' ? targetId : undefined,
+        targetDirection: type === 'transfer' && targetType === 'asset' && targetId !== '' ? targetDirection : undefined,
       };
       if (state.mode === 'edit' && e) await api.put(`/transactions/${e.id}`, payload);
       else await api.post('/transactions', payload);
@@ -714,6 +718,15 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
             </select>
           </Field>
         </div>
+      )}
+      {type === 'transfer' && targetType === 'asset' && targetId !== '' && (
+        <Field label="대상 변화 방향">
+          <select className="input" value={targetDirection} onChange={(ev) => setTargetDirection(ev.target.value as TransferDirection)}>
+            {(Object.entries(TRANSFER_DIRECTION_LABEL) as [TransferDirection, string][]).map(([v, label]) => (
+              <option key={v} value={v}>{label}</option>
+            ))}
+          </select>
+        </Field>
       )}
       {type === 'expense' && (
         <Field label="결제수단" required>
