@@ -36,7 +36,7 @@ export class SavingService {
     const where: Prisma.SavingWhereInput = { user_id: userId, deleted_at: null };
     if (query.type) where.type = query.type;
     if (query.q) where.name = { contains: query.q };
-    const orderBy: Prisma.SavingOrderByWithRelationInput = { start_date: 'desc' };
+    const orderBy: Prisma.SavingOrderByWithRelationInput = { id: 'desc' };
 
     const pg = parsePage(query.page, query.limit);
     if (pg) {
