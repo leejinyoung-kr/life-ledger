@@ -19,8 +19,14 @@ export class SettingsService {
   ) {}
 
   // 저장된 OpenAI 키 복호화 — 신규는 'v1:' 암호문, 구버전 평문 행은 그대로 반환(하위호환)
-  private revealOpenAiKey(stored: string): string {
-    return stored.startsWith('v1:') ? this.crypto.decrypt(stored) : stored;
+  // CREDENTIAL_SECRET 변경/데이터 손상으로 복호화 실패 시에도 /settings 조회 전체가 죽지 않도록 null 반환
+  private revealOpenAiKey(stored: string): string | null {
+    if (!stored.startsWith('v1:')) return stored;
+    try {
+      return this.crypto.decrypt(stored);
+    } catch {
+      return null;
+    }
   }
 
   // 설정 행 조회, 없으면 기본값으로 생성 (1:1 보장)
@@ -36,6 +42,12 @@ export class SettingsService {
     });
   }
 
+  // 복호화된 키를 마스킹 — 복호화 실패(키 손상/시크릿 변경) 시 마스킹 텍스트로 대체
+  private maskedOpenAiKey(stored: string): string {
+    const revealed = this.revealOpenAiKey(stored);
+    return revealed ? maskKey(revealed) : '복호화 실패';
+  }
+
   // 엔티티 → 응답 DTO. user(토큰)에서 계정 정보, 설정행에서 선호값. API 키는 마스킹.
   private toDto(s: UserSettings, user: AuthUser) {
     return {
@@ -48,7 +60,7 @@ export class SettingsService {
       sessionExpiry: s.session_expiry,
       pwAutoHide: s.pw_auto_hide,
       openaiApiKeySet: !!s.openai_api_key,
-      openaiApiKeyMasked: s.openai_api_key ? maskKey(this.revealOpenAiKey(s.openai_api_key)) : null,
+      openaiApiKeyMasked: s.openai_api_key ? this.maskedOpenAiKey(s.openai_api_key) : null,
       openaiModel: s.openai_model,
       categories: s.categories,
       widgets: s.widgets,
