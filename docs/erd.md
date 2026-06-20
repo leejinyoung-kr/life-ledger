@@ -114,6 +114,6 @@ LoginSession   1 ─── N RefreshToken(session_id)
 - `/auth/refresh` 호출 시 rotation: 기존 `jti` 폐기(`revoked_at`) + 신규 발급
 - `/auth/logout`, 세션 단건/전체 차단(`SecurityService.revokeSession/revokeAll`) 시 연결된 `RefreshToken` 도 함께 폐기
 
-## KST 타임스탬프
+## 타임스탬프
 
-Prisma 가 `@default(now())`/`@updatedAt` 을 UTC 로 전송 → BEFORE INSERT/UPDATE 트리거로 NOW() 덮어씀 (전제: `@@global.time_zone = +09:00`). 신규 테이블은 마이그레이션에 트리거 동봉.
+TiDB Cloud(프로덕션)는 트리거를 지원하지 않아 BEFORE INSERT/UPDATE 트리거 기반 KST 강제 방식은 제거됨. `created_at`/`updated_at`은 Prisma `@default(now())`/`@updatedAt` 그대로 사용(UTC 기준).
