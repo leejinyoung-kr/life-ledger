@@ -6,11 +6,9 @@ FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY frontend/package.json ./frontend/
 COPY backend/package.json ./backend/
-COPY packages/shared/package.json ./packages/shared/
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
-COPY packages ./packages
 COPY frontend ./frontend
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter frontend run build

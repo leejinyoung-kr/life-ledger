@@ -6,11 +6,9 @@ FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
-COPY packages/shared/package.json ./packages/shared/
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
-COPY packages ./packages
 COPY backend ./backend
 RUN pnpm --filter backend exec prisma generate
 RUN pnpm --filter backend run build
