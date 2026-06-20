@@ -21,11 +21,13 @@ import { downloadTransactionTemplate } from '@/lib/excel';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import {
-  PAY_METHODS, TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL,
+  PAY_METHODS, TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL,
   won, signedWon, dotDate,
   type Category, type Transaction, type TransactionSummary, type TrendBucket,
-  type TransactionType, type RecurringCycle, type WeekendAdjust,
+  type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget,
+  type Saving, type Investment,
 } from '@/lib/finance';
+import type { Asset } from '@/lib/networth';
 import {
   TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
   AMT_COLOR, RowActions, CardActions, toDay, monthsAgo, useAddTrigger,
@@ -123,7 +125,8 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   const trend = trendQuery.data ?? [];
   const recurring = recurringQuery.data ?? [];
   const error = (rowsQuery.error ?? summaryQuery.error)?.message ?? null;
-  const reload = () => invalidate(qk.transactions.all);
+  // 자산이동 거래가 예적금/투자/자산 잔액을 바꿀 수 있어 해당 탭도 함께 무효화
+  const reload = () => invalidate(qk.transactions.all, qk.savings.all, qk.investments.all, qk.assets.all);
 
   async function handleRemove(id: number) {
     if (!await confirm('이 내역을 삭제할까요?', 'danger')) return;
@@ -546,10 +549,24 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   const [recurringDay, setRecurringDay] = useState(1);
   const [weekendAdjust, setWeekendAdjust] = useState<WeekendAdjust>('none');
   const [scope, setScope] = useState<'one' | 'future' | 'all'>('one');
+  const [targetType, setTargetType] = useState<TransferTarget | ''>('');
+  const [targetId, setTargetId] = useState<number | ''>('');
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
 
   const editingRecurring = state.mode === 'edit' && !!(e?.isRecurring || e?.recurringParentId);
+  const targetPickerOpen = state.open && type === 'transfer';
+  // 이동 대상 후보 — 자산이동일 때만 조회(연동 없이 단순 기록도 허용하므로 항상 강제하지 않음)
+  const savingsQuery = useApiQuery<Saving[]>(qk.savings.list('transfer-target'), '/savings', { enabled: targetPickerOpen && targetType === 'saving' });
+  const investmentsQuery = useApiQuery<Investment[]>(qk.investments.list('transfer-target'), '/investments', { enabled: targetPickerOpen && targetType === 'investment' });
+  const assetsQuery = useApiQuery<Asset[]>(qk.assets.list('transfer-target'), '/assets', { enabled: targetPickerOpen && targetType === 'asset' });
+  const targetItems: { id: number; label: string }[] = targetType === 'saving'
+    ? (savingsQuery.data ?? []).map((s) => ({ id: s.id, label: `${s.bank} · ${s.name}` }))
+    : targetType === 'investment'
+      ? (investmentsQuery.data ?? []).map((v) => ({ id: v.id, label: v.name }))
+      : targetType === 'asset'
+        ? (assetsQuery.data ?? []).map((a) => ({ id: a.id, label: a.name }))
+        : [];
 
   useEffect(() => {
     if (!state.open) return;
@@ -575,6 +592,8 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
     setRecurringCycle((e?.recurringRule?.cycle as RecurringCycle) ?? 'monthly');
     setRecurringDay(e?.recurringRule?.day ?? 1);
     setWeekendAdjust((e?.recurringRule?.weekendAdjust as WeekendAdjust) ?? 'none');
+    setTargetType(e?.targetType ?? '');
+    setTargetId(e?.targetId ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
   }, [state.open, e]);
 
@@ -595,6 +614,13 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
     setCategory(leaves.find((l) => l.parentCode === fp?.code)?.code ?? '');
     // 지출=결제수단, 수입=입금은행, 이체=없음
     setPayMethod(t === 'expense' ? PAY_METHODS[0] : t === 'income' ? (bankCats[0]?.label ?? '') : '');
+    if (t !== 'transfer') { setTargetType(''); setTargetId(''); }
+  }
+
+  // 이동 대상 종류 변경 시 항목 선택 초기화 (목록이 바뀌므로)
+  function handleChangeTargetType(tt: TransferTarget | '') {
+    setTargetType(tt);
+    setTargetId('');
   }
 
   // 대분류 변경 시 그 대분류의 첫 소분류로 설정
@@ -618,6 +644,8 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
         isRecurring,
         recurringRule: isRecurring ? { cycle: recurringCycle, day: recurringDay, weekendAdjust } : undefined,
         scope: editingRecurring ? scope : undefined,
+        targetType: type === 'transfer' && targetType && targetId !== '' ? targetType : undefined,
+        targetId: type === 'transfer' && targetType && targetId !== '' ? targetId : undefined,
       };
       if (state.mode === 'edit' && e) await api.put(`/transactions/${e.id}`, payload);
       else await api.post('/transactions', payload);
@@ -669,6 +697,24 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
       <Field label="금액 (원)" required error={errors.amount}>
         <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
       </Field>
+      {type === 'transfer' && (
+        <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+          <Field label="이동 대상">
+            <select className="input" value={targetType} onChange={(ev) => handleChangeTargetType(ev.target.value as TransferTarget | '')}>
+              <option value="">연동 없음(단순 기록)</option>
+              {(Object.entries(TRANSFER_TARGET_LABEL) as [TransferTarget, string][]).map(([v, label]) => (
+                <option key={v} value={v}>{label}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="이동 대상 항목">
+            <select className="input" value={targetId} onChange={(ev) => setTargetId(ev.target.value ? Number(ev.target.value) : '')} disabled={!targetType}>
+              <option value="">선택 안 함</option>
+              {targetItems.map((it) => <option key={it.id} value={it.id}>{it.label}</option>)}
+            </select>
+          </Field>
+        </div>
+      )}
       {type === 'expense' && (
         <Field label="결제수단" required>
           <select className="input" aria-label="결제수단" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>

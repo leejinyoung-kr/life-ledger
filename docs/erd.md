@@ -63,9 +63,9 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ### 가계부 — Transaction / Saving / Investment
 
-- `Transaction` — `type`(income/expense/transfer), `category`(소분류 code 저장 — 대분류는 Category.parent_code 로 파생), `amount`, `pay_method`, `is_recurring`, `recurring_rule`(JSON), 반복 회차(`recurring_parent_id`·`recurring_period`·`recurring_overridden`), soft delete
+- `Transaction` — `type`(income/expense/transfer), `category`(소분류 code 저장 — 대분류는 Category.parent_code 로 파생), `amount`, `pay_method`, `is_recurring`, `recurring_rule`(JSON), 반복 회차(`recurring_parent_id`·`recurring_period`·`recurring_overridden`), `target_type`(saving/investment/asset)·`target_id` — transfer 거래가 가리키는 누적 대상(FK 아님, 지정 시 대상 잔액에 자동 반영), soft delete
 - `Saving` — `type`(savings/deposit/subscription/etc), `interest_rate`, `monthly_amount`, `maturity_date`, `balance`
-- `Investment` — `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `current_value`, `purchase_date`
+- `Investment` — `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `current_value`, `cash_balance`(예수금 — 자산이동으로 충전, 매수/매도로 평가금액과 전환), `purchase_date`
 
 ### 자산 — Subscription / Asset / NetWorthSnapshot
 

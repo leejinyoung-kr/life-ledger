@@ -17,6 +17,7 @@ import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { CreateInvestmentDto } from './dto/create-investment.dto';
 import { QueryInvestmentDto } from './dto/query-investment.dto';
 import { UpdateInvestmentDto } from './dto/update-investment.dto';
+import { TradeInvestmentDto } from './dto/trade-investment.dto';
 import { InvestmentService } from './investment.service';
 
 @ApiTags('가계부 - 투자')
@@ -52,6 +53,26 @@ export class InvestmentController {
     @Body() dto: UpdateInvestmentDto,
   ) {
     return this.service.update(user.id, id, dto);
+  }
+
+  // 매수 — 예수금 → 투자원금·평가금액 전환
+  @Post(':id/buy')
+  buy(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: TradeInvestmentDto,
+  ) {
+    return this.service.buy(user.id, id, dto);
+  }
+
+  // 매도 — 평가금액 → 예수금 환입
+  @Post(':id/sell')
+  sell(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: TradeInvestmentDto,
+  ) {
+    return this.service.sell(user.id, id, dto);
   }
 
   // 투자 일괄 삭제

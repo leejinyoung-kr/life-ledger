@@ -3,7 +3,7 @@
  * 날짜·유형·카테고리·결제수단을 다양하게 구성한다. 데이터가 늘면 아래 배열만 추가.
  * 2026-01 ~ 2026-06 (6개월) 분량 — 실사용처럼 월별 20~30건 내외.
  */
-import type { TransactionType } from '@prisma/client';
+import type { TransactionType, TransferTarget } from '@prisma/client';
 import { d, type SeedFn } from './helpers';
 
 type WeekendAdjust = 'none' | 'before' | 'after';
@@ -18,13 +18,18 @@ type TxSeed = {
   memo?: string;
   recurring?: boolean;
   weekendAdjust?: WeekendAdjust;
+  // 자산이동(transfer) 누적 대상 — 이름으로 지정, 시드 실행 시 해당 도메인 테이블에서 id를 조회해 연동(예적금/투자는 미리 시드되어 있어야 함)
+  target?: { type: TransferTarget; name: string };
 };
 
 // 반복 거래 템플릿 (첫 달만 등록 — 이후 회차는 백엔드 materialize 가 현재 월까지 자동 생성)
 function fixedRows(): TxSeed[] {
   return [
     { type: 'income',   date: '2026-01-25', title: '월급',          category: 'income_salary',          amount: 3200000, payMethod: '계좌이체', memo: '월 급여',       recurring: true, weekendAdjust: 'before' },
-    { type: 'transfer', date: '2026-01-30', title: '청약저축 납입',  category: 'transfer_move',          amount:  200000, payMethod: '계좌이체', memo: '잔액에서 제외', recurring: true, weekendAdjust: 'none' },
+    // 자산이동 — 예적금/투자/부채로 자동 누적되는 거래(target). 시드 시 이름으로 해당 행을 조회해 연동
+    { type: 'transfer', date: '2026-01-30', title: '청약저축 납입',  category: 'transfer_move',          amount:  200000, payMethod: '계좌이체', memo: '잔액에서 자동 누적', recurring: true, weekendAdjust: 'none', target: { type: 'saving', name: '청약저축' } },
+    { type: 'transfer', date: '2026-01-20', title: 'S&P500 ETF 적립', category: 'transfer_move',        amount:  200000, payMethod: '계좌이체', memo: '예수금으로 자동 누적', recurring: true, weekendAdjust: 'none', target: { type: 'investment', name: 'S&P500 ETF' } },
+    { type: 'transfer', date: '2026-01-25', title: '신용카드 할부 상환', category: 'transfer_move',      amount:  340000, payMethod: '계좌이체', memo: '부채 금액에서 자동 차감', recurring: true, weekendAdjust: 'none', target: { type: 'asset', name: '신용카드 할부' } },
     { type: 'expense',  date: '2026-01-29', title: '넷플릭스',       category: 'insurance_subscription', amount:   17000, payMethod: '신한카드', memo: '월정액',        recurring: true, weekendAdjust: 'none' },
     { type: 'expense',  date: '2026-01-15', title: '휴대폰 요금',    category: 'insurance_telecom',      amount:   55000, payMethod: '신한카드', memo: 'SKT 5G',        recurring: true, weekendAdjust: 'none' },
     { type: 'expense',  date: '2026-01-05', title: '실손보험료',     category: 'insurance_premium',      amount:   42000, payMethod: '계좌이체', memo: '월 보험료',     recurring: true, weekendAdjust: 'none' },
@@ -129,11 +134,24 @@ const VARIABLE: TxSeed[] = [
 ];
 
 // 한 사용자에게 수입/지출 더미를 채운다 (기존 행 제거 후 재삽입 → idempotent)
+// 자산이동(target) 거래는 예적금/투자/자산 더미가 먼저 시드되어 있어야 이름으로 연동된다 (seed.ts 실행 순서 참고)
 export const seedTransactions: SeedFn = async (prisma, userId) => {
   await prisma.transaction.deleteMany({ where: { user_id: userId } });
 
+  const [savings, investments, assets] = await Promise.all([
+    prisma.saving.findMany({ where: { user_id: userId }, select: { id: true, name: true } }),
+    prisma.investment.findMany({ where: { user_id: userId }, select: { id: true, name: true } }),
+    prisma.asset.findMany({ where: { user_id: userId }, select: { id: true, name: true } }),
+  ]);
+  function targetIdOf(target?: { type: TransferTarget; name: string }): number | null {
+    if (!target) return null;
+    const list = target.type === 'saving' ? savings : target.type === 'investment' ? investments : assets;
+    return list.find((r) => r.name === target.name)?.id ?? null;
+  }
+
   const rows = [...fixedRows(), ...VARIABLE];
   for (const t of rows) {
+    const targetId = targetIdOf(t.target);
     await prisma.transaction.create({
       data: {
         user_id: userId,
@@ -151,6 +169,8 @@ export const seedTransactions: SeedFn = async (prisma, userId) => {
           : undefined,
         // 반복 템플릿이면 자신의 회차 식별 (자동 생성 시 중복 방지)
         recurring_period: t.recurring ? t.date.slice(0, 7) : null,
+        target_type: targetId != null ? t.target!.type : null,
+        target_id: targetId,
       },
     });
   }

@@ -5,6 +5,7 @@ import { parsePage } from '../common/pagination';
 import { CreateInvestmentDto } from './dto/create-investment.dto';
 import { QueryInvestmentDto } from './dto/query-investment.dto';
 import { UpdateInvestmentDto } from './dto/update-investment.dto';
+import { TradeInvestmentDto } from './dto/trade-investment.dto';
 
 @Injectable()
 export class InvestmentService {
@@ -21,6 +22,7 @@ export class InvestmentService {
       type: v.type,
       principal,
       currentValue,
+      cashBalance: v.cash_balance.toNumber(),
       profit,
       profitRate: principal ? Math.round((profit / principal) * 1000) / 10 : 0,
       purchaseDate: v.purchase_date ? v.purchase_date.toISOString().slice(0, 10) : null,
@@ -102,6 +104,41 @@ export class InvestmentService {
           dto.currentValue !== undefined ? new Prisma.Decimal(dto.currentValue) : undefined,
         purchase_date: dto.purchaseDate ? new Date(dto.purchaseDate) : undefined,
         memo: dto.memo,
+      },
+    });
+    return this.toDto(updated);
+  }
+
+  // 매수 — 예수금을 깎아 투자원금·평가금액에 동반 반영(증권사 예수금→매수 흐름과 동일)
+  async buy(userId: number, id: number, dto: TradeInvestmentDto) {
+    const row = await this.findOwned(userId, id);
+    const amount = new Prisma.Decimal(dto.amount);
+    if (row.cash_balance.lessThan(amount)) {
+      throw new BadRequestException('예수금이 부족합니다.');
+    }
+    const updated = await this.prisma.investment.update({
+      where: { id },
+      data: {
+        cash_balance: { decrement: amount },
+        principal: { increment: amount },
+        current_value: { increment: amount },
+      },
+    });
+    return this.toDto(updated);
+  }
+
+  // 매도 — 평가금액을 줄이고 예수금으로 환입(원금은 누적 투입 기준으로 유지)
+  async sell(userId: number, id: number, dto: TradeInvestmentDto) {
+    const row = await this.findOwned(userId, id);
+    const amount = new Prisma.Decimal(dto.amount);
+    if (row.current_value.lessThan(amount)) {
+      throw new BadRequestException('평가금액이 부족합니다.');
+    }
+    const updated = await this.prisma.investment.update({
+      where: { id },
+      data: {
+        current_value: { decrement: amount },
+        cash_balance: { increment: amount },
       },
     });
     return this.toDto(updated);

@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, Transaction, TransactionType } from '@prisma/client';
+import {
+  Prisma, Transaction, TransactionType, TransferTarget,
+} from '@prisma/client';
 import * as ExcelJS from 'exceljs';
 import type { Writable } from 'stream';
 import { PrismaService } from '../prisma/prisma.service';
@@ -90,7 +92,61 @@ export class TransactionService {
       recurringRule: t.recurring_rule ?? null,
       // 반복 원본에서 자동 생성된 회차인지 (프론트 🔁 표시용)
       recurringParentId: t.recurring_parent_id ?? null,
+      targetType: t.target_type ?? null,
+      targetId: t.target_id ?? null,
     };
+  }
+
+  // 자산이동(transfer) 거래 1건이 대상 잔액에 미치는 효과를 적용. signedAmount가 양수면 누적, 음수면 역반영(수정/삭제 시 사용)
+  // 부채(Asset.type='debt')는 자산이동 = 상환으로 보아 반대 방향(감소)으로 적용
+  // required=false(역반영 전용)면 대상이 이미 삭제돼 없어도 조용히 건너뜀 — 연동 항목 삭제 후에도 거래 자체는 수정/삭제 가능해야 함
+  private async applyTransferEffect(
+    tx: Prisma.TransactionClient,
+    userId: number,
+    targetType: TransferTarget,
+    targetId: number,
+    signedAmount: Prisma.Decimal,
+    required = true,
+  ): Promise<void> {
+    if (signedAmount.isZero()) return;
+    if (targetType === 'saving') {
+      const { count } = await tx.saving.updateMany({
+        where: { id: targetId, user_id: userId, deleted_at: null },
+        data: { balance: { increment: signedAmount } },
+      });
+      if (!count && required) throw new BadRequestException('이동 대상 예적금을 찾을 수 없습니다.');
+    } else if (targetType === 'investment') {
+      const { count } = await tx.investment.updateMany({
+        where: { id: targetId, user_id: userId, deleted_at: null },
+        data: { cash_balance: { increment: signedAmount } },
+      });
+      if (!count && required) throw new BadRequestException('이동 대상 투자 항목을 찾을 수 없습니다.');
+    } else {
+      const asset = await tx.asset.findFirst({ where: { id: targetId, user_id: userId, deleted_at: null } });
+      if (!asset) {
+        if (required) throw new BadRequestException('이동 대상 자산을 찾을 수 없습니다.');
+        return;
+      }
+      const signed = asset.type === 'debt' ? signedAmount.negated() : signedAmount;
+      await tx.asset.update({ where: { id: targetId }, data: { amount: { increment: signed } } });
+    }
+  }
+
+  // row의 기존 target 효과를 역반영 → 거래 row 패치 적용 → 새 target 효과를 적용. 수정 시 정확한 차액 반영을 위해 사용
+  private async applyRowUpdatePatch(
+    tx: Prisma.TransactionClient,
+    userId: number,
+    row: Transaction,
+    patch: Prisma.TransactionUpdateInput,
+  ): Promise<Transaction> {
+    if (row.target_type && row.target_id) {
+      await this.applyTransferEffect(tx, userId, row.target_type, row.target_id, row.amount.negated(), false);
+    }
+    const updated = await tx.transaction.update({ where: { id: row.id }, data: patch });
+    if (updated.target_type && updated.target_id) {
+      await this.applyTransferEffect(tx, userId, updated.target_type, updated.target_id, updated.amount);
+    }
+    return updated;
   }
 
   // 활성 반복 템플릿의 회차를 현재 월까지 미리 생성한다.
@@ -126,9 +182,18 @@ export class TransactionService {
           amount: t.amount, pay_method: t.pay_method, memo: t.memo,
           is_recurring: false, recurring_rule: Prisma.JsonNull,
           recurring_parent_id: t.id, recurring_period: period,
+          target_type: t.target_type, target_id: t.target_id,
         });
       }
-      if (toCreate.length) await this.prisma.transaction.createMany({ data: toCreate });
+      if (toCreate.length) {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.transaction.createMany({ data: toCreate });
+          // 자산이동 반복 템플릿이면 새로 생성된 회차분만큼 대상 잔액에 일괄 누적 (회차당 금액은 템플릿과 동일)
+          if (t.target_type && t.target_id) {
+            await this.applyTransferEffect(tx, userId, t.target_type, t.target_id, t.amount.mul(toCreate.length));
+          }
+        });
+      }
     }
   }
 
@@ -264,21 +329,31 @@ export class TransactionService {
     const date = new Date(dto.date);
     const isRecurring = dto.isRecurring ?? false;
     const rule = dto.recurringRule as unknown as RRule | undefined;
-    const created = await this.prisma.transaction.create({
-      data: {
-        user_id: userId,
-        type: dto.type,
-        date,
-        title: dto.title,
-        category: dto.category,
-        amount: new Prisma.Decimal(dto.amount),
-        pay_method: dto.payMethod ?? '',
-        memo: dto.memo,
-        is_recurring: isRecurring,
-        recurring_rule: isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
-        // 반복 템플릿이면 자신의 회차 식별자 기록 (자동 생성 시 중복 방지)
-        recurring_period: isRecurring && rule?.cycle ? periodOf(date, rule.cycle) : null,
-      },
+    const hasTarget = dto.type === 'transfer' && dto.targetType != null && dto.targetId != null;
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.transaction.create({
+        data: {
+          user_id: userId,
+          type: dto.type,
+          date,
+          title: dto.title,
+          category: dto.category,
+          amount: new Prisma.Decimal(dto.amount),
+          pay_method: dto.payMethod ?? '',
+          memo: dto.memo,
+          is_recurring: isRecurring,
+          recurring_rule: isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
+          // 반복 템플릿이면 자신의 회차 식별자 기록 (자동 생성 시 중복 방지)
+          recurring_period: isRecurring && rule?.cycle ? periodOf(date, rule.cycle) : null,
+          target_type: hasTarget ? dto.targetType : null,
+          target_id: hasTarget ? dto.targetId : null,
+        },
+      });
+      if (hasTarget) {
+        await this.applyTransferEffect(tx, userId, dto.targetType!, dto.targetId!, row.amount);
+      }
+      return row;
     });
     // 등록 즉시 과거~현재 회차 채움 (목록 진입 전 미리)
     if (isRecurring) await this.materializeRecurring(userId);
@@ -444,68 +519,74 @@ export class TransactionService {
     // 단일 범위로 회차(자동 생성분)를 직접 고치면 '개별 수정'으로 고정 → 이후 범위 수정에서 보존
     const pinOverride = isOccurrence && (!dto.scope || dto.scope === 'one');
 
-    const updated = await this.prisma.transaction.update({
-      where: { id },
-      data: {
-        type: dto.type,
-        date: dto.date ? new Date(dto.date) : undefined,
-        title: dto.title,
-        category: dto.category,
-        amount: dto.amount !== undefined ? new Prisma.Decimal(dto.amount) : undefined,
-        pay_method: dto.payMethod,
-        memo: dto.memo,
-        is_recurring: dto.isRecurring,
-        recurring_rule: dto.isRecurring !== undefined
-          ? (dto.isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull)
-          : undefined,
-        recurring_overridden: pinOverride ? true : undefined,
-      },
-    });
+    const mainPatch: Prisma.TransactionUpdateInput = {
+      type: dto.type,
+      date: dto.date ? new Date(dto.date) : undefined,
+      title: dto.title,
+      category: dto.category,
+      amount: dto.amount !== undefined ? new Prisma.Decimal(dto.amount) : undefined,
+      pay_method: dto.payMethod,
+      memo: dto.memo,
+      is_recurring: dto.isRecurring,
+      recurring_rule: dto.isRecurring !== undefined
+        ? (dto.isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull)
+        : undefined,
+      recurring_overridden: pinOverride ? true : undefined,
+      target_type: dto.targetType !== undefined ? dto.targetType : undefined,
+      target_id: dto.targetId !== undefined ? dto.targetId : undefined,
+    };
 
-    // 반복 거래 범위 수정 — 날짜는 회차별 고유라 제외, 내용 필드만 전파.
-    // 사용자가 개별 수정(override)한 회차는 덮어쓰지 않는다.
-    if ((dto.scope === 'future' || dto.scope === 'all')) {
-      const templateId = target.recurring_parent_id ?? target.id; // 템플릿 기준
-      const where: Prisma.TransactionWhereInput = {
-        user_id: userId,
-        deleted_at: null,
-        id: { not: id },
-        recurring_overridden: false,
-        OR: [{ id: templateId }, { recurring_parent_id: templateId }],
-      };
-      if (dto.scope === 'future') where.date = { gte: target.date }; // 이번 회차 이후
-      await this.prisma.transaction.updateMany({
-        where,
-        data: {
-          type: dto.type,
-          title: dto.title,
-          category: dto.category,
-          amount: dto.amount !== undefined ? new Prisma.Decimal(dto.amount) : undefined,
-          pay_method: dto.payMethod,
-          memo: dto.memo,
-        },
-      });
-    }
-    return this.toDto(updated);
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await this.applyRowUpdatePatch(tx, userId, target, mainPatch);
+
+      // 반복 거래 범위 수정 — 날짜는 회차별 고유라 제외, 내용 필드만 전파.
+      // 사용자가 개별 수정(override)한 회차는 덮어쓰지 않으며, row마다 target/amount가 달라 개별 역반영·재적용한다.
+      if (dto.scope === 'future' || dto.scope === 'all') {
+        const templateId = target.recurring_parent_id ?? target.id; // 템플릿 기준
+        const where: Prisma.TransactionWhereInput = {
+          user_id: userId,
+          deleted_at: null,
+          id: { not: id },
+          recurring_overridden: false,
+          OR: [{ id: templateId }, { recurring_parent_id: templateId }],
+        };
+        if (dto.scope === 'future') where.date = { gte: target.date }; // 이번 회차 이후
+        const rows = await tx.transaction.findMany({ where });
+        const { date: _omitDate, recurring_overridden: _omitOverride, ...contentPatch } = mainPatch;
+        for (const row of rows) {
+          await this.applyRowUpdatePatch(tx, userId, row, contentPatch);
+        }
+      }
+      return this.toDto(updated);
+    });
   }
 
-  // 내역 삭제 (soft delete — deleted_at 기록)
+  // 내역 삭제 (soft delete — deleted_at 기록). 자산이동 연동 거래면 대상 잔액도 역반영
   async remove(userId: number, id: number) {
-    await this.findOwned(userId, id);
-    await this.prisma.transaction.update({
-      where: { id },
-      data: { deleted_at: new Date() },
+    const target = await this.findOwned(userId, id);
+    await this.prisma.$transaction(async (tx) => {
+      if (target.target_type && target.target_id) {
+        await this.applyTransferEffect(tx, userId, target.target_type, target.target_id, target.amount.negated(), false);
+      }
+      await tx.transaction.update({ where: { id }, data: { deleted_at: new Date() } });
     });
     return { id };
   }
 
-  // 내역 일괄 삭제 (soft delete)
+  // 내역 일괄 삭제 (soft delete) — row별 target이 다를 수 있어 개별 역반영 후 삭제
   async removeMany(userId: number, ids: number[]) {
     if (!ids.length) throw new BadRequestException('삭제할 항목이 없습니다.');
-    const { count } = await this.prisma.transaction.updateMany({
+    const rows = await this.prisma.transaction.findMany({
       where: { id: { in: ids }, user_id: userId, deleted_at: null },
-      data: { deleted_at: new Date() },
     });
-    return { count };
+    await this.prisma.$transaction(async (tx) => {
+      for (const row of rows) {
+        if (row.target_type && row.target_id) {
+          await this.applyTransferEffect(tx, userId, row.target_type, row.target_id, row.amount.negated(), false);
+        }
+        await tx.transaction.update({ where: { id: row.id }, data: { deleted_at: new Date() } });
+      }
+    });
+    return { count: rows.length };
   }
 }

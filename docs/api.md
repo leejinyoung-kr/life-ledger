@@ -27,7 +27,7 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /transactions/summary?month= | 월 요약 (수입/지출/저축이동/실소비/잔액) |
 | GET | /transactions/monthly-trend?month= | 월별 지출 추이 (최근 5개월) |
 | GET | /transactions/recurring | 반복 거래 목록 (동일 규칙 중복 제거) |
-| POST | /transactions | 내역 추가 |
+| POST | /transactions | 내역 추가 (`type='transfer'`이고 `targetType`·`targetId` 지정 시 대상 잔액에 자동 반영) |
 | POST | /transactions/import | 엑셀 양식(.xlsx) 업로드 → 행별 검증 후 일괄 추가 (multipart, 필드명 `file`, 최대 5MB) |
 | GET | /transactions/export?from=&to=&type=&category=&q= | 현재 필터 내역을 .xlsx 로 스트리밍 다운로드 |
 | PUT | /transactions/:id | 내역 수정 (반복은 `scope` 로 범위 지정) |
@@ -58,6 +58,8 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /investments/summary | 요약 (총 평가금액/원금/수익/수익률) |
 | POST | /investments | 투자 추가 |
 | PUT | /investments/:id | 투자 수정 |
+| POST | /investments/:id/buy | 매수 — 예수금 → 투자원금·평가금액 전환 |
+| POST | /investments/:id/sell | 매도 — 평가금액 → 예수금 환입 |
 | DELETE | /investments/:id | 투자 삭제 (soft delete) |
 
 ## 구독 관리

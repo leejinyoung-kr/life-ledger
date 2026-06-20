@@ -25,11 +25,13 @@ import {
 } from '../_shared';
 
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Investment; prefill?: Investment };
+type TradeState = { open: boolean; mode: 'buy' | 'sell'; target?: Investment };
 
 export default function InvestTab({ investCats, addTrigger }: { investCats: Category[]; addTrigger: number }) {
   const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
+  const [trade, setTrade] = useState<TradeState>({ open: false, mode: 'buy' });
   const invalidate = useInvalidate();
 
   const [pendingName, setPendingName] = useState('');
@@ -137,22 +139,24 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
               <col />
               <col style={{ width: '120px' }} />
               <col style={{ width: '120px' }} />
+              <col style={{ width: '110px' }} />
               <col style={{ width: '120px' }} />
               <col style={{ width: '96px' }} />
               <col style={{ width: '180px' }} />
+              <col style={{ width: '128px' }} />
               <col style={{ width: '72px' }} />
             </colgroup>
             <thead>
               <tr>
                 <th className="td-center"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>유형</th><th>종목</th>
-                <th>투자원금</th><th>평가금액</th>
+                <th>투자원금</th><th>평가금액</th><th>예수금</th>
                 <th>수익</th><th>수익률</th>
-                <th>메모</th><th>관리</th>
+                <th>메모</th><th>매수/매도</th><th>관리</th>
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && <tr><td colSpan={10} className="td-center td-muted">투자 항목이 없습니다.</td></tr>}
+              {paged.length === 0 && <tr><td colSpan={12} className="td-center td-muted">투자 항목이 없습니다.</td></tr>}
               {paged.map((row, i) => {
                 const up = row.profit >= 0;
                 return (
@@ -163,9 +167,16 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                     <td className="td-strong">{row.name}</td>
                     <td className="td-mono td-right">{won(row.principal)}</td>
                     <td className="td-mono td-right">{won(row.currentValue)}</td>
+                    <td className="td-mono td-right">{won(row.cashBalance)}</td>
                     <td className={`td-right amount-${up ? 'income' : 'expense'}`}>{up ? '+' : '-'}{won(row.profit)}</td>
                     <td className="td-center"><span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span></td>
                     <td className="td-center td-muted">{row.memo ?? '-'}</td>
+                    <td className="td-center">
+                      <div className="flex justify-center gap-1.5">
+                        <Button size="sm" variant="ghost" onClick={() => setTrade({ open: true, mode: 'buy', target: row })}>매수</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setTrade({ open: true, mode: 'sell', target: row })}>매도</Button>
+                      </div>
+                    </td>
                     <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} /></td>
                   </tr>
                 );
@@ -189,9 +200,14 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                 <div className={TXCARD_SUB}>
                   <span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span>
                   <span>원금 {won(row.principal)}</span>
+                  <span>예수금 {won(row.cashBalance)}</span>
                   <span className={up ? 'text-accent' : 'text-danger'}>{up ? '+' : '-'}{won(row.profit)}</span>
                   <span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span>
                   {row.memo && <span>· {row.memo}</span>}
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <Button variant="ghost" className="flex-1" onClick={() => setTrade({ open: true, mode: 'buy', target: row })}>매수</Button>
+                  <Button variant="ghost" className="flex-1" onClick={() => setTrade({ open: true, mode: 'sell', target: row })}>매도</Button>
                 </div>
                 <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} />
               </div>
@@ -206,8 +222,62 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
         onClose={() => setModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setModal((s) => ({ ...s, open: false })); reload(); }}
       />
+      <TradeModal
+        state={trade}
+        onClose={() => setTrade((s) => ({ ...s, open: false }))}
+        onSaved={() => { setTrade((s) => ({ ...s, open: false })); reload(); }}
+      />
       {confirmElement}
     </>
+  );
+}
+
+// 예수금↔평가금액 전환(매수/매도) 모달 — 금액만 입력받아 /investments/:id/buy|sell 호출
+function TradeModal({ state, onClose, onSaved }: { state: TradeState; onClose: () => void; onSaved: () => void }) {
+  const t = state.target;
+  const [amount, setAmount] = useState('');
+  const [saving, setSaving] = useState(false);
+  const { errors, setErrors, clearError, reset } = useFormErrors();
+  const isBuy = state.mode === 'buy';
+  const limit = isBuy ? t?.cashBalance ?? 0 : t?.currentValue ?? 0;
+
+  useEffect(() => {
+    if (!state.open) return;
+    reset();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
+    setAmount('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림 시에만 폼 초기화
+  }, [state.open]);
+
+  function validate() {
+    const err: Record<string, string> = {};
+    const n = Number(amount);
+    if (!amount || n <= 0) err.amount = '금액을 입력하세요.';
+    else if (n > limit) err.amount = isBuy ? '예수금을 초과했습니다.' : '평가금액을 초과했습니다.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  async function handleSave() {
+    if (!t || !validate()) return;
+    setSaving(true);
+    try {
+      await api.post(`/investments/${t.id}/${isBuy ? 'buy' : 'sell'}`, { amount: Number(amount) });
+      notify.success(isBuy ? '매수했습니다.' : '매도했습니다.');
+      onSaved();
+    } catch (err) {
+      notify.error((err as Error).message || '처리에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={state.open} onClose={onClose} title={`${t?.name ?? ''} ${isBuy ? '매수' : '매도'}`} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
+      <Field label={isBuy ? `금액 (원) — 예수금 ${won(limit)} 이내` : `금액 (원) — 평가금액 ${won(limit)} 이내`} required error={errors.amount}>
+        <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
+      </Field>
+    </Modal>
   );
 }
 

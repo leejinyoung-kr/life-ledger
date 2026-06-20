@@ -34,12 +34,13 @@ const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
 
 // 등록된 도메인 시드 (실행 순서 = 배열 순서). 도메인 늘면 여기에 추가.
+// 예적금/투자/자산종합은 수입/지출보다 먼저 — 자산이동(transfer) 거래가 대상(target) 행을 이름으로 조회해 연동하므로 순서 필요
 const SEEDS: { name: string; run: SeedFn }[] = [
-  { name: '수입/지출', run: seedTransactions },
   { name: '예적금', run: seedSavings },
   { name: '투자', run: seedInvestments },
-  { name: '구독', run: seedSubscriptions },
   { name: '자산종합', run: seedAssets },
+  { name: '수입/지출', run: seedTransactions },
+  { name: '구독', run: seedSubscriptions },
   { name: '설정', run: seedSettings },
   { name: '알림', run: seedNotifications },
   { name: '할일/목표', run: seedTasks },
@@ -71,7 +72,11 @@ async function main() {
   console.log(`시드 대상 사용자 ${users.length}명 · 도메인 ${SEEDS.length}종`);
 
   for (const u of users) {
-    const counts = await Promise.all(SEEDS.map((s) => s.run(prisma, u.id)));
+    // 순차 실행 — 수입/지출 시드가 예적금/투자/자산종합 행을 이름으로 조회해 연동하므로 배열 순서가 곧 의존 순서
+    const counts: number[] = [];
+    for (const s of SEEDS) {
+      counts.push(await s.run(prisma, u.id));
+    }
     const detail = SEEDS.map((s, i) => `${s.name} ${counts[i]}`).join(' · ');
     console.log(`  ✓ user#${u.id}: ${detail}`);
   }

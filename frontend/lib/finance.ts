@@ -19,6 +19,8 @@ export interface Category {
 export type TransactionType = 'income' | 'expense' | 'transfer';
 export type RecurringCycle = 'monthly' | 'weekly' | 'yearly';
 export type WeekendAdjust = 'none' | 'before' | 'after';
+// 자산이동(transfer) 누적 대상 — 거래 저장 시 지정하면 대상 잔액에 자동 반영됨
+export type TransferTarget = 'saving' | 'investment' | 'asset';
 
 export interface RecurringRule {
   cycle: RecurringCycle;
@@ -39,6 +41,8 @@ export interface Transaction {
   isRecurring: boolean;
   recurringRule: RecurringRule | null;
   recurringParentId: number | null; // 반복 원본에서 자동 생성된 회차면 부모 id
+  targetType: TransferTarget | null; // 자산이동 누적 대상 종류 (transfer 전용)
+  targetId: number | null; // 자산이동 누적 대상 id
 }
 
 export interface TransactionSummary {
@@ -92,6 +96,7 @@ export interface Investment {
   type: InvestmentType;
   principal: number;
   currentValue: number;
+  cashBalance: number; // 예수금(미투자 대기 현금)
   profit: number;
   profitRate: number;
   purchaseDate: string | null;
@@ -110,6 +115,12 @@ export const TX_TYPE_LABEL: Record<TransactionType, string> = {
   income: '수입',
   expense: '지출',
   transfer: '자산이동',
+};
+
+export const TRANSFER_TARGET_LABEL: Record<TransferTarget, string> = {
+  saving: '예적금',
+  investment: '투자',
+  asset: '부동산·부채',
 };
 
 export const CYCLE_LABEL: Record<RecurringCycle, string> = {

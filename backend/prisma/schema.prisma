@@ -54,6 +54,15 @@ enum TransactionType {
   @@map("transaction_type")
 }
 
+/// 자산이동(transfer) 누적 대상: saving(예적금) | investment(투자 예수금) | asset(부동산·부채)
+enum TransferTarget {
+  saving
+  investment
+  asset
+
+  @@map("transfer_target")
+}
+
 /// 수입/지출 내역 (가계부 - 수입/지출 탭)
 model Transaction {
   id             Int             @id @default(autoincrement())
@@ -70,6 +79,8 @@ model Transaction {
   recurring_parent_id Int? /// 반복 원본 transaction.id (자동 생성 회차)
   recurring_period    String? @db.VarChar(10) /// 반복 회차 식별 (YYYY-MM / YYYY / YYYY-MM-DD)
   recurring_overridden Boolean @default(false) /// 사용자가 개별 수정한 회차 — 범위(이후/전체) 수정에서 보존
+  target_type    TransferTarget? /// 이동 대상 종류(transfer 전용) — 지정 시 대상 잔액에 자동 반영
+  target_id      Int? /// 대상 테이블 id (target_type 기준, FK 아님)
   deleted_at     DateTime?
   created_at     DateTime        @default(now())
   updated_at     DateTime        @updatedAt
@@ -134,6 +145,7 @@ model Investment {
   type          InvestmentType
   principal     Decimal        @db.Decimal(15, 2)
   current_value Decimal        @db.Decimal(15, 2)
+  cash_balance  Decimal        @default(0) @db.Decimal(15, 2) /// 예수금(미투자 대기 현금) — 자산이동으로 충전, 매수/매도로 평가금액과 전환
   purchase_date DateTime?      @db.Date
   memo          String?        @db.VarChar(300)
   deleted_at    DateTime?
