@@ -147,6 +147,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
               <span className="font-bold text-[0.95rem] [font-family:var(--font-mono)]">{won(a.cashBalance)}</span>
             </div>
             <div className="text-[0.72rem] text-muted mt-1">예수금 · 보유 {a.holdingsCount}종목 · 평가금액 {won(a.totalCurrentValue)}</div>
+            {a.accountNumber && <div className="text-[0.72rem] text-muted mt-0.5 font-mono">{a.accountNumber}</div>}
             {a.memo && <div className="text-[0.72rem] text-muted mt-0.5">{a.memo}</div>}
             <div className="flex gap-2 mt-2.5">
               <Button variant="ghost" size="sm" className="flex-1" onClick={() => setAccountModal({ open: true, mode: 'edit', editing: a })}>수정</Button>
@@ -432,11 +433,13 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
   );
 }
 
-// 투자 계좌 추가/수정 모달 — 이름·예수금·메모만 입력
+// 투자 계좌 추가/수정 모달 — 이름·예수금·계좌번호·메모 입력. 계좌번호는 서버에 암호화 저장되며 목록엔 마스킹되어 표시되므로, 수정 시엔 비워두면 기존 값 유지
 function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
+  const isEdit = state.mode === 'edit';
   const [name, setName] = useState('');
   const [cashBalance, setCashBalance] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
@@ -447,6 +450,7 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setName(e?.name ?? '');
     setCashBalance(e ? String(e.cashBalance) : '');
+    setAccountNumber('');
     setMemo(e?.memo ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
   }, [state.open, e]);
@@ -454,6 +458,8 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
   function validate() {
     const err: Record<string, string> = {};
     if (!name.trim()) err.name = '계좌명을 입력하세요.';
+    // 수정 시엔 비워두면 기존 암호화된 번호를 유지하므로 신규 생성일 때만 필수
+    if (!isEdit && !accountNumber.trim()) err.accountNumber = '계좌번호를 입력하세요.';
     setErrors(err);
     return !Object.keys(err).length;
   }
@@ -462,7 +468,7 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
     if (!validate()) return;
     setSaving(true);
     try {
-      const payload = { name, cashBalance: Number(cashBalance || 0), memo: memo || undefined };
+      const payload = { name, cashBalance: Number(cashBalance || 0), accountNumber: accountNumber || undefined, memo: memo || undefined };
       if (state.mode === 'edit' && e) await api.put(`/investment-accounts/${e.id}`, payload);
       else await api.post('/investment-accounts', payload);
       notify.upserted(state.mode, '투자 계좌');
@@ -480,6 +486,9 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: ISA, 일반위탁" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
       </Field>
       <Field label="예수금 (원)"><input type="number" className="input" placeholder="0" value={cashBalance} onChange={(ev) => setCashBalance(ev.target.value)} /></Field>
+      <Field label={isEdit ? '계좌번호 (변경 시에만 입력)' : '계좌번호'} required={!isEdit} error={errors.accountNumber}>
+        <input type="text" className={`input${errors.accountNumber ? ' is-invalid' : ''}`} placeholder={isEdit ? '비워두면 기존 번호 유지' : '동일 계좌명 다중 보유 시 구분용'} value={accountNumber} onChange={(ev) => { setAccountNumber(ev.target.value); clearError('accountNumber'); }} />
+      </Field>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
     </Modal>
   );

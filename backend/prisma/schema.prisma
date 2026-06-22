@@ -153,6 +153,7 @@ model InvestmentAccount {
   user_id      Int /// user.id FK
   name         String     @db.VarChar(100) /// 계좌명 (예: ISA, 일반위탁)
   cash_balance Decimal    @default(0) @db.Decimal(15, 2) /// 예수금(미투자 대기 현금) — 자산이동으로 충전, 매수/매도로 보유 종목과 전환
+  account_number_enc String? @db.VarChar(255) /// 계좌번호(암호문, AES-256-GCM) — 동일 계좌명(예: 일반위탁) 다중 보유 시 구분용
   memo         String?    @db.VarChar(300)
   deleted_at   DateTime?
   created_at   DateTime   @default(now())

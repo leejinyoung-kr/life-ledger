@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InvestmentAccount, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { parsePage } from '../common/pagination';
+import { CryptoService } from '../common/crypto.service';
 import { CreateInvestmentAccountDto } from './dto/create-investment-account.dto';
 import { QueryInvestmentAccountDto } from './dto/query-investment-account.dto';
 import { UpdateInvestmentAccountDto } from './dto/update-investment-account.dto';
@@ -10,7 +11,20 @@ type HoldingsAgg = { count: number; principal: number; currentValue: number };
 
 @Injectable()
 export class InvestmentAccountService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private crypto: CryptoService,
+  ) {}
+
+  // 계좌번호 복호화 후 앞 3자리/뒤 4자리만 노출(중간 마스킹) — 목록 응답에 평문 노출 방지
+  private maskAccountNumber(enc: string | null): string | null {
+    if (!enc) return null;
+    const plain = this.crypto.decrypt(enc);
+    if (plain.length <= 7) return plain;
+    const head = plain.slice(0, 3);
+    const tail = plain.slice(-4);
+    return `${head}${'•'.repeat(plain.length - 7)}${tail}`;
+  }
 
   // 엔티티 → 응답 DTO. 보유종목 집계(개수·원금합·평가금합)는 호출부에서 병합해 전달
   private toDto(a: InvestmentAccount, agg?: HoldingsAgg) {
@@ -18,6 +32,7 @@ export class InvestmentAccountService {
       id: a.id,
       name: a.name,
       cashBalance: a.cash_balance.toNumber(),
+      accountNumber: this.maskAccountNumber(a.account_number_enc),
       memo: a.memo,
       holdingsCount: agg?.count ?? 0,
       totalPrincipal: agg?.principal ?? 0,
@@ -73,13 +88,14 @@ export class InvestmentAccountService {
     };
   }
 
-  // 계좌 추가
+  // 계좌 추가 — 계좌번호는 AES-256-GCM 암호화 후 저장(동일 계좌명 다중 보유 구분용)
   async create(userId: number, dto: CreateInvestmentAccountDto) {
     const created = await this.prisma.investmentAccount.create({
       data: {
         user_id: userId,
         name: dto.name,
         cash_balance: new Prisma.Decimal(dto.cashBalance ?? 0),
+        account_number_enc: this.crypto.encrypt(dto.accountNumber),
         memo: dto.memo,
       },
     });
@@ -95,7 +111,7 @@ export class InvestmentAccountService {
     return row;
   }
 
-  // 계좌 수정
+  // 계좌 수정 — 계좌번호 변경 시 재암호화, 빈 문자열 전달 시 삭제(null)
   async update(userId: number, id: number, dto: UpdateInvestmentAccountDto) {
     await this.findOwned(userId, id);
     const updated = await this.prisma.investmentAccount.update({
@@ -103,6 +119,7 @@ export class InvestmentAccountService {
       data: {
         name: dto.name,
         cash_balance: dto.cashBalance !== undefined ? new Prisma.Decimal(dto.cashBalance) : undefined,
+        account_number_enc: dto.accountNumber !== undefined ? this.crypto.encryptNullable(dto.accountNumber) : undefined,
         memo: dto.memo,
       },
     });

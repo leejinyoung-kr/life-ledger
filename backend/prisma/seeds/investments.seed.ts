@@ -4,13 +4,13 @@
  * 국내/해외 주식·ETF·가상자산 섞고 손익(원금<>평가) 다양하게 구성.
  */
 import type { InvestmentType } from '@prisma/client';
-import { d, type SeedFn } from './helpers';
+import { canEncrypt, d, enc, type SeedFn } from './helpers';
 
-type AccountSeed = { name: string; cashBalance: number };
+type AccountSeed = { name: string; cashBalance: number; accountNumber: string };
 
 const ACCOUNTS: AccountSeed[] = [
-  { name: 'ISA', cashBalance: 500000 },
-  { name: '일반위탁', cashBalance: 501000 },
+  { name: 'ISA', cashBalance: 500000, accountNumber: '110-456-789012' },
+  { name: '일반위탁', cashBalance: 501000, accountNumber: '110-123-456789' },
 ];
 
 type InvestSeed = {
@@ -47,10 +47,18 @@ export const seedInvestments: SeedFn = async (prisma, userId) => {
   await prisma.investment.deleteMany({ where: { user_id: userId } });
   await prisma.investmentAccount.deleteMany({ where: { user_id: userId } });
 
+  const encryptAccounts = canEncrypt();
+  if (!encryptAccounts) console.warn('  ⚠️ CREDENTIAL_SECRET 미설정 — 투자 계좌번호 더미는 건너뜀(계좌·종목은 계속 생성)');
+
   const accountId = new Map<string, number>();
   for (const a of ACCOUNTS) {
     const created = await prisma.investmentAccount.create({
-      data: { user_id: userId, name: a.name, cash_balance: a.cashBalance },
+      data: {
+        user_id: userId,
+        name: a.name,
+        cash_balance: a.cashBalance,
+        account_number_enc: encryptAccounts ? enc(a.accountNumber) : null,
+      },
     });
     accountId.set(a.name, created.id);
   }

@@ -15,6 +15,11 @@ export class CreateInvestmentAccountDto {
   @IsNumber()
   cashBalance?: number;
 
+  // 계좌번호(평문 입력 → 저장 시 AES-256-GCM 암호화) — 동일 계좌명 다중 보유 구분용, 신규 생성 시 필수(PartialType 적용된 수정 DTO에서는 선택)
+  @IsString()
+  @MaxLength(100)
+  accountNumber: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(300)

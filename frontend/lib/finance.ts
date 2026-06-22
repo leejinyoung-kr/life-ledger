@@ -119,6 +119,7 @@ export interface InvestmentAccount {
   id: number;
   name: string;
   cashBalance: number;
+  accountNumber: string | null; // 마스킹된 형태로만 응답(예: 110••••7890)
   memo: string | null;
   holdingsCount: number;
   totalPrincipal: number;
