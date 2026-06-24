@@ -11,6 +11,8 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS build
 COPY frontend ./frontend
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 RUN pnpm --filter frontend run build
 
 FROM base AS runtime
