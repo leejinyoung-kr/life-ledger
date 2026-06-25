@@ -139,8 +139,8 @@ export default function Sidebar({ activePath = '/dashboard', open = false, onLog
         })}
       </nav>
 
-      {/* 하단 사용자 정보 + 로그아웃 */}
-      <div className="p-3 border-t border-border">
+      {/* 하단 사용자 정보 + 로그아웃 — 모바일에선 BottomNav(z-[100], 동일 영역)에 가려지지 않도록 위로 띄움 */}
+      <div className="p-3 border-t border-border max-md:mb-[calc(60px+env(safe-area-inset-bottom))]">
         <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius)] cursor-pointer transition-colors hover:bg-surface">
           <div className="w-8 h-8 rounded-full bg-accent-dim border-[1.5px] border-accent flex items-center justify-center [font-family:var(--font-display)] text-[0.75rem] font-bold text-accent shrink-0">{name.charAt(0)}</div>
           <div className="overflow-hidden flex-1">

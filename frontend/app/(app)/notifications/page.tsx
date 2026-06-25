@@ -75,6 +75,7 @@ export default function NotificationsPage() {
     if (n.read) return;
     try {
       await api.put(`/notifications/${n.id}/read`, {});
+      notify.success('읽음 처리했습니다.');
       reload();
     } catch (e) {
       notify.error((e as Error).message);
