@@ -92,6 +92,7 @@ self.addEventListener("fetch", (event) => {
   if (!cacheable) return; // 기본 네트워크 동작에 위임 (캐시 안 함)
 
   // cache-first, 응답 성공 시에만 캐시 갱신
+  // 네비게이션 중 취소된 프리페치 요청은 fetch가 거부되므로, 캐시로 폴백하거나 조용히 무시한다
   event.respondWith(
     caches.match(request).then(
       (cached) =>
@@ -102,7 +103,7 @@ self.addEventListener("fetch", (event) => {
             caches.open(CACHE).then((c) => c.put(request, copy));
           }
           return res;
-        })
+        }).catch(() => Response.error())
     )
   );
 });
