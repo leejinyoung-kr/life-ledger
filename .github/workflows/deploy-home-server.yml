@@ -1,0 +1,26 @@
+name: Deploy Home Server
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy-home-server.yml'
+
+jobs:
+  deploy:
+    runs-on: [self-hosted]
+    concurrency: deploy-home-server
+    steps:
+      # actions/checkout을 쓰지 않고 러너가 이미 갖고 있는 ~/doc-nexus 클론을 그대로 갱신한다.
+      # .env / backend/.env 는 git에 커밋되지 않으므로, fresh checkout을 쓰면 이 파일들이 사라진다.
+      - name: Pull latest and redeploy
+        run: |
+          cd ~/doc-nexus
+          git fetch origin develop
+          git reset --hard origin/develop
+          docker compose build
+          docker compose up -d
+          docker compose ps
