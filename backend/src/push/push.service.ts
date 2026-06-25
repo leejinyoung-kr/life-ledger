@@ -109,7 +109,8 @@ export class PushService implements OnModuleInit {
           if (status === 404 || status === 410) {
             await this.prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
           } else {
-            this.logger.warn(`푸시 발송 실패 (sub ${s.id}, status ${status ?? '?'})`);
+            const body = (e as { body?: string }).body;
+            this.logger.warn(`푸시 발송 실패 (sub ${s.id}, status ${status ?? '?'}, body: ${body ?? '?'})`);
           }
         }
       }),
