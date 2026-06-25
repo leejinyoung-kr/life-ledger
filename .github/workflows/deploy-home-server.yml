@@ -18,6 +18,7 @@ jobs:
       # .env / backend/.env 는 git에 커밋되지 않으므로, fresh checkout을 쓰면 이 파일들이 사라진다.
       - name: Pull latest and redeploy
         run: |
+          echo "self-hosted runner test deploy"
           cd ~/doc-nexus
           git fetch origin develop
           git reset --hard origin/develop
