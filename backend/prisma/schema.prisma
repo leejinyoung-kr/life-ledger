@@ -179,6 +179,10 @@ model Investment {
   current_value Decimal        @db.Decimal(15, 2)
   purchase_date DateTime?      @db.Date
   memo          String?        @db.VarChar(300)
+  recurring_buy_enabled     Boolean  @default(false) /// 반복매수 사용 여부
+  recurring_buy_rule        Json?    /// 반복 규칙
+  recurring_buy_amount      Decimal? @db.Decimal(15, 2) /// 회차당 매수금액
+  recurring_buy_last_period String? @db.VarChar(10) /// 마지막 처리 회차
   deleted_at    DateTime?
   created_at    DateTime       @default(now())
   updated_at    DateTime       @updatedAt

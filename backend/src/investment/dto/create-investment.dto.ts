@@ -1,5 +1,6 @@
 import { InvestmentType } from '@prisma/client';
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -49,4 +50,18 @@ export class CreateInvestmentDto {
   @IsString()
   @MaxLength(300)
   memo?: string;
+
+  // 반복매수(주식모으기) 사용 여부 — true면 recurringBuyRule/recurringBuyAmount 필수
+  @IsOptional()
+  @IsBoolean()
+  recurringBuyEnabled?: boolean;
+
+  // 반복 규칙 — cycle(주기)/day(기준일)/weekendAdjust(주말 처리). transaction.recurringRule과 동일 구조
+  @IsOptional()
+  recurringBuyRule?: Record<string, unknown>;
+
+  // 회차당 매수금액(원)
+  @IsOptional()
+  @IsNumber()
+  recurringBuyAmount?: number;
 }

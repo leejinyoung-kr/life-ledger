@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Investment, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { parsePage } from '../common/pagination';
+import { RRule, periodOf, nthOccurrence } from '../transaction/recurring.util';
 import { CreateInvestmentDto } from './dto/create-investment.dto';
 import { QueryInvestmentDto } from './dto/query-investment.dto';
 import { UpdateInvestmentDto } from './dto/update-investment.dto';
@@ -33,9 +34,83 @@ export class InvestmentService {
       profitRate: principal ? Math.round((profit / principal) * 1000) / 10 : 0,
       purchaseDate: v.purchase_date ? v.purchase_date.toISOString().slice(0, 10) : null,
       memo: v.memo,
+      recurringBuyEnabled: v.recurring_buy_enabled,
+      recurringBuyRule: v.recurring_buy_rule as Record<string, unknown> | null,
+      recurringBuyAmount: v.recurring_buy_amount ? v.recurring_buy_amount.toNumber() : null,
       // 평가금액 최근 수정 시각 — 시세 API 연동 전까지는 수동 입력이라 신뢰도 가늠용으로 노출
       updatedAt: v.updated_at.toISOString(),
     };
+  }
+
+  // 매수/매도 단가 결정 — 직접 입력했으면 그 값, 아니면 종목코드로 실시간 시세조회(없으면 에러)
+  private async resolveTradePrice(row: Investment, manualPrice?: number): Promise<Prisma.Decimal> {
+    if (manualPrice !== undefined) return new Prisma.Decimal(manualPrice);
+    if (!row.symbol) throw new BadRequestException('종목코드/티커가 없는 종목은 단가를 직접 입력해야 합니다.');
+    const { krwPrice } = await this.priceLookup.lookup(row.type, row.symbol);
+    return new Prisma.Decimal(krwPrice);
+  }
+
+  // 반복매수(주식모으기) — 활성화된 종목의 미처리 회차를 그 시점 실시간 시세로 매수 처리.
+  // 크론 없이 목록/요약 조회 시마다 호출해 누적분을 채운다(거래 반복생성과 동일 패턴).
+  private async materializeRecurringBuys(userId: number): Promise<void> {
+    const rows = await this.prisma.investment.findMany({
+      where: { user_id: userId, deleted_at: null, recurring_buy_enabled: true },
+    });
+    if (!rows.length) return;
+    const now = new Date();
+
+    for (const inv of rows) {
+      const rule = inv.recurring_buy_rule as unknown as RRule | null;
+      if (!rule?.cycle || !inv.recurring_buy_amount || !inv.purchase_date || !inv.symbol) continue;
+
+      let lastPeriod = inv.recurring_buy_last_period;
+      let quantity = inv.quantity;
+      const amount = inv.recurring_buy_amount;
+
+      for (let i = 1; i <= 120; i++) { // 안전 상한 — 10년치 월간 회차
+        const occ = nthOccurrence(inv.purchase_date, rule, i);
+        if (occ > now) break;
+        const period = periodOf(occ, rule.cycle);
+        if (lastPeriod && period <= lastPeriod) continue;
+
+        let krwPrice: number;
+        try {
+          krwPrice = (await this.priceLookup.lookup(inv.type, inv.symbol)).krwPrice;
+        } catch {
+          break; // 시세조회 실패 — 다음 방문 때 이 회차부터 재시도
+        }
+        const qtyDelta = new Prisma.Decimal(amount.toNumber() / krwPrice);
+
+        let applied: boolean;
+        try {
+          applied = await this.prisma.$transaction(async (tx) => {
+            const account = await tx.investmentAccount.findFirst({
+              where: { id: inv.account_id, user_id: userId, deleted_at: null },
+            });
+            if (!account || account.cash_balance.lessThan(amount)) return false;
+            await tx.investmentAccount.update({
+              where: { id: account.id },
+              data: { cash_balance: { decrement: amount } },
+            });
+            await tx.investment.update({
+              where: { id: inv.id },
+              data: {
+                principal: { increment: amount },
+                current_value: { increment: amount },
+                quantity: quantity ? { increment: qtyDelta } : qtyDelta,
+                recurring_buy_last_period: period,
+              },
+            });
+            return true;
+          });
+        } catch {
+          break; // 목록/요약 동시 조회로 같은 계좌 행을 동시에 갱신해 충돌난 경우 — 다음 방문 때 이 회차부터 재시도
+        }
+        if (!applied) break; // 예수금 부족 — 충전 후 다음 방문에 이 회차부터 재시도
+        lastPeriod = period;
+        quantity = quantity ? quantity.add(qtyDelta) : qtyDelta;
+      }
+    }
   }
 
   // 본인 소유 + 미삭제 계좌인지 확인
@@ -49,6 +124,7 @@ export class InvestmentService {
 
   // 투자 목록 — 유형/종목명/계좌 필터. page 지정 시 서버 페이징, 없으면 전체 배열
   async findAll(userId: number, query: QueryInvestmentDto = {}) {
+    await this.materializeRecurringBuys(userId);
     const where: Prisma.InvestmentWhereInput = { user_id: userId, deleted_at: null };
     if (query.type) where.type = query.type;
     if (query.q) where.name = { contains: query.q };
@@ -70,6 +146,7 @@ export class InvestmentService {
 
   // 요약 — 총 평가금액 / 총 원금 / 총 수익 / 수익률
   async summary(userId: number) {
+    await this.materializeRecurringBuys(userId);
     const rows = await this.prisma.investment.findMany({
       where: { user_id: userId, deleted_at: null },
     });
@@ -84,9 +161,25 @@ export class InvestmentService {
     };
   }
 
+  // 반복매수 활성화 시 시세조회/회차계산에 필요한 값(종목코드·회차금액·규칙·최초매수일)이 모두 있는지 확인
+  private validateRecurringBuy(
+    dto: { recurringBuyEnabled?: boolean; symbol?: string; recurringBuyAmount?: number; recurringBuyRule?: Record<string, unknown>; purchaseDate?: string },
+    existing?: Investment,
+  ): void {
+    if (!dto.recurringBuyEnabled) return;
+    const symbol = dto.symbol ?? existing?.symbol;
+    const amount = dto.recurringBuyAmount ?? existing?.recurring_buy_amount?.toNumber();
+    const rule = dto.recurringBuyRule ?? (existing?.recurring_buy_rule as Record<string, unknown> | null);
+    const purchaseDate = dto.purchaseDate ?? (existing?.purchase_date ? existing.purchase_date.toISOString().slice(0, 10) : undefined);
+    if (!symbol || !amount || !rule?.cycle || !purchaseDate) {
+      throw new BadRequestException('반복매수를 사용하려면 종목코드/티커, 회차금액, 반복 규칙, 최초 매수일이 모두 필요합니다.');
+    }
+  }
+
   // 투자 추가 — 소속 계좌(accountId) 필수
   async create(userId: number, dto: CreateInvestmentDto) {
     await this.findOwnedAccount(userId, dto.accountId);
+    this.validateRecurringBuy(dto);
     const created = await this.prisma.investment.create({
       data: {
         user_id: userId,
@@ -94,11 +187,18 @@ export class InvestmentService {
         name: dto.name,
         type: dto.type,
         symbol: dto.symbol,
-        quantity: dto.quantity !== undefined ? new Prisma.Decimal(dto.quantity) : undefined,
+        quantity: dto.quantity !== undefined
+          ? new Prisma.Decimal(dto.quantity)
+          : dto.recurringBuyEnabled ? new Prisma.Decimal(0) : undefined,
         principal: new Prisma.Decimal(dto.principal),
         current_value: new Prisma.Decimal(dto.currentValue),
         purchase_date: dto.purchaseDate ? new Date(dto.purchaseDate) : null,
         memo: dto.memo,
+        recurring_buy_enabled: dto.recurringBuyEnabled ?? false,
+        recurring_buy_rule: dto.recurringBuyEnabled
+          ? (dto.recurringBuyRule as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
+        recurring_buy_amount: dto.recurringBuyAmount !== undefined ? new Prisma.Decimal(dto.recurringBuyAmount) : undefined,
       },
     });
     return this.toDto(created);
@@ -115,8 +215,9 @@ export class InvestmentService {
 
   // 투자 수정
   async update(userId: number, id: number, dto: UpdateInvestmentDto) {
-    await this.findOwned(userId, id);
+    const existing = await this.findOwned(userId, id);
     if (dto.accountId !== undefined) await this.findOwnedAccount(userId, dto.accountId);
+    this.validateRecurringBuy(dto, existing);
     const updated = await this.prisma.investment.update({
       where: { id },
       data: {
@@ -124,12 +225,21 @@ export class InvestmentService {
         name: dto.name,
         type: dto.type,
         symbol: dto.symbol,
-        quantity: dto.quantity !== undefined ? new Prisma.Decimal(dto.quantity) : undefined,
+        quantity: dto.quantity !== undefined
+          ? new Prisma.Decimal(dto.quantity)
+          : (dto.recurringBuyEnabled && !existing.quantity ? new Prisma.Decimal(0) : undefined),
         principal: dto.principal !== undefined ? new Prisma.Decimal(dto.principal) : undefined,
         current_value:
           dto.currentValue !== undefined ? new Prisma.Decimal(dto.currentValue) : undefined,
         purchase_date: dto.purchaseDate ? new Date(dto.purchaseDate) : undefined,
         memo: dto.memo,
+        recurring_buy_enabled: dto.recurringBuyEnabled,
+        recurring_buy_rule: dto.recurringBuyEnabled === false
+          ? Prisma.JsonNull
+          : (dto.recurringBuyRule as Prisma.InputJsonValue | undefined),
+        recurring_buy_amount: dto.recurringBuyEnabled === false
+          ? null
+          : (dto.recurringBuyAmount !== undefined ? new Prisma.Decimal(dto.recurringBuyAmount) : undefined),
       },
     });
     return this.toDto(updated);
@@ -145,10 +255,18 @@ export class InvestmentService {
     return { ...result, quantity, evaluatedValue: Math.round(result.krwPrice * quantity) };
   }
 
-  // 매수 — 소속 계좌의 예수금을 깎아 투자원금·평가금액에 동반 반영(증권사 예수금→매수 흐름과 동일, 계좌 내 다른 종목과 예수금 공유)
+  // 시세조회(단가만) — 매수/매도 모달에서 보유수량과 무관하게 현재 단가만 필요할 때 사용
+  async quote(userId: number, id: number) {
+    const row = await this.findOwned(userId, id);
+    if (!row.symbol) throw new BadRequestException('종목코드/티커가 등록되지 않았습니다.');
+    return this.priceLookup.lookup(row.type, row.symbol);
+  }
+
+  // 매수 — 수량×단가(직접입력 또는 시세조회)만큼 예수금을 깎아 투자원금·평가금액·보유수량에 반영
   async buy(userId: number, id: number, dto: TradeInvestmentDto) {
     const row = await this.findOwned(userId, id);
-    const amount = new Prisma.Decimal(dto.amount);
+    const price = await this.resolveTradePrice(row, dto.price);
+    const amount = new Prisma.Decimal(dto.quantity).mul(price);
     return this.prisma.$transaction(async (tx) => {
       const account = await tx.investmentAccount.findFirst({
         where: { id: row.account_id, user_id: userId, deleted_at: null },
@@ -163,23 +281,34 @@ export class InvestmentService {
       });
       const updated = await tx.investment.update({
         where: { id },
-        data: { principal: { increment: amount }, current_value: { increment: amount } },
+        data: {
+          principal: { increment: amount },
+          current_value: { increment: amount },
+          quantity: row.quantity ? { increment: dto.quantity } : new Prisma.Decimal(dto.quantity),
+        },
       });
       return this.toDto(updated);
     });
   }
 
-  // 매도 — 평가금액을 줄이고 소속 계좌 예수금으로 환입(원금은 누적 투입 기준으로 유지)
+  // 매도 — 보유수량에서 매도수량을 차감하고, 수량×단가만큼 평가금액을 줄여 예수금으로 환입(원금은 누적 투입 기준 유지)
   async sell(userId: number, id: number, dto: TradeInvestmentDto) {
     const row = await this.findOwned(userId, id);
-    const amount = new Prisma.Decimal(dto.amount);
-    if (row.current_value.lessThan(amount)) {
-      throw new BadRequestException('평가금액이 부족합니다.');
+    if (!row.quantity || row.quantity.lessThan(dto.quantity)) {
+      throw new BadRequestException('보유수량이 부족합니다.');
     }
+    const price = await this.resolveTradePrice(row, dto.price);
+    const amount = new Prisma.Decimal(dto.quantity).mul(price);
+    const newCurrentValue = row.current_value.greaterThan(amount)
+      ? row.current_value.sub(amount)
+      : new Prisma.Decimal(0);
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.investment.update({
         where: { id },
-        data: { current_value: { decrement: amount } },
+        data: {
+          current_value: newCurrentValue,
+          quantity: { decrement: dto.quantity },
+        },
       });
       await tx.investmentAccount.update({
         where: { id: row.account_id },

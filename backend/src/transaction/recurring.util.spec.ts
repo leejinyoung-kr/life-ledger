@@ -42,14 +42,26 @@ describe('recurring.util', () => {
       const base = utc(2026, 0, 31);
       expect(toDateStr(nthOccurrence(base, { cycle: 'monthly', day: 31 }, 1))).toBe('2026-02-28');
     });
-    it('yearly i번째 = 다음 해', () => {
-      const base = utc(2026, 0, 15);
+    it('yearly i번째 = 다음 해, month 미지정 시 시작월 유지', () => {
+      const base = utc(2026, 0, 15); // 2026-01-15
       expect(toDateStr(nthOccurrence(base, { cycle: 'yearly', day: 15 }, 1))).toBe('2027-01-15');
     });
-    it('weekly i번째 = +7*i 일', () => {
-      const base = utc(2026, 5, 5);
-      expect(toDateStr(nthOccurrence(base, { cycle: 'weekly', day: 0 }, 1))).toBe('2026-06-12');
-      expect(toDateStr(nthOccurrence(base, { cycle: 'weekly', day: 0 }, 2))).toBe('2026-06-19');
+    it('yearly month 지정 시 그 달로 고정', () => {
+      const base = utc(2026, 0, 15); // 2026-01-15(1월)
+      expect(toDateStr(nthOccurrence(base, { cycle: 'yearly', day: 15, month: 3 }, 0))).toBe('2026-03-15');
+      expect(toDateStr(nthOccurrence(base, { cycle: 'yearly', day: 15, month: 3 }, 1))).toBe('2027-03-15');
+    });
+    it('weekly 시작일과 같은 요일 지정 시 +7*i 일', () => {
+      const base = utc(2026, 5, 5); // 2026-06-05 = 금(5)
+      expect(toDateStr(nthOccurrence(base, { cycle: 'weekly', day: 5 }, 0))).toBe('2026-06-05');
+      expect(toDateStr(nthOccurrence(base, { cycle: 'weekly', day: 5 }, 1))).toBe('2026-06-12');
+      expect(toDateStr(nthOccurrence(base, { cycle: 'weekly', day: 5 }, 2))).toBe('2026-06-19');
+    });
+    it('weekly 다른 요일 지정 시 시작일 이후 그 요일로 스냅', () => {
+      const base = utc(2026, 5, 5); // 2026-06-05 = 금(5)
+      // 월(1)요일은 금요일 다음 주 월요일(06-08)부터
+      expect(toDateStr(nthOccurrence(base, { cycle: 'weekly', day: 1 }, 0))).toBe('2026-06-08');
+      expect(toDateStr(nthOccurrence(base, { cycle: 'weekly', day: 1 }, 1))).toBe('2026-06-15');
     });
   });
 

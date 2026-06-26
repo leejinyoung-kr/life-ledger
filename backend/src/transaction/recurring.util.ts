@@ -4,9 +4,12 @@
  */
 
 // 반복 규칙 형태
+// day: monthly·yearly는 1-31(그 달의 며칠), weekly는 0(일)~6(토)
+// month: yearly에서만 사용(1-12). 미지정 시 시작일의 월을 그대로 따름
 export interface RRule {
   cycle: 'monthly' | 'weekly' | 'yearly';
   day: number;
+  month?: number;
   weekendAdjust?: 'none' | 'before' | 'after';
 }
 
@@ -49,11 +52,16 @@ export function nthOccurrence(base: Date, rule: RRule, i: number): Date {
   const m = base.getUTCMonth();
   const day = rule.day || base.getUTCDate();
   if (rule.cycle === 'weekly') {
-    const d = new Date(base);
-    d.setUTCDate(d.getUTCDate() + 7 * i);
-    return adjustWeekend(d, rule.weekendAdjust);
+    // 시작일 이후 첫 번째 해당 요일(rule.day)을 0번째 회차로 보고, 7*i일씩 더한다
+    const anchor = new Date(base);
+    const delta = (rule.day - anchor.getUTCDay() + 7) % 7;
+    anchor.setUTCDate(anchor.getUTCDate() + delta + 7 * i);
+    return adjustWeekend(anchor, rule.weekendAdjust);
   }
-  if (rule.cycle === 'yearly') return monthlyDate(y + i, m, day, rule.weekendAdjust);
+  if (rule.cycle === 'yearly') {
+    const month = rule.month ? rule.month - 1 : m; // 미지정 시 시작일의 월
+    return monthlyDate(y + i, month, day, rule.weekendAdjust);
+  }
   return monthlyDate(y, m + i, day, rule.weekendAdjust); // monthly
 }
 

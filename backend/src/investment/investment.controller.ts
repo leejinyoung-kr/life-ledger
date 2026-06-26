@@ -61,6 +61,12 @@ export class InvestmentController {
     return this.service.lookupPrice(user.id, id);
   }
 
+  // 시세조회(단가만) — 매수/매도 모달에서 단가 자동입력에 사용
+  @Get(':id/quote')
+  quote(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.service.quote(user.id, id);
+  }
+
   // 매수 — 예수금 → 투자원금·평가금액 전환
   @Post(':id/buy')
   buy(

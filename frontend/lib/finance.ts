@@ -26,8 +26,10 @@ export type TransferDirection = 'increase' | 'decrease';
 
 export interface RecurringRule {
   cycle: RecurringCycle;
-  /** 매월: 1-31일, 매주: 0(일)~6(토), 매년: 1-365 */
+  /** 매월·매년: 1-31일(그 달의 며칠), 매주: 0(일)~6(토) */
   day: number;
+  /** 매년에서만 사용(1-12). 미지정 시 시작일의 월을 그대로 따름 */
+  month?: number;
   weekendAdjust: WeekendAdjust;
 }
 
@@ -106,6 +108,9 @@ export interface Investment {
   profitRate: number;
   purchaseDate: string | null;
   memo: string | null;
+  recurringBuyEnabled: boolean; // 반복매수(주식모으기) 사용 여부
+  recurringBuyRule: RecurringRule | null; // 반복 규칙 — 거래의 recurringRule과 동일 구조
+  recurringBuyAmount: number | null; // 회차당 매수금액(원)
   updatedAt: string; // 평가금액 최근 수정 시각(ISO) — 시세 API 연동 전까지 수동 입력 신뢰도 표시용
 }
 
@@ -158,6 +163,15 @@ export const WEEKEND_ADJUST_LABEL: Record<WeekendAdjust, string> = {
   before: '전 금요일',
   after: '다음 월요일',
 };
+
+export const WEEKDAY_LABEL = ['일', '월', '화', '수', '목', '금', '토'];
+
+// 반복 규칙 요약 — "매월 5일" / "매주 화요일" / "매년 3월 15일"
+export function recurringRuleSummary(rule: RecurringRule): string {
+  if (rule.cycle === 'weekly') return `매주 ${WEEKDAY_LABEL[rule.day]}요일`;
+  if (rule.cycle === 'yearly' && rule.month) return `매년 ${rule.month}월 ${rule.day}일`;
+  return `${CYCLE_LABEL[rule.cycle]} ${rule.day}일`;
+}
 
 export const PAY_METHODS = ['신한카드', '카카오페이', '현금', '계좌이체'];
 

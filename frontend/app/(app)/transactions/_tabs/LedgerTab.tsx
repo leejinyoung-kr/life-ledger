@@ -21,7 +21,7 @@ import { downloadTransactionTemplate } from '@/lib/excel';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import {
-  PAY_METHODS, TX_TYPE_LABEL, CYCLE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, TRANSFER_DIRECTION_LABEL,
+  PAY_METHODS, TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, TRANSFER_DIRECTION_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
   won, signedWon, dotDate,
   type Category, type Transaction, type TransactionSummary, type TrendBucket,
   type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget, type TransferDirection,
@@ -306,7 +306,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
                   <div className="text-[0.72rem] text-muted">
                     {catMap[r.category] ?? r.category} · {TX_TYPE_LABEL[r.type]}
                     {r.recurringRule && (
-                      <> · {CYCLE_LABEL[r.recurringRule.cycle]} {r.recurringRule.day}일
+                      <> · {recurringRuleSummary(r.recurringRule)}
                       {r.recurringRule.weekendAdjust !== 'none' && ` · 주말→${WEEKEND_ADJUST_LABEL[r.recurringRule.weekendAdjust]}`}
                       </>
                     )}
@@ -547,6 +547,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringCycle, setRecurringCycle] = useState<RecurringCycle>('monthly');
   const [recurringDay, setRecurringDay] = useState(1);
+  const [recurringMonth, setRecurringMonth] = useState(1);
   const [weekendAdjust, setWeekendAdjust] = useState<WeekendAdjust>('none');
   const [scope, setScope] = useState<'one' | 'future' | 'all'>('one');
   const [targetType, setTargetType] = useState<TransferTarget | ''>('');
@@ -593,6 +594,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
     setIsRecurring(e?.isRecurring ?? false);
     setRecurringCycle((e?.recurringRule?.cycle as RecurringCycle) ?? 'monthly');
     setRecurringDay(e?.recurringRule?.day ?? 1);
+    setRecurringMonth(e?.recurringRule?.month ?? 1);
     setWeekendAdjust((e?.recurringRule?.weekendAdjust as WeekendAdjust) ?? 'none');
     setTargetType(e?.targetType ?? '');
     setTargetId(e?.targetId ?? '');
@@ -646,7 +648,9 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
         payMethod: type === 'transfer' ? undefined : payMethod,
         memo: memo || undefined,
         isRecurring,
-        recurringRule: isRecurring ? { cycle: recurringCycle, day: recurringDay, weekendAdjust } : undefined,
+        recurringRule: isRecurring
+          ? { cycle: recurringCycle, day: recurringDay, month: recurringCycle === 'yearly' ? recurringMonth : undefined, weekendAdjust }
+          : undefined,
         scope: editingRecurring ? scope : undefined,
         targetType: type === 'transfer' && targetType && targetId !== '' ? targetType : undefined,
         targetId: type === 'transfer' && targetType && targetId !== '' ? targetId : undefined,
@@ -763,21 +767,38 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
                   <option value="yearly">매년</option>
                 </select>
               </Field>
-              <Field label="기준일" required>
-                <select className="input" value={recurringDay} onChange={(ev) => setRecurringDay(Number(ev.target.value))}>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                    <option key={d} value={d}>{d}일</option>
-                  ))}
+              {recurringCycle === 'weekly' ? (
+                <Field label="요일" required>
+                  <select className="input" value={recurringDay} onChange={(ev) => setRecurringDay(Number(ev.target.value))}>
+                    {WEEKDAY_LABEL.map((label, d) => <option key={d} value={d}>{label}요일</option>)}
+                  </select>
+                </Field>
+              ) : (
+                <Field label="기준일" required>
+                  <select className="input" value={recurringDay} onChange={(ev) => setRecurringDay(Number(ev.target.value))}>
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                      <option key={d} value={d}>{d}일</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+            </div>
+            {recurringCycle === 'yearly' && (
+              <Field label="월" required>
+                <select className="input" value={recurringMonth} onChange={(ev) => setRecurringMonth(Number(ev.target.value))}>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m}월</option>)}
                 </select>
               </Field>
-            </div>
-            <Field label="주말인 경우">
-              <div className="flex gap-5 flex-wrap [&_label]:flex [&_label]:items-center [&_label]:gap-1.25 [&_label]:text-[0.82rem] [&_label]:text-secondary [&_label]:cursor-pointer [&_input]:accent-accent">
-                <label><input type="radio" name="weekendAdjust" value="none" checked={weekendAdjust === 'none'} onChange={() => setWeekendAdjust('none')} />조정 안 함</label>
-                <label><input type="radio" name="weekendAdjust" value="before" checked={weekendAdjust === 'before'} onChange={() => setWeekendAdjust('before')} />전 금요일</label>
-                <label><input type="radio" name="weekendAdjust" value="after" checked={weekendAdjust === 'after'} onChange={() => setWeekendAdjust('after')} />다음 월요일</label>
-              </div>
-            </Field>
+            )}
+            {recurringCycle !== 'weekly' && (
+              <Field label="주말인 경우">
+                <div className="flex gap-5 flex-wrap [&_label]:flex [&_label]:items-center [&_label]:gap-1.25 [&_label]:text-[0.82rem] [&_label]:text-secondary [&_label]:cursor-pointer [&_input]:accent-accent">
+                  <label><input type="radio" name="weekendAdjust" value="none" checked={weekendAdjust === 'none'} onChange={() => setWeekendAdjust('none')} />조정 안 함</label>
+                  <label><input type="radio" name="weekendAdjust" value="before" checked={weekendAdjust === 'before'} onChange={() => setWeekendAdjust('before')} />전 금요일</label>
+                  <label><input type="radio" name="weekendAdjust" value="after" checked={weekendAdjust === 'after'} onChange={() => setWeekendAdjust('after')} />다음 월요일</label>
+                </div>
+              </Field>
+            )}
           </>
         )}
       </div>
