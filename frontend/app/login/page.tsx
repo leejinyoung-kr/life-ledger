@@ -3,7 +3,7 @@
  * Google OAuth + 이메일 코드 로그인 진입점. 스타일: Tailwind (토큰 var() 활용).
  */
 import EmailLoginForm from './EmailLoginForm';
-import SessionRedirect from './SessionRedirect';
+import LoginGate from './LoginGate';
 
 export default async function LoginPage({
   searchParams,
@@ -15,8 +15,8 @@ export default async function LoginPage({
   const isNotAllowed = (await searchParams).error === 'not_allowed';
 
   return (
+    <LoginGate>
     <div className="flex items-center justify-center min-h-screen bg-surface px-3 py-6 sm:p-6 relative">
-      <SessionRedirect />
       {/* grid pattern */}
       <div className="fixed inset-0 pointer-events-none opacity-35 [background-image:linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] [background-size:40px_40px]" aria-hidden />
       {/* radial glow */}
@@ -91,6 +91,7 @@ export default async function LoginPage({
         </p>
       </div>
     </div>
+    </LoginGate>
   );
 }
 
