@@ -1,22 +1,21 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { setAccessToken } from '@/lib/api';
 
 export default function CallbackHandler() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const token = searchParams.get('token');
+    const token = new URLSearchParams(window.location.search).get('token');
     if (token) {
       setAccessToken(token);
       router.replace('/dashboard');
     } else {
       router.replace('/login');
     }
-  }, [router, searchParams]);
+  }, [router]);
 
   return (
     <div

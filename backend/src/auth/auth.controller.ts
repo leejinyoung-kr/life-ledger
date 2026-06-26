@@ -21,6 +21,7 @@ import { AuthService, GoogleUser } from './auth.service';
 import { RequestEmailCodeDto, VerifyEmailCodeDto } from './dto/email-login.dto';
 
 const REFRESH_COOKIE = 'refresh_token';
+const HAS_SESSION_COOKIE = 'has_session';
 
 // 요청에서 클라이언트 IP 추출 (x-forwarded-for 우선 — 신규 기기 감지/세션 기록용)
 function clientIp(req: Request): string | undefined {
@@ -38,6 +39,19 @@ function refreshCookieOptions(): CookieOptions {
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+  };
+}
+
+// refresh 쿠키 존재 여부를 프론트가 JS로 미리 확인할 수 있게 하는 힌트 쿠키(값 자체는 비민감).
+// httpOnly가 아니어서 refresh 쿠키와 옵션이 다름 — 쿠키 자체 유무 외엔 노출 정보 없음.
+function hasSessionCookieOptions(): CookieOptions {
+  const isProd = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: false,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7일 — refresh 쿠키와 동일하게 유지
   };
 }
 
@@ -89,6 +103,7 @@ export class AuthController {
     });
     // refresh 는 httpOnly 쿠키로만, access 는 쿼리로 프론트에 전달
     res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions());
+    res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions());
     res.redirect(`${frontendUrl}/auth/callback?token=${access}`);
   }
 
@@ -114,6 +129,7 @@ export class AuthController {
       userAgent: req.headers['user-agent'],
     });
     res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions());
+    res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions());
     return { token: access };
   }
 
@@ -129,6 +145,7 @@ export class AuthController {
     const token = (req.cookies?.[REFRESH_COOKIE] as string | undefined) ?? '';
     const { access, refresh } = await this.authService.refresh(token);
     res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions());
+    res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions());
     return { token: access };
   }
 
@@ -143,6 +160,10 @@ export class AuthController {
     await this.authService.logout(token);
     res.clearCookie(REFRESH_COOKIE, {
       ...refreshCookieOptions(),
+      maxAge: undefined,
+    });
+    res.clearCookie(HAS_SESSION_COOKIE, {
+      ...hasSessionCookieOptions(),
       maxAge: undefined,
     });
     return { ok: true };

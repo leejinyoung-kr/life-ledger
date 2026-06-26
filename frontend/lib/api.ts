@@ -52,9 +52,17 @@ function tryRefresh(): Promise<boolean> {
   return refreshing;
 }
 
+// refresh 쿠키(httpOnly) 존재 여부를 JS로 미리 알 수 있게 서버가 같이 심어주는 비민감 힌트 쿠키.
+// 이게 없으면 refresh 쿠키도 없는 게 확실하므로, 불필요한 401 요청(콘솔 노이즈)을 보내지 않는다.
+function hasSessionHint(): boolean {
+  if (typeof document === 'undefined') return false;
+  return document.cookie.split('; ').some((c) => c.startsWith('has_session='));
+}
+
 // 새로고침/최초 진입 시 세션 복구 — httpOnly refresh 쿠키로 access 재발급 시도
 export async function ensureSession(): Promise<boolean> {
   if (accessToken) return true;
+  if (!hasSessionHint()) return false;
   return tryRefresh();
 }
 
