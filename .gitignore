@@ -3,6 +3,7 @@ dist/
 .next/
 .env
 *.env.local
+docker-compose.override.yml
 coverage/
 .DS_Store
 *.log
