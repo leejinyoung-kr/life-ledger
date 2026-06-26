@@ -173,6 +173,8 @@ model Investment {
   account_id    Int /// investment_account.id FK
   name          String         @db.VarChar(100)
   type          InvestmentType
+  symbol        String?        @db.VarChar(20) /// 시세조회용 종목코드(국내) 또는 티커(해외)
+  quantity      Decimal?       @db.Decimal(18, 6) /// 보유수량 — 시세조회 시 평가금액 계산에 사용
   principal     Decimal        @db.Decimal(15, 2)
   current_value Decimal        @db.Decimal(15, 2)
   purchase_date DateTime?      @db.Date

@@ -6,10 +6,14 @@ import { CreateInvestmentDto } from './dto/create-investment.dto';
 import { QueryInvestmentDto } from './dto/query-investment.dto';
 import { UpdateInvestmentDto } from './dto/update-investment.dto';
 import { TradeInvestmentDto } from './dto/trade-investment.dto';
+import { PriceLookupService } from './price-lookup.service';
 
 @Injectable()
 export class InvestmentService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private priceLookup: PriceLookupService,
+  ) {}
 
   // 엔티티 → 응답 DTO (수익/수익률 파생값 포함). 예수금은 종목이 아닌 소속 계좌(InvestmentAccount)가 보유
   private toDto(v: Investment) {
@@ -21,6 +25,8 @@ export class InvestmentService {
       accountId: v.account_id,
       name: v.name,
       type: v.type,
+      symbol: v.symbol,
+      quantity: v.quantity ? v.quantity.toNumber() : null,
       principal,
       currentValue,
       profit,
@@ -87,6 +93,8 @@ export class InvestmentService {
         account_id: dto.accountId,
         name: dto.name,
         type: dto.type,
+        symbol: dto.symbol,
+        quantity: dto.quantity !== undefined ? new Prisma.Decimal(dto.quantity) : undefined,
         principal: new Prisma.Decimal(dto.principal),
         current_value: new Prisma.Decimal(dto.currentValue),
         purchase_date: dto.purchaseDate ? new Date(dto.purchaseDate) : null,
@@ -115,6 +123,8 @@ export class InvestmentService {
         account_id: dto.accountId,
         name: dto.name,
         type: dto.type,
+        symbol: dto.symbol,
+        quantity: dto.quantity !== undefined ? new Prisma.Decimal(dto.quantity) : undefined,
         principal: dto.principal !== undefined ? new Prisma.Decimal(dto.principal) : undefined,
         current_value:
           dto.currentValue !== undefined ? new Prisma.Decimal(dto.currentValue) : undefined,
@@ -123,6 +133,16 @@ export class InvestmentService {
       },
     });
     return this.toDto(updated);
+  }
+
+  // 시세조회 — 등록된 symbol(종목코드/티커)로 현재가 조회 후 저장된 quantity(보유수량)와 곱해 평가금액 산출
+  async lookupPrice(userId: number, id: number) {
+    const row = await this.findOwned(userId, id);
+    if (!row.symbol) throw new BadRequestException('종목코드/티커가 등록되지 않았습니다.');
+    if (!row.quantity) throw new BadRequestException('보유수량이 등록되지 않았습니다. 수정에서 입력해주세요.');
+    const result = await this.priceLookup.lookup(row.type, row.symbol);
+    const quantity = row.quantity.toNumber();
+    return { ...result, quantity, evaluatedValue: Math.round(result.krwPrice * quantity) };
   }
 
   // 매수 — 소속 계좌의 예수금을 깎아 투자원금·평가금액에 동반 반영(증권사 예수금→매수 흐름과 동일, 계좌 내 다른 종목과 예수금 공유)

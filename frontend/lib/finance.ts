@@ -98,6 +98,8 @@ export interface Investment {
   accountId: number; // 소속 투자 계좌(InvestmentAccount.id) — 예수금은 계좌 단위로 공유
   name: string;
   type: InvestmentType;
+  symbol: string | null; // 시세조회용 종목코드(국내) 또는 티커(해외)
+  quantity: number | null; // 보유수량 — 시세조회 시 단가와 곱해 평가금액 계산
   principal: number;
   currentValue: number;
   profit: number;

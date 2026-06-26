@@ -21,6 +21,17 @@ export class CreateInvestmentDto {
   @IsEnum(InvestmentType)
   type: InvestmentType;
 
+  // 시세조회용 종목코드(국내, 예: 005930) 또는 티커(해외, 예: AAPL) — 선택
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  symbol?: string;
+
+  // 보유수량 — 시세조회 시 단가와 곱해 평가금액을 계산(소수 허용: 해외주식 소수단위 매수 대응)
+  @IsOptional()
+  @IsNumber()
+  quantity?: number;
+
   // 투자원금(원)
   @IsNumber()
   principal: number;

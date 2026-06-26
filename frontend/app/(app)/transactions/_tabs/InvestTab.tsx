@@ -27,6 +27,17 @@ import {
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Investment; prefill?: Investment };
 type TradeState = { open: boolean; mode: 'buy' | 'sell'; target?: Investment };
 type AccountModalState = { open: boolean; mode: 'add' | 'edit'; editing?: InvestmentAccount };
+type PriceState = { open: boolean; target?: Investment };
+
+// 시세조회 응답 — 단가에 저장된 보유수량을 곱한 평가금액까지 백엔드에서 산출해 내려줌
+interface PriceLookupResult {
+  price: number;
+  currency: 'KRW' | 'USD';
+  krwPrice: number;
+  name: string | null;
+  quantity: number;
+  evaluatedValue: number;
+}
 
 // 평가금액 최근 갱신 경과일 — 30일 이상이면 신뢰도 낮음을 amber로 표시
 function daysAgoLabel(updatedAt: string): { label: string; stale: boolean } {
@@ -40,6 +51,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   const { confirm, confirmElement } = useConfirm();
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
   const [trade, setTrade] = useState<TradeState>({ open: false, mode: 'buy' });
+  const [priceLookup, setPriceLookup] = useState<PriceState>({ open: false });
   const [accountModal, setAccountModal] = useState<AccountModalState>({ open: false, mode: 'add' });
   const invalidate = useInvalidate();
 
@@ -233,6 +245,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                       <div className="flex justify-center gap-1.5">
                         <Button size="sm" variant="ghost" onClick={() => setTrade({ open: true, mode: 'buy', target: row })}>매수</Button>
                         <Button size="sm" variant="ghost" onClick={() => setTrade({ open: true, mode: 'sell', target: row })}>매도</Button>
+                        {row.symbol && <Button size="sm" variant="ghost" onClick={() => setPriceLookup({ open: true, target: row })}>시세조회</Button>}
                       </div>
                     </td>
                     <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} /></td>
@@ -269,6 +282,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                   <Button variant="ghost" className="flex-1" onClick={() => setTrade({ open: true, mode: 'buy', target: row })}>매수</Button>
                   <Button variant="ghost" className="flex-1" onClick={() => setTrade({ open: true, mode: 'sell', target: row })}>매도</Button>
                 </div>
+                {row.symbol && <Button variant="ghost" className="w-full mt-2" onClick={() => setPriceLookup({ open: true, target: row })}>시세조회</Button>}
                 <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} />
               </div>
             );
@@ -288,6 +302,11 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
         accountMap={accountMap}
         onClose={() => setTrade((s) => ({ ...s, open: false }))}
         onSaved={() => { setTrade((s) => ({ ...s, open: false })); reload(); }}
+      />
+      <PriceLookupModal
+        state={priceLookup}
+        onClose={() => setPriceLookup((s) => ({ ...s, open: false }))}
+        onSaved={() => { setPriceLookup((s) => ({ ...s, open: false })); reload(); }}
       />
       <AccountModal
         state={accountModal}
@@ -349,11 +368,62 @@ function TradeModal({ state, accountMap, onClose, onSaved }: { state: TradeState
   );
 }
 
+// 시세조회 — 등록된 종목코드/티커로 단가 조회 + 저장된 보유수량을 곱한 평가금액을 백엔드가 바로 산출. 확인 후 반영 버튼 한 번으로 끝남(수량 재입력 없음)
+function PriceLookupModal({ state, onClose, onSaved }: { state: PriceState; onClose: () => void; onSaved: () => void }) {
+  const t = state.target;
+  const [result, setResult] = useState<PriceLookupResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!state.open || !t) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 조회 상태 초기화
+    setResult(null);
+    setLoading(true);
+    api.get<PriceLookupResult>(`/investments/${t.id}/price`)
+      .then(setResult)
+      .catch((err) => notify.error((err as Error).message || '시세 조회에 실패했습니다.'))
+      .finally(() => setLoading(false));
+  }, [state.open, t]);
+
+  async function handleApply() {
+    if (!t || !result) return;
+    setSaving(true);
+    try {
+      await api.put(`/investments/${t.id}`, { currentValue: result.evaluatedValue });
+      notify.success('평가금액에 반영했습니다.');
+      onSaved();
+    } catch (err) {
+      notify.error((err as Error).message || '반영에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={state.open} onClose={onClose} title={`${t?.name ?? ''} 시세조회`} footer={<ModalFooter onClose={onClose} onSave={handleApply} saving={saving} saveLabel="평가금액에 반영" saveDisabled={!result} />}>
+      {loading && <div className="text-[0.82rem] text-muted">조회 중...</div>}
+      {result && (
+        <div className="text-[0.82rem] text-secondary space-y-1">
+          <div>
+            {result.name ?? t?.symbol} · 현재가 {result.currency === 'KRW' ? won(result.price) : `$${result.price.toLocaleString('en-US')}`}
+            {result.currency !== 'KRW' && <> ({won(result.krwPrice)})</>}
+          </div>
+          <div>보유수량 {result.quantity.toLocaleString('ko-KR')}개</div>
+          <div className="text-primary font-medium">반영될 평가금액: {won(result.evaluatedValue)}</div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState; accounts: InvestmentAccount[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
   const [accountId, setAccountId] = useState<number | ''>('');
   const [name, setName] = useState('');
   const [type, setType] = useState<InvestmentType>('domestic_stock');
+  const [symbol, setSymbol] = useState('');
+  const [quantity, setQuantity] = useState('');
   const [principal, setPrincipal] = useState('');
   const [currentValue, setCurrentValue] = useState('');
   const [purchaseDate, setPurchaseDate] = useState('');
@@ -369,6 +439,8 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
     setAccountId(src?.accountId ?? accounts[0]?.id ?? '');
     setName(src?.name ?? '');
     setType(src?.type ?? 'domestic_stock');
+    setSymbol(src?.symbol ?? '');
+    setQuantity(src?.quantity ? String(src.quantity) : '');
     setPrincipal(src ? String(src.principal) : '');
     setCurrentValue(src ? String(src.currentValue) : '');
     setPurchaseDate(e?.purchaseDate ?? (state.prefill ? toDay() : ''));
@@ -390,7 +462,7 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
     if (!validate()) return;
     setSaving(true);
     try {
-      const payload = { accountId, name, type, principal: Number(principal || 0), currentValue: Number(currentValue || 0), purchaseDate: purchaseDate || undefined, memo: memo || undefined };
+      const payload = { accountId, name, type, symbol: symbol || undefined, quantity: quantity ? Number(quantity) : undefined, principal: Number(principal || 0), currentValue: Number(currentValue || 0), purchaseDate: purchaseDate || undefined, memo: memo || undefined };
       if (state.mode === 'edit' && e) await api.put(`/investments/${e.id}`, payload);
       else await api.post('/investments', payload);
       notify.upserted(state.mode, '투자 항목');
@@ -419,6 +491,14 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
           <option value="domestic_etf">국내ETF</option><option value="crypto">가상자산</option><option value="etc">기타</option>
         </select>
       </Field>
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <Field label="종목코드/티커 (선택)">
+          <input type="text" className="input" placeholder="국내: 005930, 해외: AAPL" value={symbol} onChange={(ev) => setSymbol(ev.target.value)} />
+        </Field>
+        <Field label="보유수량 (선택)">
+          <input type="number" className="input" placeholder="시세조회에 사용" value={quantity} onChange={(ev) => setQuantity(ev.target.value)} />
+        </Field>
+      </div>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="투자원금 (원)" required error={errors.principal}>
           <input type="number" className={`input${errors.principal ? ' is-invalid' : ''}`} placeholder="0" value={principal} onChange={(ev) => { setPrincipal(ev.target.value); clearError('principal'); }} />

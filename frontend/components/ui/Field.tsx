@@ -20,11 +20,11 @@ export function Field({ label, required, error, children }: { label: string; req
 }
 
 // 모달 공통 푸터 (취소/저장) — 저장 중 비활성화
-export function ModalFooter({ onClose, onSave, saving, saveLabel = '저장' }: { onClose: () => void; onSave: () => void; saving: boolean; saveLabel?: string }) {
+export function ModalFooter({ onClose, onSave, saving, saveLabel = '저장', saveDisabled }: { onClose: () => void; onSave: () => void; saving: boolean; saveLabel?: string; saveDisabled?: boolean }) {
   return (
     <>
       <Button variant="ghost" onClick={onClose} disabled={saving}>취소</Button>
-      <Button onClick={onSave} disabled={saving}>{saving ? '저장 중...' : saveLabel}</Button>
+      <Button onClick={onSave} disabled={saving || saveDisabled}>{saving ? '저장 중...' : saveLabel}</Button>
     </>
   );
 }
