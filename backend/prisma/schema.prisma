@@ -467,17 +467,29 @@ enum CalEventType {
   @@map("cal_event_type")
 }
 
+/// 반복 주기: none(반복 없음) | weekly | monthly | yearly
+enum CalRecurFreq {
+  none
+  weekly
+  monthly
+  yearly
+
+  @@map("cal_recur_freq")
+}
+
 /// 캘린더 일정 (캘린더 페이지)
 model CalendarEvent {
-  id         Int          @id @default(autoincrement())
-  user_id    Int /// user.id FK
-  date       DateTime     @db.Date
-  type       CalEventType
-  title      String       @db.VarChar(200)
-  memo       String?      @db.VarChar(300)
-  deleted_at DateTime?
-  created_at DateTime     @default(now())
-  updated_at DateTime     @updatedAt
+  id          Int          @id @default(autoincrement())
+  user_id     Int /// user.id FK
+  date        DateTime     @db.Date
+  type        CalEventType
+  title       String       @db.VarChar(200)
+  memo        String?      @db.VarChar(300)
+  recur_freq  CalRecurFreq @default(none)
+  recur_until DateTime?    @db.Date /// 반복 종료일 (null = 무기한)
+  deleted_at  DateTime?
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 

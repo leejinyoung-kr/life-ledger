@@ -5,16 +5,33 @@
 
 export type EvType = 'pay' | 'due' | 'exp' | 'task';
 export type VirtSource = 'subscription' | 'saving' | 'identity' | 'task';
+export type RecurFreq = 'none' | 'weekly' | 'monthly' | 'yearly';
 
 export interface CalEvent {
   id: number;
-  date: string; // YYYY-MM-DD
+  date: string; // YYYY-MM-DD — 반복 일정이면 이번 발생일
   type: EvType;
   title: string;
   memo: string | null;
   virtual: boolean;       // true = 다른 테이블에서 연동된 가상 이벤트
   sourceType?: VirtSource; // 연동 원본 테이블
+  recurFreq?: RecurFreq;
+  recurUntil?: string | null;
 }
+
+export const RECUR_FREQ_LABEL: Record<RecurFreq, string> = {
+  none: '반복 없음',
+  weekly: '매주',
+  monthly: '매월',
+  yearly: '매년',
+};
+
+export const RECUR_FREQ_OPTIONS: { value: RecurFreq; label: string }[] = [
+  { value: 'none', label: '반복 없음' },
+  { value: 'weekly', label: '매주' },
+  { value: 'monthly', label: '매월' },
+  { value: 'yearly', label: '매년' },
+];
 
 // sourceType → 한글 라벨 + 원본 페이지 경로
 export const VIRT_SOURCE_META: Record<VirtSource, { label: string; path: string }> = {

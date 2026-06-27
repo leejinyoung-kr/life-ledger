@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, CalendarEvent } from '@prisma/client';
+import { Prisma, CalendarEvent, CalRecurFreq } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -13,6 +13,41 @@ function toDateStr(d: Date): string {
 function monthRange(month: string): { gte: Date; lt: Date } {
   const [y, m] = month.split('-').map(Number);
   return { gte: new Date(Date.UTC(y, m - 1, 1)), lt: new Date(Date.UTC(y, m, 1)) };
+}
+
+// 기준일에서 주/월/년 단위로 n회 뒤 날짜 (월/년은 말일 클램프 — 예: 1/31 + 1개월 = 2/28)
+function addPeriod(base: Date, freq: 'weekly' | 'monthly' | 'yearly', n: number): Date {
+  if (freq === 'weekly') return new Date(base.getTime() + n * 7 * 24 * 60 * 60 * 1000);
+  const y = base.getUTCFullYear();
+  const m = base.getUTCMonth();
+  const day = base.getUTCDate();
+  const targetMonthIndex = freq === 'yearly' ? m : m + n;
+  const targetYear = freq === 'yearly' ? y + n : y;
+  const lastDayOfTargetMonth = new Date(Date.UTC(targetYear, targetMonthIndex + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(targetYear, targetMonthIndex, Math.min(day, lastDayOfTargetMonth)));
+}
+
+// 반복 일정이 [range.gte, range.lt) 안에서 발생하는 날짜들 (반복 없으면 원본 날짜 1건)
+function occurrencesInRange(base: Date, freq: CalRecurFreq, until: Date | null, range: { gte: Date; lt: Date }): Date[] {
+  if (freq === 'none') return base >= range.gte && base < range.lt ? [base] : [];
+  const dates: Date[] = [];
+  for (let n = 0; n < 1000; n++) {
+    const occ = addPeriod(base, freq, n);
+    if (occ >= range.lt || (until && occ > until)) break;
+    if (occ >= range.gte) dates.push(occ);
+  }
+  return dates;
+}
+
+// 반복 일정의 from(포함) 이후 가장 가까운 발생일 (없으면 null)
+function nextOccurrenceOnOrAfter(base: Date, freq: CalRecurFreq, until: Date | null, from: Date): Date | null {
+  if (freq === 'none') return base >= from ? base : null;
+  for (let n = 0; n < 1000; n++) {
+    const occ = addPeriod(base, freq, n);
+    if (until && occ > until) return null;
+    if (occ >= from) return occ;
+  }
+  return null;
 }
 
 // 가상 이벤트 ID 오프셋 — 실제 calendar_event.id 와 충돌하지 않도록 큰 값 사용
@@ -36,15 +71,26 @@ export interface CalEventDto {
   memo: string | null;
   virtual: boolean;
   sourceType?: VirtSource;
+  recurFreq?: CalRecurFreq;
+  recurUntil?: string | null;
 }
 
 @Injectable()
 export class CalendarService {
   constructor(private prisma: PrismaService) {}
 
-  // 실제 CalendarEvent 엔티티 → DTO
-  private toDto(e: CalendarEvent): CalEventDto {
-    return { id: e.id, date: toDateStr(e.date), type: e.type, title: e.title, memo: e.memo, virtual: false };
+  // 실제 CalendarEvent 엔티티 → DTO (occurrenceDate 지정 시 반복 일정의 특정 발생일로 표시)
+  private toDto(e: CalendarEvent, occurrenceDate?: Date): CalEventDto {
+    return {
+      id: e.id,
+      date: toDateStr(occurrenceDate ?? e.date),
+      type: e.type,
+      title: e.title,
+      memo: e.memo,
+      virtual: false,
+      recurFreq: e.recur_freq,
+      recurUntil: e.recur_until ? toDateStr(e.recur_until) : null,
+    };
   }
 
   // 4개 테이블에서 가상 이벤트 수집 (dateFilter 없으면 전체)
@@ -89,28 +135,48 @@ export class CalendarService {
     return result;
   }
 
-  // 일정 목록 — month(YYYY-MM) 지정 시 해당 월만. 실제 + 가상 합산
+  // 일정 목록 — month(YYYY-MM) 지정 시 해당 월만. 실제(반복 발생 포함) + 가상 합산
   async findAll(userId: number, month?: string) {
     const range = month ? monthRange(month) : undefined;
     const where: Prisma.CalendarEventWhereInput = { user_id: userId, deleted_at: null };
-    if (range) where.date = range;
+    if (range) {
+      where.OR = [
+        { recur_freq: 'none', date: range },
+        { recur_freq: { not: 'none' }, date: { lt: range.lt }, OR: [{ recur_until: null }, { recur_until: { gte: range.gte } }] },
+      ];
+    }
 
     const [rows, virtual] = await Promise.all([
       this.prisma.calendarEvent.findMany({ where, orderBy: [{ date: 'asc' }, { id: 'asc' }] }),
       this.virtualEvents(userId, range),
     ]);
 
-    return [...rows.map((r) => this.toDto(r)), ...virtual].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
+    const expanded = range
+      ? rows.flatMap((r) =>
+          r.recur_freq === 'none'
+            ? [this.toDto(r)]
+            : occurrencesInRange(r.date, r.recur_freq, r.recur_until, range).map((d) => this.toDto(r, d)),
+        )
+      : rows.map((r) => this.toDto(r));
+
+    return [...expanded, ...virtual].sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
   }
 
-  // 다가오는 일정 — 오늘 이후 가까운 순. 실제 + 가상 합산 후 limit 적용
+  // 다가오는 일정 — 오늘 이후 가까운 순(반복 일정은 다음 발생일 1건). 실제 + 가상 합산 후 limit 적용
   async upcoming(userId: number, limit = 5) {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
     const [rows, virtual] = await Promise.all([
       this.prisma.calendarEvent.findMany({
-        where: { user_id: userId, deleted_at: null, date: { gte: today } },
+        where: {
+          user_id: userId,
+          deleted_at: null,
+          OR: [
+            { recur_freq: 'none', date: { gte: today } },
+            { recur_freq: { not: 'none' }, OR: [{ recur_until: null }, { recur_until: { gte: today } }] },
+          ],
+        },
         orderBy: { date: 'asc' },
       }),
       this.virtualEvents(userId, { gte: today }),
@@ -121,7 +187,14 @@ export class CalendarService {
       daysUntil: Math.round((new Date(ev.date).getTime() - today.getTime()) / (24 * 60 * 60 * 1000)),
     });
 
-    return [...rows.map((r) => addDays(this.toDto(r))), ...virtual.map(addDays)]
+    const upcomingRows = rows
+      .map((r) => {
+        const occ = r.recur_freq === 'none' ? r.date : nextOccurrenceOnOrAfter(r.date, r.recur_freq, r.recur_until, today);
+        return occ ? this.toDto(r, occ) : null;
+      })
+      .filter((d): d is CalEventDto => d !== null);
+
+    return [...upcomingRows.map(addDays), ...virtual.map(addDays)]
       .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)
       .slice(0, limit);
   }
@@ -129,7 +202,15 @@ export class CalendarService {
   // 일정 추가 (수동 등록만)
   async create(userId: number, dto: CreateEventDto) {
     const created = await this.prisma.calendarEvent.create({
-      data: { user_id: userId, date: new Date(dto.date), type: dto.type, title: dto.title, memo: dto.memo },
+      data: {
+        user_id: userId,
+        date: new Date(dto.date),
+        type: dto.type,
+        title: dto.title,
+        memo: dto.memo,
+        recur_freq: dto.recurFreq ?? 'none',
+        recur_until: dto.recurUntil ? new Date(dto.recurUntil) : null,
+      },
     });
     return this.toDto(created);
   }
@@ -146,7 +227,14 @@ export class CalendarService {
     await this.findOwned(userId, id);
     const updated = await this.prisma.calendarEvent.update({
       where: { id },
-      data: { date: dto.date ? new Date(dto.date) : undefined, type: dto.type, title: dto.title, memo: dto.memo },
+      data: {
+        date: dto.date ? new Date(dto.date) : undefined,
+        type: dto.type,
+        title: dto.title,
+        memo: dto.memo,
+        recur_freq: dto.recurFreq,
+        recur_until: dto.recurUntil !== undefined ? (dto.recurUntil ? new Date(dto.recurUntil) : null) : undefined,
+      },
     });
     return this.toDto(updated);
   }

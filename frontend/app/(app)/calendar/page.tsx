@@ -25,7 +25,8 @@ import { useConfirm } from '@/components/ConfirmModal';
 import { api } from '@/lib/api';
 import {
   EV_TYPE_LABEL, EV_TYPE_OPTIONS, EV_LEGEND, VIRT_SOURCE_META, ddLabel,
-  type CalEvent, type UpcomingEvent, type EvType,
+  RECUR_FREQ_LABEL, RECUR_FREQ_OPTIONS,
+  type CalEvent, type UpcomingEvent, type EvType, type RecurFreq,
 } from '@/lib/calendar';
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
@@ -68,7 +69,7 @@ export default function CalendarPage() {
   // 오늘 기준 현재 월로 초기화 (SSR 불일치 방지 — 클라이언트에서 설정)
   const [view, setView] = useState<{ year: number; month: number } | null>(null);
   const [todayIso, setTodayIso] = useState('');
-  const [addModal, setAddModal] = useState(false);
+  const [addModal, setAddModal] = useState<{ open: boolean; date?: string }>({ open: false });
   const [detailEvent, setDetailEvent] = useState<CalEvent | null>(null);
   // 모바일 — 날짜 점(dot) 탭 시 그 날 일정 목록 모달
   const [dayList, setDayList] = useState<{ day: number; events: CalEvent[] } | null>(null);
@@ -109,7 +110,9 @@ export default function CalendarPage() {
     const label = ev.virtual && ev.sourceType ? `${VIRT_SOURCE_META[ev.sourceType].label} 항목` : '일정';
     const msg = ev.virtual
       ? `이 ${withEulReul(label)} 삭제할까요? 해당 페이지에서도 삭제됩니다.`
-      : '이 일정을 삭제할까요?';
+      : ev.recurFreq && ev.recurFreq !== 'none'
+        ? '이 반복 일정을 삭제할까요? 모든 반복 일정이 함께 삭제됩니다.'
+        : '이 일정을 삭제할까요?';
     if (!await confirm(msg, 'danger')) return;
     try {
       await api.del(`/calendar/${ev.id}`);
@@ -135,13 +138,13 @@ export default function CalendarPage() {
       <div className="mb-7">
         <div className="flex items-center justify-between gap-4">
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">캘린더</h1>
-          <Button onClick={() => setAddModal(true)}>일정 추가</Button>
+          <Button onClick={() => setAddModal({ open: true })}>일정 추가</Button>
         </div>
-        <p className="text-sm text-secondary mt-1.5 break-keep">구독 결제·예적금 만기·서류 만료·할일을 한 곳에서 봅니다.</p>
+        <p className="text-sm text-secondary mt-1.5 break-keep">구독 결제·예적금 만기·서류 만료·할일·메모를 한 곳에서 봅니다.</p>
       </div>
 
       <p className="text-[0.8rem] text-muted bg-surface border border-border-subtle rounded-(--radius) px-3.5 py-2 mb-5">
-        ◈ 표시 항목(구독·예적금·신원지갑·할일)은 연동된 데이터입니다. 수정은 각 페이지에서, 삭제 시 원본에서도 삭제됩니다.
+        ◈ 표시 항목(구독·예적금·신원지갑·할일)은 연동된 데이터입니다. 수정은 각 페이지에서, 삭제 시 원본에서도 삭제됩니다. 날짜를 클릭하면 그 날에 바로 일정을 추가할 수 있습니다.
       </p>
 
       <ErrorBanner message={error} />
@@ -165,7 +168,11 @@ export default function CalendarPage() {
               const events = cell.iso ? eventsByDate[cell.iso] : undefined;
               const isToday = cell.iso === todayIso;
               return (
-                <div key={cell.key} className={`min-h-[92px] max-md:min-h-[64px] p-1.5 flex flex-col gap-[3px] ${cell.dim ? 'bg-surface text-muted' : 'bg-background'}`}>
+                <div
+                  key={cell.key}
+                  className={`min-h-[92px] max-md:min-h-[64px] p-1.5 flex flex-col gap-[3px] ${cell.dim ? 'bg-surface text-muted' : 'bg-background cursor-pointer hover:bg-surface transition-colors'}`}
+                  onClick={cell.iso ? () => setAddModal({ open: true, date: cell.iso }) : undefined}
+                >
                   <span className={isToday ? 'bg-accent text-white w-[22px] h-[22px] rounded-full flex items-center justify-center text-[0.78rem] font-semibold' : 'text-[0.78rem] font-semibold text-secondary'}>{cell.day}</span>
                   {/* PC/태블릿 — 제목 칩 (좁은 화면은 글자가 안 들어가 점으로 대체) */}
                   <div className="max-md:hidden flex flex-col gap-[3px]">
@@ -173,7 +180,7 @@ export default function CalendarPage() {
                       <span
                         key={ev.id}
                         className={`text-[0.65rem] px-1.25 py-px rounded-sm whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer hover:opacity-75 transition-opacity ${EV_BG[ev.type]} ${ev.virtual ? 'opacity-75 border border-current border-dashed' : ''}`}
-                        onClick={() => setDetailEvent(ev)}
+                        onClick={(e) => { e.stopPropagation(); setDetailEvent(ev); }}
                       >
                         {ev.virtual ? '◈ ' : ''}{ev.title}
                       </span>
@@ -184,7 +191,7 @@ export default function CalendarPage() {
                     <button
                       type="button"
                       className="hidden max-md:flex items-center gap-1 flex-wrap"
-                      onClick={() => setDayList({ day: cell.day, events })}
+                      onClick={(e) => { e.stopPropagation(); setDayList({ day: cell.day, events }); }}
                       aria-label={`${cell.day}일 일정 ${events.length}건 보기`}
                     >
                       {events.slice(0, 4).map((ev) => <span key={ev.id} className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT_BG[ev.type]}`} />)}
@@ -239,7 +246,7 @@ export default function CalendarPage() {
       </div>
 
       {/* 일정 추가 모달 */}
-      <AddEventModal open={addModal} onClose={() => setAddModal(false)} onSaved={() => { setAddModal(false); reload(); }} />
+      <AddEventModal state={addModal} onClose={() => setAddModal({ open: false })} onSaved={() => { setAddModal({ open: false }); reload(); }} />
 
       {/* 일정 상세/삭제 모달 */}
       <EventDetailModal event={detailEvent} onClose={() => setDetailEvent(null)} onDelete={(ev) => handleRemoveEvent(ev)} />
@@ -264,6 +271,11 @@ function EventDetailModal({ event, onClose, onDelete }: { event: CalEvent | null
           <span className={`text-[0.75rem] px-2 py-0.5 rounded-sm ${EV_BG[event.type]}`}>{EV_TYPE_LABEL[event.type]}</span>
           {sourceMeta && <span className="text-[0.72rem] px-2 py-0.5 rounded-sm bg-surface border border-border-subtle text-muted">◈ {sourceMeta.label} 연동</span>}
           <span className="text-[0.84rem] text-secondary">{Number(m)}월 {d}일</span>
+          {event.recurFreq && event.recurFreq !== 'none' && (
+            <span className="text-[0.72rem] px-2 py-0.5 rounded-sm bg-surface border border-border-subtle text-muted">
+              🔁 {RECUR_FREQ_LABEL[event.recurFreq]}{event.recurUntil ? ` · ${event.recurUntil}까지` : ''}
+            </span>
+          )}
         </div>
         <p className="text-[1rem] font-semibold text-primary">{event.title}</p>
         {event.memo && <p className="text-[0.875rem] text-secondary bg-surface border border-border-subtle rounded-(--radius) px-3 py-2">{event.memo}</p>}
@@ -299,21 +311,23 @@ function DayListModal({ day, onClose, onSelect }: { day: { day: number; events: 
   );
 }
 
-// 일정 추가 모달
-function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: () => void }) {
+// 일정 추가 모달 — 날짜 셀 클릭 시 state.date 로 미리 채워짐
+function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; date?: string }; onClose: () => void; onSaved: () => void }) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [type, setType] = useState<EvType>('pay');
   const [memo, setMemo] = useState('');
+  const [recurFreq, setRecurFreq] = useState<RecurFreq>('none');
+  const [recurUntil, setRecurUntil] = useState('');
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
 
   useEffect(() => {
-    if (!open) return;
+    if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    reset(); setTitle(''); setType('pay'); setMemo('');
-    setDate(new Date().toISOString().slice(0, 10));
-  }, [open]);
+    reset(); setTitle(''); setType('pay'); setMemo(''); setRecurFreq('none'); setRecurUntil('');
+    setDate(state.date ?? new Date().toISOString().slice(0, 10));
+  }, [state.open, state.date]);
 
   function validate() {
     const err: Record<string, string> = {};
@@ -327,7 +341,11 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
     if (!validate()) return;
     setSaving(true);
     try {
-      await api.post('/calendar', { title: title.trim(), date, type, memo: memo || undefined });
+      await api.post('/calendar', {
+        title: title.trim(), date, type, memo: memo || undefined,
+        recurFreq: recurFreq !== 'none' ? recurFreq : undefined,
+        recurUntil: recurFreq !== 'none' && recurUntil ? recurUntil : undefined,
+      });
       notify.added('일정');
       onSaved();
     } catch {
@@ -338,7 +356,7 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="일정 추가" footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
+    <Modal open={state.open} onClose={onClose} title="일정 추가" footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="제목" required error={errors.title}>
         <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 보험 갱신" value={title} onChange={(e) => { setTitle(e.target.value); clearError('title'); }} />
       </Field>
@@ -351,6 +369,18 @@ function AddEventModal({ open, onClose, onSaved }: { open: boolean; onClose: () 
             {EV_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
+      </div>
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <Field label="반복">
+          <select className="input" aria-label="반복" value={recurFreq} onChange={(e) => setRecurFreq(e.target.value as RecurFreq)}>
+            {RECUR_FREQ_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </Field>
+        {recurFreq !== 'none' && (
+          <Field label="반복 종료일 (선택)">
+            <input type="date" className="input" aria-label="반복 종료일" value={recurUntil} onChange={(e) => setRecurUntil(e.target.value)} />
+          </Field>
+        )}
       </div>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 메모" value={memo} onChange={(e) => setMemo(e.target.value)} /></Field>
     </Modal>
