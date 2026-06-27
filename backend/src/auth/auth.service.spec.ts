@@ -34,6 +34,7 @@ describe('AuthService', () => {
         update: jest.fn(),
         updateMany: jest.fn(),
       },
+      userSettings: { findUnique: jest.fn().mockResolvedValue(null) },
       notification: { create: jest.fn() },
       $transaction: jest.fn((ops: any[]) => Promise.all(ops)),
     };

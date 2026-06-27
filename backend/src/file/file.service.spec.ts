@@ -52,6 +52,7 @@ describe('FileService', () => {
         update: jest.fn(),
         updateMany: jest.fn(),
       },
+      userSettings: { findUnique: jest.fn().mockResolvedValue({ notif_upload: false }) },
       $transaction: jest.fn((ops: any[]) => Promise.all(ops)),
     };
     process.env.B2_BUCKET_NAME = 'test-bucket';
@@ -61,7 +62,9 @@ describe('FileService', () => {
     process.env.B2_APPLICATION_KEY = 'secret';
   });
 
-  const svc = () => new FileService(prisma);
+  const notification = { create: jest.fn().mockResolvedValue({ title: 't', description: 'd' }) };
+  const push = { sendToUser: jest.fn() };
+  const svc = () => new FileService(prisma, notification as any, push as any);
 
   describe('업로드 — MIME 매직바이트 검증', () => {
     it('declared mime 과 실제 시그니처가 다르면 거부', async () => {

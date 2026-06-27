@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Notification, NotiGroup, Prisma } from '@prisma/client';
+import { Notification, NotiGroup, NotiTone, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { parsePage } from '../common/pagination';
 import { QueryNotificationDto } from './dto/query-notification.dto';
@@ -7,6 +7,11 @@ import { QueryNotificationDto } from './dto/query-notification.dto';
 @Injectable()
 export class NotificationService {
   constructor(private prisma: PrismaService) {}
+
+  // 다른 모듈(파일 업로드 등 이벤트성 알림)에서 즉시 1건 생성할 때 사용
+  async create(userId: number, n: { group: NotiGroup; tone: NotiTone; title: string; description: string; source: string }): Promise<Notification> {
+    return this.prisma.notification.create({ data: { user_id: userId, ...n } });
+  }
 
   // 엔티티 → 응답 DTO (read_at → read 불리언, 시각은 ISO 문자열)
   private toDto(n: Notification) {

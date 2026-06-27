@@ -30,28 +30,29 @@ function clientIp(req: Request): string | undefined {
   return ip?.trim();
 }
 
-// 갱신 토큰 쿠키 옵션 — 운영(교차 도메인)은 SameSite=None+Secure, 개발은 Lax
-function refreshCookieOptions(): CookieOptions {
+// 갱신 토큰 쿠키 옵션 — 운영(교차 도메인)은 SameSite=None+Secure, 개발은 Lax.
+// maxAge는 사용자 설정(session_expiry) 기준 refresh 토큰 수명(ms)을 그대로 사용 — 토큰보다 쿠키가 더 오래 남지 않도록
+function refreshCookieOptions(maxAge: number): CookieOptions {
   const isProd = process.env.NODE_ENV === 'production';
   return {
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+    maxAge,
   };
 }
 
 // refresh 쿠키 존재 여부를 프론트가 JS로 미리 확인할 수 있게 하는 힌트 쿠키(값 자체는 비민감).
-// httpOnly가 아니어서 refresh 쿠키와 옵션이 다름 — 쿠키 자체 유무 외엔 노출 정보 없음.
-function hasSessionCookieOptions(): CookieOptions {
+// httpOnly가 아니어서 refresh 쿠키와 옵션이 다름 — 쿠키 자체 유무 외엔 노출 정보 없음. refresh 쿠키와 동일한 maxAge 유지
+function hasSessionCookieOptions(maxAge: number): CookieOptions {
   const isProd = process.env.NODE_ENV === 'production';
   return {
     httpOnly: false,
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
     path: '/',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7일 — refresh 쿠키와 동일하게 유지
+    maxAge,
   };
 }
 
@@ -97,13 +98,13 @@ export class AuthController {
     // 기기/IP 추출 — 신규 기기 로그인 감지용
     const fwd = req.headers['x-forwarded-for'];
     const ip = (Array.isArray(fwd) ? fwd[0] : fwd?.split(',')[0]) ?? req.ip;
-    const { access, refresh } = await this.authService.login(req.user, {
+    const { access, refresh, refreshTtlMs } = await this.authService.login(req.user, {
       ip: ip?.trim(),
       userAgent: req.headers['user-agent'],
     });
     // refresh 는 httpOnly 쿠키로만, access 는 쿼리로 프론트에 전달
-    res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions());
-    res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions());
+    res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions(refreshTtlMs));
+    res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions(refreshTtlMs));
     res.redirect(`${frontendUrl}/auth/callback?token=${access}`);
   }
 
@@ -124,12 +125,12 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { access, refresh } = await this.authService.verifyEmailCode(dto.email, dto.code, {
+    const { access, refresh, refreshTtlMs } = await this.authService.verifyEmailCode(dto.email, dto.code, {
       ip: clientIp(req),
       userAgent: req.headers['user-agent'],
     });
-    res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions());
-    res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions());
+    res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions(refreshTtlMs));
+    res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions(refreshTtlMs));
     return { token: access };
   }
 
@@ -143,9 +144,9 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const token = (req.cookies?.[REFRESH_COOKIE] as string | undefined) ?? '';
-    const { access, refresh } = await this.authService.refresh(token);
-    res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions());
-    res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions());
+    const { access, refresh, refreshTtlMs } = await this.authService.refresh(token);
+    res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions(refreshTtlMs));
+    res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions(refreshTtlMs));
     return { token: access };
   }
 
@@ -159,11 +160,11 @@ export class AuthController {
     const token = (req.cookies?.[REFRESH_COOKIE] as string | undefined) ?? '';
     await this.authService.logout(token);
     res.clearCookie(REFRESH_COOKIE, {
-      ...refreshCookieOptions(),
+      ...refreshCookieOptions(0),
       maxAge: undefined,
     });
     res.clearCookie(HAS_SESSION_COOKIE, {
-      ...hasSessionCookieOptions(),
+      ...hasSessionCookieOptions(0),
       maxAge: undefined,
     });
     return { ok: true };

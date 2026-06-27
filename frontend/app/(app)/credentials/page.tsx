@@ -29,6 +29,15 @@ import {
   CRED_CATEGORIES, fmtCredDate, pwStrength, generatePassword,
   type Credential, type CredentialSecret, type TotpCode, type BackupCodes,
 } from '@/lib/credential';
+import type { Settings } from '@/lib/settings';
+
+// 설정의 pwAutoHide(10s|30s|1m|none) → ms. none/누락 시 null(자동 숨김 안 함)
+function pwAutoHideMs(v: string | undefined): number | null {
+  if (v === '10s') return 10000;
+  if (v === '30s') return 30000;
+  if (v === '1m') return 60000;
+  return null;
+}
 
 const ICON_BTN = 'w-7 h-7 rounded-[5px] flex items-center justify-center text-muted transition-all shrink-0 hover:bg-elevated hover:text-accent';
 const FILTER_CATEGORIES = ['전체 카테고리', ...CRED_CATEGORIES];
@@ -56,6 +65,9 @@ export default function CredentialsPage() {
     qk.credentials.list({ q: query.trim(), category, page, limit }),
     `/credentials?${listQs}`,
   );
+  // 비밀번호 자동 숨김 시간 설정값 — 상세 모달에 전달
+  const settingsQuery = useApiQuery<Settings>(qk.settings.detail(), '/settings');
+  const pwAutoHide = settingsQuery.data?.pwAutoHide;
   const rows = useMemo(() => listQuery.data?.items ?? [], [listQuery.data]);
   const total = listQuery.data?.total ?? 0;
   const no2fa = listQuery.data?.no2fa ?? 0;
@@ -252,6 +264,7 @@ export default function CredentialsPage() {
       {/* 상세 모달 */}
       <DetailModal
         cred={detail}
+        pwAutoHide={pwAutoHide}
         onClose={() => setDetail(null)}
         onEdit={() => { const c = detail; setDetail(null); setEdit({ open: true, mode: 'edit', editing: c }); }}
         onDelete={() => detail && handleRemove(detail)}
@@ -264,8 +277,8 @@ export default function CredentialsPage() {
   );
 }
 
-// 계정 상세 모달 — 열릴 때 reveal 로 원문을 받아 비밀번호 마스킹/표시/복사 (표시 시 10초 후 자동 숨김)
-function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | null; onClose: () => void; onEdit: () => void; onDelete: () => void }) {
+// 계정 상세 모달 — 열릴 때 reveal 로 원문을 받아 비밀번호 마스킹/표시/복사 (표시 시 설정한 시간 후 자동 숨김)
+function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelete }: { cred: Credential | null; pwAutoHide?: string; onClose: () => void; onEdit: () => void; onDelete: () => void }) {
   const [secret, setSecret] = useState<CredentialSecret | null>(null);
   const [totp, setTotp] = useState<TotpCode | null>(null);
   const [pwVisible, setPwVisible] = useState(false);
@@ -305,12 +318,13 @@ function DetailModal({ cred, onClose, onEdit, onDelete }: { cred: Credential | n
 
   if (!cred) return null;
 
-  // 비밀번호 표시/숨김 토글 — 표시 시 10초 뒤 자동 숨김 예약
+  // 비밀번호 표시/숨김 토글 — 표시 시 설정한 시간 뒤 자동 숨김 예약(설정이 '없음'이면 예약 안 함)
   function handleTogglePw() {
     setPwVisible((v) => {
       const next = !v;
       if (hideTimer.current) clearTimeout(hideTimer.current);
-      if (next) hideTimer.current = setTimeout(() => setPwVisible(false), 10000);
+      const ms = pwAutoHideMs(pwAutoHide);
+      if (next && ms) hideTimer.current = setTimeout(() => setPwVisible(false), ms);
       return next;
     });
   }

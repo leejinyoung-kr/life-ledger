@@ -59,8 +59,22 @@
 | file | /files (Backblaze B2) | 구현 완료 |
 | export | /export | 구현 완료 |
 | import | /import | 구현 완료 |
-| maintenance | (크론 — 알림·휴지통·보안점수 스냅샷·DB 백업) | 구현 완료 |
+| maintenance | (크론 — 알림·휴지통·보안점수 스냅샷·DB 백업·AI 리포트 자동생성) | 구현 완료 |
 | ai | /ai (자연어 거래 파싱·AI 리포트, 사용자별 OpenAI 키) | 구현 완료 |
+
+## 크론 스케줄러
+
+`@nestjs/schedule` 기반, `backend/src/maintenance/`(AI 리포트는 같은 모듈에 등록된 `ai-report-cron.service.ts`)에 위치. 타임존 지정 없이 서버 로컬 시간(KST) 기준.
+
+| 일정 | 파일 | 내용 |
+| --- | --- | --- |
+| 매일 03:00 | trash-cron.service.ts | soft-delete 후 30일 경과 항목 영구삭제 (거래·예적금·투자·구독·자산·할일·노트·캘린더·신원·계정·ENV 등) |
+| 매일 04:00 | db-backup-cron.service.ts | `mariadb-dump` → gzip 압축 후 `backups/`에 저장, 30일 경과 백업 자동 삭제 |
+| 매일 09:00 | notification-cron.service.ts | 사용자별 알림 생성(예적금 만기 D-30, 구독결제/체험종료 D-3, 신원만료 D-60, 할일마감 D-1, 비번회전 90일) + 웹푸시 발송. 만기/마감 알림은 설정(`notifMaturity`/`notifDeadline`)으로 개별 토글 가능 |
+| 매일 09:00 | security-snapshot-cron.service.ts | 사용자별 보안 점수 일별 스냅샷 적재 |
+| 매월 1일 09:00 | ai-report-cron.service.ts | 설정에서 `notifMonthly`를 켠 사용자의 전월(`last_month`) AI 리포트 자동 생성. OpenAI 키 미설정/분석 내역 없음 등은 사용자별로 조용히 스킵 후 다음 달 재시도 |
+
+> 크론 없이 요청 시점에 즉석 처리되는 것들(참고용 — 위 표와 다른 패턴): 반복 거래/반복매수 자동 생성(`transaction.service.ts`/`investment.service.ts`의 `materializeRecurring*`)은 목록 조회 때마다 호출되어 누적분을 채운다.
 
 ## 프론트엔드 페이지
 

@@ -12,6 +12,8 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
+import { PushService } from '../push/push.service';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -119,7 +121,11 @@ export class FileService {
   private readonly s3: S3Client;
   private readonly bucket: string;
 
-  constructor(private prisma: PrismaService) {
+  constructor(
+    private prisma: PrismaService,
+    private notification: NotificationService,
+    private push: PushService,
+  ) {
     this.bucket = process.env.B2_BUCKET_NAME!;
     this.s3 = new S3Client({
       endpoint: process.env.B2_ENDPOINT!,
@@ -245,6 +251,8 @@ export class FileService {
       throw e;
     }
 
+    await this.notifyUploadComplete(userId, saved.name);
+
     return {
       id: saved.id,
       name: saved.name,
@@ -254,6 +262,24 @@ export class FileService {
       deduped: !!dup,
       createdAt: saved.created_at.toISOString(),
     };
+  }
+
+  // 설정(notif_upload)이 켜진 사용자에게만 업로드 완료 알림 생성 + 푸시. 알림 실패가 업로드 자체를 막지 않도록 격리
+  private async notifyUploadComplete(userId: number, fileName: string): Promise<void> {
+    try {
+      const settings = await this.prisma.userSettings.findUnique({
+        where: { user_id: userId },
+        select: { notif_upload: true },
+      });
+      if (!settings?.notif_upload) return;
+      const n = await this.notification.create(userId, {
+        group: 'system', tone: 'info',
+        title: `${fileName} 업로드 완료`, description: '파일 보관함에 업로드가 완료됐습니다.', source: '파일 보관함',
+      });
+      await this.push.sendToUser(userId, { title: n.title, body: n.description, url: '/files' });
+    } catch {
+      // 알림/푸시 실패는 업로드 성공 자체에 영향 없음
+    }
   }
 
   // presigned 다운로드/미리보기 URL 발급 (5분 유효)

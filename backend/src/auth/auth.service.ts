@@ -25,10 +25,17 @@ export interface LoginClient {
   userAgent?: string;
 }
 
-// 토큰 수명 — Access 짧게(자주 갱신), Refresh 길게(쿠키 보관)
+// 토큰 수명 — Access 짧게(자주 갱신), Refresh 는 설정(session_expiry)에 따라 가변
 const ACCESS_TTL = '15m';
-const REFRESH_TTL = '7d';
-const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+// 설정의 session_expiry(7d|1d|12h|none) → refresh 토큰 만료. none은 사실상 무제한(10년)으로 처리
+const SESSION_EXPIRY_MAP: Record<string, { jwt: string; ms: number }> = {
+  '12h': { jwt: '12h', ms: 12 * 60 * 60 * 1000 },
+  '1d': { jwt: '1d', ms: 24 * 60 * 60 * 1000 },
+  '7d': { jwt: '7d', ms: 7 * 24 * 60 * 60 * 1000 },
+  none: { jwt: '3650d', ms: 3650 * 24 * 60 * 60 * 1000 },
+};
+const DEFAULT_SESSION_EXPIRY = SESSION_EXPIRY_MAP['7d'];
 
 // 이메일 로그인 코드 — 6자리, 5분 만료, 최대 5회 검증 시도
 const EMAIL_CODE_TTL_MS = 5 * 60 * 1000;
@@ -87,12 +94,22 @@ export class AuthService {
   }
 
   // 갱신 토큰 — sub + jti(화이트리스트 식별자), httpOnly 쿠키로만 사용
-  private signRefresh(userId: number, jti: string): string {
-    return this.jwtService.sign({ sub: userId, jti, type: 'refresh' }, { expiresIn: REFRESH_TTL });
+  // ttl은 SESSION_EXPIRY_MAP의 값(jsonwebtoken이 받는 시간 문자열)만 들어오므로 캐스팅이 안전함
+  private signRefresh(userId: number, jti: string, ttl: string): string {
+    return this.jwtService.sign({ sub: userId, jti, type: 'refresh' }, { expiresIn: ttl as never });
+  }
+
+  // 사용자의 세션 자동 만료 설정(session_expiry) 조회 — 미설정 시 기본 7일
+  private async sessionExpiryOf(userId: number): Promise<{ jwt: string; ms: number }> {
+    const settings = await this.prisma.userSettings.findUnique({
+      where: { user_id: userId },
+      select: { session_expiry: true },
+    });
+    return SESSION_EXPIRY_MAP[settings?.session_expiry ?? ''] ?? DEFAULT_SESSION_EXPIRY;
   }
 
   // Google 로그인 시 user upsert 후 access/refresh 토큰 발급. 클라이언트 정보가 있으면 세션 기록·신규 기기 감지
-  async login(googleUser: GoogleUser, client?: LoginClient): Promise<{ access: string; refresh: string }> {
+  async login(googleUser: GoogleUser, client?: LoginClient): Promise<{ access: string; refresh: string; refreshTtlMs: number }> {
     const user = await this.prisma.user.upsert({
       where: { google_id: googleUser.googleId },
       update: {
@@ -112,13 +129,14 @@ export class AuthService {
   }
 
   // access/refresh 발급 공통 로직 — 세션 기록 후 refresh 화이트리스트에 jti 등록. 구글·이메일 로그인 공유
-  private async issueTokens(user: User, client?: LoginClient): Promise<{ access: string; refresh: string }> {
+  private async issueTokens(user: User, client?: LoginClient): Promise<{ access: string; refresh: string; refreshTtlMs: number }> {
     const sessionId = client ? await this.recordLogin(user.id, client) : null;
     const jti = randomUUID();
+    const { jwt: ttl, ms } = await this.sessionExpiryOf(user.id);
     await this.prisma.refreshToken.create({
-      data: { user_id: user.id, session_id: sessionId, jti, expires_at: new Date(Date.now() + REFRESH_TTL_MS) },
+      data: { user_id: user.id, session_id: sessionId, jti, expires_at: new Date(Date.now() + ms) },
     });
-    return { access: this.signAccess(user), refresh: this.signRefresh(user.id, jti) };
+    return { access: this.signAccess(user), refresh: this.signRefresh(user.id, jti, ttl), refreshTtlMs: ms };
   }
 
   // 이메일 코드 발송 — 화이트리스트 통과 시 6자리 코드를 메일로 보낸다.
@@ -155,7 +173,7 @@ export class AuthService {
     rawEmail: string,
     code: string,
     client?: LoginClient,
-  ): Promise<{ access: string; refresh: string }> {
+  ): Promise<{ access: string; refresh: string; refreshTtlMs: number }> {
     const email = rawEmail.trim().toLowerCase();
     if (!this.isEmailAllowed(email)) {
       throw new UnauthorizedException('허용되지 않은 계정입니다.');
@@ -242,7 +260,7 @@ export class AuthService {
   }
 
   // 갱신 토큰 검증 → 화이트리스트 확인 후 rotation(이전 jti 폐기 + 신규 access/refresh 발급)
-  async refresh(refreshToken: string): Promise<{ access: string; refresh: string }> {
+  async refresh(refreshToken: string): Promise<{ access: string; refresh: string; refreshTtlMs: number }> {
     if (!refreshToken) throw new UnauthorizedException('갱신 토큰이 없습니다.');
     let payload: { sub: number; jti?: string; type?: string };
     try {
@@ -261,6 +279,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
 
     const newJti = randomUUID();
+    const { jwt: ttl, ms } = await this.sessionExpiryOf(user.id);
     await this.prisma.$transaction([
       this.prisma.refreshToken.update({ where: { id: stored.id }, data: { revoked_at: new Date() } }),
       this.prisma.refreshToken.create({
@@ -268,12 +287,12 @@ export class AuthService {
           user_id: user.id,
           session_id: stored.session_id,
           jti: newJti,
-          expires_at: new Date(Date.now() + REFRESH_TTL_MS),
+          expires_at: new Date(Date.now() + ms),
         },
       }),
     ]);
 
-    return { access: this.signAccess(user), refresh: this.signRefresh(user.id, newJti) };
+    return { access: this.signAccess(user), refresh: this.signRefresh(user.id, newJti, ttl), refreshTtlMs: ms };
   }
 
   // 로그아웃 — refresh 토큰의 jti 를 화이트리스트에서 폐기 (서명 검증 실패해도 디코드되면 폐기 시도)

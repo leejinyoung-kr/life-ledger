@@ -6,13 +6,12 @@
  * 공통 레이아웃(AppShell)을 재사용하고, 생성·목록은 백엔드 /ai/reports 와 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(Card/Button/Badge).
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import AppShell from '@/components/AppShell';
 import ErrorBanner from '@/components/ErrorBanner';
 import { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
-import Toggle from '@/components/ui/Toggle';
 import { Card, CardBody } from '@/components/ui/Card';
 import { IconCube } from '@/components/icons';
 import { api } from '@/lib/api';
@@ -31,23 +30,8 @@ const PERIOD_OPTIONS: ReportPeriod[] = ['this_month', 'last_month', 'last_3_mont
 export default function AiReportPage() {
   const [period, setPeriod] = useState<ReportPeriod>('this_month');
   const [saving, setSaving] = useState(false);
-  const [autoMonthly, setAutoMonthly] = useState(true); // 매월 1일 자동 생성 (설정 notifMonthly 와 동기화)
   const invalidate = useInvalidate();
   const { confirm, confirmElement } = useConfirm();
-
-  // 설정에서 자동 생성 여부 로드
-  useEffect(() => {
-    api.get<{ notifMonthly: boolean }>('/settings').then((s) => setAutoMonthly(s.notifMonthly)).catch(() => {});
-  }, []);
-
-  // 자동 생성 토글 — 즉시 설정 저장
-  function handleToggleAuto() {
-    const next = !autoMonthly;
-    setAutoMonthly(next);
-    api.put('/settings', { notifMonthly: next })
-      .then(() => notify.saved())
-      .catch(() => { setAutoMonthly(!next); notify.saveFailed(); });
-  }
 
   const reportsQuery = useApiQuery<AiReport[]>(qk.aiReports.list(), '/ai/reports');
   const reports = reportsQuery.data ?? [];
@@ -72,13 +56,7 @@ export default function AiReportPage() {
     <AppShell activePath="/ai-report" topbarLabel="AI 리포트">
       <div className="mb-7">
         <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">AI 리포트</h1>
-        <p className="text-sm text-secondary mt-1.5">가계부 데이터를 분석하여 소비 패턴과 절약 인사이트를 제공합니다.</p>
-      </div>
-
-      {/* 정기 생성 토글 */}
-      <div className="flex items-center justify-end gap-2 px-[18px] py-3.5 bg-surface border border-border rounded-[var(--radius-lg)] mb-5">
-        <span className="text-[0.82rem] text-secondary">매월 1일 자동 생성</span>
-        <Toggle on={autoMonthly} onToggle={handleToggleAuto} label="매월 자동 생성 토글" />
+        <p className="text-sm text-secondary mt-1.5">가계부 데이터를 분석하여 소비 패턴과 절약 인사이트를 제공합니다. 매월 자동 생성 여부는 설정 &gt; 알림에서 켤 수 있습니다.</p>
       </div>
 
       {/* 새 리포트 생성 박스 */}
