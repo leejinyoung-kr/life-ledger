@@ -2,6 +2,8 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { InvestmentAccountService } from './investment-account.service';
 import { CryptoService } from '../common/crypto.service';
+import { PriceLookupService } from '../investment/price-lookup.service';
+import { ExchangeDirection } from './dto/exchange-investment-account.dto';
 
 // 투자 계좌 — 계좌번호 마스킹/암호화, 보유종목 집계, 보유종목 있으면 삭제 차단 회귀 테스트.
 // CryptoService 는 실제 사용(라운드트립 검증), Prisma 는 인메모리 가짜.
@@ -19,7 +21,8 @@ describe('InvestmentAccountService', () => {
   let seq: number;
   let prisma: any;
   const crypto = new CryptoService();
-  const svc = () => new InvestmentAccountService(prisma, crypto);
+  const priceLookup = { getExchangeRate: jest.fn(async () => 1300) } as unknown as PriceLookupService;
+  const svc = () => new InvestmentAccountService(prisma, crypto, priceLookup);
 
   beforeEach(() => {
     accounts = [];
@@ -45,7 +48,12 @@ describe('InvestmentAccountService', () => {
         }),
         update: jest.fn(async ({ where, data }: any) => {
           const row = accounts.find((a) => a.id === where.id);
-          for (const [k, v] of Object.entries(data)) if (v !== undefined) (row as any)[k] = v;
+          for (const [k, v] of Object.entries(data)) {
+            if (v === undefined) continue;
+            (row as any)[k] = v && typeof v === 'object' && 'increment' in v
+              ? (row as any)[k].add(v.increment)
+              : v;
+          }
           return row;
         }),
         count: jest.fn(async ({ where }: any) =>
@@ -132,5 +140,34 @@ describe('InvestmentAccountService', () => {
   it('remove: 타인 계좌는 NotFound', async () => {
     const account = await svc().create(1, { name: 'A', accountNumber: '1' } as any);
     await expect(svc().remove(2, account.id)).rejects.toThrow(NotFoundException);
+  });
+
+  it('exchange: 원화→달러, rate 미입력 시 실시간 환율로 계산', async () => {
+    const account = await svc().create(1, { name: 'A', accountNumber: '1', cashBalance: 130_000 } as any);
+    const res = await svc().exchange(1, account.id, { direction: ExchangeDirection.KRW_TO_USD, amount: 130_000 } as any);
+    expect(priceLookup.getExchangeRate).toHaveBeenCalledWith('USD', 'KRW');
+    expect(res.cashBalance).toBe(0);
+    expect(res.cashBalanceUsd).toBe(100);
+  });
+
+  it('exchange: 달러→원화, rate 직접 입력 시 그 값 사용', async () => {
+    const account = await svc().create(1, { name: 'A', accountNumber: '1', cashBalanceUsd: 100 } as any);
+    const res = await svc().exchange(1, account.id, { direction: ExchangeDirection.USD_TO_KRW, amount: 100, rate: 1400 } as any);
+    expect(res.cashBalanceUsd).toBe(0);
+    expect(res.cashBalance).toBe(140_000);
+  });
+
+  it('exchange: 원화 부족하면 BadRequest', async () => {
+    const account = await svc().create(1, { name: 'A', accountNumber: '1', cashBalance: 1000 } as any);
+    await expect(
+      svc().exchange(1, account.id, { direction: ExchangeDirection.KRW_TO_USD, amount: 2000 } as any),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('exchange: 달러 부족하면 BadRequest', async () => {
+    const account = await svc().create(1, { name: 'A', accountNumber: '1', cashBalanceUsd: 10 } as any);
+    await expect(
+      svc().exchange(1, account.id, { direction: ExchangeDirection.USD_TO_KRW, amount: 20 } as any),
+    ).rejects.toThrow(BadRequestException);
   });
 });

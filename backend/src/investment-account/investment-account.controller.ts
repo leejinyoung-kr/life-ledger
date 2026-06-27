@@ -17,6 +17,7 @@ import type { AuthUser } from '../auth/strategies/jwt.strategy';
 import { CreateInvestmentAccountDto } from './dto/create-investment-account.dto';
 import { QueryInvestmentAccountDto } from './dto/query-investment-account.dto';
 import { UpdateInvestmentAccountDto } from './dto/update-investment-account.dto';
+import { ExchangeInvestmentAccountDto } from './dto/exchange-investment-account.dto';
 import { InvestmentAccountService } from './investment-account.service';
 
 @ApiTags('가계부 - 투자 계좌')
@@ -52,6 +53,16 @@ export class InvestmentAccountController {
     @Body() dto: UpdateInvestmentAccountDto,
   ) {
     return this.service.update(user.id, id, dto);
+  }
+
+  // 환전 (원화↔달러 계좌 내 전환)
+  @Post(':id/exchange')
+  exchange(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ExchangeInvestmentAccountDto,
+  ) {
+    return this.service.exchange(user.id, id, dto);
   }
 
   // 계좌 삭제

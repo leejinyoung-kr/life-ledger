@@ -152,7 +152,8 @@ model InvestmentAccount {
   id           Int        @id @default(autoincrement())
   user_id      Int /// user.id FK
   name         String     @db.VarChar(100) /// 계좌명 (예: ISA, 일반위탁)
-  cash_balance Decimal    @default(0) @db.Decimal(15, 2) /// 예수금(미투자 대기 현금) — 자산이동으로 충전, 매수/매도로 보유 종목과 전환
+  cash_balance Decimal    @default(0) @db.Decimal(15, 2) /// 원화 예수금(미투자 대기 현금) — 자산이동으로 충전, 매수/매도로 보유 종목과 전환
+  cash_balance_usd Decimal @default(0) @db.Decimal(15, 2) /// 달러 예수금 — 환전(원화↔달러)으로만 증감, 해외주식 매수 재원
   account_number_enc String? @db.VarChar(255) /// 계좌번호(암호문, AES-256-GCM) — 동일 계좌명(예: 일반위탁) 다중 보유 시 구분용
   memo         String?    @db.VarChar(300)
   deleted_at   DateTime?

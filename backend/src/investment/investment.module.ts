@@ -6,5 +6,6 @@ import { PriceLookupService } from './price-lookup.service';
 @Module({
   controllers: [InvestmentController],
   providers: [InvestmentService, PriceLookupService],
+  exports: [InvestmentService],
 })
 export class InvestmentModule {}

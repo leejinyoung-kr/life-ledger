@@ -28,6 +28,7 @@ import {
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Investment; prefill?: Investment };
 type TradeState = { open: boolean; mode: 'buy' | 'sell'; target?: Investment };
 type AccountModalState = { open: boolean; mode: 'add' | 'edit'; editing?: InvestmentAccount };
+type ExchangeModalState = { open: boolean; account?: InvestmentAccount };
 type PriceState = { open: boolean; target?: Investment };
 
 // 시세조회 응답 — 단가에 저장된 보유수량을 곱한 평가금액까지 백엔드에서 산출해 내려줌
@@ -60,6 +61,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   const [trade, setTrade] = useState<TradeState>({ open: false, mode: 'buy' });
   const [priceLookup, setPriceLookup] = useState<PriceState>({ open: false });
   const [accountModal, setAccountModal] = useState<AccountModalState>({ open: false, mode: 'add' });
+  const [exchangeModal, setExchangeModal] = useState<ExchangeModalState>({ open: false });
   const invalidate = useInvalidate();
 
   const [pendingName, setPendingName] = useState('');
@@ -165,10 +167,14 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
               <span className="font-semibold text-[0.95rem]">{a.name}</span>
               <span className="font-bold text-[0.95rem] [font-family:var(--font-mono)]">{won(a.cashBalance)}</span>
             </div>
-            <div className="text-[0.72rem] text-muted mt-1">예수금 · 보유 {a.holdingsCount}종목 · 평가금액 {won(a.totalCurrentValue)}</div>
+            <div className="text-[0.72rem] text-muted mt-1">원화 예수금 · 보유 {a.holdingsCount}종목 · 평가금액 {won(a.totalCurrentValue)}</div>
+            {a.cashBalanceUsd > 0 && (
+              <div className="text-[0.72rem] text-muted mt-0.5">달러 예수금 · ${a.cashBalanceUsd.toLocaleString('en-US')}</div>
+            )}
             {a.accountNumber && <div className="text-[0.72rem] text-muted mt-0.5 font-mono">{a.accountNumber}</div>}
             {a.memo && <div className="text-[0.72rem] text-muted mt-0.5">{a.memo}</div>}
             <div className="flex gap-2 mt-2.5">
+              <Button variant="ghost" size="sm" className="flex-1" onClick={() => setExchangeModal({ open: true, account: a })}>환전</Button>
               <Button variant="ghost" size="sm" className="flex-1" onClick={() => setAccountModal({ open: true, mode: 'edit', editing: a })}>수정</Button>
               <Button variant="danger" size="sm" className="flex-1" onClick={() => handleRemoveAccount(a.id)}>삭제</Button>
             </div>
@@ -321,6 +327,11 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
         onClose={() => setAccountModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setAccountModal((s) => ({ ...s, open: false })); reload(); }}
       />
+      <ExchangeModal
+        state={exchangeModal}
+        onClose={() => setExchangeModal((s) => ({ ...s, open: false }))}
+        onSaved={() => { setExchangeModal((s) => ({ ...s, open: false })); reload(); }}
+      />
       {confirmElement}
     </>
   );
@@ -458,6 +469,8 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
   const [quantity, setQuantity] = useState('');
   const [principal, setPrincipal] = useState('');
   const [currentValue, setCurrentValue] = useState('');
+  const [profitHelperMode, setProfitHelperMode] = useState<'amount' | 'rate'>('amount');
+  const [profitHelperValue, setProfitHelperValue] = useState('');
   const [purchaseDate, setPurchaseDate] = useState('');
   const [memo, setMemo] = useState('');
   const [recurringBuyEnabled, setRecurringBuyEnabled] = useState(false);
@@ -467,7 +480,7 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
   const [weekendAdjust, setWeekendAdjust] = useState<WeekendAdjust>('none');
   const [recurringAmount, setRecurringAmount] = useState('');
   const [saving, setSaving] = useState(false);
-  const { errors, setErrors, clearError, reset } = useFormErrors();
+  const { errors, setErrors, setError, clearError, reset } = useFormErrors();
 
   useEffect(() => {
     if (!state.open) return;
@@ -481,6 +494,8 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
     setQuantity(src?.quantity ? String(src.quantity) : '');
     setPrincipal(src ? String(src.principal) : '');
     setCurrentValue(src ? String(src.currentValue) : '');
+    setProfitHelperMode('amount');
+    setProfitHelperValue('');
     setPurchaseDate(e?.purchaseDate ?? (state.prefill ? toDay() : ''));
     setMemo(src?.memo ?? '');
     setRecurringBuyEnabled(src?.recurringBuyEnabled ?? false);
@@ -491,6 +506,24 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
     setRecurringAmount(src?.recurringBuyAmount ? String(src.recurringBuyAmount) : '');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
   }, [state.open, e, state.prefill]);
+
+  // 현재 평가금액 + 수익(원 또는 %)으로 투자원금 역산 — "390,000원(+19,000원)"처럼 평가금액·수익만 아는 경우 보조
+  function applyProfitHelper() {
+    const cv = Number(currentValue);
+    const helper = Number(profitHelperValue);
+    if (!currentValue || !Number.isFinite(cv)) {
+      setError('profitHelper', '먼저 현재 평가금액을 입력하세요.');
+      return;
+    }
+    if (!profitHelperValue || !Number.isFinite(helper)) {
+      setError('profitHelper', '수익 값을 입력하세요.');
+      return;
+    }
+    const computed = profitHelperMode === 'amount' ? cv - helper : cv / (1 + helper / 100);
+    setPrincipal(String(Math.round(computed)));
+    clearError('principal');
+    clearError('profitHelper');
+  }
 
   function validate() {
     const err: Record<string, string> = {};
@@ -564,6 +597,22 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
           <input type="number" className={`input${errors.currentValue ? ' is-invalid' : ''}`} placeholder="매수 당일엔 투자원금과 동일" value={currentValue} onChange={(ev) => { setCurrentValue(ev.target.value); clearError('currentValue'); }} />
         </Field>
       </div>
+      <div className="bg-background border border-border rounded-[var(--radius-md)] p-3 -mt-1 mb-1">
+        <div className="text-[0.78rem] text-secondary mb-1.5">이미 투자중인 종목이라 투자원금을 모를 때 — 현재 평가금액과 수익을 입력하면 투자원금을 계산해줍니다.</div>
+        <div className="flex gap-2 items-start max-md:flex-wrap">
+          <select className="input w-auto" value={profitHelperMode} onChange={(ev) => setProfitHelperMode(ev.target.value as 'amount' | 'rate')}>
+            <option value="amount">수익(원)</option>
+            <option value="rate">수익률(%)</option>
+          </select>
+          <input
+            type="number" className={`input${errors.profitHelper ? ' is-invalid' : ''}`}
+            placeholder={profitHelperMode === 'amount' ? '예: 19000 (손실은 음수)' : '예: 5.1 (손실은 음수)'}
+            value={profitHelperValue} onChange={(ev) => { setProfitHelperValue(ev.target.value); clearError('profitHelper'); }}
+          />
+          <Button type="button" variant="ghost" size="sm" onClick={applyProfitHelper}>투자원금 계산</Button>
+        </div>
+        {errors.profitHelper && <div className="text-[0.74rem] text-danger mt-1">{errors.profitHelper}</div>}
+      </div>
       <Field label="최초 매수일" error={errors.purchaseDate}><input type="date" className="input" aria-label="최초 매수일" value={purchaseDate} onChange={(ev) => setPurchaseDate(ev.target.value)} /></Field>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="투자 전략, 목표가 등" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
       <label className="flex items-center gap-2 text-[0.875rem] font-medium text-primary cursor-pointer select-none [&_input]:w-4 [&_input]:h-4 [&_input]:accent-accent [&_input]:cursor-pointer">
@@ -633,6 +682,7 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
   const isEdit = state.mode === 'edit';
   const [name, setName] = useState('');
   const [cashBalance, setCashBalance] = useState('');
+  const [cashBalanceUsd, setCashBalanceUsd] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
@@ -644,6 +694,7 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setName(e?.name ?? '');
     setCashBalance(e ? String(e.cashBalance) : '');
+    setCashBalanceUsd(e ? String(e.cashBalanceUsd) : '');
     setAccountNumber('');
     setMemo(e?.memo ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
@@ -662,7 +713,10 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
     if (!validate()) return;
     setSaving(true);
     try {
-      const payload = { name, cashBalance: Number(cashBalance || 0), accountNumber: accountNumber || undefined, memo: memo || undefined };
+      const payload = {
+        name, cashBalance: Number(cashBalance || 0), cashBalanceUsd: Number(cashBalanceUsd || 0),
+        accountNumber: accountNumber || undefined, memo: memo || undefined,
+      };
       if (state.mode === 'edit' && e) await api.put(`/investment-accounts/${e.id}`, payload);
       else await api.post('/investment-accounts', payload);
       notify.upserted(state.mode, '투자 계좌');
@@ -679,11 +733,83 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
       <Field label="계좌명" required error={errors.name}>
         <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: ISA, 일반위탁" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
       </Field>
-      <Field label="예수금 (원)"><input type="number" className="input" placeholder="0" value={cashBalance} onChange={(ev) => setCashBalance(ev.target.value)} /></Field>
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <Field label="원화 예수금 (원)"><input type="number" className="input" placeholder="0" value={cashBalance} onChange={(ev) => setCashBalance(ev.target.value)} /></Field>
+        <Field label="달러 예수금 ($)"><input type="number" className="input" placeholder="0" value={cashBalanceUsd} onChange={(ev) => setCashBalanceUsd(ev.target.value)} /></Field>
+      </div>
       <Field label={isEdit ? '계좌번호 (변경 시에만 입력)' : '계좌번호'} required={!isEdit} error={errors.accountNumber}>
         <input type="text" className={`input${errors.accountNumber ? ' is-invalid' : ''}`} placeholder={isEdit ? '비워두면 기존 번호 유지' : '동일 계좌명 다중 보유 시 구분용'} value={accountNumber} onChange={(ev) => { setAccountNumber(ev.target.value); clearError('accountNumber'); }} />
       </Field>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
+    </Modal>
+  );
+}
+
+// 환전 모달 — 계좌 내 원화↔달러 예수금 상호 전환. 환율 미입력 시 서버가 실시간 조회(frankfurter.app)
+function ExchangeModal({ state, onClose, onSaved }: { state: ExchangeModalState; onClose: () => void; onSaved: () => void }) {
+  const a = state.account;
+  const [direction, setDirection] = useState<'krw_to_usd' | 'usd_to_krw'>('krw_to_usd');
+  const [amount, setAmount] = useState('');
+  const [rate, setRate] = useState('');
+  const [saving, setSaving] = useState(false);
+  const { errors, setErrors, clearError, reset } = useFormErrors();
+
+  useEffect(() => {
+    if (!state.open) return;
+    reset();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
+    setDirection('krw_to_usd');
+    setAmount('');
+    setRate('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림 시에만 폼 초기화
+  }, [state.open]);
+
+  const fromLabel = direction === 'krw_to_usd' ? '원화' : '달러';
+  const toLabel = direction === 'krw_to_usd' ? '달러' : '원화';
+  const available = a ? (direction === 'krw_to_usd' ? a.cashBalance : a.cashBalanceUsd) : 0;
+
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!amount || Number(amount) <= 0) err.amount = `${fromLabel} 환전 금액을 입력하세요.`;
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  async function handleSave() {
+    if (!a || !validate()) return;
+    setSaving(true);
+    try {
+      await api.post(`/investment-accounts/${a.id}/exchange`, {
+        direction, amount: Number(amount), rate: rate ? Number(rate) : undefined,
+      });
+      notify.success('환전이 반영되었습니다.');
+      onSaved();
+    } catch {
+      notify.saveFailed();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={state.open} onClose={onClose} title={`환전 — ${a?.name ?? ''}`} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
+      <Field label="환전 방향">
+        <select className="input" value={direction} onChange={(ev) => setDirection(ev.target.value as 'krw_to_usd' | 'usd_to_krw')}>
+          <option value="krw_to_usd">원화 → 달러</option>
+          <option value="usd_to_krw">달러 → 원화</option>
+        </select>
+      </Field>
+      <Field label={`${fromLabel} 환전 금액 (보유 ${direction === 'krw_to_usd' ? won(available) : `$${available.toLocaleString('en-US')}`})`} required error={errors.amount}>
+        <input
+          type="number" className={`input${errors.amount ? ' is-invalid' : ''}`}
+          placeholder={direction === 'krw_to_usd' ? '예: 1000000' : '예: 100'}
+          value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }}
+        />
+      </Field>
+      <Field label="환율 (1달러당 원화, 선택)">
+        <input type="number" className="input" placeholder="미입력 시 실시간 환율 적용" value={rate} onChange={(ev) => setRate(ev.target.value)} />
+      </Field>
+      <p className="text-[0.78rem] text-muted">{fromLabel} 예수금에서 차감되어 {toLabel} 예수금으로 환산되어 더해집니다.</p>
     </Modal>
   );
 }

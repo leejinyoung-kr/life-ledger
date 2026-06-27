@@ -74,7 +74,11 @@ export class PriceLookupService {
     };
   }
 
-  // 환율 조회 (frankfurter.app — 키 불필요)
+  // 환율 조회 (frankfurter.app — 키 불필요) — 계좌 환전 기능에서도 사용
+  async getExchangeRate(from: string, to: string): Promise<number> {
+    return this.exchangeRate(from, to);
+  }
+
   private async exchangeRate(from: string, to: string): Promise<number> {
     const res = await fetch(
       `${FRANKFURTER_EXCHANGE_RATE_API}?from=${from}&to=${to}`,

@@ -2,12 +2,16 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Asset, AssetType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { parsePage } from '../common/pagination';
+import { PriceLookupService } from '../investment/price-lookup.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 
 @Injectable()
 export class AssetService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private priceLookup: PriceLookupService,
+  ) {}
 
   // 엔티티 → 응답 DTO (Decimal→number)
   private toDto(a: Asset) {
@@ -71,7 +75,7 @@ export class AssetService {
         ) / 100
       : null;
 
-    // 투자 평가금액(종목) + 예수금(계좌 — 미투자 대기 현금도 자산이므로 합산) 합계
+    // 투자 평가금액(종목) + 예수금(계좌 — 미투자 대기 현금도 자산이므로 합산, 달러 예수금은 환율 적용해 원화로 환산) 합계
     const [investments, investmentAccounts] = await Promise.all([
       this.prisma.investment.findMany({
         where: { user_id: userId, deleted_at: null },
@@ -79,12 +83,17 @@ export class AssetService {
       }),
       this.prisma.investmentAccount.findMany({
         where: { user_id: userId, deleted_at: null },
-        select: { cash_balance: true },
+        select: { cash_balance: true, cash_balance_usd: true },
       }),
     ]);
+    const usdTotal = investmentAccounts.reduce((s, r) => s + r.cash_balance_usd.toNumber(), 0);
+    const usdToKrw = usdTotal
+      ? await this.priceLookup.getExchangeRate('USD', 'KRW').catch(() => 0)
+      : 0;
     const investTotal =
       investments.reduce((s, r) => s + r.current_value.toNumber(), 0) +
-      investmentAccounts.reduce((s, r) => s + r.cash_balance.toNumber(), 0);
+      investmentAccounts.reduce((s, r) => s + r.cash_balance.toNumber(), 0) +
+      Math.round(usdTotal * usdToKrw);
 
     // 현금 = 수입 합계 - 지출 합계
     const [incAgg, expAgg] = await Promise.all([

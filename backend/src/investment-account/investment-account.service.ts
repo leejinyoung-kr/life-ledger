@@ -3,9 +3,11 @@ import { InvestmentAccount, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { parsePage } from '../common/pagination';
 import { CryptoService } from '../common/crypto.service';
+import { PriceLookupService } from '../investment/price-lookup.service';
 import { CreateInvestmentAccountDto } from './dto/create-investment-account.dto';
 import { QueryInvestmentAccountDto } from './dto/query-investment-account.dto';
 import { UpdateInvestmentAccountDto } from './dto/update-investment-account.dto';
+import { ExchangeDirection, ExchangeInvestmentAccountDto } from './dto/exchange-investment-account.dto';
 
 type HoldingsAgg = { count: number; principal: number; currentValue: number };
 
@@ -14,6 +16,7 @@ export class InvestmentAccountService {
   constructor(
     private prisma: PrismaService,
     private crypto: CryptoService,
+    private priceLookup: PriceLookupService,
   ) {}
 
   // 계좌번호 복호화 후 앞 3자리/뒤 4자리만 노출(중간 마스킹) — 목록 응답에 평문 노출 방지
@@ -32,6 +35,7 @@ export class InvestmentAccountService {
       id: a.id,
       name: a.name,
       cashBalance: a.cash_balance.toNumber(),
+      cashBalanceUsd: a.cash_balance_usd.toNumber(),
       accountNumber: this.maskAccountNumber(a.account_number_enc),
       memo: a.memo,
       holdingsCount: agg?.count ?? 0,
@@ -95,6 +99,7 @@ export class InvestmentAccountService {
         user_id: userId,
         name: dto.name,
         cash_balance: new Prisma.Decimal(dto.cashBalance ?? 0),
+        cash_balance_usd: new Prisma.Decimal(dto.cashBalanceUsd ?? 0),
         account_number_enc: this.crypto.encrypt(dto.accountNumber),
         memo: dto.memo,
       },
@@ -119,8 +124,36 @@ export class InvestmentAccountService {
       data: {
         name: dto.name,
         cash_balance: dto.cashBalance !== undefined ? new Prisma.Decimal(dto.cashBalance) : undefined,
+        cash_balance_usd: dto.cashBalanceUsd !== undefined ? new Prisma.Decimal(dto.cashBalanceUsd) : undefined,
         account_number_enc: dto.accountNumber !== undefined ? this.crypto.encryptNullable(dto.accountNumber) : undefined,
         memo: dto.memo,
+      },
+    });
+    return this.toDto(updated);
+  }
+
+  // 환전 — 계좌 내 원화↔달러 예수금 상호 전환. rate 미입력 시 실시간 환율(frankfurter.app) 조회
+  async exchange(userId: number, id: number, dto: ExchangeInvestmentAccountDto) {
+    const account = await this.findOwned(userId, id);
+    const rate = dto.rate ?? (await this.priceLookup.getExchangeRate('USD', 'KRW'));
+    const amount = new Prisma.Decimal(dto.amount);
+
+    const isKrwToUsd = dto.direction === ExchangeDirection.KRW_TO_USD;
+    const krwDelta = isKrwToUsd ? amount.negated() : amount.mul(rate);
+    const usdDelta = isKrwToUsd ? amount.div(rate) : amount.negated();
+
+    if (isKrwToUsd && account.cash_balance.lessThan(amount)) {
+      throw new BadRequestException('원화 예수금이 부족합니다.');
+    }
+    if (!isKrwToUsd && account.cash_balance_usd.lessThan(amount)) {
+      throw new BadRequestException('달러 예수금이 부족합니다.');
+    }
+
+    const updated = await this.prisma.investmentAccount.update({
+      where: { id },
+      data: {
+        cash_balance: { increment: krwDelta },
+        cash_balance_usd: { increment: usdDelta },
       },
     });
     return this.toDto(updated);

@@ -105,6 +105,24 @@ describe('InvestmentService', () => {
       expect(res.quantity).toBe(0);
       expect(res.recurringBuyEnabled).toBe(true);
     });
+
+    it('이미 투자중인 종목을 과거 매수일+반복매수로 등록해도, 등록 이후 목록 조회 시 과거 회차를 소급 매수하지 않음', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-06-20T00:00:00Z'));
+      const res = await svc().create(1, {
+        accountId: 1, name: 'A', type: 'domestic_stock', symbol: '005930',
+        quantity: 10, principal: 1_000_000, currentValue: 1_000_000,
+        purchaseDate: '2026-01-15', recurringBuyEnabled: true, recurringBuyAmount: 10000,
+        recurringBuyRule: { cycle: 'monthly', day: 15 },
+      } as any);
+      expect(res.principal).toBe(1_000_000);
+      expect(res.quantity).toBe(10);
+
+      await svc().materializeRecurringBuys(1); // 크론이 매일 오전 9시에 실행하는 일괄 처리를 시뮬레이션
+      const reloaded = rows.find((r) => r.id === res.id);
+      expect(reloaded.principal.toNumber()).toBe(1_000_000); // 1~6월 과거 회차가 더해지면 안 됨
+      expect(reloaded.quantity.toNumber()).toBe(10);
+      jest.useRealTimers();
+    });
   });
 
   describe('update', () => {
@@ -116,6 +134,26 @@ describe('InvestmentService', () => {
     it('다른 계좌로 변경 시 그 계좌도 본인 소유여야 함', async () => {
       rows.push({ id: 1, user_id: 1, account_id: 1, deleted_at: null, principal: dec(0), current_value: dec(0), quantity: null });
       await expect(svc().update(1, 1, { accountId: 999 } as any)).rejects.toThrow(BadRequestException);
+    });
+
+    it('기존 종목에 반복매수를 새로 켜도 과거 매수일 회차를 소급 매수하지 않음', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-06-20T00:00:00Z'));
+      rows.push({
+        id: 1, user_id: 1, account_id: 1, deleted_at: null,
+        type: 'domestic_stock', symbol: '005930', name: 'A',
+        quantity: dec(10), principal: dec(1_000_000), current_value: dec(1_000_000),
+        recurring_buy_enabled: false, recurring_buy_rule: null, recurring_buy_amount: null,
+        purchase_date: new Date('2026-01-15T00:00:00Z'), memo: null, updated_at: new Date(),
+      });
+      await svc().update(1, 1, {
+        recurringBuyEnabled: true, recurringBuyAmount: 10000,
+        recurringBuyRule: { cycle: 'monthly', day: 15 },
+      } as any);
+
+      await svc().materializeRecurringBuys(1);
+      expect(rows[0].principal.toNumber()).toBe(1_000_000);
+      expect(rows[0].quantity.toNumber()).toBe(10);
+      jest.useRealTimers();
     });
   });
 
@@ -202,7 +240,7 @@ describe('InvestmentService', () => {
     });
   });
 
-  describe('materializeRecurringBuys (findAll/summary 호출 시 자동 적립)', () => {
+  describe('materializeRecurringBuys (RecurringCronService가 매일 오전 9시 호출)', () => {
     function seedRecurring(over: Partial<any> = {}) {
       const row = {
         id: seq++, user_id: 1, account_id: 1, deleted_at: null,
@@ -223,7 +261,7 @@ describe('InvestmentService', () => {
     it('미처리 회차를 시세로 매수해 예수금 차감 + 수량/원금 누적', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-03-20T00:00:00Z'));
       seedRecurring();
-      await svc().findAll(1);
+      await svc().materializeRecurringBuys(1);
       // 최초 매수일(1/15) 자체는 회차로 안 치고, 2/15·3/15 두 회차만 누적. 회차당 10000원/1000원=10개
       expect(rows[0].principal.toNumber()).toBe(20000);
       expect(rows[0].quantity.toNumber()).toBe(20);
@@ -235,7 +273,7 @@ describe('InvestmentService', () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-03-20T00:00:00Z'));
       accounts[0].cash_balance = dec(15000); // 1회차(10000)만 가능, 2회차부터 부족
       seedRecurring();
-      await svc().findAll(1);
+      await svc().materializeRecurringBuys(1);
       expect(rows[0].principal.toNumber()).toBe(10000);
       expect(accounts[0].cash_balance.toNumber()).toBe(5000);
       jest.useRealTimers();
@@ -244,9 +282,9 @@ describe('InvestmentService', () => {
     it('이미 처리한 회차는 재적립하지 않음(idempotent)', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-03-20T00:00:00Z'));
       seedRecurring();
-      await svc().findAll(1);
+      await svc().materializeRecurringBuys(1);
       const principalAfterFirst = rows[0].principal.toNumber();
-      await svc().findAll(1);
+      await svc().materializeRecurringBuys(1);
       expect(rows[0].principal.toNumber()).toBe(principalAfterFirst);
       jest.useRealTimers();
     });
@@ -254,8 +292,24 @@ describe('InvestmentService', () => {
     it('symbol/규칙/금액 중 하나라도 없으면 건드리지 않음', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-03-20T00:00:00Z'));
       seedRecurring({ symbol: null });
-      await svc().findAll(1);
+      await svc().materializeRecurringBuys(1);
       expect(rows[0].principal.toNumber()).toBe(0);
+      jest.useRealTimers();
+    });
+
+    it('종목이 배치 크기(3)를 넘으면 묶음 사이에 대기하며, 모든 종목이 처리됨', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-02-15T00:00:00Z'));
+      const sleepSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => { fn(); return 0 as any; });
+      accounts[0].cash_balance = dec(1_000_000);
+      seedRecurring({ symbol: 'A' });
+      seedRecurring({ symbol: 'B' });
+      seedRecurring({ symbol: 'C' });
+      seedRecurring({ symbol: 'D' }); // 4개 — 3개씩 묶으면 2묶음, 묶음 사이 대기 1회 발생
+      await svc().materializeRecurringBuys(1);
+      expect(sleepSpy).toHaveBeenCalledTimes(1);
+      expect(sleepSpy).toHaveBeenCalledWith(expect.any(Function), 3000);
+      expect(rows.every((r) => r.principal.toNumber() === 10000)).toBe(true);
+      sleepSpy.mockRestore();
       jest.useRealTimers();
     });
   });
