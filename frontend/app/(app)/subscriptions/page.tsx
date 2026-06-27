@@ -2,7 +2,7 @@
 
 /**
  * 구독 관리 페이지.
- * 정기 결제를 카드로 모아 결제 예정일·연 환산·미사용 의심 구독을 추적한다.
+ * 정기 결제를 카드로 모아 결제 예정일·연 환산을 추적한다.
  * 데이터는 백엔드 API(/subscriptions)와 실시간 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(StatCard/Button/Badge/Card/Modal/Field). 메인 목록은 카드형 유지.
  */
@@ -21,7 +21,6 @@ import EmptyState from '@/components/EmptyState';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
-import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { IconRepeat, IconAlertTriangle, IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
@@ -29,7 +28,7 @@ import { won, dotDate, daysUntil } from '@/lib/finance';
 import {
   SUB_CATEGORY_LABEL, SUB_CATEGORY_EMOJI, SUB_CATEGORY_OPTIONS,
   CYCLE_LABEL, STATUS_LABEL, SUB_PAY_METHODS,
-  type Subscription, type SubscriptionSummary, type UnusedSubscription,
+  type Subscription, type SubscriptionSummary,
   type SubscriptionCycle, type SubscriptionStatus,
 } from '@/lib/subscription';
 
@@ -48,7 +47,7 @@ export default function SubscriptionsPage() {
   // mutation 후 구독 관련 쿼리 무효화
   const bump = () => invalidate(qk.subscriptions.all);
 
-  // 목록/요약/미사용 (React Query 캐시). 목록은 서버 페이징/검색
+  // 목록/요약 (React Query 캐시). 목록은 서버 페이징/검색
   const listQs = useMemo(() => {
     const params = new URLSearchParams();
     if (search.trim()) params.set('q', search.trim());
@@ -58,11 +57,9 @@ export default function SubscriptionsPage() {
   }, [search, page, limit]);
   const subsQuery = useApiQuery<Paginated<Subscription>>(qk.subscriptions.list({ q: search.trim(), page, limit }), `/subscriptions?${listQs}`);
   const summaryQuery = useApiQuery<SubscriptionSummary>(['subscriptions', 'summary'], '/subscriptions/summary');
-  const unusedQuery = useApiQuery<UnusedSubscription[]>(['subscriptions', 'unused'], '/subscriptions/unused');
   const subs = useMemo(() => subsQuery.data?.items ?? [], [subsQuery.data]);
   const total = subsQuery.data?.total ?? 0;
   const summary = summaryQuery.data ?? null;
-  const unused = unusedQuery.data ?? [];
   const error = (subsQuery.error ?? summaryQuery.error)?.message ?? null;
 
   // 구독 해지 (soft delete)
@@ -99,7 +96,7 @@ export default function SubscriptionsPage() {
           <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">구독 관리</h1>
           <Button onClick={() => setModal({ open: true, mode: 'add' })}>구독 추가</Button>
         </div>
-        <p className="text-sm text-secondary mt-1.5 break-keep">정기 결제를 한눈에 — 결제 예정일·연 환산·미사용 구독을 추적합니다.</p>
+        <p className="text-sm text-secondary mt-1.5 break-keep">정기 결제를 한눈에 — 결제 예정일·연 환산을 추적합니다.</p>
       </div>
 
       <ErrorBanner message={error} />
@@ -173,60 +170,6 @@ export default function SubscriptionsPage() {
         })}
       </div>
       <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
-
-      {/* 미사용 의심 구독 */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>⚠️ 미사용 의심 구독</CardTitle>
-          <Badge tone="warning">{unused.length}건</Badge>
-        </CardHeader>
-        <CardBody>
-          <p className="text-[0.82rem] text-secondary mb-3">최근 30일간 관련 활동(앱 실행/결제 외 사용)이 감지되지 않은 구독입니다.</p>
-
-          {/* 데스크톱 테이블 */}
-          <div className="table-wrap max-md:hidden">
-            <table>
-              <thead>
-                <tr><th>서비스</th><th>월 비용</th><th>마지막 사용 추정</th><th className="td-center">액션</th></tr>
-              </thead>
-              <tbody>
-                {unused.length === 0 && (
-                  <tr><td colSpan={4} className="td-center td-muted">미사용 의심 구독이 없습니다.</td></tr>
-                )}
-                {unused.map((u) => (
-                  <tr key={u.id}>
-                    <td>{SUB_CATEGORY_EMOJI[u.category] ?? '🧩'} {u.name}</td>
-                    <td className="td-mono">{won(u.monthlyCost)}</td>
-                    <td className="td-muted">{u.daysSince !== null ? `${u.daysSince}일 전` : `미사용${u.status === 'trial' ? ' (체험)' : ''}`}</td>
-                    <td className="td-center">
-                      <Button variant="danger" size="sm" onClick={() => handleCancel(u.id)}>해지 검토</Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* 모바일 카드 */}
-          <div className="hidden max-md:flex flex-col gap-2.5">
-            {unused.length === 0 && <EmptyState message="미사용 의심 구독이 없습니다." className="text-center text-muted py-7" />}
-            {unused.map((u) => (
-              <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={u.id}>
-                <div className="flex justify-between items-baseline gap-2.5">
-                  <span className="font-semibold text-[0.95rem] break-all">{SUB_CATEGORY_EMOJI[u.category] ?? '🧩'} {u.name}</span>
-                  <span className="font-bold text-base whitespace-nowrap [font-family:var(--font-mono)]">{won(u.monthlyCost)}</span>
-                </div>
-                <div className="mt-2 text-[0.78rem] text-secondary">
-                  {u.daysSince !== null ? `${u.daysSince}일 전` : `미사용${u.status === 'trial' ? ' (체험)' : ''}`}
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <Button variant="danger" className="flex-1" onClick={() => handleCancel(u.id)}>해지 검토</Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardBody>
-      </Card>
 
       {confirmElement}
       {/* 구독 추가/수정 모달 */}

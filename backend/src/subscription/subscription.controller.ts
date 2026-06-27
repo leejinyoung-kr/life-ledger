@@ -32,12 +32,6 @@ export class SubscriptionController {
     return this.service.summary(user.id);
   }
 
-  // 미사용 의심 구독
-  @Get('unused')
-  unused(@CurrentUser() user: AuthUser) {
-    return this.service.unused(user.id);
-  }
-
   // 구독 목록 (서비스명/카테고리 검색 + 페이지네이션)
   @Get()
   findAll(@CurrentUser() user: AuthUser, @Query() query: QuerySubscriptionDto) {

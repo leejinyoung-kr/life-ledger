@@ -37,7 +37,7 @@ export class CreateSubscriptionDto {
   @MaxLength(50)
   payMethod: string;
 
-  // 마지막 사용일 (YYYY-MM-DD) — 미사용 의심 판정용
+  // 마지막 사용일 (YYYY-MM-DD)
   @IsOptional()
   @IsDateString()
   lastUsedAt?: string;

@@ -18,12 +18,6 @@ function toMonthly(amount: number, cycle: SubscriptionCycle): number {
   return amount;
 }
 
-// 자정 기준 두 날짜 사이 경과 일수 (과거일수록 양수)
-function daysSince(d: Date): number {
-  const ms = Date.now() - d.getTime();
-  return Math.floor(ms / (24 * 60 * 60 * 1000));
-}
-
 @Injectable()
 export class SubscriptionService {
   constructor(private prisma: PrismaService) {}
@@ -110,25 +104,6 @@ export class SubscriptionService {
       nextPayment: upcoming ? { days: nextDays, name: upcoming.name } : null,
       trial,
     };
-  }
-
-  // 미사용 의심 구독 — 마지막 사용 30일 초과 OR 미사용(체험 등). 비용 큰 순
-  async unused(userId: number) {
-    const rows = await this.prisma.subscription.findMany({
-      where: { user_id: userId, deleted_at: null, status: { not: 'paused' } },
-    });
-    return rows
-      .filter((r) => !r.last_used_at || daysSince(r.last_used_at) > 30)
-      .map((r) => ({
-        id: r.id,
-        name: r.name,
-        category: r.category,
-        status: r.status,
-        monthlyCost: Math.round(toMonthly(r.amount.toNumber(), r.cycle)),
-        lastUsedAt: toDateStr(r.last_used_at),
-        daysSince: r.last_used_at ? daysSince(r.last_used_at) : null,
-      }))
-      .sort((a, b) => b.monthlyCost - a.monthlyCost);
   }
 
   // 구독 추가

@@ -80,7 +80,6 @@ Base URL: `http://localhost:8000/api/v1`
 | --- | --- | --- |
 | GET | /subscriptions | 구독 목록 |
 | GET | /subscriptions/summary | 요약 (월 총액/연 총액/구독 수) |
-| GET | /subscriptions/unused | 미사용 구독 목록 |
 | POST | /subscriptions | 구독 추가 |
 | PUT | /subscriptions/:id | 구독 수정 |
 | DELETE | /subscriptions/:id | 구독 삭제 (soft delete) |

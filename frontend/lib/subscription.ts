@@ -30,16 +30,6 @@ export interface SubscriptionSummary {
   trial: { id: number; name: string; amount: number; cycle: SubscriptionCycle; nextPaymentDate: string } | null;
 }
 
-export interface UnusedSubscription {
-  id: number;
-  name: string;
-  category: string;
-  status: SubscriptionStatus;
-  monthlyCost: number;
-  lastUsedAt: string | null;
-  daysSince: number | null;
-}
-
 // ── 라벨맵 (코드 ↔ 화면 표시) ────────────────────────────────────
 // 카테고리 코드 → 한글 라벨
 export const SUB_CATEGORY_LABEL: Record<string, string> = {
