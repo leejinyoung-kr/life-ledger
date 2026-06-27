@@ -49,6 +49,11 @@ describe('currentMonth', () => {
 });
 
 describe('recurringRuleSummary', () => {
+  it('daily → 매일 (평일만)', () => {
+    const rule: RecurringRule = { cycle: 'daily', day: 0, weekendAdjust: 'none' };
+    expect(recurringRuleSummary(rule)).toBe('매일 (평일만)');
+  });
+
   it('monthly → 매월 N일', () => {
     const rule: RecurringRule = { cycle: 'monthly', day: 15, weekendAdjust: 'none' };
     expect(recurringRuleSummary(rule)).toBe('매월 15일');

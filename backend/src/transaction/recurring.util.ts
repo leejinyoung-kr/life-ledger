@@ -4,10 +4,10 @@
  */
 
 // 반복 규칙 형태
-// day: monthly·yearly는 1-31(그 달의 며칠), weekly는 0(일)~6(토)
+// day: monthly·yearly는 1-31(그 달의 며칠), weekly는 0(일)~6(토), daily는 미사용
 // month: yearly에서만 사용(1-12). 미지정 시 시작일의 월을 그대로 따름
 export interface RRule {
-  cycle: 'monthly' | 'weekly' | 'yearly';
+  cycle: 'daily' | 'monthly' | 'weekly' | 'yearly';
   day: number;
   month?: number;
   weekendAdjust?: 'none' | 'before' | 'after';
@@ -18,12 +18,17 @@ export function toDateStr(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-// 반복 회차 식별자 — 월간 'YYYY-MM' / 연간 'YYYY' / 주간 'YYYY-MM-DD'
+// 평일(월~금) 여부
+export function isWeekday(d: Date): boolean {
+  const wd = d.getUTCDay();
+  return wd !== 0 && wd !== 6;
+}
+
+// 반복 회차 식별자 — 월간 'YYYY-MM' / 연간 'YYYY-MM'(월 포함, 같은 해라도 월이 다르면 별개 회차) / 주간·일간 'YYYY-MM-DD'
 export function periodOf(d: Date, cycle: string): string {
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-  if (cycle === 'yearly') return String(y);
-  if (cycle === 'weekly') return toDateStr(d);
+  if (cycle === 'weekly' || cycle === 'daily') return toDateStr(d);
   return `${y}-${m}`;
 }
 
@@ -51,6 +56,16 @@ export function nthOccurrence(base: Date, rule: RRule, i: number): Date {
   const y = base.getUTCFullYear();
   const m = base.getUTCMonth();
   const day = rule.day || base.getUTCDate();
+  if (rule.cycle === 'daily') {
+    // 평일(월~금)만 카운트 — 시작일 다음날부터 i번째 평일
+    const d = new Date(base);
+    let remaining = i;
+    while (remaining > 0) {
+      d.setUTCDate(d.getUTCDate() + 1);
+      if (isWeekday(d)) remaining--;
+    }
+    return d;
+  }
   if (rule.cycle === 'weekly') {
     // 시작일 이후 첫 번째 해당 요일(rule.day)을 0번째 회차로 보고, 7*i일씩 더한다
     const anchor = new Date(base);

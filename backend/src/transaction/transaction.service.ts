@@ -175,9 +175,12 @@ export class TransactionService {
       have.add(periodOf(t.date, rule.cycle)); // 템플릿 자신의 회차
 
       const toCreate: Prisma.TransactionCreateManyInput[] = [];
-      for (let i = 1; i <= 120; i++) { // 안전 상한
+      // yearly는 i=0(생성 연도분)부터 — rule.month가 생성월보다 미래면 같은 해에 별도 회차로 누적되어야 함
+      const startI = rule.cycle === 'yearly' ? 0 : 1;
+      for (let i = startI; i <= 120; i++) { // 안전 상한
         const occ = nthOccurrence(t.date, rule, i);
         if (occ > now) break;
+        if (occ < t.date) continue; // 생성일 이전 회차(연간 i=0이 생성월보다 이른 달인 경우)는 만들지 않음
         const period = periodOf(occ, rule.cycle);
         if (have.has(period)) continue;
         have.add(period);

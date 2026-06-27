@@ -762,6 +762,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
             <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
               <Field label="반복 주기" required>
                 <select className="input" value={recurringCycle} onChange={(ev) => setRecurringCycle(ev.target.value as RecurringCycle)}>
+                  <option value="daily">매일</option>
                   <option value="monthly">매월</option>
                   <option value="weekly">매주</option>
                   <option value="yearly">매년</option>
@@ -772,6 +773,10 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
                   <select className="input" value={recurringDay} onChange={(ev) => setRecurringDay(Number(ev.target.value))}>
                     {WEEKDAY_LABEL.map((label, d) => <option key={d} value={d}>{label}요일</option>)}
                   </select>
+                </Field>
+              ) : recurringCycle === 'daily' ? (
+                <Field label="안내">
+                  <div className="text-[0.82rem] text-secondary py-2">평일(월~금)에만 생성됩니다.</div>
                 </Field>
               ) : (
                 <Field label="기준일" required>
@@ -790,7 +795,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
                 </select>
               </Field>
             )}
-            {recurringCycle !== 'weekly' && (
+            {recurringCycle !== 'weekly' && recurringCycle !== 'daily' && (
               <Field label="주말인 경우">
                 <div className="flex gap-5 flex-wrap [&_label]:flex [&_label]:items-center [&_label]:gap-1.25 [&_label]:text-[0.82rem] [&_label]:text-secondary [&_label]:cursor-pointer [&_input]:accent-accent">
                   <label><input type="radio" name="weekendAdjust" value="none" checked={weekendAdjust === 'none'} onChange={() => setWeekendAdjust('none')} />조정 안 함</label>

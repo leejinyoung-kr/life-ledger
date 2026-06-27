@@ -2,10 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { AssetService } from '../asset/asset.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-// 주기별 금액을 월 단위로 환산 (yearly/12, weekly*52/12, monthly 그대로)
+// 주기별 금액을 월 단위로 환산 (yearly/12, weekly*52/12, daily는 평일만(연 261일)*261/12, monthly 그대로)
 function toMonthly(amount: number, cycle: string): number {
   if (cycle === 'yearly') return amount / 12;
   if (cycle === 'weekly') return (amount * 52) / 12;
+  if (cycle === 'daily') return (amount * 261) / 12;
   return amount;
 }
 

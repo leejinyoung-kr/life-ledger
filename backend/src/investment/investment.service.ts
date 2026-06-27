@@ -67,9 +67,12 @@ export class InvestmentService {
       let quantity = inv.quantity;
       const amount = inv.recurring_buy_amount;
 
-      for (let i = 1; i <= 120; i++) { // 안전 상한 — 10년치 월간 회차
+      // yearly는 i=0(매수 시작 연도분)부터 — rule.month가 시작월보다 미래면 같은 해에 별도 회차로 누적되어야 함
+      const startI = rule.cycle === 'yearly' ? 0 : 1;
+      for (let i = startI; i <= 120; i++) { // 안전 상한 — 10년치 월간 회차
         const occ = nthOccurrence(inv.purchase_date, rule, i);
         if (occ > now) break;
+        if (occ < inv.purchase_date) continue; // 매수 시작일 이전 회차(연간 i=0이 시작월보다 이른 달인 경우)는 매수하지 않음
         const period = periodOf(occ, rule.cycle);
         if (lastPeriod && period <= lastPeriod) continue;
 

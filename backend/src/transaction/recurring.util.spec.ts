@@ -1,5 +1,5 @@
 import {
-  periodOf, adjustWeekend, monthlyDate, nthOccurrence, monthRange, toDateStr,
+  periodOf, adjustWeekend, monthlyDate, nthOccurrence, monthRange, toDateStr, isWeekday,
   type RRule,
 } from './recurring.util';
 
@@ -9,8 +9,17 @@ describe('recurring.util', () => {
   describe('periodOf', () => {
     const d = utc(2026, 5, 5); // 2026-06-05
     it('monthly → YYYY-MM', () => expect(periodOf(d, 'monthly')).toBe('2026-06'));
-    it('yearly → YYYY', () => expect(periodOf(d, 'yearly')).toBe('2026'));
+    it('yearly → YYYY-MM (월 포함 — 같은 해라도 월이 다르면 별개 회차)', () => expect(periodOf(d, 'yearly')).toBe('2026-06'));
     it('weekly → YYYY-MM-DD', () => expect(periodOf(d, 'weekly')).toBe('2026-06-05'));
+    it('daily → YYYY-MM-DD', () => expect(periodOf(d, 'daily')).toBe('2026-06-05'));
+  });
+
+  describe('isWeekday', () => {
+    it('토·일은 false', () => {
+      expect(isWeekday(utc(2026, 5, 6))).toBe(false); // 토
+      expect(isWeekday(utc(2026, 5, 7))).toBe(false); // 일
+    });
+    it('월~금은 true', () => expect(isWeekday(utc(2026, 5, 5))).toBe(true)); // 금
   });
 
   describe('adjustWeekend', () => {
@@ -62,6 +71,19 @@ describe('recurring.util', () => {
       // 월(1)요일은 금요일 다음 주 월요일(06-08)부터
       expect(toDateStr(nthOccurrence(base, { cycle: 'weekly', day: 1 }, 0))).toBe('2026-06-08');
       expect(toDateStr(nthOccurrence(base, { cycle: 'weekly', day: 1 }, 1))).toBe('2026-06-15');
+    });
+    it('daily 평일만 카운트 — 금요일 시작 시 다음 평일은 월요일', () => {
+      const base = utc(2026, 5, 5); // 2026-06-05 = 금
+      const daily: RRule = { cycle: 'daily', day: 0 };
+      expect(toDateStr(nthOccurrence(base, daily, 1))).toBe('2026-06-08'); // 토·일 건너뜀 → 월
+      expect(toDateStr(nthOccurrence(base, daily, 2))).toBe('2026-06-09'); // 화
+      expect(toDateStr(nthOccurrence(base, daily, 5))).toBe('2026-06-12'); // 금(다음주)
+    });
+    it('daily 평일 시작 시 그 다음날도 평일이면 그대로 +1일', () => {
+      const base = utc(2026, 5, 1); // 2026-06-01 = 월
+      const daily: RRule = { cycle: 'daily', day: 0 };
+      expect(toDateStr(nthOccurrence(base, daily, 1))).toBe('2026-06-02'); // 화
+      expect(toDateStr(nthOccurrence(base, daily, 4))).toBe('2026-06-05'); // 금
     });
   });
 

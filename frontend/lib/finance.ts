@@ -17,7 +17,7 @@ export interface Category {
 }
 
 export type TransactionType = 'income' | 'expense' | 'transfer';
-export type RecurringCycle = 'monthly' | 'weekly' | 'yearly';
+export type RecurringCycle = 'daily' | 'monthly' | 'weekly' | 'yearly';
 export type WeekendAdjust = 'none' | 'before' | 'after';
 // 자산이동(transfer) 누적 대상 — 거래 저장 시 지정하면 대상 잔액에 자동 반영됨
 export type TransferTarget = 'saving' | 'investment' | 'asset';
@@ -26,7 +26,7 @@ export type TransferDirection = 'increase' | 'decrease';
 
 export interface RecurringRule {
   cycle: RecurringCycle;
-  /** 매월·매년: 1-31일(그 달의 며칠), 매주: 0(일)~6(토) */
+  /** 매월·매년: 1-31일(그 달의 며칠), 매주: 0(일)~6(토), 매일: 미사용 */
   day: number;
   /** 매년에서만 사용(1-12). 미지정 시 시작일의 월을 그대로 따름 */
   month?: number;
@@ -153,6 +153,7 @@ export const TRANSFER_DIRECTION_LABEL: Record<TransferDirection, string> = {
 };
 
 export const CYCLE_LABEL: Record<RecurringCycle, string> = {
+  daily: '매일',
   monthly: '매월',
   weekly: '매주',
   yearly: '매년',
@@ -166,8 +167,9 @@ export const WEEKEND_ADJUST_LABEL: Record<WeekendAdjust, string> = {
 
 export const WEEKDAY_LABEL = ['일', '월', '화', '수', '목', '금', '토'];
 
-// 반복 규칙 요약 — "매월 5일" / "매주 화요일" / "매년 3월 15일"
+// 반복 규칙 요약 — "매일(평일만)" / "매월 5일" / "매주 화요일" / "매년 3월 15일"
 export function recurringRuleSummary(rule: RecurringRule): string {
+  if (rule.cycle === 'daily') return '매일 (평일만)';
   if (rule.cycle === 'weekly') return `매주 ${WEEKDAY_LABEL[rule.day]}요일`;
   if (rule.cycle === 'yearly' && rule.month) return `매년 ${rule.month}월 ${rule.day}일`;
   return `${CYCLE_LABEL[rule.cycle]} ${rule.day}일`;
