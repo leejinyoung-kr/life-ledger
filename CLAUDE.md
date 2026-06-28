@@ -67,7 +67,7 @@ doc-nexus/
 | 상태관리 | **TanStack Query(React Query)** — 서버 데이터 캐싱/무효화 (lib/query·queryKeys) |
 | Backend | NestJS 11, TypeScript |
 | ORM | Prisma |
-| DB | MariaDB (docker-compose, 포트 3308) |
+| DB | MariaDB (docker-compose, 포트 3307) |
 | 인증 | Google OAuth 2.0 + JWT (전역 가드) |
 | Rate-limit | `@nestjs/throttler` (reveal/totp/복호화·vault unlock 엄격 제한) |
 | 암호화 | AES-256-GCM (`CREDENTIAL_SECRET` 키, 보관함 민감필드) / 마스터 잠금은 scrypt 해시 |
@@ -156,7 +156,7 @@ doc-nexus/
 
 ```bash
 pnpm install                           # 전체 의존성 설치
-pnpm run db                            # MariaDB 컨테이너 시작 (포트 3308)
+pnpm run db                            # MariaDB 컨테이너 시작 (포트 3307)
 pnpm run dev                           # frontend + backend 동시 실행
 pnpm run dev:backend                   # backend만 실행
 pnpm run dev:frontend                  # frontend만 실행

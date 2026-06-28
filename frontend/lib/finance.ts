@@ -110,7 +110,8 @@ export interface Investment {
   memo: string | null;
   recurringBuyEnabled: boolean; // 반복매수(주식모으기) 사용 여부
   recurringBuyRule: RecurringRule | null; // 반복 규칙 — 거래의 recurringRule과 동일 구조
-  recurringBuyAmount: number | null; // 회차당 매수금액(원)
+  recurringBuyAmount: number | null; // 회차당 매수금액(국내: 원, 해외: 달러) — recurringBuyQuantity와 동시 사용 불가
+  recurringBuyQuantity: number | null; // 회차당 매수수량(주) — recurringBuyAmount와 동시 사용 불가
   updatedAt: string; // 평가금액 최근 수정 시각(ISO) — 시세 API 연동 전까지 수동 입력 신뢰도 표시용
 }
 

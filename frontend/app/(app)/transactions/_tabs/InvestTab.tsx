@@ -41,10 +41,16 @@ interface PriceLookupResult {
   evaluatedValue: number;
 }
 
-// 반복매수 요약 — "매월 5일 · ₩20,000" 형태. 비활성/규칙 없으면 null
+// 반복매수 요약 — "매월 5일 · ₩20,000" 또는 "매월 5일 · 1주" 형태. 비활성/규칙 없으면 null
 function recurringBuyLabel(row: Investment): string | null {
   if (!row.recurringBuyEnabled || !row.recurringBuyRule) return null;
-  return `${recurringRuleSummary(row.recurringBuyRule)} · ${won(row.recurringBuyAmount ?? 0)}`;
+  const isForeign = row.type === 'foreign_stock' || row.type === 'foreign_etf';
+  const amountLabel = row.recurringBuyQuantity
+    ? `${row.recurringBuyQuantity}주`
+    : isForeign
+      ? `$${(row.recurringBuyAmount ?? 0).toLocaleString('en-US')}`
+      : won(row.recurringBuyAmount ?? 0);
+  return `${recurringRuleSummary(row.recurringBuyRule)} · ${amountLabel}`;
 }
 
 // 평가금액 최근 갱신 경과일 — 30일 이상이면 신뢰도 낮음을 amber로 표시
@@ -342,13 +348,14 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
 function TradeModal({ state, accountMap, onClose, onSaved }: { state: TradeState; accountMap: Map<number, InvestmentAccount>; onClose: () => void; onSaved: () => void }) {
   const t = state.target;
   const account = t ? accountMap.get(t.accountId) : undefined;
+  const isForeign = t?.type === 'foreign_stock' || t?.type === 'foreign_etf';
   const [quantity, setQuantity] = useState('');
   const [price, setPrice] = useState('');
   const [priceLoading, setPriceLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
   const isBuy = state.mode === 'buy';
-  const cashLimit = account?.cashBalance ?? 0;
+  const cashLimit = isForeign ? (account?.cashBalanceUsd ?? 0) : (account?.cashBalance ?? 0);
 
   useEffect(() => {
     if (!state.open || !t) return;
@@ -358,8 +365,8 @@ function TradeModal({ state, accountMap, onClose, onSaved }: { state: TradeState
     setPrice('');
     if (t.symbol) {
       setPriceLoading(true);
-      api.get<{ krwPrice: number }>(`/investments/${t.id}/quote`)
-        .then((r) => setPrice(String(Math.round(r.krwPrice))))
+      api.get<{ price: number; currency: 'KRW' | 'USD'; krwPrice: number }>(`/investments/${t.id}/quote`)
+        .then((r) => setPrice(String(r.currency === 'USD' ? r.price : Math.round(r.krwPrice))))
         .catch((err) => notify.error((err as Error).message || '시세 조회에 실패했습니다.'))
         .finally(() => setPriceLoading(false));
     }
@@ -375,7 +382,7 @@ function TradeModal({ state, accountMap, onClose, onSaved }: { state: TradeState
       err.quantity = '보유수량을 초과했습니다.';
     }
     if (!price || Number(price) <= 0) err.price = '단가를 입력하세요.';
-    if (isBuy && amount > cashLimit) err.quantity = '예수금을 초과했습니다.';
+    if (isBuy && amount > cashLimit) err.quantity = isForeign ? '달러 예수금을 초과했습니다.' : '예수금을 초과했습니다.';
     setErrors(err);
     return !Object.keys(err).length;
   }
@@ -399,12 +406,13 @@ function TradeModal({ state, accountMap, onClose, onSaved }: { state: TradeState
       <Field label={isBuy ? '수량' : `수량 — 보유 ${t?.quantity ?? 0}개 이내`} required error={errors.quantity}>
         <input type="number" className={`input${errors.quantity ? ' is-invalid' : ''}`} placeholder="0" value={quantity} onChange={(ev) => { setQuantity(ev.target.value); clearError('quantity'); }} />
       </Field>
-      <Field label={t?.symbol ? '단가 (원) — 시세조회로 자동입력, 수정 가능' : '단가 (원)'} required error={errors.price}>
+      <Field label={t?.symbol ? `단가 (${isForeign ? '$' : '원'}) — 시세조회로 자동입력, 수정 가능` : `단가 (${isForeign ? '$' : '원'})`} required error={errors.price}>
         <input type="number" className={`input${errors.price ? ' is-invalid' : ''}`} placeholder={priceLoading ? '조회 중...' : '0'} value={price} onChange={(ev) => { setPrice(ev.target.value); clearError('price'); }} />
       </Field>
       {amount > 0 && (
         <div className="text-[0.82rem] text-muted">
-          {isBuy ? '필요 금액' : '환입 금액'}: {won(amount)} {isBuy && `(계좌 예수금 ${won(cashLimit)} 이내)`}
+          {isBuy ? '필요 금액' : '환입 금액'}: {isForeign ? `$${amount.toLocaleString('en-US')}` : won(amount)}
+          {isBuy && ` (계좌 예수금 ${isForeign ? `$${cashLimit.toLocaleString('en-US')}` : won(cashLimit)} 이내)`}
         </div>
       )}
     </Modal>
@@ -478,9 +486,12 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
   const [recurringDay, setRecurringDay] = useState(1);
   const [recurringMonth, setRecurringMonth] = useState(1);
   const [weekendAdjust, setWeekendAdjust] = useState<WeekendAdjust>('none');
+  const [recurringMode, setRecurringMode] = useState<'amount' | 'quantity'>('amount');
   const [recurringAmount, setRecurringAmount] = useState('');
+  const [recurringQuantity, setRecurringQuantity] = useState('');
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, setError, clearError, reset } = useFormErrors();
+  const isForeign = type === 'foreign_stock' || type === 'foreign_etf';
 
   useEffect(() => {
     if (!state.open) return;
@@ -503,7 +514,9 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
     setRecurringDay(src?.recurringBuyRule?.day ?? 1);
     setRecurringMonth(src?.recurringBuyRule?.month ?? 1);
     setWeekendAdjust((src?.recurringBuyRule?.weekendAdjust as WeekendAdjust) ?? 'none');
+    setRecurringMode(src?.recurringBuyQuantity ? 'quantity' : 'amount');
     setRecurringAmount(src?.recurringBuyAmount ? String(src.recurringBuyAmount) : '');
+    setRecurringQuantity(src?.recurringBuyQuantity ? String(src.recurringBuyQuantity) : '');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
   }, [state.open, e, state.prefill]);
 
@@ -534,7 +547,11 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
     if (recurringBuyEnabled) {
       if (!symbol.trim()) err.symbol = '반복매수에는 종목코드/티커가 필요합니다.';
       if (!purchaseDate) err.purchaseDate = '반복매수에는 최초 매수일이 필요합니다.';
-      if (!recurringAmount || Number(recurringAmount) <= 0) err.recurringAmount = '회차당 매수금액을 입력하세요.';
+      if (recurringMode === 'amount') {
+        if (!recurringAmount || Number(recurringAmount) <= 0) err.recurringAmount = '회차당 매수금액을 입력하세요.';
+      } else if (!recurringQuantity || Number(recurringQuantity) <= 0) {
+        err.recurringQuantity = '회차당 매수수량을 입력하세요.';
+      }
     }
     setErrors(err);
     return !Object.keys(err).length;
@@ -551,7 +568,8 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
         recurringBuyRule: recurringBuyEnabled
           ? { cycle: recurringCycle, day: recurringDay, month: recurringCycle === 'yearly' ? recurringMonth : undefined, weekendAdjust }
           : undefined,
-        recurringBuyAmount: recurringBuyEnabled && recurringAmount ? Number(recurringAmount) : undefined,
+        recurringBuyAmount: recurringBuyEnabled && recurringMode === 'amount' && recurringAmount ? Number(recurringAmount) : undefined,
+        recurringBuyQuantity: recurringBuyEnabled && recurringMode === 'quantity' && recurringQuantity ? Number(recurringQuantity) : undefined,
       };
       if (state.mode === 'edit' && e) await api.put(`/investments/${e.id}`, payload);
       else await api.post('/investments', payload);
@@ -590,10 +608,10 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
         </Field>
       </div>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-        <Field label="투자원금 (원)" required error={errors.principal}>
+        <Field label={`투자원금 (${isForeign ? '달러 $' : '원'})`} required error={errors.principal}>
           <input type="number" className={`input${errors.principal ? ' is-invalid' : ''}`} placeholder="0" value={principal} onChange={(ev) => { setPrincipal(ev.target.value); clearError('principal'); }} />
         </Field>
-        <Field label="현재 평가금액 (원)" required error={errors.currentValue}>
+        <Field label={`현재 평가금액 (${isForeign ? '달러 $' : '원'})`} required error={errors.currentValue}>
           <input type="number" className={`input${errors.currentValue ? ' is-invalid' : ''}`} placeholder="매수 당일엔 투자원금과 동일" value={currentValue} onChange={(ev) => { setCurrentValue(ev.target.value); clearError('currentValue'); }} />
         </Field>
       </div>
@@ -658,9 +676,21 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
               </select>
             </Field>
           )}
-          <Field label="회차당 매수금액 (원)" required error={errors.recurringAmount}>
-            <input type="number" className={`input${errors.recurringAmount ? ' is-invalid' : ''}`} placeholder="0" value={recurringAmount} onChange={(ev) => { setRecurringAmount(ev.target.value); clearError('recurringAmount'); }} />
+          <Field label="회차당 매수 기준" required>
+            <select className="input" value={recurringMode} onChange={(ev) => setRecurringMode(ev.target.value as 'amount' | 'quantity')}>
+              <option value="amount">금액</option>
+              <option value="quantity">수량(n주)</option>
+            </select>
           </Field>
+          {recurringMode === 'amount' ? (
+            <Field label={`회차당 매수금액 (${isForeign ? '달러 $' : '원'})`} required error={errors.recurringAmount}>
+              <input type="number" className={`input${errors.recurringAmount ? ' is-invalid' : ''}`} placeholder="0" value={recurringAmount} onChange={(ev) => { setRecurringAmount(ev.target.value); clearError('recurringAmount'); }} />
+            </Field>
+          ) : (
+            <Field label="회차당 매수수량 (주)" required error={errors.recurringQuantity}>
+              <input type="number" className={`input${errors.recurringQuantity ? ' is-invalid' : ''}`} placeholder="0" value={recurringQuantity} onChange={(ev) => { setRecurringQuantity(ev.target.value); clearError('recurringQuantity'); }} />
+            </Field>
+          )}
           {recurringCycle !== 'weekly' && recurringCycle !== 'daily' && (
             <Field label="주말인 경우">
               <div className="flex gap-5 flex-wrap [&_label]:flex [&_label]:items-center [&_label]:gap-1.25 [&_label]:text-[0.82rem] [&_label]:text-secondary [&_label]:cursor-pointer [&_input]:accent-accent">

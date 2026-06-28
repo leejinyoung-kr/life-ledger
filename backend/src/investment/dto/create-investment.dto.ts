@@ -60,8 +60,13 @@ export class CreateInvestmentDto {
   @IsOptional()
   recurringBuyRule?: Record<string, unknown>;
 
-  // 회차당 매수금액(원)
+  // 회차당 매수금액(국내: 원, 해외: 달러) — recurringBuyQuantity와 동시 사용 불가
   @IsOptional()
   @IsNumber()
   recurringBuyAmount?: number;
+
+  // 회차당 매수수량(주) — recurringBuyAmount와 동시 사용 불가, 둘 중 하나만 입력
+  @IsOptional()
+  @IsNumber()
+  recurringBuyQuantity?: number;
 }

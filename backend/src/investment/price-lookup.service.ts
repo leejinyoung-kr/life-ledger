@@ -8,7 +8,7 @@ export interface PriceLookupResult {
   name: string | null;
 }
 
-const FOREIGN_TYPES: InvestmentType[] = ['foreign_stock', 'foreign_etf'];
+export const FOREIGN_TYPES: InvestmentType[] = ['foreign_stock', 'foreign_etf'];
 
 const NAVER_DOMESTIC_STOCK_API =
   'https://polling.finance.naver.com/api/realtime/domestic/stock';

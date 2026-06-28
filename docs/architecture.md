@@ -26,7 +26,7 @@
 |---------|------|
 | Frontend | 3000 |
 | Backend | 8000 |
-| DB (docker) | 3308 |
+| DB (docker) | 3307 |
 | Prisma Studio | 5555 |
 
 ## 백엔드 모듈
@@ -72,7 +72,8 @@
 | 매일 04:00 | db-backup-cron.service.ts | `mariadb-dump` → gzip 압축 후 `backups/`에 저장, 30일 경과 백업 자동 삭제 |
 | 매일 09:00 | notification-cron.service.ts | 사용자별 알림 생성(예적금 만기 D-30, 구독결제/체험종료 D-3, 신원만료 D-60, 할일마감 D-1, 비번회전 90일) + 웹푸시 발송. 만기/마감 알림은 설정(`notifMaturity`/`notifDeadline`)으로 개별 토글 가능 |
 | 매일 09:00 | security-snapshot-cron.service.ts | 사용자별 보안 점수 일별 스냅샷 적재 |
-| 매일 09:00 | recurring-cron.service.ts | 반복거래/반복매수 회차 일괄 생성(`transaction.service.ts`/`investment.service.ts`의 `materializeRecurring*` 호출). 전체 사용자를 순회하며, 사용자별 실패는 로그만 남기고 계속 진행. 반복매수는 종목별로 외부 시세조회 API(네이버/야후)를 호출하므로 3종목씩 묶어 묶음 사이 3초 대기 |
+| 매일 09:00 | recurring-cron.service.ts (`run`) | 반복거래/반복매수(국내) 회차 일괄 생성(`transaction.service.ts`/`investment.service.ts`의 `materializeRecurring*` 호출). 전체 사용자를 순회하며, 사용자별 실패는 로그만 남기고 계속 진행. 반복매수는 종목별로 외부 시세조회 API(네이버/야후)를 호출하므로 3종목씩 묶어 묶음 사이 3초 대기 |
+| 매일 23:00 | recurring-cron.service.ts (`runForeign`) | 반복매수(해외 — foreign_stock/foreign_etf) 회차 일괄 생성. 미국 장이 열린 직후 실시간 가격으로 매수하도록 국내 배치와 시간을 분리 |
 | 매월 1일 09:00 | ai-report-cron.service.ts | 설정에서 `notifMonthly`를 켠 사용자의 전월(`last_month`) AI 리포트 자동 생성. OpenAI 키 미설정/분석 내역 없음 등은 사용자별로 조용히 스킵 후 다음 달 재시도 |
 
 ## 프론트엔드 페이지

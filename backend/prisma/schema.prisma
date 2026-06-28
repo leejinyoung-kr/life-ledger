@@ -182,7 +182,8 @@ model Investment {
   memo          String?        @db.VarChar(300)
   recurring_buy_enabled     Boolean  @default(false) /// 반복매수 사용 여부
   recurring_buy_rule        Json?    /// 반복 규칙
-  recurring_buy_amount      Decimal? @db.Decimal(15, 2) /// 회차당 매수금액
+  recurring_buy_amount      Decimal? @db.Decimal(15, 2) /// 회차당 매수금액(국내: 원, 해외: 달러) — recurring_buy_quantity와 동시 사용 불가
+  recurring_buy_quantity    Decimal? @db.Decimal(18, 6) /// 회차당 매수수량(주) — recurring_buy_amount와 동시 사용 불가, 둘 중 하나만 사용
   recurring_buy_last_period String? @db.VarChar(10) /// 마지막 처리 회차
   deleted_at    DateTime?
   created_at    DateTime       @default(now())
