@@ -3,7 +3,7 @@
 ## 이 프로젝트가 무엇인가
 
 개인 문서·자산·계정 통합 보안 관리 플랫폼.
-민감한 자격증명(계정, ENV, 신원 문서)을 AES-256-GCM 암호화로 저장하고, Google OAuth로만 접근한다.
+민감한 자격증명(계정, ENV, 신원 문서)을 AES-256-GCM 암호화로 저장하고, Google OAuth 또는 이메일 인증코드(`ALLOWED_EMAILS` 화이트리스트)로만 접근한다.
 전 엔드포인트는 전역 JWT 가드로 보호되며, 로그인(`@Public()`)만 예외다.
 
 기능 목록:
@@ -51,6 +51,10 @@ doc-nexus/
 │       ├── export/        # 데이터 내보내기 (계정 JSON·전체 ZIP)
 │       ├── import/        # 데이터 가져오기 (계정 JSON 복원)
 │       ├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수 스냅샷·DB 백업)
+│       ├── ai/            # AI 리포트 / 자연어 거래 파싱 (사용자별 OpenAI 키)
+│       ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
+│       ├── push/          # 웹 푸시 구독/발송 (VAPID)
+│       ├── convert/       # 이미지↔PDF 변환
 │       ├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
 │       └── prisma/        # PrismaService / PrismaModule
 ├── docs/              # 설계 문서
@@ -113,8 +117,9 @@ doc-nexus/
 | PushSubscription | user_id, endpoint, p256dh, auth (웹 푸시 구독) | 구현 완료 |
 | AiUsageLog | user_id, model, source, prompt/completion/total_tokens, cost_usd (OpenAI 호출별 토큰·비용) | 구현 완료 |
 | RefreshToken | user_id, session_id, jti, expires_at, revoked_at (refresh 토큰 화이트리스트, rotation/로그아웃/세션revoke 시 폐기) | 구현 완료 |
+| EmailLoginCode | email, code_hash(SHA-256), expires_at, consumed_at, attempts (이메일 인증코드 로그인, 화이트리스트 대조) | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 29개 테이블
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 31개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---

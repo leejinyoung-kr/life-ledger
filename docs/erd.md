@@ -3,7 +3,7 @@
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
 > 마이그레이션: `20260610000000_init_consolidated`(전 도메인 통합) + `20260610010000_phase17a_security_core` · `20260610020000_phase17b_dataflow` · `20260610030000_phase17c_enhance` · `20260610040000_phase17d_extras`
 
-## 테이블 목록 (30)
+## 테이블 목록 (31)
 
 | 테이블 | 설명 |
 | --- | --- |
@@ -37,6 +37,7 @@
 | PushSubscription | 웹 푸시 구독 (endpoint·p256dh·auth) |
 | AiUsageLog | AI 사용량 로그 (OpenAI 호출별 모델·토큰·비용 — 잔액 API 부재 대체) |
 | RefreshToken | 갱신 토큰 화이트리스트 (jti, rotation/로그아웃/세션revoke 시 폐기) |
+| EmailLoginCode | 이메일 인증코드 로그인 (code_hash, expires_at, attempts) |
 
 ## 주요 관계
 

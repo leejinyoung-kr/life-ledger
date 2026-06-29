@@ -39,6 +39,9 @@ GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_CALLBACK_URL=http://localhost:8000/api/v1/auth/google/callback
 
+# 로그인 허용 이메일(콤마 구분) — 비우면 모든 구글 계정 허용
+ALLOWED_EMAILS=
+
 # JWT
 JWT_SECRET=your_super_secret_jwt_key_change_this
 
@@ -52,6 +55,24 @@ B2_BUCKET_REGION=
 B2_BUCKET_NAME=
 B2_KEY_ID=
 B2_APPLICATION_KEY=
+
+# AI (OpenAI)
+OPENAI_API_KEY=
+
+# 웹 푸시 (VAPID) — 비우면 푸시 발송 비활성
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:your-real-email@example.com
+
+# SMTP 메일 발송 — 비우면 비활성(이메일 코드 로그인 등에 사용)
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=DocNexus <no-reply@docnexus.local>
+
+# 리버스 프록시 뒤에서 운영 시 — x-forwarded-for 신뢰 홉 수
+TRUST_PROXY=
 
 # App
 FRONTEND_URL=http://localhost:3000
@@ -88,6 +109,10 @@ src/
 ├── import/        # 데이터 가져오기 (계정 JSON 복원)
 ├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수)
 ├── ai/            # AI 리포트 / 자연어 거래 파싱 (사용자별 OpenAI 키)
+├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
+├── push/          # 웹 푸시 구독/발송 (VAPID)
+├── convert/       # 이미지↔PDF 변환
+├── health/        # 헬스체크
 ├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
 └── prisma/        # PrismaService / PrismaModule
 ```

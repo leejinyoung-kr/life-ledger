@@ -12,6 +12,8 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /auth/google/callback | OAuth 콜백, JWT 발급 후 프론트엔드로 리다이렉트 (`@Public`) |
 | GET | /auth/me | 현재 로그인 사용자 정보 (name/email/picture) |
 | DELETE | /auth/me | 계정 영구 삭제 (전 도메인 데이터 + user 삭제) |
+| POST | /auth/email/request | 이메일 인증코드 요청 (`@Public`, `ALLOWED_EMAILS` 화이트리스트 대조, SMTP 발송) |
+| POST | /auth/email/verify | 이메일 인증코드 검증 → JWT 발급 (`@Public`) |
 | POST | /auth/refresh | refresh 쿠키로 새 access 발급 (`@Public`) |
 | POST | /auth/logout | refresh 쿠키 제거 (`@Public`) |
 
@@ -301,3 +303,21 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /ai/parse-transaction | 자연어/영수증 OCR 텍스트 → 가계부 거래 초안 파싱 (사용자별 OpenAI 키 사용) |
 | GET | /ai/reports | 저장된 AI 리포트 목록 조회 |
 | POST | /ai/reports | 기간별 가계부 분석 → AI 리포트 생성·저장 |
+
+## 웹 푸시
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| GET | /push/public-key | VAPID 공개키 조회 |
+| POST | /push/subscribe | 구독 등록 (endpoint·p256dh·auth) |
+| POST | /push/unsubscribe | 구독 해제 |
+| POST | /push/test | 테스트 푸시 발송 |
+
+> VAPID 키 미설정 시 푸시 발송은 비활성(앱 내 알림은 정상 동작).
+
+## 파일 변환
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| POST | /convert/image-to-pdf | 이미지 → PDF 변환 |
+| POST | /convert/pdf-to-image | PDF → 이미지 변환 |

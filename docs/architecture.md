@@ -12,7 +12,7 @@
 | 상태관리 | TanStack Query (React Query) — lib/query·queryKeys | 전 페이지 전환 완료 |
 | Backend | NestJS 11, TypeScript | 28개 모듈 구현 완료 |
 | ORM | Prisma | 구현 완료 |
-| DB | MariaDB 11 | 29개 테이블 구현 완료 |
+| DB | MariaDB 11 | 31개 테이블 구현 완료 |
 | Auth | Google OAuth 2.0 + JWT (전역 가드 + 새 기기 감지) | 구현 완료 |
 | Rate-limit | @nestjs/throttler | 구현 완료 |
 | 암호화 | AES-256-GCM(`CREDENTIAL_SECRET`) / 마스터잠금 scrypt | 구현 완료 |
@@ -45,7 +45,6 @@
 | notification | /notifications | 구현 완료 |
 | task | /tasks | 구현 완료 |
 | goal | /goals | 구현 완료 |
-| budget | /budget | 구현 완료 |
 | security | /security (보안센터 + 마스터잠금 Vault + 유출검사·강도통계) | 구현 완료 |
 | access-log | (전역, /security/access-logs로 노출) | 구현 완료 |
 | settings | /settings | 구현 완료 |
@@ -61,6 +60,10 @@
 | import | /import | 구현 완료 |
 | maintenance | (크론 — 알림·휴지통·보안점수 스냅샷·DB 백업·AI 리포트 자동생성) | 구현 완료 |
 | ai | /ai (자연어 거래 파싱·AI 리포트, 사용자별 OpenAI 키) | 구현 완료 |
+| mail | (SMTP 메일 발송 — 이메일 코드 로그인 등, 미설정 시 no-op) | 구현 완료 |
+| push | /push (웹 푸시 구독/발송 — VAPID) | 구현 완료 |
+| convert | /convert (이미지↔PDF 변환) | 구현 완료 |
+| health | /health (헬스체크) | 구현 완료 |
 
 ## 크론 스케줄러
 
