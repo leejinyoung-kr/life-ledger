@@ -297,6 +297,34 @@ describe('InvestmentService', () => {
       jest.useRealTimers();
     });
 
+    it('weekly: 설정일 이후 첫 번째 해당 요일 회차를 매수함', async () => {
+      // 화요일(6/30)에 설정, 매주 월요일 → 다음 월요일(7/6)이 첫 회차
+      jest.useFakeTimers().setSystemTime(new Date('2026-07-06T09:00:00Z'));
+      seedRecurring({
+        recurring_buy_rule: { cycle: 'weekly', day: 1 }, // 월요일
+        purchase_date: new Date('2026-06-30T00:00:00Z'),
+        recurring_buy_last_period: '2026-06-30', // 설정 시점으로 초기화
+      });
+      await svc().materializeRecurringBuys(1);
+      expect(rows[0].principal.toNumber()).toBe(10000);
+      expect(accounts[0].cash_balance.toNumber()).toBe(1_000_000 - 10000);
+      jest.useRealTimers();
+    });
+
+    it('daily: purchase_date가 설정일보다 미래이면 해당 날짜 크론에서 매수함', async () => {
+      // 6/28에 설정, purchase_date=6/29, 6/29 23:00 크론 실행 → 첫 회차 매수
+      jest.useFakeTimers().setSystemTime(new Date('2026-06-29T23:00:00Z'));
+      seedRecurring({
+        recurring_buy_rule: { cycle: 'daily', day: 0 },
+        purchase_date: new Date('2026-06-29T00:00:00Z'),
+        recurring_buy_last_period: '2026-06-28', // 설정일(전날)로 초기화
+      });
+      await svc().materializeRecurringBuys(1);
+      expect(rows[0].principal.toNumber()).toBe(10000);
+      expect(accounts[0].cash_balance.toNumber()).toBe(1_000_000 - 10000);
+      jest.useRealTimers();
+    });
+
     it('종목이 배치 크기(3)를 넘으면 묶음 사이에 대기하며, 모든 종목이 처리됨', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-02-15T00:00:00Z'));
       const sleepSpy = jest.spyOn(global, 'setTimeout').mockImplementation((fn: any) => { fn(); return 0 as any; });

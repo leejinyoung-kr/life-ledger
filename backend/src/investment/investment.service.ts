@@ -121,8 +121,9 @@ export class InvestmentService {
     let lastPeriod = inv.recurring_buy_last_period;
     let quantity = inv.quantity;
 
-    // yearly는 i=0(매수 시작 연도분)부터 — rule.month가 시작월보다 미래면 같은 해에 별도 회차로 누적되어야 함
-    const startI = rule.cycle === 'yearly' ? 0 : 1;
+    // monthly: i=0은 lastPeriod(현재 달)에 막히므로 1부터 시작해 루프 한 번 줄임
+    // 나머지 주기(weekly/daily/yearly)는 i=0이 첫 유효 회차 — lastPeriod 중복 체크로 소급 방지
+    const startI = rule.cycle === 'monthly' ? 1 : 0;
     for (let i = startI; i <= 120; i++) { // 안전 상한 — 10년치 월간 회차
       const occ = nthOccurrence(inv.purchase_date, rule, i);
       if (occ > now) break;
