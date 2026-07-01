@@ -70,6 +70,7 @@ Base URL: `http://localhost:8000/api/v1`
 | --- | --- | --- |
 | GET | /investments?accountId=&type=&q= | 투자 목록 (수익/수익률 파생값 포함, 계좌/유형/종목명 필터) |
 | GET | /investments/summary | 요약 (총 평가금액/원금/수익/수익률) |
+| GET | /investments/exchange-rate | 현재 USD/KRW 환율 (해외투자 USD 표기 토글용) |
 | POST | /investments | 투자 추가 (`accountId` 필수 — 소속 계좌) |
 | PUT | /investments/:id | 투자 수정 |
 | POST | /investments/:id/buy | 매수 — 소속 계좌 예수금 → 투자원금·평가금액 전환 |

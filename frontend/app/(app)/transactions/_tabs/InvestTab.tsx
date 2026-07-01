@@ -16,7 +16,7 @@ import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { qk } from '@/lib/queryKeys';
 import {
-  INVEST_TYPE_LABEL, won, recurringRuleSummary, WEEKDAY_LABEL,
+  INVEST_TYPE_LABEL, won, usd, recurringRuleSummary, WEEKDAY_LABEL,
   type Category, type Investment, type InvestmentAccount, type InvestmentSummary, type InvestmentType,
   type RecurringCycle, type WeekendAdjust,
 } from '@/lib/finance';
@@ -68,6 +68,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   const [priceLookup, setPriceLookup] = useState<PriceState>({ open: false });
   const [accountModal, setAccountModal] = useState<AccountModalState>({ open: false, mode: 'add' });
   const [exchangeModal, setExchangeModal] = useState<ExchangeModalState>({ open: false });
+  const [currency, setCurrency] = useState<'USD' | 'KRW'>('USD');
   const invalidate = useInvalidate();
 
   const [pendingName, setPendingName] = useState('');
@@ -100,6 +101,13 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   const rows = useMemo(() => rowsQuery.data?.items ?? [], [rowsQuery.data]);
   const total = rowsQuery.data?.total ?? 0;
   const summary = summaryQuery.data ?? null;
+  const hasForeign = rows.some((r) => r.type === 'foreign_stock' || r.type === 'foreign_etf');
+  const exchangeRateQuery = useApiQuery<{ rate: number }>(
+    ['investments', 'exchange-rate'],
+    '/investments/exchange-rate',
+    { enabled: hasForeign },
+  );
+  const exchangeRate = exchangeRateQuery.data?.rate ?? null;
   // 자산이동/매수/매도가 계좌 예수금도 바꿀 수 있어 계좌 쿼리도 함께 무효화
   const reload = () => invalidate(qk.investments.all, qk.investmentAccounts.all);
 
@@ -142,6 +150,29 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
     } catch (err) {
       notify.error((err as Error).message || '삭제에 실패했습니다.');
     }
+  }
+
+  // 해외종목 통화 표기 헬퍼 — currency=USD이고 환율이 있을 때만 달러로 변환
+  function fmtPrincipal(row: Investment) {
+    if ((row.type === 'foreign_stock' || row.type === 'foreign_etf') && currency === 'USD' && row.principalUsd !== null) {
+      return usd(row.principalUsd);
+    }
+    return won(row.principal);
+  }
+  function fmtCurrentValue(row: Investment) {
+    if ((row.type === 'foreign_stock' || row.type === 'foreign_etf') && currency === 'USD' && exchangeRate && row.principalUsd !== null) {
+      return usd(row.currentValue / exchangeRate);
+    }
+    return won(row.currentValue);
+  }
+  function fmtProfit(row: Investment): { text: string; up: boolean } {
+    if ((row.type === 'foreign_stock' || row.type === 'foreign_etf') && currency === 'USD' && exchangeRate && row.principalUsd !== null) {
+      const cvUsd = row.currentValue / exchangeRate;
+      const profitUsd = cvUsd - row.principalUsd;
+      return { text: `${profitUsd >= 0 ? '+' : '-'}${usd(Math.abs(profitUsd))}`, up: profitUsd >= 0 };
+    }
+    const up = row.profit >= 0;
+    return { text: `${up ? '+' : '-'}${won(Math.abs(row.profit))}`, up };
   }
 
   const profitUp = (summary?.totalProfit ?? 0) >= 0;
@@ -210,6 +241,18 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
       <div className="flex items-center justify-between mb-2">
         <span className="text-[0.78rem] text-secondary">총 {total}건</span>
         <div className="flex items-center gap-2">
+          {hasForeign && (
+            <div className="inline-flex rounded-md border border-border divide-x divide-border overflow-hidden text-[0.76rem] font-medium">
+              <button
+                className={`px-2.5 py-1 transition-colors ${currency === 'USD' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`}
+                onClick={() => setCurrency('USD')}
+              >$ USD</button>
+              <button
+                className={`px-2.5 py-1 transition-colors ${currency === 'KRW' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`}
+                onClick={() => setCurrency('KRW')}
+              >₩ KRW</button>
+            </div>
+          )}
           <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
@@ -244,19 +287,19 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
             <tbody>
               {paged.length === 0 && <tr><td colSpan={12} className="td-center td-muted">투자 항목이 없습니다.</td></tr>}
               {paged.map((row) => {
-                const up = row.profit >= 0;
                 const updated = daysAgoLabel(row.updatedAt);
                 const recurring = recurringBuyLabel(row);
+                const profit = fmtProfit(row);
                 return (
                   <tr key={row.id}>
                     <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" /></td>
                     <td className="td-center td-muted">{accountMap.get(row.accountId)?.name ?? '-'}</td>
                     <td className="td-center"><span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span></td>
                     <td className="td-strong">{recurring && <span className="cursor-default" title={`반복매수 · ${recurring}`}>🔁 </span>}{row.name}</td>
-                    <td className="td-mono td-right">{won(row.principal)}</td>
-                    <td className="td-mono td-right">{won(row.currentValue)}</td>
-                    <td className={`td-right amount-${up ? 'income' : 'expense'}`}>{up ? '+' : '-'}{won(row.profit)}</td>
-                    <td className="td-center"><span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span></td>
+                    <td className="td-mono td-right">{fmtPrincipal(row)}</td>
+                    <td className="td-mono td-right">{fmtCurrentValue(row)}</td>
+                    <td className={`td-right amount-${profit.up ? 'income' : 'expense'}`}>{profit.text}</td>
+                    <td className="td-center"><span className={`return-pill ${profit.up ? 'up' : 'down'}`}>{profit.up ? '+' : ''}{row.profitRate}%</span></td>
                     <td className={`td-center ${updated.stale ? 'text-amber' : 'text-muted'}`}>{updated.label}</td>
                     <td className="td-center td-muted">{row.memo ?? '-'}</td>
                     <td className="td-center">
@@ -276,24 +319,24 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
         <div className={TXCARDS}>
           {paged.length === 0 && <div className={TXCARD_EMPTY}>투자 항목이 없습니다.</div>}
           {paged.map((row) => {
-            const up = row.profit >= 0;
             const updated = daysAgoLabel(row.updatedAt);
             const recurring = recurringBuyLabel(row);
+            const profit = fmtProfit(row);
             return (
               <div className={TXCARD} key={row.id}>
                 <div className="flex items-center gap-2 mb-1.5">
                   <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" />
                   <div className="flex-1 flex justify-between items-baseline gap-2.5">
                     <span className={TXCARD_TITLE}>{recurring && '🔁 '}{row.name}</span>
-                    <span className={TXCARD_AMT}>{won(row.currentValue)}</span>
+                    <span className={TXCARD_AMT}>{fmtCurrentValue(row)}</span>
                   </div>
                 </div>
                 <div className={TXCARD_SUB}>
                   <span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span>
                   <span>{accountMap.get(row.accountId)?.name ?? '-'}</span>
-                  <span>원금 {won(row.principal)}</span>
-                  <span className={up ? 'text-accent' : 'text-danger'}>{up ? '+' : '-'}{won(row.profit)}</span>
-                  <span className={`return-pill ${up ? 'up' : 'down'}`}>{up ? '+' : ''}{row.profitRate}%</span>
+                  <span>원금 {fmtPrincipal(row)}</span>
+                  <span className={profit.up ? 'text-accent' : 'text-danger'}>{profit.text}</span>
+                  <span className={`return-pill ${profit.up ? 'up' : 'down'}`}>{profit.up ? '+' : ''}{row.profitRate}%</span>
                   <span className={updated.stale ? 'text-amber' : ''}>{updated.label}</span>
                   {recurring && <span>· 반복매수 {recurring}</span>}
                   {row.memo && <span>· {row.memo}</span>}

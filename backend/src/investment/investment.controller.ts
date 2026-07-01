@@ -33,6 +33,12 @@ export class InvestmentController {
     return this.service.summary(user.id);
   }
 
+  // USD/KRW 현재 환율 — 해외투자 USD 표기 토글용
+  @Get('exchange-rate')
+  exchangeRate() {
+    return this.service.getExchangeRate();
+  }
+
   // 투자 목록 (유형/종목명 필터 + 페이지네이션)
   @Get()
   findAll(@CurrentUser() user: AuthUser, @Query() query: QueryInvestmentDto) {

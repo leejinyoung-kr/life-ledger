@@ -103,6 +103,7 @@ export interface Investment {
   symbol: string | null; // 시세조회용 종목코드(국내) 또는 티커(해외)
   quantity: number | null; // 보유수량 — 시세조회 시 단가와 곱해 평가금액 계산
   principal: number;
+  principalUsd: number | null; // 해외종목 달러 원금 — 국내종목은 null
   currentValue: number;
   profit: number;
   profitRate: number;
@@ -199,6 +200,11 @@ export const INVEST_TYPE_LABEL: Record<InvestmentType, string> = {
 // 원화 표시 (₩1,234,000)
 export function won(n: number): string {
   return `₩${Math.abs(n).toLocaleString('ko-KR')}`;
+}
+
+// 달러 표시 ($1,234.56)
+export function usd(n: number): string {
+  return `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // 부호 포함 원화 (수입 +, 지출/저축이동 -)

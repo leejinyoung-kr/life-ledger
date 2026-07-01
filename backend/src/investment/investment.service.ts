@@ -37,6 +37,7 @@ export class InvestmentService {
       symbol: v.symbol,
       quantity: v.quantity ? v.quantity.toNumber() : null,
       principal,
+      principalUsd: v.principal_usd ? v.principal_usd.toNumber() : null,
       currentValue,
       profit,
       profitRate: principal ? Math.round((profit / principal) * 1000) / 10 : 0,
@@ -164,6 +165,7 @@ export class InvestmentService {
             where: { id: inv.id },
             data: {
               principal: { increment: krwAmount },
+              ...(isForeign ? { principal_usd: { increment: nativeAmount } } : {}),
               current_value: { increment: krwAmount },
               quantity: quantity ? { increment: qtyDelta } : qtyDelta,
               recurring_buy_last_period: period,
@@ -208,6 +210,12 @@ export class InvestmentService {
 
     const rows = await this.prisma.investment.findMany({ where, orderBy });
     return rows.map((r) => this.toDto(r));
+  }
+
+  // 현재 USD/KRW 환율 조회 — 해외투자 USD 표기 토글에 사용
+  async getExchangeRate() {
+    const rate = await this.priceLookup.getExchangeRate('USD', 'KRW');
+    return { rate };
   }
 
   // 요약 — 총 평가금액 / 총 원금 / 총 수익 / 수익률
@@ -289,6 +297,7 @@ export class InvestmentService {
           ? new Prisma.Decimal(dto.quantity)
           : dto.recurringBuyEnabled ? new Prisma.Decimal(0) : undefined,
         principal,
+        principal_usd: FOREIGN_TYPES.includes(dto.type) ? new Prisma.Decimal(dto.principal) : null,
         current_value: currentValue,
         purchase_date: dto.purchaseDate ? new Date(dto.purchaseDate) : null,
         memo: dto.memo,
@@ -338,6 +347,9 @@ export class InvestmentService {
           ? new Prisma.Decimal(dto.quantity)
           : (dto.recurringBuyEnabled && !existing.quantity ? new Prisma.Decimal(0) : undefined),
         principal,
+        principal_usd: dto.principal !== undefined && FOREIGN_TYPES.includes(type)
+          ? new Prisma.Decimal(dto.principal)
+          : undefined,
         current_value: currentValue,
         purchase_date: dto.purchaseDate ? new Date(dto.purchaseDate) : undefined,
         memo: dto.memo,
@@ -395,6 +407,7 @@ export class InvestmentService {
         where: { id },
         data: {
           principal: { increment: krwAmount },
+          ...(isForeign ? { principal_usd: { increment: amount } } : {}),
           current_value: { increment: krwAmount },
           quantity: row.quantity ? { increment: dto.quantity } : new Prisma.Decimal(dto.quantity),
         },

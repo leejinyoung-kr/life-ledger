@@ -177,6 +177,7 @@ model Investment {
   symbol        String?        @db.VarChar(20) /// 시세조회용 종목코드(국내) 또는 티커(해외)
   quantity      Decimal?       @db.Decimal(18, 6) /// 보유수량 — 시세조회 시 평가금액 계산에 사용
   principal     Decimal        @db.Decimal(15, 2)
+  principal_usd Decimal?       @db.Decimal(15, 4) /// 해외종목 달러 원금 (국내종목 null)
   current_value Decimal        @db.Decimal(15, 2)
   purchase_date DateTime?      @db.Date
   memo          String?        @db.VarChar(300)
