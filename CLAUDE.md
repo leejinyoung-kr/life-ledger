@@ -179,6 +179,22 @@ cd backend && npx prisma generate
 
 ---
 
+## 운영 배포 (홈서버)
+
+`.github/workflows/deploy-home-server.yml`은 `docker compose build && up -d`만 실행하고
+마이그레이션은 자동으로 돌지 않는다. 스키마 변경이 배포에 포함됐다면 배포 후 수동으로 적용한다.
+
+```bash
+# 홈서버 SSH 접속 후
+cd ~/doc-nexus
+docker compose exec backend npx prisma migrate deploy
+```
+
+> `migrate dev`(신규 마이그레이션 생성, dev 전용)와 달리 `migrate deploy`는
+> 이미 존재하는 마이그레이션 파일을 프롬프트 없이 적용만 한다.
+
+---
+
 ## 슬래시 커맨드
 
 | 커맨드 | 동작 |
