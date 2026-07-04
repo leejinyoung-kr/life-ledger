@@ -3,6 +3,7 @@
  * 카테고리(recurring_buy·cron·asset·file·security·ai)와 레벨(info·warn·error)을
  * 고르게 섞어 최근 30일 범위로 구성.
  */
+import { Prisma } from '@prisma/client';
 import type { SeedFn } from './helpers';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -42,10 +43,9 @@ const LOGS = (userId: number): LogSeed[] => [
     created_at: daysAgo(1, 9, 0),
   },
   {
-    level: 'error', category: 'cron',
+    user_id: userId, level: 'error', category: 'cron',
     message: '반복매수(해외) 처리 실패',
     metadata: { error: 'Connection timeout after 5000ms' },
-    userId: userId,
     created_at: daysAgo(2, 23, 3),
   },
   {
@@ -189,7 +189,7 @@ export const seedSystemLogs: SeedFn = async (prisma, userId) => {
     level: log.level,
     category: log.category,
     message: log.message,
-    metadata: log.metadata ?? null,
+    metadata: log.metadata as unknown as Prisma.InputJsonValue ?? undefined,
     created_at: log.created_at,
   }));
   await prisma.systemLog.createMany({ data: rows });

@@ -5,12 +5,14 @@ import { parsePage } from '../common/pagination';
 import { PriceLookupService } from '../investment/price-lookup.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
+import { SystemLogService } from '../system-log/system-log.service';
 
 @Injectable()
 export class AssetService {
   constructor(
     private prisma: PrismaService,
     private priceLookup: PriceLookupService,
+    private sysLog: SystemLogService,
   ) {}
 
   // 엔티티 → 응답 DTO (Decimal→number)
@@ -88,7 +90,10 @@ export class AssetService {
     ]);
     const usdTotal = investmentAccounts.reduce((s, r) => s + r.cash_balance_usd.toNumber(), 0);
     const usdToKrw = usdTotal
-      ? await this.priceLookup.getExchangeRate('USD', 'KRW').catch(() => 0)
+      ? await this.priceLookup.getExchangeRate('USD', 'KRW').catch((e: unknown) => {
+          this.sysLog.warn({ userId, category: 'asset', message: '달러 환율 조회 실패 — 달러 자산 0원 처리', metadata: { error: (e as Error).message, usdAmount: usdTotal } });
+          return 0;
+        })
       : 0;
     const investTotal =
       investments.reduce((s, r) => s + r.current_value.toNumber(), 0) +

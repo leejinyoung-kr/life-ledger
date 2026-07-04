@@ -12,7 +12,8 @@ describe('TransactionService (자산이동 연동)', () => {
   let seq: number;
   let prisma: any;
 
-  const svc = () => new TransactionService(prisma);
+  const sysLog = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  const svc = () => new TransactionService(prisma, sysLog as any);
   const dec = (n: number) => new Prisma.Decimal(n);
 
   function applyData(row: any, data: Record<string, any>) {

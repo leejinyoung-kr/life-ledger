@@ -64,7 +64,8 @@ describe('FileService', () => {
 
   const notification = { create: jest.fn().mockResolvedValue({ title: 't', description: 'd' }) };
   const push = { sendToUser: jest.fn() };
-  const svc = () => new FileService(prisma, notification as any, push as any);
+  const sysLog = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  const svc = () => new FileService(prisma, notification as any, push as any, sysLog as any);
 
   describe('업로드 — MIME 매직바이트 검증', () => {
     it('declared mime 과 실제 시그니처가 다르면 거부', async () => {

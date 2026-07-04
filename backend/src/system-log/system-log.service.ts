@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type SysLogLevel = 'info' | 'warn' | 'error';
@@ -29,7 +30,7 @@ export class SystemLogService {
         level,
         category: opts.category,
         message: opts.message,
-        metadata: opts.metadata ?? undefined,
+        metadata: opts.metadata as unknown as Prisma.InputJsonValue ?? undefined,
       },
     }).catch((e: unknown) => {
       this.logger.error(`시스템 로그 기록 실패: ${(e as Error).message}`);

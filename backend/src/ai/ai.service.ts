@@ -3,6 +3,7 @@ import { AiReport, Prisma } from '@prisma/client';
 import OpenAI from 'openai';
 import { CryptoService } from '../common/crypto.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SystemLogService } from '../system-log/system-log.service';
 import type { ReportPeriod } from './dto/generate-report.dto';
 
 export interface LedgerParseResult {
@@ -52,6 +53,7 @@ export class AiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
+    private readonly sysLog: SystemLogService,
   ) {}
 
   // 사용자 설정의 OpenAI API 키로 클라이언트 구성. 미설정 시 503
@@ -105,8 +107,8 @@ export class AiService {
           cost_usd: cost,
         },
       });
-    } catch {
-      /* 사용량 기록 실패는 무시 */
+    } catch (e) {
+      this.sysLog.warn({ userId, category: 'ai', message: 'AI 사용량 기록 실패', metadata: { model, source, error: (e as Error).message, inputTokens: prompt, outputTokens: completion } });
     }
   }
 
@@ -395,6 +397,7 @@ ${breakdown}
         tags: tags as unknown as Prisma.InputJsonValue,
       },
     });
+    this.sysLog.info({ userId, category: 'ai', message: `AI 리포트 생성 완료 — ${label}`, metadata: { period, model, tokensUsed: response.usage?.total_tokens } });
     return this.toDto(created);
   }
 }

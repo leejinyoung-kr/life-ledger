@@ -12,6 +12,7 @@ import { parsePage } from '../common/pagination';
 import {
   RRule, toDateStr, periodOf, adjustWeekend, monthlyDate, nthOccurrence, monthRange,
 } from './recurring.util';
+import { SystemLogService } from '../system-log/system-log.service';
 
 // 엑셀 양식 유형 라벨 → TransactionType 코드
 const TYPE_CODE: Record<string, TransactionType> = {
@@ -75,7 +76,10 @@ function parseDate(v: ExcelJS.CellValue): Date | null {
 
 @Injectable()
 export class TransactionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private sysLog: SystemLogService,
+  ) {}
 
   // 엔티티 → 프론트 응답 DTO (Decimal→number, Date→문자열)
   private toDto(t: Transaction) {
@@ -200,6 +204,12 @@ export class TransactionService {
           if (t.target_type && t.target_id) {
             await this.applyTransferEffect(tx, userId, t.target_type, t.target_id, t.amount.mul(toCreate.length), t.target_direction);
           }
+        });
+        this.sysLog.info({
+          userId,
+          category: 'recurring_tx',
+          message: `반복거래 '${t.title}' ${toCreate.length}건 회차 생성`,
+          metadata: { templateId: t.id, title: t.title, periods: toCreate.map((c) => c.recurring_period) },
         });
       }
     }

@@ -12,7 +12,8 @@ describe('InvestmentService', () => {
   let prisma: any;
   let priceLookup: { lookup: jest.Mock };
 
-  const svc = () => new InvestmentService(prisma, priceLookup as unknown as PriceLookupService);
+  const sysLog = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+  const svc = () => new InvestmentService(prisma, priceLookup as unknown as PriceLookupService, sysLog as any);
   const dec = (n: number) => new Prisma.Decimal(n);
 
   beforeEach(() => {

@@ -15,6 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { PushService } from '../push/push.service';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
+import { SystemLogService } from '../system-log/system-log.service';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
@@ -125,6 +126,7 @@ export class FileService {
     private prisma: PrismaService,
     private notification: NotificationService,
     private push: PushService,
+    private sysLog: SystemLogService,
   ) {
     this.bucket = process.env.B2_BUCKET_NAME!;
     this.s3 = new S3Client({
@@ -246,7 +248,9 @@ export class FileService {
     } catch (e) {
       // DB 기록 실패 시 방금 올린 B2 오브젝트 보상삭제 (dup 재사용분은 보존)
       if (!dup) {
-        await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: objectKey })).catch(() => {});
+        await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: objectKey })).catch((e2: unknown) => {
+          this.sysLog.error({ userId, category: 'file', message: `DB 저장 실패 후 B2 보상삭제도 실패 — key: ${objectKey}`, metadata: { objectKey, dbError: (e as Error).message, b2Error: (e2 as Error).message } });
+        });
       }
       throw e;
     }
