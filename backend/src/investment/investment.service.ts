@@ -45,6 +45,7 @@ export class InvestmentService {
       principal,
       principalUsd: v.principal_usd ? v.principal_usd.toNumber() : null,
       currentValue,
+      currentValueUsd: v.current_value_usd ? v.current_value_usd.toNumber() : null,
       profit,
       profitRate: principal ? Math.round((profit / principal) * 1000) / 10 : 0,
       purchaseDate: v.purchase_date ? v.purchase_date.toISOString().slice(0, 10) : null,
@@ -115,7 +116,14 @@ export class InvestmentService {
         try {
           const r = await this.priceLookup.lookup(inv.type, inv.symbol!);
           const newValue = inv.quantity!.mul(new Prisma.Decimal(r.krwPrice));
-          await this.prisma.investment.update({ where: { id: inv.id }, data: { current_value: newValue } });
+          const isForeign = FOREIGN_TYPES.includes(inv.type);
+          await this.prisma.investment.update({
+            where: { id: inv.id },
+            data: {
+              current_value: newValue,
+              current_value_usd: isForeign ? inv.quantity!.mul(new Prisma.Decimal(r.price)) : undefined,
+            },
+          });
           updated++;
         } catch (e) {
           this.sysLog.warn({
@@ -224,6 +232,7 @@ export class InvestmentService {
               principal: { increment: krwAmount },
               ...(isForeign ? { principal_usd: { increment: nativeAmount } } : {}),
               current_value: { increment: krwAmount },
+              ...(isForeign ? { current_value_usd: { increment: nativeAmount } } : {}),
               quantity: quantity ? { increment: qtyDelta } : qtyDelta,
               recurring_buy_last_period: period,
             },
@@ -376,6 +385,7 @@ export class InvestmentService {
         principal,
         principal_usd: FOREIGN_TYPES.includes(dto.type) ? new Prisma.Decimal(dto.principal) : null,
         current_value: currentValue,
+        current_value_usd: FOREIGN_TYPES.includes(dto.type) ? new Prisma.Decimal(dto.currentValue) : null,
         purchase_date: dto.purchaseDate ? new Date(dto.purchaseDate) : null,
         memo: dto.memo,
         recurring_buy_enabled: dto.recurringBuyEnabled ?? false,
@@ -428,6 +438,9 @@ export class InvestmentService {
           ? new Prisma.Decimal(dto.principal)
           : undefined,
         current_value: currentValue,
+        current_value_usd: dto.currentValue !== undefined && FOREIGN_TYPES.includes(type)
+          ? new Prisma.Decimal(dto.currentValue)
+          : undefined,
         purchase_date: dto.purchaseDate ? new Date(dto.purchaseDate) : undefined,
         memo: dto.memo,
         recurring_buy_enabled: dto.recurringBuyEnabled,
@@ -486,6 +499,7 @@ export class InvestmentService {
           principal: { increment: krwAmount },
           ...(isForeign ? { principal_usd: { increment: amount } } : {}),
           current_value: { increment: krwAmount },
+          ...(isForeign ? { current_value_usd: { increment: amount } } : {}),
           quantity: row.quantity ? { increment: dto.quantity } : new Prisma.Decimal(dto.quantity),
         },
       });
@@ -504,11 +518,15 @@ export class InvestmentService {
     const newCurrentValue = row.current_value.greaterThan(krwAmount)
       ? row.current_value.sub(krwAmount)
       : new Prisma.Decimal(0);
+    const newCurrentValueUsd = isForeign && row.current_value_usd
+      ? (row.current_value_usd.greaterThan(amount) ? row.current_value_usd.sub(amount) : new Prisma.Decimal(0))
+      : undefined;
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.investment.update({
         where: { id },
         data: {
           current_value: newCurrentValue,
+          current_value_usd: newCurrentValueUsd,
           quantity: { decrement: dto.quantity },
         },
       });

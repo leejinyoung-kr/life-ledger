@@ -102,12 +102,6 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
   const total = rowsQuery.data?.total ?? 0;
   const summary = summaryQuery.data ?? null;
   const hasForeign = rows.some((r) => r.type === 'foreign_stock' || r.type === 'foreign_etf');
-  const exchangeRateQuery = useApiQuery<{ rate: number }>(
-    ['investments', 'exchange-rate'],
-    '/investments/exchange-rate',
-    { enabled: hasForeign },
-  );
-  const exchangeRate = exchangeRateQuery.data?.rate ?? null;
   // 자산이동/매수/매도가 계좌 예수금도 바꿀 수 있어 계좌 쿼리도 함께 무효화
   const reload = () => invalidate(qk.investments.all, qk.investmentAccounts.all);
 
@@ -160,15 +154,14 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
     return won(row.principal);
   }
   function fmtCurrentValue(row: Investment) {
-    if ((row.type === 'foreign_stock' || row.type === 'foreign_etf') && currency === 'USD' && exchangeRate && row.principalUsd !== null) {
-      return usd(row.currentValue / exchangeRate);
+    if ((row.type === 'foreign_stock' || row.type === 'foreign_etf') && currency === 'USD' && row.currentValueUsd !== null) {
+      return usd(row.currentValueUsd);
     }
     return won(row.currentValue);
   }
   function fmtProfit(row: Investment): { text: string; up: boolean } {
-    if ((row.type === 'foreign_stock' || row.type === 'foreign_etf') && currency === 'USD' && exchangeRate && row.principalUsd !== null) {
-      const cvUsd = row.currentValue / exchangeRate;
-      const profitUsd = cvUsd - row.principalUsd;
+    if ((row.type === 'foreign_stock' || row.type === 'foreign_etf') && currency === 'USD' && row.principalUsd !== null && row.currentValueUsd !== null) {
+      const profitUsd = row.currentValueUsd - row.principalUsd;
       return { text: `${profitUsd >= 0 ? '+' : '-'}${usd(Math.abs(profitUsd))}`, up: profitUsd >= 0 };
     }
     const up = row.profit >= 0;
@@ -561,8 +554,9 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
     setType(src?.type ?? 'domestic_stock');
     setSymbol(src?.symbol ?? '');
     setQuantity(src?.quantity ? String(src.quantity) : '');
-    setPrincipal(src ? String(src.principal) : '');
-    setCurrentValue(src ? String(src.currentValue) : '');
+    const srcIsForeign = src?.type === 'foreign_stock' || src?.type === 'foreign_etf';
+    setPrincipal(src ? String(srcIsForeign && src.principalUsd !== null ? src.principalUsd : src.principal) : '');
+    setCurrentValue(src ? String(srcIsForeign && src.currentValueUsd !== null ? src.currentValueUsd : src.currentValue) : '');
     setProfitHelperMode('amount');
     setProfitHelperValue('');
     setPurchaseDate(e?.purchaseDate ?? (state.prefill ? toDay() : ''));

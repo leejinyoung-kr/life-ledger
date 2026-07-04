@@ -105,6 +105,7 @@ export interface Investment {
   principal: number;
   principalUsd: number | null; // 해외종목 달러 원금 — 국내종목은 null
   currentValue: number;
+  currentValueUsd: number | null; // 해외종목 달러 평가금액 — 국내종목은 null
   profit: number;
   profitRate: number;
   purchaseDate: string | null;

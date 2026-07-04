@@ -179,6 +179,7 @@ model Investment {
   principal     Decimal        @db.Decimal(15, 2)
   principal_usd Decimal?       @db.Decimal(15, 4) /// 해외종목 달러 원금 (국내종목 null)
   current_value Decimal        @db.Decimal(15, 2)
+  current_value_usd Decimal?   @db.Decimal(15, 4) /// 해외종목 달러 평가금액 (국내종목 null)
   purchase_date DateTime?      @db.Date
   memo          String?        @db.VarChar(300)
   recurring_buy_enabled     Boolean  @default(false) /// 반복매수 사용 여부
