@@ -21,7 +21,7 @@ import {
   type RecurringCycle, type WeekendAdjust,
 } from '@/lib/finance';
 import {
-  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
+  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
   RowActions, CardActions, toDay, useAddTrigger,
 } from '../_shared';
 
@@ -331,15 +331,22 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                     <span className={TXCARD_AMT}>{fmtCurrentValue(row)}</span>
                   </div>
                 </div>
-                <div className={TXCARD_SUB}>
-                  <span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span>
-                  <span>{accountMap.get(row.accountId)?.name ?? '-'}</span>
-                  <span>원금 {fmtPrincipal(row)}</span>
-                  <span className={profit.up ? 'text-accent' : 'text-danger'}>{profit.text}</span>
-                  <span className={`return-pill ${profit.up ? 'up' : 'down'}`}>{profit.up ? '+' : ''}{row.profitRate}%</span>
-                  <span className={updated.stale ? 'text-amber' : ''}>{updated.label}</span>
-                  {recurring && <span>· 반복매수 {recurring}</span>}
-                  {row.memo && <span>· {row.memo}</span>}
+                <div className="mt-2 pt-2 border-t border-border flex flex-col gap-1.5 text-[0.78rem]">
+                  {[
+                    { label: '유형', value: <span className="cat-chip">{INVEST_TYPE_LABEL[row.type]}</span> },
+                    { label: '계좌', value: accountMap.get(row.accountId)?.name ?? '-' },
+                    { label: '원금', value: fmtPrincipal(row) },
+                    { label: '수익', value: <span className={profit.up ? 'text-accent' : 'text-danger'}>{profit.text}</span> },
+                    { label: '수익률', value: <span className={`return-pill ${profit.up ? 'up' : 'down'}`}>{profit.up ? '+' : ''}{row.profitRate}%</span> },
+                    { label: '업데이트', value: <span className={updated.stale ? 'text-amber' : ''}>{updated.label}</span> },
+                    ...(recurring ? [{ label: '반복매수', value: recurring }] : []),
+                    ...(row.memo ? [{ label: '메모', value: row.memo }] : []),
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex gap-2">
+                      <span className="text-muted w-16 shrink-0">{label}</span>
+                      <span>{value}</span>
+                    </div>
+                  ))}
                 </div>
                 <div className="flex gap-2 mt-2">
                   <Button variant="ghost" className="flex-1" onClick={() => setTrade({ open: true, mode: 'buy', target: row })}>매수</Button>

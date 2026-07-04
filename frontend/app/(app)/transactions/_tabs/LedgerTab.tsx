@@ -29,7 +29,7 @@ import {
 } from '@/lib/finance';
 import type { Asset } from '@/lib/networth';
 import {
-  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
+  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
   AMT_COLOR, RowActions, CardActions, toDay, monthsAgo, useAddTrigger,
 } from '../_shared';
 
@@ -442,12 +442,19 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
                   <span className={`${TXCARD_AMT} ${AMT_COLOR[row.type]}`}>{signedWon(row.type, row.amount)}</span>
                 </div>
               </div>
-              <div className={TXCARD_SUB}>
-                <span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span>
-                <span className="cat-chip">{catMap[row.category] ?? row.category}</span>
-                {row.type === 'expense' && <span>{row.payMethod}</span>}
-                <span>{dotDate(row.date)}</span>
-                {row.memo && <span>· {row.memo}</span>}
+              <div className="mt-2 pt-2 border-t border-border flex flex-col gap-1.5 text-[0.78rem]">
+                {[
+                  { label: '유형', value: <span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span> },
+                  { label: '카테고리', value: <span className="cat-chip">{catMap[row.category] ?? row.category}</span> },
+                  ...(row.type === 'expense' ? [{ label: '결제수단', value: row.payMethod }] : []),
+                  { label: '날짜', value: dotDate(row.date) },
+                  ...(row.memo ? [{ label: '메모', value: row.memo }] : []),
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex gap-2">
+                    <span className="text-muted w-16 shrink-0">{label}</span>
+                    <span>{value}</span>
+                  </div>
+                ))}
               </div>
               <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} />
             </div>

@@ -13,7 +13,7 @@ import { qk } from '@/lib/queryKeys';
 import { won } from '@/lib/finance';
 import { type Asset } from '@/lib/networth';
 import {
-  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TOP, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
+  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TOP, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
   RowActions, CardActions, useAddTrigger,
 } from '../_shared';
 import { AssetModal, type AssetModalState } from './AssetModal';
@@ -98,7 +98,12 @@ export default function RealEstateTab({ addTrigger }: { addTrigger: number }) {
                 <span className={TXCARD_TITLE}>{row.name}</span>
                 <span className={TXCARD_AMT}>{won(row.amount)}</span>
               </div>
-              {row.memo && <div className={TXCARD_SUB}>{row.memo}</div>}
+              {row.memo && (
+                <div className="mt-2 pt-2 border-t border-border flex gap-2 text-[0.78rem]">
+                  <span className="text-muted w-14 shrink-0">메모</span>
+                  <span>{row.memo}</span>
+                </div>
+              )}
               <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} />
             </div>
           ))}

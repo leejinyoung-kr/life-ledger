@@ -16,11 +16,11 @@ import { useRowSelection } from '@/lib/useRowSelection';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import {
-  SAVING_TYPE_LABEL, won, dotDate, daysUntil,
+  SAVING_TYPE_LABEL, won, dotDate, daysUntil, calcMaturityAmount,
   type Category, type Saving, type SavingSummary, type SavingType,
 } from '@/lib/finance';
 import {
-  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_SUB, TXCARD_EMPTY,
+  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
   RowActions, CardActions, toDay, useAddTrigger,
 } from '../_shared';
 
@@ -137,6 +137,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
               <col style={{ width: '120px' }} />
               <col style={{ width: '110px' }} />
               <col style={{ width: '80px' }} />
+              <col style={{ width: '130px' }} />
               <col style={{ width: '110px' }} />
               <col style={{ width: '150px' }} />
               <col style={{ width: '180px' }} />
@@ -147,16 +148,17 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                 <th className="td-center"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
                 <th>번호</th><th>유형</th><th>은행/기관</th><th>상품명</th>
                 <th>잔액</th><th>월 납입</th>
-                <th>금리</th><th>가입일</th><th>만기일</th>
+                <th>금리</th><th>만기예상</th><th>가입일</th><th>만기일</th>
                 <th>메모</th>
                 <th>관리</th>
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && <tr><td colSpan={12} className="td-center td-muted">예적금 내역이 없습니다.</td></tr>}
+              {paged.length === 0 && <tr><td colSpan={13} className="td-center td-muted">예적금 내역이 없습니다.</td></tr>}
               {paged.map((c, i) => {
                 const dleft = daysUntil(c.maturityDate);
                 const near = dleft !== null && dleft >= 0 && dleft <= 30;
+                const maturityAmt = calcMaturityAmount(c);
                 return (
                   <tr key={c.id}>
                     <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" /></td>
@@ -167,6 +169,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                     <td className="td-mono td-right">{won(c.balance)}</td>
                     <td className="td-mono td-right">{c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-'}</td>
                     <td className="td-right"><span className="savings-meta-value accent">{c.interestRate}%</span></td>
+                    <td className="td-mono td-right">{maturityAmt !== null ? won(maturityAmt) : '-'}</td>
                     <td className="td-center td-muted">{dotDate(c.startDate)}</td>
                     <td className={`td-center ${near ? 'savings-meta-value warning' : 'td-muted'}`}>
                       {c.maturityDate ? (
@@ -189,27 +192,34 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
           {paged.map((c) => {
             const dleft = daysUntil(c.maturityDate);
             const near = dleft !== null && dleft >= 0 && dleft <= 30;
+            const maturityAmt = calcMaturityAmount(c);
             return (
               <div className={TXCARD} key={c.id}>
                 <div className="flex items-center gap-2 mb-1.5">
                   <input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" />
-                  <div className="flex-1 flex justify-between items-baseline gap-2.5">
+                  <div className="flex-1 flex justify-between items-center gap-2.5">
                     <span className={TXCARD_TITLE}>{c.name}</span>
-                    <span className={TXCARD_AMT}>{won(c.balance)}</span>
+                    <div className="flex flex-col items-end shrink-0">
+                      <span className={TXCARD_AMT}>{won(c.balance)}</span>
+                      {maturityAmt !== null && <span className="text-[0.7rem] text-secondary">만기예상 {won(maturityAmt)}</span>}
+                    </div>
                   </div>
                 </div>
-                <div className={TXCARD_SUB}>
-                  <span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span>
-                  <span>{c.bank}</span>
-                  <span className="savings-meta-value accent">{c.interestRate}%</span>
-                  {c.monthlyAmount > 0 && <span>월 {won(c.monthlyAmount)}</span>}
-                  <span>{dotDate(c.startDate)} 가입</span>
-                  {c.maturityDate && (
-                    <span className={near ? 'savings-meta-value warning' : undefined}>
-                      만기 {dotDate(c.maturityDate)}{near ? ` ⚠️ D-${dleft}` : ''}
-                    </span>
-                  )}
-                  {c.memo && <span>{c.memo}</span>}
+                <div className="mt-2 pt-2 border-t border-border flex flex-col gap-1.5 text-[0.78rem]">
+                  {[
+                    { label: '유형', value: <span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span> },
+                    { label: '은행', value: c.bank },
+                    { label: '금리', value: <span className="savings-meta-value accent">{c.interestRate}%</span> },
+                    { label: '월납입', value: c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-' },
+                    { label: '가입일', value: dotDate(c.startDate) },
+                    { label: '만기일', value: <span className={near ? 'savings-meta-value warning' : undefined}>{c.maturityDate ? `${dotDate(c.maturityDate)}${near ? ` ⚠️ D-${dleft}` : ''}` : '-'}</span> },
+                    ...(c.memo ? [{ label: '메모', value: c.memo }] : []),
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex gap-2">
+                      <span className="text-muted w-14 shrink-0">{label}</span>
+                      <span>{value}</span>
+                    </div>
+                  ))}
                 </div>
                 <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => handleRemove(c.id)} onCopy={() => handleDuplicate(c)} />
               </div>
