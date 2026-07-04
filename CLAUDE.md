@@ -50,11 +50,12 @@ doc-nexus/
 │       ├── file/          # 파일 보관함 (Backblaze B2)
 │       ├── export/        # 데이터 내보내기 (계정 JSON·전체 ZIP)
 │       ├── import/        # 데이터 가져오기 (계정 JSON 복원)
-│       ├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수 스냅샷·DB 백업)
+│       ├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수 스냅샷·순자산 스냅샷·DB 백업·투자 현재가 갱신)
 │       ├── ai/            # AI 리포트 / 자연어 거래 파싱 (사용자별 OpenAI 키)
 │       ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
 │       ├── push/          # 웹 푸시 구독/발송 (VAPID)
 │       ├── convert/       # 이미지↔PDF 변환
+│       ├── system-log/    # 시스템 로그 (크론·투자 갱신 등 백그라운드 작업 실행 기록, 90일 경과 시 자동 삭제)
 │       ├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
 │       └── prisma/        # PrismaService / PrismaModule
 ├── docs/              # 설계 문서
@@ -118,8 +119,9 @@ doc-nexus/
 | AiUsageLog | user_id, model, source, prompt/completion/total_tokens, cost_usd (OpenAI 호출별 토큰·비용) | 구현 완료 |
 | RefreshToken | user_id, session_id, jti, expires_at, revoked_at (refresh 토큰 화이트리스트, rotation/로그아웃/세션revoke 시 폐기) | 구현 완료 |
 | EmailLoginCode | email, code_hash(SHA-256), expires_at, consumed_at, attempts (이메일 인증코드 로그인, 화이트리스트 대조) | 구현 완료 |
+| SystemLog | user_id(nullable, FK 아님), level(info/warn/error), category, message, metadata(JSON) — 크론·투자갱신 등 백그라운드 작업 로그, 90일 경과 시 자동 삭제 | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 31개 테이블
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 32개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---
@@ -143,6 +145,7 @@ doc-nexus/
 | Frontend — 자격증명 / ENV / 신원지갑 | 구현 완료 (백엔드 연동) |
 | Frontend — 파일 보관함 | 구현 완료 (B2 연동) |
 | Frontend — AI 리포트 | 구현 완료 (백엔드 연동) |
+| Frontend — 시스템 로그 | 구현 완료 (백엔드 연동) |
 | Frontend — React Query 전환 | 전 페이지·공통 컴포넌트 완료 |
 | Backend — Google OAuth + JWT (전역 가드 + Rate-limit) | 구현 완료 |
 | Backend — 가계부/구독/자산/메모/캘린더/할일/목표 | 구현 완료 |
@@ -153,7 +156,8 @@ doc-nexus/
 | Backend — 데이터 내보내기/가져오기 (JSON·ZIP·복원) | 구현 완료 |
 | Backend — 영수증 OCR(클라이언트)·현금흐름 예측·통합 D-day | 구현 완료 |
 | Backend — AI 리포트 / 자연어 거래 파싱 (OpenAI, 사용자별 키) | 구현 완료 |
-| DB | 29개 테이블 구현 완료 |
+| Backend — 시스템 로그 / 순자산 월간 스냅샷 / 투자 현재가 자동 갱신 | 구현 완료 |
+| DB | 32개 테이블 구현 완료 |
 
 ---
 

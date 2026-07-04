@@ -86,10 +86,10 @@ src/
 ├── auth/          # Google OAuth + JWT 인증 (+ 새 기기 로그인 감지)
 ├── transaction/   # 수입/지출 내역 (반복 자동생성)
 ├── saving/        # 예적금
-├── investment/    # 투자
+├── investment-account/ # 투자 계좌 (예수금 — 종목 여러 개가 공유)
+├── investment/    # 투자 (반복매수 + 현재가 자동 갱신)
 ├── subscription/  # 구독 서비스
 ├── asset/         # 자산 (순자산)
-├── budget/        # 월별 예산 (이월)
 ├── note/          # 메모
 ├── calendar/      # 캘린더 이벤트
 ├── notification/  # 알림
@@ -107,11 +107,12 @@ src/
 ├── file/          # 파일 보관함 (Backblaze B2)
 ├── export/        # 데이터 내보내기 (JSON/ZIP)
 ├── import/        # 데이터 가져오기 (계정 JSON 복원)
-├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수)
+├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수·순자산 스냅샷·투자 현재가 갱신)
 ├── ai/            # AI 리포트 / 자연어 거래 파싱 (사용자별 OpenAI 키)
 ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
 ├── push/          # 웹 푸시 구독/발송 (VAPID)
 ├── convert/       # 이미지↔PDF 변환
+├── system-log/    # 시스템 로그 (크론·투자 갱신 등 백그라운드 작업 실행 기록)
 ├── health/        # 헬스체크
 ├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
 └── prisma/        # PrismaService / PrismaModule

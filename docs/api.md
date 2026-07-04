@@ -322,3 +322,12 @@ Base URL: `http://localhost:8000/api/v1`
 | --- | --- | --- |
 | POST | /convert/image-to-pdf | 이미지 → PDF 변환 |
 | POST | /convert/pdf-to-image | PDF → 이미지 변환 |
+
+## 시스템 로그
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| GET | /system-logs?level=&category=&from=&to=&q=&page=&limit= | 크론/투자갱신 등 백그라운드 작업 실행 로그 목록 (레벨·카테고리·기간·메시지 검색 + 페이지네이션) |
+
+> `level`: info / warn / error · `category`: recurring_buy / recurring_tx / cron / asset / file / security / ai
+> 조회 전용(읽기 API만 존재) — 기록은 `SystemLogService.info/warn/error`를 각 서비스·크론이 직접 호출해 적재하며 실패해도 호출부 로직에 영향 없음(fire-and-forget). 90일 경과 항목은 휴지통 크론(매일 03:00)이 함께 정리.

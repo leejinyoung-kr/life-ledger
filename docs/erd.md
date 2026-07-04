@@ -3,7 +3,7 @@
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
 > 마이그레이션: `20260610000000_init_consolidated`(전 도메인 통합) + `20260610010000_phase17a_security_core` · `20260610020000_phase17b_dataflow` · `20260610030000_phase17c_enhance` · `20260610040000_phase17d_extras`
 
-## 테이블 목록 (31)
+## 테이블 목록 (32)
 
 | 테이블 | 설명 |
 | --- | --- |
@@ -38,6 +38,7 @@
 | AiUsageLog | AI 사용량 로그 (OpenAI 호출별 모델·토큰·비용 — 잔액 API 부재 대체) |
 | RefreshToken | 갱신 토큰 화이트리스트 (jti, rotation/로그아웃/세션revoke 시 폐기) |
 | EmailLoginCode | 이메일 인증코드 로그인 (code_hash, expires_at, attempts) |
+| SystemLog | 시스템 로그 (크론·투자 현재가 갱신 등 백그라운드 작업 실행 기록, 90일 경과 시 자동 삭제) |
 
 ## 주요 관계
 
@@ -117,6 +118,13 @@ LoginSession   1 ─── N RefreshToken(session_id)
 - access 토큰은 클라이언트 메모리에만 보관(localStorage 미사용), refresh 토큰은 httpOnly 쿠키 + `RefreshToken` 화이트리스트(`jti`)로 관리
 - `/auth/refresh` 호출 시 rotation: 기존 `jti` 폐기(`revoked_at`) + 신규 발급
 - `/auth/logout`, 세션 단건/전체 차단(`SecurityService.revokeSession/revokeAll`) 시 연결된 `RefreshToken` 도 함께 폐기
+
+### 시스템 로그 — SystemLog
+
+- `level`(info/warn/error), `category`(recurring_buy/recurring_tx/cron/asset/file/security/ai), `message`, `metadata`(JSON, 선택)
+- `user_id` 는 FK 관계 없이 참조용 int만 저장(전체 사용자 집계 이벤트는 null) — 사용자 삭제 시 별도 정리 불필요
+- 기록: `SystemLogService.info/warn/error`(fire-and-forget, 실패해도 호출부에 영향 없음) · 조회: `/system-logs` (`/logs` 화면)
+- 90일 경과 항목은 `trash-cron.service.ts`가 매일 정리
 
 ## 타임스탬프
 
