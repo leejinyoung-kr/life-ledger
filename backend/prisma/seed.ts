@@ -29,6 +29,7 @@ import { seedCategories } from './seeds/categories.seed';
 import { seedCredentials } from './seeds/credentials.seed';
 import { seedEnv } from './seeds/env.seed';
 import { seedIdentity } from './seeds/identity.seed';
+import { seedSystemLogs } from './seeds/system-log.seed';
 
 const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
@@ -53,6 +54,7 @@ const SEEDS: { name: string; run: SeedFn }[] = [
   { name: '카테고리', run: seedCategories },
   // 휴지통: 도메인 시드(전체 wipe) 이후 삭제 더미를 심어야 하므로 반드시 마지막
   { name: '휴지통', run: seedTrash },
+  { name: '시스템 로그', run: seedSystemLogs },
 ];
 
 // user 가 한 명도 없으면 데모 계정 생성 (로그인 전에도 시드 가능하도록)

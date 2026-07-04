@@ -46,5 +46,14 @@ export class TrashCronService {
     }
 
     if (total) this.logger.log(`휴지통 영구삭제 ${total}건 (30일 경과)`);
+
+    // 시스템 로그 90일 경과 항목 정리
+    try {
+      const logCutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const { count } = await this.prisma.systemLog.deleteMany({ where: { created_at: { lt: logCutoff } } });
+      if (count) this.logger.log(`시스템 로그 ${count}건 삭제 (90일 경과)`);
+    } catch (e) {
+      this.logger.error(`시스템 로그 정리 실패: ${(e as Error).message}`);
+    }
   }
 }

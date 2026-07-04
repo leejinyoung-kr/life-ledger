@@ -8,6 +8,7 @@ import { QueryInvestmentDto } from './dto/query-investment.dto';
 import { UpdateInvestmentDto } from './dto/update-investment.dto';
 import { TradeInvestmentDto } from './dto/trade-investment.dto';
 import { FOREIGN_TYPES, PriceLookupService } from './price-lookup.service';
+import { SystemLogService } from '../system-log/system-log.service';
 
 // 반복매수 일괄 처리 시 외부 시세조회 API 과다호출 방지용 묶음 크기/대기시간
 const RECURRING_BUY_BATCH_SIZE = 3;
@@ -22,6 +23,7 @@ export class InvestmentService {
   constructor(
     private prisma: PrismaService,
     private priceLookup: PriceLookupService,
+    private sysLog: SystemLogService,
   ) {}
 
   // 엔티티 → 응답 DTO (수익/수익률 파생값 포함). 예수금은 종목이 아닌 소속 계좌(InvestmentAccount)가 보유
@@ -138,8 +140,14 @@ export class InvestmentService {
         const r = await this.priceLookup.lookup(inv.type, inv.symbol);
         unitNative = new Prisma.Decimal(r.price);
         unitKrw = new Prisma.Decimal(r.krwPrice);
-      } catch {
-        break; // 시세조회 실패 — 다음 방문 때 이 회차부터 재시도
+      } catch (e) {
+        this.sysLog.warn({
+          userId,
+          category: 'recurring_buy',
+          message: `${inv.symbol} 시세 조회 실패 — 다음 배치에 재시도`,
+          metadata: { investmentId: inv.id, symbol: inv.symbol, type: inv.type, period, error: (e as Error).message },
+        });
+        break;
       }
       // 수량 모드(n주): 매 회차 시세 × n주로 매수. 금액 모드: 고정 금액(국내 원/해외 달러)을 그 시점 단가로 나눠 수량 계산
       const qtyDelta = inv.recurring_buy_quantity
@@ -173,10 +181,30 @@ export class InvestmentService {
           });
           return true;
         });
-      } catch {
-        break; // 목록/요약 동시 조회로 같은 계좌 행을 동시에 갱신해 충돌난 경우 — 다음 방문 때 이 회차부터 재시도
+      } catch (e) {
+        this.sysLog.error({
+          userId,
+          category: 'recurring_buy',
+          message: `${inv.symbol} 반복매수 DB 처리 충돌 — 다음 배치에 재시도`,
+          metadata: { investmentId: inv.id, symbol: inv.symbol, type: inv.type, period, error: (e as Error).message },
+        });
+        break;
       }
-      if (!applied) break; // 예수금 부족 — 충전 후 다음 방문에 이 회차부터 재시도
+      if (!applied) {
+        this.sysLog.warn({
+          userId,
+          category: 'recurring_buy',
+          message: `${inv.symbol} 반복매수 예수금 부족 — 충전 후 재시도`,
+          metadata: { investmentId: inv.id, symbol: inv.symbol, type: inv.type, period, required: nativeAmount.toFixed(4), currency: isForeign ? 'USD' : 'KRW' },
+        });
+        break;
+      }
+      this.sysLog.info({
+        userId,
+        category: 'recurring_buy',
+        message: `${inv.symbol} 반복매수 ${period} 회차 처리 완료`,
+        metadata: { investmentId: inv.id, symbol: inv.symbol, type: inv.type, period, quantity: qtyDelta.toFixed(6), amountKrw: krwAmount.toFixed(0) },
+      });
       lastPeriod = period;
       quantity = quantity ? quantity.add(qtyDelta) : qtyDelta;
     }

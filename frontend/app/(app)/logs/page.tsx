@@ -4,18 +4,24 @@ import { useState, useMemo } from 'react';
 import AppShell from '@/components/AppShell';
 import Button from '@/components/ui/Button';
 import Pagination, { LimitSelect } from '@/components/Pagination';
+import ErrorBanner from '@/components/ErrorBanner';
+import EmptyState from '@/components/EmptyState';
 import { IconClock, IconCaret, IconSearch } from '@/components/icons';
+import { useApiQuery } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
+import { usePagination } from '@/lib/usePagination';
 
 type LogLevel = 'info' | 'warn' | 'error';
 type LogCategory = 'recurring_buy' | 'recurring_tx' | 'cron' | 'asset' | 'file' | 'security' | 'ai';
 
 interface SystemLog {
   id: number;
+  user_id: number | null;
   level: LogLevel;
   category: LogCategory;
   message: string;
   metadata: Record<string, unknown> | null;
-  createdAt: string;
+  created_at: string;
 }
 
 const CATEGORY_LABEL: Record<LogCategory, string> = {
@@ -40,137 +46,6 @@ const LEVEL_LABEL: Record<LogLevel, string> = {
   error: 'ERROR',
 };
 
-const DUMMY_LOGS: SystemLog[] = [
-  {
-    id: 16,
-    level: 'warn',
-    category: 'security',
-    message: 'HIBP API 실패 — prefix: a3f2b, 해당 구간 미검출로 처리',
-    metadata: { prefix: 'a3f2b', error: 'Connection timeout after 5000ms', action: 'skipped_check' },
-    createdAt: '2026-07-04T09:15:22',
-  },
-  {
-    id: 15,
-    level: 'error',
-    category: 'file',
-    message: 'DB 저장 실패 후 B2 보상삭제도 실패 — key: uploads/2026/07/report_abc123.pdf',
-    metadata: { objectKey: 'uploads/2026/07/report_abc123.pdf', dbError: 'Unique constraint failed', b2Error: 'Backblaze B2 API: 503 Service Unavailable' },
-    createdAt: '2026-07-04T09:12:05',
-  },
-  {
-    id: 14,
-    level: 'warn',
-    category: 'ai',
-    message: 'AI 토큰 사용량 기록 실패',
-    metadata: { error: 'insert into ai_usage_log: Connection refused', model: 'claude-sonnet-4-6', inputTokens: 1240, outputTokens: 380 },
-    createdAt: '2026-07-04T09:10:18',
-  },
-  {
-    id: 13,
-    level: 'warn',
-    category: 'asset',
-    message: '달러 환율 조회 실패 — 달러 자산을 0원으로 처리. 순자산 수치 부정확 가능성',
-    metadata: { error: 'Frankfurter API: HTTP 429 Too Many Requests', affectedUsdAmount: 2500 },
-    createdAt: '2026-07-04T09:05:33',
-  },
-  {
-    id: 12,
-    level: 'info',
-    category: 'recurring_tx',
-    message: '반복거래 회차 생성 완료 — 월세 2026-07 회차',
-    metadata: { title: '월세', period: '2026-07', amount: 500000, type: 'expense' },
-    createdAt: '2026-07-04T09:00:44',
-  },
-  {
-    id: 11,
-    level: 'warn',
-    category: 'recurring_buy',
-    message: '카카오(035720) 2026-07 회차 예수금 부족 — 다음 크론에 재시도',
-    metadata: { name: '카카오', symbol: '035720', period: '2026-07', required: 50000, cashBalance: 12000 },
-    createdAt: '2026-07-04T09:00:38',
-  },
-  {
-    id: 10,
-    level: 'info',
-    category: 'recurring_buy',
-    message: 'AAPL(Apple Inc.) 2026-07 회차 매수 완료',
-    metadata: { name: 'Apple Inc.', symbol: 'AAPL', period: '2026-07', priceUsd: 195.4, currency: 'USD', quantity: 0.5117, amountKrw: 100000 },
-    createdAt: '2026-07-04T09:00:31',
-  },
-  {
-    id: 9,
-    level: 'info',
-    category: 'recurring_buy',
-    message: '삼성전자(005930) 2026-07 회차 매수 완료',
-    metadata: { name: '삼성전자', symbol: '005930', period: '2026-07', priceKrw: 78300, quantity: 1.2758, amountKrw: 100000 },
-    createdAt: '2026-07-04T09:00:22',
-  },
-  {
-    id: 8,
-    level: 'info',
-    category: 'cron',
-    message: '반복거래/반복매수 일괄 처리 완료 — 사용자 1명, 성공 3건 / 실패 1건',
-    metadata: { users: 1, processed: 4, succeeded: 3, failed: 1 },
-    createdAt: '2026-07-04T09:00:05',
-  },
-  {
-    id: 7,
-    level: 'warn',
-    category: 'recurring_buy',
-    message: '삼성전자(005930) 2026-06 시세조회 실패 — 다음 크론에 재시도',
-    metadata: { name: '삼성전자', symbol: '005930', period: '2026-06', error: 'Naver Finance API: HTTP 500 Internal Server Error' },
-    createdAt: '2026-07-03T09:01:14',
-  },
-  {
-    id: 6,
-    level: 'info',
-    category: 'cron',
-    message: 'DB 백업 완료 — backup-2026-07-03.sql.gz (12.3 MB)',
-    metadata: { filename: 'backup-2026-07-03.sql.gz', sizeMb: 12.3, destination: '/backups/' },
-    createdAt: '2026-07-03T04:00:12',
-  },
-  {
-    id: 5,
-    level: 'info',
-    category: 'recurring_buy',
-    message: 'AAPL(Apple Inc.) 2026-06 회차 매수 완료',
-    metadata: { name: 'Apple Inc.', symbol: 'AAPL', period: '2026-06', priceUsd: 189.2, currency: 'USD', quantity: 0.5286, amountKrw: 100000 },
-    createdAt: '2026-07-03T09:00:25',
-  },
-  {
-    id: 4,
-    level: 'info',
-    category: 'recurring_buy',
-    message: '삼성전자(005930) 2026-06 회차 매수 완료',
-    metadata: { name: '삼성전자', symbol: '005930', period: '2026-06', priceKrw: 76800, quantity: 1.3021, amountKrw: 100000 },
-    createdAt: '2026-07-03T09:00:18',
-  },
-  {
-    id: 3,
-    level: 'info',
-    category: 'recurring_tx',
-    message: '반복거래 회차 생성 완료 — 월세 2026-06 회차',
-    metadata: { title: '월세', period: '2026-06', amount: 500000, type: 'expense' },
-    createdAt: '2026-07-03T09:00:05',
-  },
-  {
-    id: 2,
-    level: 'error',
-    category: 'security',
-    message: '로그인 5회 연속 실패 — 계정 잠금 처리',
-    metadata: { email: 'swlsdud100559@gmail.com', attempts: 5, lockUntil: '2026-07-02T16:15:00', ip: '192.168.1.101' },
-    createdAt: '2026-07-02T16:00:33',
-  },
-  {
-    id: 1,
-    level: 'info',
-    category: 'cron',
-    message: 'DB 백업 완료 — backup-2026-07-02.sql.gz (12.1 MB)',
-    metadata: { filename: 'backup-2026-07-02.sql.gz', sizeMb: 12.1, destination: '/backups/' },
-    createdAt: '2026-07-02T04:00:09',
-  },
-];
-
 function monthsAgo(n: number): string {
   const d = new Date();
   d.setMonth(d.getMonth() - n);
@@ -180,11 +55,11 @@ function toDay(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function formatLogTime(iso: string): { full: string } {
+function formatLogTime(iso: string): string {
   const d = new Date(iso);
   const ymd = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
   const hms = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
-  return { full: `${ymd} ${hms}` };
+  return `${ymd} ${hms}`;
 }
 
 interface Applied {
@@ -195,9 +70,7 @@ interface Applied {
 }
 
 export default function LogsPage() {
-  // level: 즉시 반영 (조회 불필요)
   const [level, setLevel] = useState<LogLevel | 'all'>('all');
-  // pending: 폼 입력값 (조회 버튼으로 반영)
   const [pendingFrom, setPendingFrom] = useState(() => monthsAgo(1));
   const [pendingTo, setPendingTo] = useState(toDay);
   const [pendingCategory, setPendingCategory] = useState<LogCategory | ''>('');
@@ -209,10 +82,8 @@ export default function LogsPage() {
     category: '',
     q: '',
   }));
-
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const { page, setPage, limit, changeLimit } = usePagination();
 
   function handleSearch() {
     setApplied({ from: pendingFrom, to: pendingTo, category: pendingCategory, q: pendingQ });
@@ -237,19 +108,28 @@ export default function LogsPage() {
     setActivePreset(months);
   }
 
-  const filtered = useMemo(() => {
-    return DUMMY_LOGS.filter((log) => {
-      if (level !== 'all' && log.level !== level) return false;
-      if (applied.category && log.category !== applied.category) return false;
-      if (applied.q && !log.message.toLowerCase().includes(applied.q.toLowerCase())) return false;
-      if (applied.from && log.createdAt < applied.from) return false;
-      if (applied.to && log.createdAt > `${applied.to}T23:59:59`) return false;
-      return true;
-    });
-  }, [level, applied]);
+  const queryParams = useMemo(() => {
+    const p: Record<string, string> = {
+      from: applied.from,
+      to: applied.to,
+      page: String(page),
+      limit: String(limit),
+    };
+    if (level !== 'all') p.level = level;
+    if (applied.category) p.category = applied.category;
+    if (applied.q) p.q = applied.q;
+    return p;
+  }, [level, applied, page, limit]);
 
-  const totalPages = Math.ceil(filtered.length / limit) || 1;
-  const paged = filtered.slice((page - 1) * limit, page * limit);
+  const qs = useMemo(() => new URLSearchParams(queryParams).toString(), [queryParams]);
+
+  const logsQuery = useApiQuery<{ items: SystemLog[]; total: number }>(
+    qk.systemLogs.list(queryParams),
+    `/system-logs?${qs}`,
+  );
+  const items = logsQuery.data?.items ?? [];
+  const total = logsQuery.data?.total ?? 0;
+  const totalPages = Math.ceil(total / limit) || 1;
 
   function toggleExpand(id: number) {
     setExpanded((prev) => {
@@ -324,7 +204,6 @@ export default function LogsPage() {
               <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
             ))}
           </select>
-          {/* 검색 + 조회: 항상 한 줄 유지 */}
           <div className="flex gap-2 flex-1">
             <div className="relative flex-1 min-w-0">
               <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
@@ -344,19 +223,21 @@ export default function LogsPage() {
         </div>
       </div>
 
+      <ErrorBanner message={logsQuery.error?.message ?? null} />
+
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {filtered.length}건</span>
-        <LimitSelect limit={limit} onLimitChange={(l) => { setLimit(l); setPage(1); }} />
+        <span className="text-[0.78rem] text-secondary">총 {total}건</span>
+        <LimitSelect limit={limit} onLimitChange={(l) => { changeLimit(l); }} />
       </div>
 
       {/* 로그 목록 */}
       <div className="bg-background border border-border rounded-lg shadow-(--shadow-sm) overflow-hidden mb-4">
-        {paged.length === 0 && (
-          <div className="text-center text-muted py-12 text-sm">해당하는 로그가 없습니다.</div>
+        {!logsQuery.isLoading && items.length === 0 && (
+          <EmptyState message="해당하는 로그가 없습니다." className="text-center text-muted py-12 text-sm" />
         )}
-        {paged.map((log) => {
+        {items.map((log) => {
           const isOpen = expanded.has(log.id);
-          const { full } = formatLogTime(log.createdAt);
+          const full = formatLogTime(log.created_at);
           return (
             <div key={log.id} className="border-b border-border last:border-b-0">
               <button
@@ -370,7 +251,7 @@ export default function LogsPage() {
                     {LEVEL_LABEL[log.level]}
                   </span>
                   <span className="shrink-0 mt-px px-2 py-0.5 rounded bg-elevated text-muted text-[0.7rem] font-medium">
-                    {CATEGORY_LABEL[log.category]}
+                    {CATEGORY_LABEL[log.category] ?? log.category}
                   </span>
                   <span className="flex-1 text-[0.875rem] text-primary min-w-0">{log.message}</span>
                   <div className="flex items-center gap-2 shrink-0">
@@ -386,7 +267,7 @@ export default function LogsPage() {
                         {LEVEL_LABEL[log.level]}
                       </span>
                       <span className="px-2 py-0.5 rounded bg-elevated text-muted text-[0.7rem] font-medium">
-                        {CATEGORY_LABEL[log.category]}
+                        {CATEGORY_LABEL[log.category] ?? log.category}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -418,7 +299,7 @@ export default function LogsPage() {
             </div>
           );
         })}
-        <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
       </div>
     </AppShell>
   );

@@ -862,6 +862,23 @@ model SecurityScoreSnapshot {
   @@map("security_score_snapshot")
 }
 
+/// 시스템 로그 — 크론/반복매수/AI 등 백그라운드 작업의 실행 기록. 90일 경과 시 자동 삭제
+model SystemLog {
+  id         Int      @id @default(autoincrement())
+  user_id    Int?     /// 관련 사용자 (크론 전체 집계 등 전역 이벤트는 null)
+  level      String   @db.VarChar(10) /// info | warn | error
+  category   String   @db.VarChar(30) /// recurring_buy | recurring_tx | cron | asset | file | security | ai
+  message    String   @db.Text
+  metadata   Json?    /// 추가 컨텍스트 (symbol, amount, error 등)
+  created_at DateTime @default(now())
+
+  @@index([level])
+  @@index([category])
+  @@index([created_at])
+  @@index([user_id])
+  @@map("system_log")
+}
+
 /// 웹 푸시 구독 (PWA Web Push - 브라우저 푸시 서비스 endpoint + 암복호화 키)
 model PushSubscription {
   id         Int      @id @default(autoincrement())

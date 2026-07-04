@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionService } from '../transaction/transaction.service';
 import { InvestmentService } from '../investment/investment.service';
+import { SystemLogService } from '../system-log/system-log.service';
 
 // 반복거래/반복매수 회차 일괄 생성 — 조회 시점(lazy)이 아닌 매일 정해진 시각에 전체 사용자분을 채운다.
 // 해외 반복매수는 미국 장 시작 시각에 맞춰 별도 시간대(밤 11시)에 따로 돌린다(runForeign).
@@ -14,6 +15,7 @@ export class RecurringCronService {
     private prisma: PrismaService,
     private transactionService: TransactionService,
     private investmentService: InvestmentService,
+    private sysLog: SystemLogService,
   ) {}
 
   // 반복거래 + 반복매수(국내) — 매일 오전 9시
@@ -29,10 +31,22 @@ export class RecurringCronService {
       } catch (err) {
         failed += 1;
         this.logger.error(`사용자 ${u.id} 반복거래/반복매수(국내) 처리 실패: ${(err as Error).message}`);
+        this.sysLog.error({
+          userId: u.id,
+          category: 'cron',
+          message: `반복거래/반복매수(국내) 처리 실패`,
+          metadata: { error: (err as Error).message },
+        });
       }
     }
 
-    this.logger.log(`반복거래/반복매수(국내) 일괄 처리 완료 (사용자 ${users.length}명${failed ? `, 실패 ${failed}건` : ''})`);
+    const summary = `반복거래/반복매수(국내) 일괄 처리 완료 (사용자 ${users.length}명${failed ? `, 실패 ${failed}건` : ''})`;
+    this.logger.log(summary);
+    this.sysLog.info({
+      category: 'cron',
+      message: summary,
+      metadata: { total: users.length, failed },
+    });
   }
 
   // 반복매수(해외) — 미국 장이 열린 직후인 밤 11시(KST)에 돌려, 전날 종가에 고정된 가격이 아닌
@@ -48,9 +62,21 @@ export class RecurringCronService {
       } catch (err) {
         failed += 1;
         this.logger.error(`사용자 ${u.id} 반복매수(해외) 처리 실패: ${(err as Error).message}`);
+        this.sysLog.error({
+          userId: u.id,
+          category: 'cron',
+          message: `반복매수(해외) 처리 실패`,
+          metadata: { error: (err as Error).message },
+        });
       }
     }
 
-    this.logger.log(`반복매수(해외) 일괄 처리 완료 (사용자 ${users.length}명${failed ? `, 실패 ${failed}건` : ''})`);
+    const summary = `반복매수(해외) 일괄 처리 완료 (사용자 ${users.length}명${failed ? `, 실패 ${failed}건` : ''})`;
+    this.logger.log(summary);
+    this.sysLog.info({
+      category: 'cron',
+      message: summary,
+      metadata: { total: users.length, failed },
+    });
   }
 }
