@@ -14,6 +14,10 @@ import { SystemLogService } from '../system-log/system-log.service';
 const RECURRING_BUY_BATCH_SIZE = 3;
 const RECURRING_BUY_BATCH_DELAY_MS = 3000;
 
+// 현재가 갱신 배치 — 반복매수보다 단순(조회 후 update만)하므로 묶음 크기를 약간 크게 잡는다
+const PRICE_REFRESH_BATCH_SIZE = 5;
+const PRICE_REFRESH_BATCH_DELAY_MS = 2000;
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -88,6 +92,51 @@ export class InvestmentService {
     const amount = new Prisma.Decimal(quantity).mul(unitNative);
     const krwAmount = new Prisma.Decimal(quantity).mul(unitKrw);
     return { isForeign, amount, krwAmount };
+  }
+
+  // 활성 종목(symbol + quantity 보유)의 current_value 를 현재 시세로 갱신.
+  // 수량 × 현재가(원화)로 재계산 — 외부 API 과다호출 방지를 위해 PRICE_REFRESH_BATCH_SIZE 개씩 배치 처리.
+  async refreshCurrentValues(userId: number, market?: 'domestic' | 'foreign'): Promise<void> {
+    const rows = await this.prisma.investment.findMany({
+      where: {
+        user_id: userId,
+        deleted_at: null,
+        symbol: { not: null },
+        quantity: { not: null },
+        type: market === 'foreign' ? { in: FOREIGN_TYPES } : market === 'domestic' ? { notIn: FOREIGN_TYPES } : undefined,
+      },
+    });
+    if (!rows.length) return;
+
+    let updated = 0;
+    for (let i = 0; i < rows.length; i += PRICE_REFRESH_BATCH_SIZE) {
+      const batch = rows.slice(i, i + PRICE_REFRESH_BATCH_SIZE);
+      await Promise.all(batch.map(async (inv) => {
+        try {
+          const r = await this.priceLookup.lookup(inv.type, inv.symbol!);
+          const newValue = inv.quantity!.mul(new Prisma.Decimal(r.krwPrice));
+          await this.prisma.investment.update({ where: { id: inv.id }, data: { current_value: newValue } });
+          updated++;
+        } catch (e) {
+          this.sysLog.warn({
+            userId,
+            category: 'asset',
+            message: `${inv.symbol} 현재가 갱신 실패`,
+            metadata: { investmentId: inv.id, symbol: inv.symbol, type: inv.type, error: (e as Error).message },
+          });
+        }
+      }));
+      if (i + PRICE_REFRESH_BATCH_SIZE < rows.length) await sleep(PRICE_REFRESH_BATCH_DELAY_MS);
+    }
+
+    if (updated > 0) {
+      this.sysLog.info({
+        userId,
+        category: 'asset',
+        message: `투자 종목 현재가 갱신 완료 (${updated}/${rows.length}건)`,
+        metadata: { updated, total: rows.length },
+      });
+    }
   }
 
   // 반복매수(주식모으기) — 활성화된 종목의 미처리 회차를 그 시점 실시간 시세로 매수 처리.

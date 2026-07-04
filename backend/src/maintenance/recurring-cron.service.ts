@@ -28,6 +28,7 @@ export class RecurringCronService {
       try {
         await this.transactionService.materializeRecurring(u.id);
         await this.investmentService.materializeRecurringBuys(u.id, 'domestic');
+        await this.investmentService.refreshCurrentValues(u.id, 'domestic');
       } catch (err) {
         failed += 1;
         this.logger.error(`사용자 ${u.id} 반복거래/반복매수(국내) 처리 실패: ${(err as Error).message}`);
@@ -59,6 +60,7 @@ export class RecurringCronService {
     for (const u of users) {
       try {
         await this.investmentService.materializeRecurringBuys(u.id, 'foreign');
+        await this.investmentService.refreshCurrentValues(u.id, 'foreign');
       } catch (err) {
         failed += 1;
         this.logger.error(`사용자 ${u.id} 반복매수(해외) 처리 실패: ${(err as Error).message}`);
