@@ -220,42 +220,50 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
       </div>
 
       <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex flex-col gap-3 mb-4">
-        <div className="flex gap-2 items-center max-md:flex-wrap">
-          <select className="input w-auto min-w-[120px] shrink-0" value={pendingAccount} onChange={(ev) => setPendingAccount(ev.target.value)} aria-label="계좌 필터">
-            <option value="">전체 계좌</option>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-          <select className="input w-auto min-w-[120px] shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
-            <option value="">전체 유형</option>
-            {investCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
-          </select>
-          <div className="relative flex-1 min-w-[160px]">
-            <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-            <input className="input pl-icon" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && handleSearch()} aria-label="종목명 검색" />
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:flex-wrap">
+          <div className="flex gap-2 md:contents">
+            <select className="input flex-1 md:flex-none md:w-auto md:min-w-30 shrink-0" value={pendingAccount} onChange={(ev) => setPendingAccount(ev.target.value)} aria-label="계좌 필터">
+              <option value="">전체 계좌</option>
+              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+            <select className="input flex-1 md:flex-none md:w-auto md:min-w-30 shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+              <option value="">전체 유형</option>
+              {investCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+            </select>
           </div>
-          <Button onClick={handleSearch}>조회</Button>
-          <Button variant="ghost" onClick={handleReset}>초기화</Button>
+          <div className="flex gap-2 items-center flex-1">
+            <div className="relative flex-1 min-w-0">
+              <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
+              <input className="input pl-icon w-full" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && handleSearch()} aria-label="종목명 검색" />
+            </div>
+            <Button onClick={handleSearch}>조회</Button>
+          </div>
+          <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {total}건</span>
-        <div className="flex items-center gap-2">
-          {hasForeign && (
-            <div className="inline-flex rounded-md border border-border divide-x divide-border overflow-hidden text-[0.76rem] font-medium">
-              <button
-                className={`px-2.5 py-1 transition-colors ${currency === 'USD' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`}
-                onClick={() => setCurrency('USD')}
-              >$ USD</button>
-              <button
-                className={`px-2.5 py-1 transition-colors ${currency === 'KRW' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`}
-                onClick={() => setCurrency('KRW')}
-              >₩ KRW</button>
-            </div>
-          )}
-          <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
-          <LimitSelect limit={limit} onLimitChange={changeLimit} />
+      <div className="mb-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[0.78rem] text-secondary">총 {total}건</span>
+          <div className="flex items-center gap-2">
+            {hasForeign && (
+              <div className="hidden md:inline-flex rounded-md border border-border divide-x divide-border overflow-hidden text-[0.76rem] font-medium">
+                <button className={`px-2.5 py-1 transition-colors ${currency === 'USD' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`} onClick={() => setCurrency('USD')}>$ USD</button>
+                <button className={`px-2.5 py-1 transition-colors ${currency === 'KRW' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`} onClick={() => setCurrency('KRW')}>₩ KRW</button>
+              </div>
+            )}
+            <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+            <LimitSelect limit={limit} onLimitChange={changeLimit} />
+          </div>
         </div>
+        {hasForeign && (
+          <div className="flex justify-end mt-1.5 md:hidden">
+            <div className="inline-flex rounded-md border border-border divide-x divide-border overflow-hidden text-[0.76rem] font-medium">
+              <button className={`px-2.5 py-1 transition-colors ${currency === 'USD' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`} onClick={() => setCurrency('USD')}>$ USD</button>
+              <button className={`px-2.5 py-1 transition-colors ${currency === 'KRW' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`} onClick={() => setCurrency('KRW')}>₩ KRW</button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={`${TABLE_CARD} mb-6`}>

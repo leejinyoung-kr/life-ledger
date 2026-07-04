@@ -357,27 +357,31 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
           </div>
         </div>
         {/* 유형·카테고리·검색 한 줄 */}
-        <div className="flex gap-2 items-center flex-wrap">
-          <select className="input w-auto min-w-30 shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
-            <option value="">전체 유형</option>
-            <option value="income">수입</option><option value="expense">지출</option><option value="transfer">자산이동</option>
-          </select>
-          <select className="input w-auto min-w-30 shrink-0" value={pendingCat} onChange={(ev) => setPendingCat(ev.target.value)} aria-label="카테고리 필터">
-            <option value="">전체 카테고리</option>
-            {parentCats.map((p) => (
-              <optgroup key={p.code} label={p.label}>
-                {leafCats.filter((l) => l.parentCode === p.code).map((c) => (
-                  <option key={c.code} value={c.code}>{c.label}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <div className="relative flex-1 min-w-40">
-            <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-            <input className="input pl-icon" type="text" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && handleSearch()} aria-label="내역 검색" />
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:flex-wrap">
+          <div className="flex gap-2 md:contents">
+            <select className="input flex-1 md:flex-none md:w-auto md:min-w-30 shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+              <option value="">전체 유형</option>
+              <option value="income">수입</option><option value="expense">지출</option><option value="transfer">자산이동</option>
+            </select>
+            <select className="input flex-1 md:flex-none md:w-auto md:min-w-30 shrink-0" value={pendingCat} onChange={(ev) => setPendingCat(ev.target.value)} aria-label="카테고리 필터">
+              <option value="">전체 카테고리</option>
+              {parentCats.map((p) => (
+                <optgroup key={p.code} label={p.label}>
+                  {leafCats.filter((l) => l.parentCode === p.code).map((c) => (
+                    <option key={c.code} value={c.code}>{c.label}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
           </div>
-          <Button onClick={handleSearch}>조회</Button>
-          <Button variant="ghost" onClick={handleReset}>초기화</Button>
+          <div className="flex gap-2 flex-1">
+            <div className="relative flex-1 min-w-0">
+              <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
+              <input className="input pl-icon w-full" type="text" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && handleSearch()} aria-label="내역 검색" />
+            </div>
+            <Button onClick={handleSearch}>조회</Button>
+          </div>
+          <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
         </div>
       </div>
 

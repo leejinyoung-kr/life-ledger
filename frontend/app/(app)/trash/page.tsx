@@ -141,13 +141,13 @@ export default function TrashPage() {
       <ErrorBanner message={error} />
 
       {/* 검색 / 유형 필터 */}
-      <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex gap-2 items-center mb-2 max-md:flex-wrap">
+      <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex gap-2 items-center mb-2">
         <select className="input w-auto min-w-[120px] shrink-0" value={type} onChange={(e) => { setType(e.target.value); setPage(1); }} aria-label="유형 필터">
           {types.map((t) => <option key={t}>{t}</option>)}
         </select>
-        <div className="relative flex-1 min-w-[160px]">
+        <div className="relative flex-1 min-w-0">
           <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-          <input className="input pl-icon" type="text" placeholder="삭제 항목 검색..." value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} aria-label="삭제 항목 검색" />
+          <input className="input pl-icon w-full" type="text" placeholder="삭제 항목 검색..." value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} aria-label="삭제 항목 검색" />
         </div>
       </div>
 
