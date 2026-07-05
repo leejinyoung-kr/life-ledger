@@ -219,7 +219,7 @@ export function dotDate(d: string): string {
   return d.replaceAll('-', '.');
 }
 
-// 만기 예상금액 — 예금: 단리, 적금: 월납입 단리 합산. 청약·기타·만기일 없음은 null
+// 만기 예상금액 — 예금: 단리, 적금: 현재 잔액 + 남은 회차 월납입 단리 합산. 청약·기타·만기일 없음은 null
 export function calcMaturityAmount(saving: Saving): number | null {
   if (!saving.maturityDate) return null;
   if (saving.type === 'subscription' || saving.type === 'etc') return null;
@@ -231,12 +231,14 @@ export function calcMaturityAmount(saving: Saving): number | null {
     if (days <= 0) return null;
     return Math.round(saving.balance * (1 + rate * days / 365));
   }
-  // savings: 월납입 단리 — 1회차는 n개월, 2회차는 n-1개월 … n회차는 1개월 이자
-  const n = (maturity.getFullYear() - start.getFullYear()) * 12 + (maturity.getMonth() - start.getMonth());
-  if (n <= 0 || saving.monthlyAmount <= 0) return null;
-  const principal = saving.monthlyAmount * n;
-  const interest = saving.monthlyAmount * (n * (n + 1) / 2) * (rate / 12);
-  return Math.round(principal + interest);
+  // savings: 오늘 기준 현재 잔액에 남은 회차분(월납입 단리)만 더함 — 이미 납입한 회차는 balance에 반영되어 있다고 가정
+  const today = new Date(new Date().toDateString());
+  if (maturity <= today) return Math.round(saving.balance);
+  const remaining = (maturity.getFullYear() - today.getFullYear()) * 12 + (maturity.getMonth() - today.getMonth());
+  if (remaining <= 0 || saving.monthlyAmount <= 0) return Math.round(saving.balance);
+  const futurePrincipal = saving.monthlyAmount * remaining;
+  const futureInterest = saving.monthlyAmount * (remaining * (remaining + 1) / 2) * (rate / 12);
+  return Math.round(saving.balance + futurePrincipal + futureInterest);
 }
 
 // 만기까지 남은 일수 (없으면 null)
