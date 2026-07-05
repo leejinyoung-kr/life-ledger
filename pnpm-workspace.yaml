@@ -2,6 +2,13 @@ packages:
   - 'frontend'
   - 'backend'
 
-onlyBuiltDependencies:
-  - sharp
-  - unrs-resolver
+allowBuilds:
+  '@nestjs/core': true
+  '@prisma/engines': true
+  '@scarf/scarf': false
+  '@swc/core': true
+  esbuild: true
+  prisma: true
+  sharp: true
+  tesseract.js: true
+  unrs-resolver: true

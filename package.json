@@ -1,7 +1,7 @@
 {
   "name": "doc-nexus",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@11.9.0",
   "workspaces": [
     "frontend",
     "backend"
