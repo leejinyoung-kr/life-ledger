@@ -53,13 +53,6 @@ function recurringBuyLabel(row: Investment): string | null {
   return `${recurringRuleSummary(row.recurringBuyRule)} · ${amountLabel}`;
 }
 
-// 평가금액 최근 갱신 경과일 — 30일 이상이면 신뢰도 낮음을 amber로 표시
-function daysAgoLabel(updatedAt: string): { label: string; stale: boolean } {
-  const days = Math.floor((Date.now() - new Date(updatedAt).getTime()) / (24 * 60 * 60 * 1000));
-  const label = days <= 0 ? '오늘 갱신' : `${days}일 전`;
-  return { label, stale: days >= 30 };
-}
-
 export default function InvestTab({ investCats, addTrigger }: { investCats: Category[]; addTrigger: number }) {
   const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
@@ -271,7 +264,6 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
               <col style={{ width: '120px' }} />
               <col style={{ width: '120px' }} />
               <col style={{ width: '96px' }} />
-              <col style={{ width: '96px' }} />
               <col style={{ width: '180px' }} />
               <col style={{ width: '128px' }} />
               <col style={{ width: '72px' }} />
@@ -281,14 +273,13 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                 <th className="td-center"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
                 <th>계좌</th><th>유형</th><th>종목</th>
                 <th>투자원금</th><th>평가금액</th>
-                <th>수익</th><th>수익률</th><th>최근 갱신</th>
+                <th>수익</th><th>수익률</th>
                 <th>메모</th><th>매수/매도</th><th>관리</th>
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && <tr><td colSpan={12} className="td-center td-muted">투자 항목이 없습니다.</td></tr>}
+              {paged.length === 0 && <tr><td colSpan={11} className="td-center td-muted">투자 항목이 없습니다.</td></tr>}
               {paged.map((row) => {
-                const updated = daysAgoLabel(row.updatedAt);
                 const recurring = recurringBuyLabel(row);
                 const profit = fmtProfit(row);
                 return (
@@ -301,7 +292,6 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                     <td className="td-mono td-right">{fmtCurrentValue(row)}</td>
                     <td className={`td-right amount-${profit.up ? 'income' : 'expense'}`}>{profit.text}</td>
                     <td className="td-center"><span className={`return-pill ${profit.up ? 'up' : 'down'}`}>{profit.up ? '+' : ''}{row.profitRate}%</span></td>
-                    <td className={`td-center ${updated.stale ? 'text-amber' : 'text-muted'}`}>{updated.label}</td>
                     <td className="td-center td-muted">{row.memo ?? '-'}</td>
                     <td className="td-center">
                       <div className="flex justify-center gap-1.5">
@@ -320,7 +310,6 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
         <div className={TXCARDS}>
           {paged.length === 0 && <div className={TXCARD_EMPTY}>투자 항목이 없습니다.</div>}
           {paged.map((row) => {
-            const updated = daysAgoLabel(row.updatedAt);
             const recurring = recurringBuyLabel(row);
             const profit = fmtProfit(row);
             return (
@@ -339,7 +328,6 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                     { label: '원금', value: fmtPrincipal(row) },
                     { label: '수익', value: <span className={profit.up ? 'text-accent' : 'text-danger'}>{profit.text}</span> },
                     { label: '수익률', value: <span className={`return-pill ${profit.up ? 'up' : 'down'}`}>{profit.up ? '+' : ''}{row.profitRate}%</span> },
-                    { label: '업데이트', value: <span className={updated.stale ? 'text-amber' : ''}>{updated.label}</span> },
                     ...(recurring ? [{ label: '반복매수', value: recurring }] : []),
                     ...(row.memo ? [{ label: '메모', value: row.memo }] : []),
                   ].map(({ label, value }) => (
