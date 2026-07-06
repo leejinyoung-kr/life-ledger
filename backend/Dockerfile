@@ -15,8 +15,11 @@ RUN pnpm --filter backend run build
 
 FROM base AS runtime
 ENV NODE_ENV=production
-# DB 백업 크론(mysqldump)용
-RUN apk add --no-cache mariadb-client
+ENV TZ=Asia/Seoul
+# DB 백업 크론(mysqldump)용 + 컨테이너 타임존(KST) 적용용
+RUN apk add --no-cache mariadb-client tzdata \
+    && cp /usr/share/zoneinfo/$TZ /etc/localtime \
+    && echo $TZ > /etc/timezone
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/backend/node_modules ./backend/node_modules
 COPY --from=build /app/backend/package.json ./backend/package.json

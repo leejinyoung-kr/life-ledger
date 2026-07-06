@@ -68,7 +68,7 @@
 
 ## 크론 스케줄러
 
-`@nestjs/schedule` 기반, `backend/src/maintenance/`(AI 리포트는 같은 모듈에 등록된 `ai-report-cron.service.ts`)에 위치. 타임존 지정 없이 서버 로컬 시간(KST) 기준.
+`@nestjs/schedule` 기반, `backend/src/maintenance/`(AI 리포트는 같은 모듈에 등록된 `ai-report-cron.service.ts`)에 위치. `backend/Dockerfile`에서 컨테이너 타임존을 `TZ=Asia/Seoul`로 고정하여 서버 로컬 시간(KST) 기준으로 실행된다.
 
 | 일정 | 파일 | 내용 |
 | --- | --- | --- |
@@ -76,8 +76,8 @@
 | 매일 04:00 | db-backup-cron.service.ts | `mariadb-dump` → gzip 압축 후 `backups/`에 저장, 30일 경과 백업 자동 삭제 |
 | 매일 09:00 | notification-cron.service.ts | 사용자별 알림 생성(예적금 만기 D-30, 구독결제/체험종료 D-3, 신원만료 D-60, 할일마감 D-1, 비번회전 90일) + 웹푸시 발송. 만기/마감 알림은 설정(`notifMaturity`/`notifDeadline`)으로 개별 토글 가능 |
 | 매일 09:00 | security-snapshot-cron.service.ts | 사용자별 보안 점수 일별 스냅샷 적재 |
-| 매일 09:00 | recurring-cron.service.ts (`run`) | 반복거래/반복매수(국내) 회차 일괄 생성(`transaction.service.ts`/`investment.service.ts`의 `materializeRecurring*` 호출) + 국내 투자 종목 현재가 갱신(`investment.service.ts`의 `refreshCurrentValues`). 전체 사용자를 순회하며, 사용자별 실패는 로그만 남기고 계속 진행. 반복매수는 종목별로 외부 시세조회 API(네이버/야후)를 호출하므로 3종목씩 묶어 묶음 사이 3초 대기(현재가 갱신은 5종목씩 2초 대기) |
-| 매일 23:00 | recurring-cron.service.ts (`runForeign`) | 반복매수(해외 — foreign_stock/foreign_etf) 회차 일괄 생성 + 해외 투자 종목 현재가 갱신. 미국 장이 열린 직후 실시간 가격으로 매수하도록 국내 배치와 시간을 분리 |
+| 매일 09:00 | recurring-cron.service.ts (`run`) | 반복거래(국내, `transaction.service.ts`의 `materializeRecurring`)는 매일 실행. 반복매수(국내, `investment.service.ts`의 `materializeRecurringBuys`) + 국내 투자 종목 현재가 갱신(`refreshCurrentValues`)은 실제 증권시장이 열리는 평일(KST 기준, `isWeekdayKST()`)에만 실행하고 주말엔 건너뜀. 전체 사용자를 순회하며, 사용자별 실패는 로그만 남기고 계속 진행. 반복매수는 종목별로 외부 시세조회 API(네이버/야후)를 호출하므로 3종목씩 묶어 묶음 사이 3초 대기(현재가 갱신은 5종목씩 2초 대기) |
+| 매일 23:00 | recurring-cron.service.ts (`runForeign`) | 반복매수(해외 — foreign_stock/foreign_etf) 회차 일괄 생성 + 해외 투자 종목 현재가 갱신. 미국 장이 열린 직후 실시간 가격으로 매수하도록 국내 배치와 시간을 분리. 평일(KST 기준)에만 실행하고 주말엔 전체를 건너뜀 |
 | 매월 1일 01:00 | net-worth-snapshot-cron.service.ts | 사용자별 전월(YYYY-MM) 순자산(총자산/총부채) 스냅샷 저장. 같은 달 재실행 시 upsert로 덮어씀 |
 | 매월 1일 09:00 | ai-report-cron.service.ts | 설정에서 `notifMonthly`를 켠 사용자의 전월(`last_month`) AI 리포트 자동 생성. OpenAI 키 미설정/분석 내역 없음 등은 사용자별로 조용히 스킵 후 다음 달 재시도 |
 
