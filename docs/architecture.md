@@ -17,8 +17,8 @@
 | Rate-limit | @nestjs/throttler | 구현 완료 |
 | 암호화 | AES-256-GCM(`CREDENTIAL_SECRET`) / 마스터잠금 scrypt | 구현 완료 |
 | Storage | Backblaze B2 (@aws-sdk/client-s3, presigned) | 구현 완료 |
-| OCR / 유출검사 | tesseract.js(클라) / HIBP(k-anonymity) | 구현 완료 |
-| AI | OpenAI API (사용자별 키·모델, AI 리포트·자연어 거래 파싱) | 구현 완료 |
+| 유출검사 | HIBP(k-anonymity) | 구현 완료 |
+| AI | OpenAI API (사용자별 키·모델, AI 리포트) | 구현 완료 |
 
 ## Ports
 
@@ -59,7 +59,7 @@
 | export | /export | 구현 완료 |
 | import | /import | 구현 완료 |
 | maintenance | (크론 — 알림·휴지통·보안점수 스냅샷·순자산 스냅샷·DB 백업·AI 리포트 자동생성·투자 현재가 갱신) | 구현 완료 |
-| ai | /ai (자연어 거래 파싱·AI 리포트, 사용자별 OpenAI 키) | 구현 완료 |
+| ai | /ai (AI 리포트, 사용자별 OpenAI 키) | 구현 완료 |
 | mail | (SMTP 메일 발송 — 이메일 코드 로그인 등, 미설정 시 no-op) | 구현 완료 |
 | push | /push (웹 푸시 구독/발송 — VAPID) | 구현 완료 |
 | convert | /convert (이미지↔PDF 변환) | 구현 완료 |

@@ -1,28 +1,16 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { AiReport, Prisma } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { AiReport } from '@prisma/client';
 import OpenAI from 'openai';
 import { CryptoService } from '../common/crypto.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SystemLogService } from '../system-log/system-log.service';
 import type { ReportPeriod } from './dto/generate-report.dto';
 
-export interface LedgerParseResult {
-  type: 'income' | 'expense' | 'transfer';
-  amount: number;
-  category: string | null; // 소분류(leaf) code
-  categoryLabel: string;
-  parentCode: string | null; // 대분류 code (소분류에서 파생)
-  parentLabel: string;
-  title: string;
-  payMethod: string;
-  memo: string;
-  date: string;
-}
-
 export type InsightTone = 'green' | 'warning' | 'danger';
-
-// 가계부 등록 폼과 동일한 결제수단 목록 (frontend/lib/finance.ts PAY_METHODS)
-const PAY_METHODS = ['신한카드', '카카오페이', '현금', '계좌이체'];
 
 // 모델별 단가 (USD per 1M tokens) — [입력, 출력]. 호출 시점에 비용 산정해 저장(과거 정확성 보존)
 // 미등록 모델은 0원 처리 (단가 불명 → 사용량만 기록)
@@ -32,8 +20,10 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
 };
 
 const PERIOD_LABEL: Record<ReportPeriod, (from: Date) => string> = {
-  this_month: (from) => `${from.getUTCFullYear()}년 ${from.getUTCMonth() + 1}월`,
-  last_month: (from) => `${from.getUTCFullYear()}년 ${from.getUTCMonth() + 1}월`,
+  this_month: (from) =>
+    `${from.getUTCFullYear()}년 ${from.getUTCMonth() + 1}월`,
+  last_month: (from) =>
+    `${from.getUTCFullYear()}년 ${from.getUTCMonth() + 1}월`,
   last_3_months: () => '최근 3개월',
   this_year: (from) => `${from.getUTCFullYear()}년 전체`,
 };
@@ -58,10 +48,16 @@ export class AiService {
 
   // 사용자 설정의 OpenAI API 키로 클라이언트 구성. 미설정 시 503
   // 키는 AES-256-GCM 암호문('v1:')으로 저장 — 호출 직전 복호화. 구버전 평문 행은 그대로 사용(하위호환)
-  private async getClient(userId: number): Promise<{ openai: OpenAI; model: string }> {
-    const settings = await this.prisma.userSettings.findUnique({ where: { user_id: userId } });
+  private async getClient(
+    userId: number,
+  ): Promise<{ openai: OpenAI; model: string }> {
+    const settings = await this.prisma.userSettings.findUnique({
+      where: { user_id: userId },
+    });
     if (!settings?.openai_api_key) {
-      throw new ServiceUnavailableException('OpenAI API 키가 설정되지 않았습니다. 설정 페이지에서 등록해주세요.');
+      throw new ServiceUnavailableException(
+        'OpenAI API 키가 설정되지 않았습니다. 설정 페이지에서 등록해주세요.',
+      );
     }
     const apiKey = settings.openai_api_key.startsWith('v1:')
       ? this.crypto.decrypt(settings.openai_api_key)
@@ -71,7 +67,9 @@ export class AiService {
 
   // 저장된 OpenAI 키 연결 확인 — /v1/models 호출로 키 유효성 + 설정 모델 접근 가능 여부 검사
   // (OpenAI는 크레딧 잔액 조회 API를 제공하지 않으므로, 연결·모델 가용성만 확인한다)
-  async verifyApiKey(userId: number): Promise<{ ok: boolean; model: string; modelAvailable: boolean }> {
+  async verifyApiKey(
+    userId: number,
+  ): Promise<{ ok: boolean; model: string; modelAvailable: boolean }> {
     const { openai, model } = await this.getClient(userId);
     try {
       const list = await openai.models.list();
@@ -79,7 +77,9 @@ export class AiService {
       return { ok: true, model, modelAvailable };
     } catch {
       // 401·403 등 → 키 무효/만료
-      throw new BadRequestException('OpenAI 키 검증에 실패했습니다. 키가 유효하지 않거나 만료되었습니다.');
+      throw new BadRequestException(
+        'OpenAI 키 검증에 실패했습니다. 키가 유효하지 않거나 만료되었습니다.',
+      );
     }
   }
 
@@ -87,14 +87,19 @@ export class AiService {
   private async logUsage(
     userId: number,
     model: string,
-    source: 'parse' | 'report',
-    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | null,
+    source: 'report',
+    usage?: {
+      prompt_tokens?: number;
+      completion_tokens?: number;
+      total_tokens?: number;
+    } | null,
   ): Promise<void> {
     if (!usage) return;
     const price = MODEL_PRICING[model] ?? { input: 0, output: 0 };
     const prompt = usage.prompt_tokens ?? 0;
     const completion = usage.completion_tokens ?? 0;
-    const cost = (prompt / 1e6) * price.input + (completion / 1e6) * price.output;
+    const cost =
+      (prompt / 1e6) * price.input + (completion / 1e6) * price.output;
     try {
       await this.prisma.aiUsageLog.create({
         data: {
@@ -108,7 +113,18 @@ export class AiService {
         },
       });
     } catch (e) {
-      this.sysLog.warn({ userId, category: 'ai', message: 'AI 사용량 기록 실패', metadata: { model, source, error: (e as Error).message, inputTokens: prompt, outputTokens: completion } });
+      this.sysLog.warn({
+        userId,
+        category: 'ai',
+        message: 'AI 사용량 기록 실패',
+        metadata: {
+          model,
+          source,
+          error: (e as Error).message,
+          inputTokens: prompt,
+          outputTokens: completion,
+        },
+      });
     }
   }
 
@@ -129,13 +145,20 @@ export class AiService {
     let completionTokens = 0;
     let totalTokens = 0;
     let costUsd = 0;
-    const byModelMap = new Map<string, { calls: number; totalTokens: number; costUsd: number }>();
+    const byModelMap = new Map<
+      string,
+      { calls: number; totalTokens: number; costUsd: number }
+    >();
     for (const r of rows) {
       promptTokens += r.prompt_tokens;
       completionTokens += r.completion_tokens;
       totalTokens += r.total_tokens;
       costUsd += r.cost_usd.toNumber();
-      const cur = byModelMap.get(r.model) ?? { calls: 0, totalTokens: 0, costUsd: 0 };
+      const cur = byModelMap.get(r.model) ?? {
+        calls: 0,
+        totalTokens: 0,
+        costUsd: 0,
+      };
       cur.calls += 1;
       cur.totalTokens += r.total_tokens;
       cur.costUsd += r.cost_usd.toNumber();
@@ -160,7 +183,11 @@ export class AiService {
   }
 
   // 분석 기간 코드 → 시작일/종료일/표시 라벨
-  private periodRange(period: ReportPeriod): { from: Date; to: Date; label: string } {
+  private periodRange(period: ReportPeriod): {
+    from: Date;
+    to: Date;
+    label: string;
+  } {
     const now = new Date();
     const y = now.getUTCFullYear();
     const m = now.getUTCMonth();
@@ -201,87 +228,6 @@ export class AiService {
     };
   }
 
-  // 자연어 텍스트 → 가계부 거래 초안 파싱 (자산관리 - 수입/지출 AI 입력)
-  async parseLedgerEntry(userId: number, text: string): Promise<LedgerParseResult> {
-    const { openai, model } = await this.getClient(userId);
-
-    const categories = await this.prisma.category.findMany({
-      where: { domain: 'transaction', is_active: true },
-      orderBy: { sort_order: 'asc' },
-    });
-    // 2계층: 대분류(parent_code=null) 아래 소분류를 묶어 제시. AI 는 소분류 code 만 선택
-    const parents = categories.filter((c) => !c.parent_code);
-    const leaves = categories.filter((c) => c.parent_code);
-    const categoryList = parents
-      .map((p) => {
-        const children = leaves
-          .filter((l) => l.parent_code === p.code)
-          .map((l) => `  - ${l.label} (code: ${l.code})`)
-          .join('\n');
-        return `[${p.label}]\n${children}`;
-      })
-      .join('\n');
-    const today = toDateStr(new Date());
-
-    const systemPrompt = `당신은 가계부 거래 파싱 AI입니다. 사용자의 자연어 텍스트를 분석해서 거래 정보를 JSON으로만 반환하세요.
-
-오늘 날짜: ${today}
-
-사용 가능한 카테고리 목록 (대괄호=대분류, 그 아래가 소분류):
-${categoryList}
-
-사용 가능한 결제수단: ${PAY_METHODS.join(', ')}
-
-반환 형식 (JSON만 반환, 설명 없음):
-{
-  "type": "expense" 또는 "income" 또는 "transfer",
-  "amount": 숫자 (원 단위, 만원 단위 자동 변환),
-  "category": "소분류 code (목록의 소분류 중 선택, 매칭 불가 시 null)",
-  "title": "내역명 (품목·상호 등, 없으면 빈 문자열)",
-  "payMethod": "결제수단 (목록에서 선택, 지출이 아니거나 알 수 없으면 빈 문자열)",
-  "memo": "메모 (없으면 빈 문자열)",
-  "date": "YYYY-MM-DD" (어제/오늘/그저께 등 자연어 변환, 언급 없으면 오늘)
-}
-
-규칙:
-- "만원" 표현은 × 10000 변환 (1만5천원 → 15000)
-- category 는 반드시 소분류(들여쓴 항목)의 code 만 선택. 대분류 code 는 사용 금지
-- 소분류를 특정하기 어려우면 해당 대분류의 "기타…" 소분류 선택. 대분류조차 불명확하면 null
-- 식당·회식은 외식, 카페·간식은 카페·간식, 마트·장보기는 식료품 / 지하철·버스는 대중교통, 택시는 택시, 주유는 유류비
-- 월급·용돈·이자·환급 등은 income(수입 대분류 소분류), 저축·계좌 간 이동은 transfer(이체), 그 외 대부분은 expense`;
-
-    const response = await openai.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: text },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0,
-    });
-    await this.logUsage(userId, model, 'parse', response.usage);
-
-    const raw = response.choices[0].message.content ?? '{}';
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    // 소분류만 유효한 매칭으로 인정 (대분류 code 반환 시 무시)
-    const matched = leaves.find((c) => c.code === parsed['category']);
-    const parent = matched ? parents.find((p) => p.code === matched.parent_code) ?? null : null;
-    const type = parsed['type'];
-
-    return {
-      type: type === 'income' || type === 'transfer' ? type : 'expense',
-      amount: Number(parsed['amount']) || 0,
-      category: matched?.code ?? null,
-      categoryLabel: matched?.label ?? '',
-      parentCode: parent?.code ?? null,
-      parentLabel: parent?.label ?? '',
-      title: String(parsed['title'] ?? ''),
-      payMethod: PAY_METHODS.includes(parsed['payMethod'] as string) ? (parsed['payMethod'] as string) : '',
-      memo: String(parsed['memo'] ?? ''),
-      date: String(parsed['date'] ?? today),
-    };
-  }
-
   // 저장된 AI 리포트 목록 (최신순)
   async listReports(userId: number) {
     const rows = await this.prisma.aiReport.findMany({
@@ -301,19 +247,35 @@ ${categoryList}
     // created_at은 KST 트리거로 이미 KST 벽시계 시각이 저장되므로 toDateStr로 그대로 날짜 추출(kstDateStr 적용 시 +9h 이중 적용 버그)
     if (latest && toDateStr(latest.created_at) === kstDateStr(new Date())) {
       const nowKst = new Date(Date.now() + 9 * 3600 * 1000);
-      const msSinceKstMidnight = nowKst.getTime() - Date.UTC(nowKst.getUTCFullYear(), nowKst.getUTCMonth(), nowKst.getUTCDate());
-      const remainingHours = Math.ceil((24 * 60 * 60 * 1000 - msSinceKstMidnight) / (60 * 60 * 1000));
-      throw new BadRequestException(`리포트는 하루에 한 번만 생성할 수 있습니다. 자정 이후 약 ${remainingHours}시간 후에 다시 시도해주세요.`);
+      const msSinceKstMidnight =
+        nowKst.getTime() -
+        Date.UTC(
+          nowKst.getUTCFullYear(),
+          nowKst.getUTCMonth(),
+          nowKst.getUTCDate(),
+        );
+      const remainingHours = Math.ceil(
+        (24 * 60 * 60 * 1000 - msSinceKstMidnight) / (60 * 60 * 1000),
+      );
+      throw new BadRequestException(
+        `리포트는 하루에 한 번만 생성할 수 있습니다. 자정 이후 약 ${remainingHours}시간 후에 다시 시도해주세요.`,
+      );
     }
 
     const { openai, model } = await this.getClient(userId);
     const { from, to, label } = this.periodRange(period);
 
     const transactions = await this.prisma.transaction.findMany({
-      where: { user_id: userId, deleted_at: null, date: { gte: from, lte: to } },
+      where: {
+        user_id: userId,
+        deleted_at: null,
+        date: { gte: from, lte: to },
+      },
     });
     if (!transactions.length) {
-      throw new BadRequestException('해당 기간에 분석할 가계부 내역이 없습니다.');
+      throw new BadRequestException(
+        '해당 기간에 분석할 가계부 내역이 없습니다.',
+      );
     }
 
     const categories = await this.prisma.category.findMany({
@@ -336,7 +298,10 @@ ${categoryList}
     }
     const breakdown = Array.from(byCategory.entries())
       .sort((a, b) => b[1] - a[1])
-      .map(([catName, total]) => `- ${catName}: ${total.toLocaleString()}원 (지출의 ${Math.round((total / (expense || 1)) * 100)}%)`)
+      .map(
+        ([catName, total]) =>
+          `- ${catName}: ${total.toLocaleString()}원 (지출의 ${Math.round((total / (expense || 1)) * 100)}%)`,
+      )
       .join('\n');
 
     const userPrompt = `분석 기간: ${label} (${toDateStr(from)} ~ ${toDateStr(to)})
@@ -365,7 +330,8 @@ ${breakdown}
       messages: [
         {
           role: 'system',
-          content: '당신은 개인 재무 분석 AI입니다. 가계부 데이터를 분석해 통찰력 있는 소비 패턴 리포트를 작성하고, 반드시 JSON 형식으로만 응답하세요.',
+          content:
+            '당신은 개인 재무 분석 AI입니다. 가계부 데이터를 분석해 통찰력 있는 소비 패턴 리포트를 작성하고, 반드시 JSON 형식으로만 응답하세요.',
         },
         { role: 'user', content: userPrompt },
       ],
@@ -379,11 +345,16 @@ ${breakdown}
     const insights = Array.isArray(parsed['insights'])
       ? (parsed['insights'] as unknown[]).map((item) => {
           const obj = (item ?? {}) as Record<string, unknown>;
-          const tone: InsightTone = obj['tone'] === 'warning' || obj['tone'] === 'danger' ? obj['tone'] : 'green';
+          const tone: InsightTone =
+            obj['tone'] === 'warning' || obj['tone'] === 'danger'
+              ? obj['tone']
+              : 'green';
           return { tone, text: String(obj['text'] ?? '') };
         })
       : [];
-    const tags = Array.isArray(parsed['tags']) ? (parsed['tags'] as unknown[]).map(String) : [];
+    const tags = Array.isArray(parsed['tags'])
+      ? (parsed['tags'] as unknown[]).map(String)
+      : [];
 
     const created = await this.prisma.aiReport.create({
       data: {
@@ -393,11 +364,16 @@ ${breakdown}
         period_to: to,
         model_used: model,
         summary: String(parsed['summary'] ?? ''),
-        insights: insights as unknown as Prisma.InputJsonValue,
-        tags: tags as unknown as Prisma.InputJsonValue,
+        insights: insights,
+        tags: tags,
       },
     });
-    this.sysLog.info({ userId, category: 'ai', message: `AI 리포트 생성 완료 — ${label}`, metadata: { period, model, tokensUsed: response.usage?.total_tokens } });
+    this.sysLog.info({
+      userId,
+      category: 'ai',
+      message: `AI 리포트 생성 완료 — ${label}`,
+      metadata: { period, model, tokensUsed: response.usage?.total_tokens },
+    });
     return this.toDto(created);
   }
 }

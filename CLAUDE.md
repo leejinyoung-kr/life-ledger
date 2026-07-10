@@ -13,9 +13,9 @@
 - 자산 현황 (금융 자산 요약·월별 추이·현금흐름 예측) — 구현 완료
 - 캘린더 / 할 일 / 메모 / 구독 — 구현 완료
 - 보안 코어 (마스터 잠금·접근 감사 로그·보안점수 추이·비번 회전·2FA 백업코드·강도 통계) — 구현 완료
-- 외부 연동 (HIBP 유출 비밀번호 검사·영수증 OCR) — 구현 완료
+- 외부 연동 (HIBP 유출 비밀번호 검사) — 구현 완료
 - 통합 검색 / 데이터 내보내기(JSON·ZIP)·가져오기(계정 JSON 복원) — 구현 완료
-- AI 리포트 / 자연어 거래 파싱 (사용자별 OpenAI 키 — 가계부 분석·절약 인사이트, 자연어→거래 초안) — 구현 완료
+- AI 리포트 (사용자별 OpenAI 키 — 가계부 분석·절약 인사이트) — 구현 완료
 
 ---
 
@@ -51,7 +51,7 @@ doc-nexus/
 │       ├── export/        # 데이터 내보내기 (계정 JSON·전체 ZIP)
 │       ├── import/        # 데이터 가져오기 (계정 JSON 복원)
 │       ├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수 스냅샷·순자산 스냅샷·DB 백업·투자 현재가 갱신)
-│       ├── ai/            # AI 리포트 / 자연어 거래 파싱 (사용자별 OpenAI 키)
+│       ├── ai/            # AI 리포트 (사용자별 OpenAI 키)
 │       ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
 │       ├── push/          # 웹 푸시 구독/발송 (VAPID)
 │       ├── convert/       # 이미지↔PDF 변환
@@ -77,7 +77,6 @@ doc-nexus/
 | Rate-limit | `@nestjs/throttler` (reveal/totp/복호화·vault unlock 엄격 제한) |
 | 암호화 | AES-256-GCM (`CREDENTIAL_SECRET` 키, 보관함 민감필드) / 마스터 잠금은 scrypt 해시 |
 | 스토리지 | Backblaze B2 (`@aws-sdk/client-s3`, presigned) |
-| OCR | tesseract.js (클라이언트, 영수증) |
 | 유출검사 | HaveIBeenPwned Pwned Passwords (k-anonymity) |
 | AI | OpenAI API (사용자별 키·모델, 설정에서 입력) |
 | 패키지 매니저 | pnpm (모노레포) |
@@ -154,8 +153,8 @@ doc-nexus/
 | Backend — 마스터 잠금·접근로그·보안점수추이·유출검사·강도통계 | 구현 완료 |
 | Backend — 파일 보관함 (Backblaze B2) | 구현 완료 |
 | Backend — 데이터 내보내기/가져오기 (JSON·ZIP·복원) | 구현 완료 |
-| Backend — 영수증 OCR(클라이언트)·현금흐름 예측·통합 D-day | 구현 완료 |
-| Backend — AI 리포트 / 자연어 거래 파싱 (OpenAI, 사용자별 키) | 구현 완료 |
+| Backend — 현금흐름 예측·통합 D-day | 구현 완료 |
+| Backend — AI 리포트 (OpenAI, 사용자별 키) | 구현 완료 |
 | Backend — 시스템 로그 / 순자산 월간 스냅샷 / 투자 현재가 자동 갱신 | 구현 완료 |
 | DB | 32개 테이블 구현 완료 |
 

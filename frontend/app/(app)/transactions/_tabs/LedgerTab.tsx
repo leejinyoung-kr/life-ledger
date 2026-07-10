@@ -33,37 +33,12 @@ import {
   AMT_COLOR, RowActions, CardActions, toDay, monthsAgo, useAddTrigger,
 } from '../_shared';
 
-// prefill: 영수증 OCR · AI 자연어 입력 등으로 추가 모달을 미리 채울 때 사용
+// prefill: 내역 복사(handleDuplicate) 등으로 추가 모달을 미리 채울 때 사용
 type LedgerDraft = {
   date?: string; title?: string; amount?: number;
   type?: TransactionType; category?: string; payMethod?: string; memo?: string;
 };
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Transaction; prefill?: LedgerDraft };
-
-// 영수증 OCR 텍스트 → 날짜·금액·상호 추정 (한국어 영수증 휴리스틱)
-function parseReceipt(text: string): LedgerDraft {
-  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
-  const joined = lines.join('\n');
-
-  // 날짜: YYYY[-./ ]MM[-./ ]DD
-  const dm = joined.match(/(20\d{2})[.\-/\s]?\s?(\d{1,2})[.\-/\s]?\s?(\d{1,2})/);
-  const date = dm ? `${dm[1]}-${dm[2].padStart(2, '0')}-${dm[3].padStart(2, '0')}` : undefined;
-
-  // 금액: 합계/총액/결제금액 라인의 숫자 우선, 없으면 콤마 포함 최대 숫자
-  const num = (s: string) => Number(s.replace(/[^\d]/g, ''));
-  let amount: number | undefined;
-  const totalLine = lines.find((l) => /(합\s?계|총\s?액|받을금액|결제금액|승인금액)/.test(l) && /\d/.test(l));
-  if (totalLine) amount = num((totalLine.match(/[\d,]{2,}/g) ?? []).sort((a, b) => num(b) - num(a))[0] ?? '');
-  if (!amount) {
-    const all = (joined.match(/[\d]{1,3}(?:,\d{3})+/g) ?? []).map(num).filter((n) => n >= 100);
-    amount = all.length ? Math.max(...all) : undefined;
-  }
-
-  // 상호: 금액/날짜/숫자 위주가 아닌 첫 의미있는 줄
-  const title = lines.find((l) => l.length >= 2 && !/^[\d\s.,:\-/]+$/.test(l) && !/(영수증|승인|합계|카드|현금)/.test(l));
-
-  return { date, amount, title: title?.slice(0, 40) };
-}
 
 export default function LedgerTab({ categories, bankCats, addTrigger }: { categories: Category[]; bankCats: Category[]; addTrigger: number }) {
   const [pendingFrom, setPendingFrom] = useState(() => monthsAgo(1));
@@ -76,7 +51,6 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   const { confirm, confirmElement } = useConfirm();
   const [activePreset, setActivePreset] = useState<number | null>(1);
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
-  const [scanning, setScanning] = useState(false);
   const invalidate = useInvalidate();
 
   useAddTrigger(addTrigger, () => setModal({ open: true, mode: 'add' }));
@@ -190,52 +164,6 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
     }
   }
 
-  // 영수증 사진 OCR(tesseract.js) → AI 파싱(/ai/parse-transaction)으로 날짜·금액·상호·카테고리 추정 후
-  // 지출 추가 모달 프리필. AI 호출 실패 시 정규식 휴리스틱(parseReceipt)으로 폴백. 자동 저장 아님(사용자 확인)
-  async function handleScanReceipt(ev: React.ChangeEvent<HTMLInputElement>) {
-    const file = ev.target.files?.[0];
-    ev.target.value = '';
-    if (!file) return;
-    setScanning(true);
-    try {
-      const Tesseract = (await import('tesseract.js')).default;
-      const { data } = await Tesseract.recognize(file, 'kor+eng');
-      let draft = parseReceipt(data.text);
-      try {
-        const r = await api.post<{
-          type: TransactionType; amount: number; category: string | null;
-          title: string; payMethod: string; memo: string; date: string;
-        }>('/ai/parse-transaction', {
-          text: `다음은 영수증에서 OCR로 추출한 텍스트입니다. 총 합계 금액, 상호명, 날짜, 카테고리를 인식해 거래 정보를 추출하세요.\n\n${data.text}`,
-        });
-        if (r.amount > 0) {
-          draft = {
-            date: r.date || draft.date,
-            title: r.title || draft.title,
-            amount: r.amount,
-            type: r.type,
-            category: r.category ?? undefined,
-            payMethod: r.payMethod || undefined,
-            memo: r.memo || undefined,
-          };
-        }
-      } catch {
-        // AI 파싱 실패 시 휴리스틱 결과(draft) 그대로 사용
-      }
-      if (!draft.amount && !draft.title) {
-        notify.error('영수증에서 정보를 찾지 못했습니다. 직접 입력해 주세요.');
-        setModal({ open: true, mode: 'add' });
-      } else {
-        setModal({ open: true, mode: 'add', prefill: draft });
-        notify.success('영수증을 인식했습니다. 내용을 확인 후 저장하세요.');
-      }
-    } catch {
-      notify.error('영수증 인식에 실패했습니다.');
-    } finally {
-      setScanning(false);
-    }
-  }
-
   async function downloadData() {
     const params = new URLSearchParams();
     if (applied.from) params.set('from', applied.from);
@@ -259,8 +187,6 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   return (
     <>
       {error && <p className="mt-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
-
-      <AiLedgerInput onResult={(draft) => setModal({ open: true, mode: 'add', prefill: draft })} />
 
       {summary && (
         <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
@@ -328,16 +254,6 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
               <input type="file" accept=".xlsx,.xls,.csv" hidden aria-label="엑셀 업로드" onChange={handleUpload} />
             </label>
             <button type="button" className="excel-btn" onClick={downloadData}>데이터 다운로드</button>
-          </div>
-        </div>
-        <div className="hidden md:block w-px bg-border self-stretch mx-1 shrink-0" />
-        <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
-          <span className="text-[0.75rem] font-semibold text-muted">영수증</span>
-          <div className="flex gap-2">
-            <label className="excel-btn upload">
-              {scanning ? '인식 중...' : '📷 영수증 스캔'}
-              <input type="file" accept="image/*" hidden aria-label="영수증 스캔" disabled={scanning} onChange={handleScanReceipt} />
-            </label>
           </div>
         </div>
       </div>
@@ -476,63 +392,6 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
       />
       {confirmElement}
     </>
-  );
-}
-
-// AI 자연어 입력 → /ai/parse-transaction 으로 거래 초안을 받아 추가 모달을 프리필 (자동 저장 아님, 사용자 확인)
-function AiLedgerInput({ onResult }: { onResult: (draft: LedgerDraft) => void }) {
-  const [text, setText] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  async function handleSubmit() {
-    const trimmed = text.trim();
-    if (!trimmed || saving) return;
-    setSaving(true);
-    try {
-      const r = await api.post<{
-        type: TransactionType; amount: number; category: string | null;
-        title: string; payMethod: string; memo: string; date: string;
-      }>('/ai/parse-transaction', { text: trimmed });
-      if (!r.amount || r.amount <= 0) {
-        notify.error('금액을 인식하지 못했습니다. 직접 입력해 주세요.');
-        return;
-      }
-      onResult({
-        type: r.type,
-        amount: r.amount,
-        category: r.category ?? undefined,
-        title: r.title || undefined,
-        payMethod: r.payMethod || undefined,
-        memo: r.memo || undefined,
-        date: r.date,
-      });
-      notify.success('AI가 내용을 채웠습니다. 내용을 확인 후 저장해주세요.');
-      setText('');
-    } catch (err) {
-      notify.error((err as Error).message || 'AI 입력 처리에 실패했습니다.');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="flex gap-2 items-center mb-5 px-4 py-3 bg-surface border border-border rounded-(--radius)">
-      <span className="text-[1.05rem] shrink-0" aria-hidden>✨</span>
-      <input
-        type="text"
-        className="input flex-1"
-        placeholder="예: 어제 점심 스타벅스에서 8500원 카드로 결제"
-        value={text}
-        onChange={(ev) => setText(ev.target.value)}
-        onKeyDown={(ev) => ev.key === 'Enter' && handleSubmit()}
-        aria-label="AI 자연어 입력"
-        disabled={saving}
-      />
-      <Button onClick={handleSubmit} disabled={saving || !text.trim()}>
-        {saving && <span className="inline-block w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
-        {saving ? '분석 중...' : 'AI 입력'}
-      </Button>
-    </div>
   );
 }
 
