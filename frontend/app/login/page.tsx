@@ -2,7 +2,8 @@
  * 로그인 페이지 (독립 풀스크린, AppShell 미사용).
  * Google OAuth + 이메일 코드 로그인 진입점. 스타일: Tailwind (토큰 var() 활용).
  */
-import EmailLoginForm from './EmailLoginForm';
+// import EmailLoginForm from './EmailLoginForm'; // [발표용 임시] 주석처리 — 발표 끝나면 복구
+import DemoLoginForm from './DemoLoginForm'; // [발표용 임시]
 import LoginGate from './LoginGate';
 
 export default async function LoginPage({
@@ -65,7 +66,7 @@ export default async function LoginPage({
           ))}
         </ul>
 
-        {/* Google login button */}
+        {/* [발표용 임시] 아이디/비밀번호 아무 값이나 입력해도 로그인 — 발표 끝나면 아래 원본으로 복구
         <a
           href={`${backendUrl}/api/v1/auth/google`}
           className="w-full flex items-center justify-center gap-2.5 p-3 bg-background border border-border rounded-[var(--radius)] text-primary text-[0.875rem] font-medium cursor-pointer transition-all no-underline mb-3.5 hover:border-accent hover:bg-surface hover:shadow-[0_0_0_3px_var(--accent-dim)]"
@@ -74,15 +75,15 @@ export default async function LoginPage({
           Google 계정으로 계속하기
         </a>
 
-        {/* 구분선 */}
         <div className="flex items-center gap-3 my-3.5 text-[0.7rem] text-muted">
           <span className="flex-1 h-px bg-border" />
           또는
           <span className="flex-1 h-px bg-border" />
         </div>
 
-        {/* 이메일 코드 로그인 (구글 불가 환경 대체 수단) */}
         <EmailLoginForm apiBase={`${backendUrl}/api/v1`} />
+        */}
+        <DemoLoginForm apiBase={`${backendUrl}/api/v1`} />
 
         <p className="text-center text-[0.69rem] text-muted leading-[1.7] mt-3.5 break-keep [&_a]:text-accent [&_a:hover]:opacity-70">
           로그인 시{' '}
