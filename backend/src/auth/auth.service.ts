@@ -139,16 +139,6 @@ export class AuthService {
     return { access: this.signAccess(user), refresh: this.signRefresh(user.id, jti, ttl), refreshTtlMs: ms };
   }
 
-  // [발표용 임시] 아이디/비밀번호 값 검증 없이 무조건 로그인 — 발표 끝나면 이 메서드와
-  // AuthController#demoLogin, frontend DemoLoginForm 을 되돌릴 것 (원래 Google/이메일 로그인만 사용)
-  async demoLogin(client?: LoginClient): Promise<{ access: string; refresh: string; refreshTtlMs: number }> {
-    const user = await this.prisma.user.findFirst({ orderBy: { id: 'asc' } })
-      ?? await this.prisma.user.create({
-        data: { google_id: 'demo-google-id', email: 'demo@docnexus.local', name: '데모 사용자' },
-      });
-    return this.issueTokens(user, client);
-  }
-
   // 이메일 코드 발송 — 화이트리스트 통과 시 6자리 코드를 메일로 보낸다.
   // 이메일 존재 여부/허용 여부를 응답으로 노출하지 않음(열거 공격 차단) — 항상 동일 결과 반환
   async requestEmailCode(rawEmail: string, client?: LoginClient): Promise<{ ok: true }> {

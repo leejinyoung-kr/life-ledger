@@ -19,7 +19,6 @@ import { GoogleAuthGuard } from './guards/google-auth.guard';
 import type { AuthUser } from './strategies/jwt.strategy';
 import { AuthService, GoogleUser } from './auth.service';
 import { RequestEmailCodeDto, VerifyEmailCodeDto } from './dto/email-login.dto';
-import { DemoLoginDto } from './dto/demo-login.dto';
 
 const REFRESH_COOKIE = 'refresh_token';
 const HAS_SESSION_COOKIE = 'has_session';
@@ -107,24 +106,6 @@ export class AuthController {
     res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions(refreshTtlMs));
     res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions(refreshTtlMs));
     res.redirect(`${frontendUrl}/auth/callback?token=${access}`);
-  }
-
-  // [발표용 임시] 아이디/비밀번호 아무 값이나 입력해도 로그인 — 발표 끝나면 이 엔드포인트 제거
-  @Public()
-  @Throttle({ default: { limit: 30, ttl: 60000 } })
-  @Post('demo-login')
-  async demoLogin(
-    @Body() _dto: DemoLoginDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const { access, refresh, refreshTtlMs } = await this.authService.demoLogin({
-      ip: clientIp(req),
-      userAgent: req.headers['user-agent'],
-    });
-    res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions(refreshTtlMs));
-    res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions(refreshTtlMs));
-    return { token: access };
   }
 
   // 이메일 코드 발송 — 구글 로그인 불가 환경용 대체 인증. 분당 5회 제한(스팸/열거 차단)
