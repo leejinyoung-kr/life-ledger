@@ -160,11 +160,11 @@ export class TransactionService {
   // 활성 반복 템플릿의 회차를 현재 월까지 미리 생성한다.
   // 회차는 recurring_period 로 식별 — 이미 있거나(편집 override 포함) 삭제된 회차는 다시 만들지 않는다.
   // RecurringCronService가 매일 오전 9시에 전체 사용자 대상으로 호출(조회/생성 시점에는 호출하지 않음).
-  async materializeRecurring(userId: number): Promise<void> {
+  async materializeRecurring(userId: number): Promise<number> {
     const templates = await this.prisma.transaction.findMany({
       where: { user_id: userId, deleted_at: null, is_recurring: true },
     });
-    if (!templates.length) return;
+    if (!templates.length) return 0;
     const now = new Date();
 
     for (const t of templates) {
@@ -213,6 +213,7 @@ export class TransactionService {
         });
       }
     }
+    return templates.length;
   }
 
   // 사용자의 가장 최근 거래 월(YYYY-MM). 없으면 null — 더미 데이터(과거)에서도 추이가 보이도록 기준점 사용

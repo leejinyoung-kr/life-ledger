@@ -153,7 +153,7 @@ export class InvestmentService {
   // 전날 종가로 굳어있는 가격에 매수하게 되므로 시간을 분리해야 한다.
   // 종목별로 외부 시세조회 API(네이버/야후)를 호출하므로, 한꺼번에 몰아치지 않도록 RECURRING_BUY_BATCH_SIZE개씩 묶어
   // RECURRING_BUY_BATCH_DELAY_MS만큼 쉬어가며 처리한다.
-  async materializeRecurringBuys(userId: number, market?: 'domestic' | 'foreign'): Promise<void> {
+  async materializeRecurringBuys(userId: number, market?: 'domestic' | 'foreign'): Promise<number> {
     const rows = await this.prisma.investment.findMany({
       where: {
         user_id: userId,
@@ -162,7 +162,7 @@ export class InvestmentService {
         type: market === 'foreign' ? { in: FOREIGN_TYPES } : market === 'domestic' ? { notIn: FOREIGN_TYPES } : undefined,
       },
     });
-    if (!rows.length) return;
+    if (!rows.length) return 0;
     const now = new Date();
 
     for (let i = 0; i < rows.length; i += RECURRING_BUY_BATCH_SIZE) {
@@ -170,6 +170,7 @@ export class InvestmentService {
       await Promise.all(batch.map((inv) => this.materializeOneRecurringBuy(userId, inv, now)));
       if (i + RECURRING_BUY_BATCH_SIZE < rows.length) await sleep(RECURRING_BUY_BATCH_DELAY_MS);
     }
+    return rows.length;
   }
 
   // 종목 1개의 미처리 회차를 끝까지(또는 실패할 때까지) 처리 — materializeRecurringBuys의 배치 단위 작업
