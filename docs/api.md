@@ -28,15 +28,13 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /transactions?from=&to=&type=&category=&q= | 내역 목록 (날짜범위/유형/카테고리/검색 필터) |
 | GET | /transactions/summary?month= | 월 요약 (수입/지출/저축이동/실소비/잔액) |
 | GET | /transactions/monthly-trend?month= | 월별 지출 추이 (최근 5개월) |
-| GET | /transactions/recurring | 반복 거래 목록 (동일 규칙 중복 제거) |
 | POST | /transactions | 내역 추가 (`type='transfer'`이고 `targetType`·`targetId` 지정 시 대상 잔액에 자동 반영) |
 | POST | /transactions/import | 엑셀 양식(.xlsx) 업로드 → 행별 검증 후 일괄 추가 (multipart, 필드명 `file`, 최대 5MB) |
 | GET | /transactions/export?from=&to=&type=&category=&q= | 현재 필터 내역을 .xlsx 로 스트리밍 다운로드 |
-| PUT | /transactions/:id | 내역 수정 (반복은 `scope` 로 범위 지정) |
+| PUT | /transactions/:id | 내역 수정 |
 | DELETE | /transactions/:id | 내역 삭제 (soft delete) |
 
-> **반복 거래 자동 생성/수정**: 활성 반복 템플릿은 조회 시점에 현재 월까지 회차를 자동 생성(idempotent, `recurring_period` 식별)한다.
-> 수정 `scope`: `one`(이번 회차만 — 개별 수정 시 `recurring_overridden` 고정) / `future`(이후 전체) / `all`(전체). 범위 수정은 개별 수정된 회차를 보존(덮어쓰지 않음).
+> 반복거래/반복매수는 이 엔드포인트가 아닌 [자동이체 설정](#자동이체-설정) API에서 별도로 등록/관리한다 — 거래·투자 등록은 항상 순수 데이터 생성만 한다.
 
 > **엑셀 양식 컬럼** (화면 테이블 순서): `유형` · `카테고리` · `내역` · `금액` · `날짜` (필수) / `결제수단` (지출일 때만 필수) / `메모` (선택)
 > 유형·카테고리는 한글 라벨로 입출력하며 업로드 시 코드로 역매핑된다. 양식 다운로드는 프론트(exceljs)에서 생성한다.
@@ -76,6 +74,22 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /investments/:id/buy | 매수 — 소속 계좌 예수금 → 투자원금·평가금액 전환 |
 | POST | /investments/:id/sell | 매도 — 평가금액 → 소속 계좌 예수금 환입 |
 | DELETE | /investments/:id | 투자 삭제 (soft delete) |
+
+## 자동이체 설정
+
+반복거래(수입/지출/자산이동)·반복매수(주식모으기) 자동 생성 규칙. 거래/투자 등록 폼과 분리된 전용 CRUD — 저장 시 데이터를 즉시 생성하지 않고, `RecurringCronService`가 매일 규칙에 따라 순수 생성만 한다.
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| GET | /recurring-schedules?kind= | 자동이체 설정 목록 (`kind=transaction`\|`investment` 필터) |
+| POST | /recurring-schedules | 자동이체 설정 추가 (`kind`에 따라 거래/투자 전용 필드 사용) |
+| PUT | /recurring-schedules/:id | 자동이체 설정 수정 |
+| PATCH | /recurring-schedules/:id/toggle | 활성/일시정지 토글 |
+| DELETE | /recurring-schedules/:id | 자동이체 설정 삭제 (soft delete — 이미 생성된 거래/매수 내역은 유지) |
+
+> `kind=transaction`: `txType`·`title`·`category`·`amount`·`payMethod`·`memo`·`targetType`·`targetId`·`targetDirection` 사용. 생성된 회차는 `Transaction.recurring_schedule_id`로 연결되며, `recurring_period`로 중복 생성을 막는다(idempotent).
+> `kind=investment`: `investmentId`(대상 종목, symbol 필수)·`buyAmount` 또는 `buyQuantity`(상호배타) 사용. 크론이 해당 종목 행을 직접 누적 갱신한다(신규 거래 행을 만들지 않음).
+> 공통: `rule`(cycle/day/month/weekendAdjust) · `startDate`(최초 실행 기준일) · `active`(false면 새 회차를 생성하지 않음). 응답에는 `nextRunDate`(다음 실행 예정일)가 함께 내려온다.
 
 ## 구독 관리
 

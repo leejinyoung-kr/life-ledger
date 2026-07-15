@@ -153,6 +153,28 @@ export const seedTransactions: SeedFn = async (prisma, userId) => {
   const rows = [...fixedRows(), ...VARIABLE];
   for (const t of rows) {
     const targetId = targetIdOf(t.target);
+    const targetType = targetId != null ? t.target!.type : null;
+    // 반복거래는 자동이체 설정(RecurringSchedule)을 먼저 만들고, 첫 회차는 그 설정에 연결된 평범한 거래로 등록
+    const schedule = t.recurring
+      ? await prisma.recurringSchedule.create({
+        data: {
+          user_id: userId,
+          kind: 'transaction',
+          rule: { cycle: 'monthly', day: Number(t.date.slice(8)), weekendAdjust: t.weekendAdjust ?? 'none' },
+          start_date: d(t.date),
+          last_period: t.date.slice(0, 7),
+          tx_type: t.type,
+          title: t.title,
+          category: t.category,
+          amount: t.amount,
+          pay_method: t.type === 'expense' ? t.payMethod : '',
+          memo: t.memo ?? null,
+          target_type: targetType,
+          target_id: targetId,
+        },
+      })
+      : null;
+
     await prisma.transaction.create({
       data: {
         user_id: userId,
@@ -164,13 +186,10 @@ export const seedTransactions: SeedFn = async (prisma, userId) => {
         // 결제수단은 지출에만 의미 — 수입/자산이동은 빈값 저장
         pay_method: t.type === 'expense' ? t.payMethod : '',
         memo: t.memo ?? null,
-        is_recurring: t.recurring ?? false,
-        recurring_rule: t.recurring
-          ? { cycle: 'monthly', day: Number(t.date.slice(8)), weekendAdjust: t.weekendAdjust ?? 'none' }
-          : undefined,
-        // 반복 템플릿이면 자신의 회차 식별 (자동 생성 시 중복 방지)
-        recurring_period: t.recurring ? t.date.slice(0, 7) : null,
-        target_type: targetId != null ? t.target!.type : null,
+        recurring_schedule_id: schedule?.id ?? null,
+        // 반복 회차면 자신의 회차 식별 (자동 생성 시 중복 방지)
+        recurring_period: schedule ? t.date.slice(0, 7) : null,
+        target_type: targetType,
         target_id: targetId,
       },
     });

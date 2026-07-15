@@ -42,9 +42,7 @@ export interface Transaction {
   amount: number;
   payMethod: string;
   memo: string | null;
-  isRecurring: boolean;
-  recurringRule: RecurringRule | null;
-  recurringParentId: number | null; // 반복 원본에서 자동 생성된 회차면 부모 id
+  recurringScheduleId: number | null; // 자동이체 설정으로 생성된 회차면 그 설정 id
   targetType: TransferTarget | null; // 자산이동 누적 대상 종류 (transfer 전용)
   targetId: number | null; // 자산이동 누적 대상 id
   targetDirection: TransferDirection | null; // 대상 잔액 변화 방향 (asset 대상 전용)
@@ -110,11 +108,36 @@ export interface Investment {
   profitRate: number;
   purchaseDate: string | null;
   memo: string | null;
-  recurringBuyEnabled: boolean; // 반복매수(주식모으기) 사용 여부
-  recurringBuyRule: RecurringRule | null; // 반복 규칙 — 거래의 recurringRule과 동일 구조
-  recurringBuyAmount: number | null; // 회차당 매수금액(국내: 원, 해외: 달러) — recurringBuyQuantity와 동시 사용 불가
-  recurringBuyQuantity: number | null; // 회차당 매수수량(주) — recurringBuyAmount와 동시 사용 불가
   updatedAt: string; // 평가금액 최근 수정 시각(ISO) — 시세 API 연동 전까지 수동 입력 신뢰도 표시용
+}
+
+// 자동이체 설정(자동 생성 규칙) — kind에 따라 거래/투자 전용 필드가 갈린다. GET /recurring-schedules 응답 DTO
+export interface RecurringSchedule {
+  id: number;
+  kind: 'transaction' | 'investment';
+  rule: RecurringRule;
+  startDate: string; // YYYY-MM-DD
+  lastPeriod: string | null;
+  active: boolean;
+  nextRunDate: string | null; // 다음 실행(생성) 예정일 — 목록 표시용
+
+  // kind=transaction 전용
+  txType: TransactionType | null;
+  title: string | null;
+  category: string | null;
+  amount: number | null;
+  payMethod: string | null;
+  memo: string | null;
+  targetType: TransferTarget | null;
+  targetId: number | null;
+  targetDirection: TransferDirection | null;
+
+  // kind=investment 전용
+  investmentId: number | null;
+  investmentName: string | null;
+  investmentSymbol: string | null;
+  buyAmount: number | null;
+  buyQuantity: number | null;
 }
 
 export interface InvestmentSummary {

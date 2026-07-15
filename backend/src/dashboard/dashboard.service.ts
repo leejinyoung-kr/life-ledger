@@ -61,15 +61,14 @@ export class DashboardService {
     };
   }
 
-  // 현금흐름 예측 — 활성 구독 + 반복 지출거래를 월 단위로 환산·합산해 다음 달 고정지출을 추정
+  // 현금흐름 예측 — 활성 구독 + 자동이체 설정된 반복 지출을 월 단위로 환산·합산해 다음 달 고정지출을 추정
   async cashflowForecast(userId: number) {
     const [subs, recurring] = await Promise.all([
       this.prisma.subscription.findMany({
         where: { user_id: userId, deleted_at: null, status: { in: ['active', 'trial'] } },
       }),
-      this.prisma.transaction.findMany({
-        where: { user_id: userId, deleted_at: null, is_recurring: true, type: 'expense' },
-        orderBy: { date: 'desc' },
+      this.prisma.recurringSchedule.findMany({
+        where: { user_id: userId, deleted_at: null, kind: 'transaction', active: true, tx_type: 'expense' },
       }),
     ]);
 
@@ -79,20 +78,12 @@ export class DashboardService {
       return { name: s.name, kind: 'subscription' as const, cycle: s.cycle, amount, monthly: toMonthly(amount, s.cycle) };
     });
 
-    // 반복 지출: 동일 규칙(제목·카테고리·금액)은 1건만 — recurring 회차 중복 제거
-    const seen = new Set<string>();
-    const recItems = recurring
-      .filter((r) => {
-        const key = `${r.title}|${r.category}|${r.amount}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      })
-      .map((r) => {
-        const amount = r.amount.toNumber();
-        const cycle = (r.recurring_rule as { cycle?: string } | null)?.cycle ?? 'monthly';
-        return { name: r.title, kind: 'recurring' as const, cycle, amount, monthly: toMonthly(amount, cycle) };
-      });
+    // 자동이체 설정된 반복 지출 — 월 환산
+    const recItems = recurring.map((r) => {
+      const amount = r.amount?.toNumber() ?? 0;
+      const cycle = (r.rule as { cycle?: string } | null)?.cycle ?? 'monthly';
+      return { name: r.title ?? '', kind: 'recurring' as const, cycle, amount, monthly: toMonthly(amount, cycle) };
+    });
 
     const subMonthly = subItems.reduce((s, i) => s + i.monthly, 0);
     const recMonthly = recItems.reduce((s, i) => s + i.monthly, 0);

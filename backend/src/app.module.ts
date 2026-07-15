@@ -39,6 +39,7 @@ import { PushModule } from './push/push.module';
 import { MailModule } from './mail/mail.module';
 import { HealthModule } from './health/health.module';
 import { SystemLogModule } from './system-log/system-log.module';
+import { RecurringScheduleModule } from './recurring-schedule/recurring-schedule.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
 @Module({
@@ -80,6 +81,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter';
     MailModule,
     HealthModule,
     SystemLogModule,
+    RecurringScheduleModule,
   ],
   controllers: [AppController],
   // 전역 가드 — 요청량 제한(Throttler) 후 JWT 인증. @Public() 핸들러만 토큰 예외

@@ -29,6 +29,7 @@ doc-nexus/
 │   └── src/
 │       ├── auth/          # Google OAuth + JWT 인증 (+ 새 기기 로그인 감지)
 │       ├── transaction/   # 수입/지출 내역
+│       ├── recurring-schedule/ # 자동이체 설정 (반복거래/반복매수 자동 생성 규칙 — 등록 폼과 분리)
 │       ├── saving/        # 예적금
 │       ├── investment/    # 투자
 │       ├── subscription/  # 구독 서비스
@@ -90,7 +91,8 @@ doc-nexus/
 | 엔티티 | 주요 필드 | 상태 |
 | --- | --- | --- |
 | User | id, google_id, email, name, picture | 구현 완료 |
-| Transaction | user_id, type, category, amount, date, is_recurring | 구현 완료 |
+| Transaction | user_id, type, category, amount, date, recurring_schedule_id | 구현 완료 |
+| RecurringSchedule | user_id, kind(transaction/investment), rule(JSON), start_date, active | 구현 완료 |
 | Saving | user_id, type, interest_rate, balance, maturity_date | 구현 완료 |
 | Investment | user_id, type, principal, current_value, purchase_date | 구현 완료 |
 | Subscription | user_id, name, amount, cycle, status, next_payment_date | 구현 완료 |
@@ -120,7 +122,7 @@ doc-nexus/
 | EmailLoginCode | email, code_hash(SHA-256), expires_at, consumed_at, attempts (이메일 인증코드 로그인, 화이트리스트 대조) | 구현 완료 |
 | SystemLog | user_id(nullable, FK 아님), level(info/warn/error), category, message, metadata(JSON) — 크론·투자갱신 등 백그라운드 작업 로그, 90일 경과 시 자동 삭제 | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 32개 테이블
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 33개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---
@@ -156,7 +158,7 @@ doc-nexus/
 | Backend — 현금흐름 예측·통합 D-day | 구현 완료 |
 | Backend — AI 리포트 (OpenAI, 사용자별 키) | 구현 완료 |
 | Backend — 시스템 로그 / 순자산 월간 스냅샷 / 투자 현재가 자동 갱신 | 구현 완료 |
-| DB | 32개 테이블 구현 완료 |
+| DB | 33개 테이블 구현 완료 |
 
 ---
 

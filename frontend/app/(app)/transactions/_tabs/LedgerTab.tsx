@@ -25,7 +25,7 @@ import {
   won, signedWon, dotDate,
   type Category, type Transaction, type TransactionSummary, type TrendBucket,
   type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget, type TransferDirection,
-  type Saving, type InvestmentAccount,
+  type Saving, type InvestmentAccount, type RecurringSchedule,
 } from '@/lib/finance';
 import type { Asset } from '@/lib/networth';
 import {
@@ -39,6 +39,7 @@ type LedgerDraft = {
   type?: TransactionType; category?: string; payMethod?: string; memo?: string;
 };
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Transaction; prefill?: LedgerDraft };
+type RecurringModalState = { open: boolean; editing?: RecurringSchedule };
 
 export default function LedgerTab({ categories, bankCats, addTrigger }: { categories: Category[]; bankCats: Category[]; addTrigger: number }) {
   const [pendingFrom, setPendingFrom] = useState(() => monthsAgo(1));
@@ -51,6 +52,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   const { confirm, confirmElement } = useConfirm();
   const [activePreset, setActivePreset] = useState<number | null>(1);
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
+  const [recurringModal, setRecurringModal] = useState<RecurringModalState>({ open: false });
   const invalidate = useInvalidate();
 
   useAddTrigger(addTrigger, () => setModal({ open: true, mode: 'add' }));
@@ -92,7 +94,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   const rowsQuery = useApiQuery<Paginated<Transaction>>(qk.transactions.list({ ...applied, page, limit }), `/transactions?${listQs}`);
   const summaryQuery = useApiQuery<TransactionSummary>(qk.transactions.summary(month), `/transactions/summary?month=${month}`);
   const trendQuery = useApiQuery<TrendBucket[]>(qk.transactions.monthlyTrend(month), `/transactions/monthly-trend?month=${month}`);
-  const recurringQuery = useApiQuery<Transaction[]>(qk.transactions.recurring(), '/transactions/recurring');
+  const recurringQuery = useApiQuery<RecurringSchedule[]>(qk.recurringSchedules.list('transaction'), '/recurring-schedules?kind=transaction');
   const rows = useMemo(() => rowsQuery.data?.items ?? [], [rowsQuery.data]);
   const total = rowsQuery.data?.total ?? 0;
   const summary = summaryQuery.data ?? null;
@@ -101,6 +103,27 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   const error = (rowsQuery.error ?? summaryQuery.error)?.message ?? null;
   // 자산이동 거래가 예적금/투자/자산 잔액을 바꿀 수 있어 해당 탭도 함께 무효화
   const reload = () => invalidate(qk.transactions.all, qk.savings.all, qk.investments.all, qk.investmentAccounts.all, qk.assets.all);
+  const reloadRecurring = () => invalidate(qk.recurringSchedules.all);
+
+  async function handleToggleRecurring(id: number) {
+    try {
+      await api.patch(`/recurring-schedules/${id}/toggle`, {});
+      reloadRecurring();
+    } catch {
+      notify.saveFailed();
+    }
+  }
+
+  async function handleRemoveRecurring(id: number) {
+    if (!await confirm('이 자동이체 설정을 삭제할까요? 이미 생성된 거래는 유지됩니다.', 'danger')) return;
+    try {
+      await api.del(`/recurring-schedules/${id}`);
+      notify.deleted('자동이체 설정');
+      reloadRecurring();
+    } catch {
+      notify.deleteFailed();
+    }
+  }
 
   async function handleRemove(id: number) {
     if (!await confirm('이 내역을 삭제할까요?', 'danger')) return;
@@ -220,22 +243,30 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>🔁 반복 거래</CardTitle>
-            <Badge tone="neutral">자동 등록</Badge>
+            <CardTitle>🔁 자동이체 설정</CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => setRecurringModal({ open: true })}>+ 설정 추가</Button>
           </CardHeader>
           <CardBody compact>
             <div className="max-h-[264px] overflow-y-auto">
-              {recurring.length === 0 && <div className="text-[0.72rem] text-muted">반복 거래가 없습니다.</div>}
+              {recurring.length === 0 && <div className="text-[0.72rem] text-muted">등록된 자동이체 설정이 없습니다.</div>}
               {recurring.map((r) => (
-                <div className="py-2.5 border-b border-border-subtle last:border-b-0" key={r.id}>
-                  <div className="text-[0.84rem] font-medium">{r.title} — {won(r.amount)}</div>
-                  <div className="text-[0.72rem] text-muted">
-                    {catMap[r.category] ?? r.category} · {TX_TYPE_LABEL[r.type]}
-                    {r.recurringRule && (
-                      <> · {recurringRuleSummary(r.recurringRule)}
-                      {r.recurringRule.weekendAdjust !== 'none' && ` · 주말→${WEEKEND_ADJUST_LABEL[r.recurringRule.weekendAdjust]}`}
-                      </>
-                    )}
+                <div className="py-2.5 border-b border-border-subtle last:border-b-0 flex items-center justify-between gap-2" key={r.id}>
+                  <div className="min-w-0">
+                    <div className="text-[0.84rem] font-medium flex items-center gap-1.5">
+                      {r.title} — {won(r.amount ?? 0)}
+                      {!r.active && <Badge tone="neutral">일시정지</Badge>}
+                    </div>
+                    <div className="text-[0.72rem] text-muted">
+                      {catMap[r.category ?? ''] ?? r.category} · {r.txType && TX_TYPE_LABEL[r.txType]}
+                      {' · '}{recurringRuleSummary(r.rule)}
+                      {r.rule.weekendAdjust !== 'none' && ` · 주말→${WEEKEND_ADJUST_LABEL[r.rule.weekendAdjust]}`}
+                      {r.nextRunDate && ` · 다음 ${dotDate(r.nextRunDate)}`}
+                    </div>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button size="sm" variant="ghost" onClick={() => handleToggleRecurring(r.id)}>{r.active ? '일시정지' : '재개'}</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setRecurringModal({ open: true, editing: r })}>수정</Button>
+                    <Button size="sm" variant="danger" onClick={() => handleRemoveRecurring(r.id)}>삭제</Button>
                   </div>
                 </div>
               ))}
@@ -340,7 +371,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
                   <td className="td-center td-muted">{total - (page - 1) * limit - i}</td>
                   <td className="td-center"><span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span></td>
                   <td className="td-center"><span className="cat-chip">{catMap[row.category] ?? row.category}</span></td>
-                  <td className="td-name">{(row.isRecurring || row.recurringParentId) && <span title="반복 거래">🔁 </span>}{row.title}</td>
+                  <td className="td-name">{row.recurringScheduleId != null && <span title="자동이체로 생성됨">🔁 </span>}{row.title}</td>
                   <td className="td-center td-muted">{row.payMethod}</td>
                   <td className={`td-right amount-${row.type}`}>{signedWon(row.type, row.amount)}</td>
                   <td className="td-center td-muted">{row.memo ?? '-'}</td>
@@ -358,7 +389,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
               <div className="flex items-center gap-2 mb-1.5">
                 <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" />
                 <div className="flex-1 flex justify-between items-baseline gap-2.5">
-                  <span className={TXCARD_TITLE}>{(row.isRecurring || row.recurringParentId) && '🔁 '}{row.title}</span>
+                  <span className={TXCARD_TITLE}>{row.recurringScheduleId != null && '🔁 '}{row.title}</span>
                   <span className={`${TXCARD_AMT} ${AMT_COLOR[row.type]}`}>{signedWon(row.type, row.amount)}</span>
                 </div>
               </div>
@@ -390,6 +421,13 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
         onClose={() => setModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setModal((s) => ({ ...s, open: false })); reload(); }}
       />
+      <RecurringTransactionModal
+        state={recurringModal}
+        categories={categories}
+        bankCats={bankCats}
+        onClose={() => setRecurringModal((s) => ({ ...s, open: false }))}
+        onSaved={() => { setRecurringModal((s) => ({ ...s, open: false })); reloadRecurring(); }}
+      />
       {confirmElement}
     </>
   );
@@ -414,19 +452,12 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   const [amount, setAmount] = useState('');
   const [payMethod, setPayMethod] = useState(PAY_METHODS[0]);
   const [memo, setMemo] = useState('');
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringCycle, setRecurringCycle] = useState<RecurringCycle>('monthly');
-  const [recurringDay, setRecurringDay] = useState(1);
-  const [recurringMonth, setRecurringMonth] = useState(1);
-  const [weekendAdjust, setWeekendAdjust] = useState<WeekendAdjust>('none');
-  const [scope, setScope] = useState<'one' | 'future' | 'all'>('one');
   const [targetType, setTargetType] = useState<TransferTarget | ''>('');
   const [targetId, setTargetId] = useState<number | ''>('');
   const [targetDirection, setTargetDirection] = useState<TransferDirection>('decrease');
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
 
-  const editingRecurring = state.mode === 'edit' && !!(e?.isRecurring || e?.recurringParentId);
   const targetPickerOpen = state.open && type === 'transfer';
   // 이동 대상 후보 — 자산이동일 때만 조회(연동 없이 단순 기록도 허용하므로 항상 강제하지 않음)
   const savingsQuery = useApiQuery<Saving[]>(qk.savings.list('transfer-target'), '/savings', { enabled: targetPickerOpen && targetType === 'saving' });
@@ -444,8 +475,6 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   useEffect(() => {
     if (!state.open) return;
     reset();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setScope('one');
     const pf = state.prefill;
     // 소분류 code(leaf) 기준으로 대분류·유형을 일관되게 파생 (leaf 없으면 유형→첫 대분류→첫 소분류)
     const leafCode = e?.category ?? pf?.category;
@@ -453,6 +482,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
     const initType: TransactionType = leaf ? parentTypeOf(leaf.parentCode) : (e?.type ?? pf?.type ?? 'expense');
     const initParent = leaf?.parentCode ?? parents.find((p) => parentTypeOf(p.code) === initType)?.code ?? '';
     const initLeaf = leaf?.code ?? leaves.find((l) => l.parentCode === initParent)?.code ?? '';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setType(initType);
     setDate(e?.date ?? pf?.date ?? new Date().toISOString().slice(0, 10));
     setTitle(e?.title ?? pf?.title ?? '');
@@ -461,11 +491,6 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
     setAmount(e ? String(e.amount) : pf?.amount ? String(pf.amount) : '');
     setPayMethod(e?.payMethod ?? pf?.payMethod ?? (initType === 'income' ? (bankCats[0]?.label ?? '') : initType === 'transfer' ? '' : PAY_METHODS[0]));
     setMemo(e?.memo ?? pf?.memo ?? '');
-    setIsRecurring(e?.isRecurring ?? false);
-    setRecurringCycle((e?.recurringRule?.cycle as RecurringCycle) ?? 'monthly');
-    setRecurringDay(e?.recurringRule?.day ?? 1);
-    setRecurringMonth(e?.recurringRule?.month ?? 1);
-    setWeekendAdjust((e?.recurringRule?.weekendAdjust as WeekendAdjust) ?? 'none');
     setTargetType(e?.targetType ?? '');
     setTargetId(e?.targetId ?? '');
     setTargetDirection(e?.targetDirection ?? 'decrease');
@@ -517,11 +542,6 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
         // 지출=결제수단, 수입=입금은행 둘 다 저장, 이체는 없음
         payMethod: type === 'transfer' ? undefined : payMethod,
         memo: memo || undefined,
-        isRecurring,
-        recurringRule: isRecurring
-          ? { cycle: recurringCycle, day: recurringDay, month: recurringCycle === 'yearly' ? recurringMonth : undefined, weekendAdjust }
-          : undefined,
-        scope: editingRecurring ? scope : undefined,
         targetType: type === 'transfer' && targetType && targetId !== '' ? targetType : undefined,
         targetId: type === 'transfer' && targetType && targetId !== '' ? targetId : undefined,
         targetDirection: type === 'transfer' && targetType === 'asset' && targetId !== '' ? targetDirection : undefined,
@@ -539,17 +559,6 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
 
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '항목 수정' : '항목 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
-      {editingRecurring && (
-        <div className="flex flex-col gap-2 p-3.5 bg-surface border border-border rounded-(--radius)">
-          <span className="text-[0.8rem] font-medium text-secondary">🔁 반복 거래 — 수정 범위</span>
-          <div className="flex gap-4 flex-wrap text-[0.82rem] text-secondary [&_label]:flex [&_label]:items-center [&_label]:gap-1.5 [&_label]:cursor-pointer [&_input]:accent-accent">
-            <label><input type="radio" name="scope" checked={scope === 'one'} onChange={() => setScope('one')} />이 항목만</label>
-            <label><input type="radio" name="scope" checked={scope === 'future'} onChange={() => setScope('future')} />이후 전체</label>
-            <label><input type="radio" name="scope" checked={scope === 'all'} onChange={() => setScope('all')} />전체</label>
-          </div>
-          <span className="text-[0.72rem] text-muted">날짜는 해당 회차만 변경됩니다. 금액·내역 등은 선택 범위에 적용됩니다.</span>
-        </div>
-      )}
       <Field label="유형" required>
         <select className="input" value={type} onChange={(ev) => handleChangeType(ev.target.value as TransactionType)}>
           <option value="expense">지출</option><option value="income">수입</option><option value="transfer">자산이동</option>
@@ -621,61 +630,258 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
         </Field>
       )}
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
+    </Modal>
+  );
+}
+
+// 자동이체 설정 모달 — "데이터는 그냥 생성만" 원칙에 따라 거래 생성 모달과 완전히 분리된 반복 규칙 등록/수정 전용 모달.
+// 저장 시 실제 거래는 만들지 않고 RecurringSchedule만 생성/수정 — 회차 생성은 크론이 규칙에 따라 처리한다.
+function RecurringTransactionModal({ state, categories, bankCats, onClose, onSaved }: { state: RecurringModalState; categories: Category[]; bankCats: Category[]; onClose: () => void; onSaved: () => void }) {
+  const r = state.editing;
+  const parents = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
+  const leaves = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
+  const [type, setType] = useState<TransactionType>('expense');
+  const [startDate, setStartDate] = useState('');
+  const [title, setTitle] = useState('');
+  const [parentCode, setParentCode] = useState('');
+  const [category, setCategory] = useState('');
+  const [amount, setAmount] = useState('');
+  const [payMethod, setPayMethod] = useState(PAY_METHODS[0]);
+  const [memo, setMemo] = useState('');
+  const [active, setActive] = useState(true);
+  const [recurringCycle, setRecurringCycle] = useState<RecurringCycle>('monthly');
+  const [recurringDay, setRecurringDay] = useState(1);
+  const [recurringMonth, setRecurringMonth] = useState(1);
+  const [weekendAdjust, setWeekendAdjust] = useState<WeekendAdjust>('none');
+  const [targetType, setTargetType] = useState<TransferTarget | ''>('');
+  const [targetId, setTargetId] = useState<number | ''>('');
+  const [targetDirection, setTargetDirection] = useState<TransferDirection>('decrease');
+  const [saving, setSaving] = useState(false);
+  const { errors, setErrors, clearError, reset } = useFormErrors();
+
+  const targetPickerOpen = state.open && type === 'transfer';
+  const savingsQuery = useApiQuery<Saving[]>(qk.savings.list('transfer-target'), '/savings', { enabled: targetPickerOpen && targetType === 'saving' });
+  const investmentAccountsQuery = useApiQuery<InvestmentAccount[]>(qk.investmentAccounts.list('transfer-target'), '/investment-accounts', { enabled: targetPickerOpen && targetType === 'investment' });
+  const assetsQuery = useApiQuery<Asset[]>(qk.assets.list('transfer-target'), '/assets', { enabled: targetPickerOpen && targetType === 'asset' });
+  const targetItems: { id: number; label: string }[] = targetType === 'saving'
+    ? (savingsQuery.data ?? []).map((s) => ({ id: s.id, label: `${s.bank} · ${s.name}` }))
+    : targetType === 'investment'
+      ? (investmentAccountsQuery.data ?? []).map((a) => ({ id: a.id, label: a.name }))
+      : targetType === 'asset'
+        ? (assetsQuery.data ?? []).map((a) => ({ id: a.id, label: a.name }))
+        : [];
+
+  useEffect(() => {
+    if (!state.open) return;
+    reset();
+    const leafCode = r?.category ?? undefined;
+    const leaf = leaves.find((l) => l.code === leafCode);
+    const initType: TransactionType = leaf ? parentTypeOf(leaf.parentCode) : (r?.txType ?? 'expense');
+    const initParent = leaf?.parentCode ?? parents.find((p) => parentTypeOf(p.code) === initType)?.code ?? '';
+    const initLeaf = leaf?.code ?? leaves.find((l) => l.parentCode === initParent)?.code ?? '';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
+    setType(initType);
+    setStartDate(r?.startDate ?? new Date().toISOString().slice(0, 10));
+    setTitle(r?.title ?? '');
+    setParentCode(initParent);
+    setCategory(initLeaf);
+    setAmount(r?.amount != null ? String(r.amount) : '');
+    setPayMethod(r?.payMethod ?? (initType === 'income' ? (bankCats[0]?.label ?? '') : initType === 'transfer' ? '' : PAY_METHODS[0]));
+    setMemo(r?.memo ?? '');
+    setActive(r?.active ?? true);
+    setRecurringCycle(r?.rule?.cycle ?? 'monthly');
+    setRecurringDay(r?.rule?.day ?? 1);
+    setRecurringMonth(r?.rule?.month ?? 1);
+    setWeekendAdjust(r?.rule?.weekendAdjust ?? 'none');
+    setTargetType(r?.targetType ?? '');
+    setTargetId(r?.targetId ?? '');
+    setTargetDirection(r?.targetDirection ?? 'decrease');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
+  }, [state.open, r]);
+
+  function validate() {
+    const err: Record<string, string> = {};
+    if (!title.trim()) err.title = '내역을 입력하세요.';
+    if (!amount || Number(amount) <= 0) err.amount = '금액을 입력하세요.';
+    if (!startDate) err.startDate = '시작일을 선택하세요.';
+    setErrors(err);
+    return !Object.keys(err).length;
+  }
+
+  function handleChangeType(t: TransactionType) {
+    setType(t);
+    const fp = parents.find((p) => parentTypeOf(p.code) === t);
+    setParentCode(fp?.code ?? '');
+    setCategory(leaves.find((l) => l.parentCode === fp?.code)?.code ?? '');
+    setPayMethod(t === 'expense' ? PAY_METHODS[0] : t === 'income' ? (bankCats[0]?.label ?? '') : '');
+    if (t !== 'transfer') { setTargetType(''); setTargetId(''); }
+  }
+
+  function handleChangeTargetType(tt: TransferTarget | '') {
+    setTargetType(tt);
+    setTargetId('');
+    setTargetDirection('decrease');
+  }
+
+  function handleChangeParent(pc: string) {
+    setParentCode(pc);
+    setCategory(leaves.find((l) => l.parentCode === pc)?.code ?? '');
+  }
+
+  const availableParents = parents.filter((p) => parentTypeOf(p.code) === type);
+  const childLeaves = leaves.filter((l) => l.parentCode === parentCode);
+
+  async function handleSave() {
+    if (!validate()) return;
+    setSaving(true);
+    try {
+      const payload = {
+        kind: 'transaction' as const,
+        startDate,
+        active,
+        rule: { cycle: recurringCycle, day: recurringDay, month: recurringCycle === 'yearly' ? recurringMonth : undefined, weekendAdjust },
+        txType: type,
+        title,
+        category,
+        amount: Number(amount),
+        payMethod: type === 'transfer' ? undefined : payMethod,
+        memo: memo || undefined,
+        targetType: type === 'transfer' && targetType && targetId !== '' ? targetType : undefined,
+        targetId: type === 'transfer' && targetType && targetId !== '' ? targetId : undefined,
+        targetDirection: type === 'transfer' && targetType === 'asset' && targetId !== '' ? targetDirection : undefined,
+      };
+      if (r) await api.put(`/recurring-schedules/${r.id}`, payload);
+      else await api.post('/recurring-schedules', payload);
+      notify.upserted(r ? 'edit' : 'add', '자동이체 설정');
+      onSaved();
+    } catch {
+      notify.saveFailed();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={state.open} onClose={onClose} title={r ? '자동이체 설정 수정' : '자동이체 설정 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
+      <Field label="유형" required>
+        <select className="input" value={type} onChange={(ev) => handleChangeType(ev.target.value as TransactionType)}>
+          <option value="expense">지출</option><option value="income">수입</option><option value="transfer">자산이동</option>
+        </select>
+      </Field>
+      <Field label="내역" required error={errors.title}>
+        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 월세" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
+      </Field>
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <Field label="대분류" required>
+          <select className="input" value={parentCode} onChange={(ev) => handleChangeParent(ev.target.value)}>
+            {availableParents.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
+          </select>
+        </Field>
+        <Field label="소분류" required>
+          <select className="input" value={category} onChange={(ev) => setCategory(ev.target.value)} disabled={childLeaves.length === 0}>
+            {childLeaves.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="금액 (원)" required error={errors.amount}>
+        <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
+      </Field>
+      {type === 'transfer' && (
+        <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+          <Field label="이동 대상">
+            <select className="input" value={targetType} onChange={(ev) => handleChangeTargetType(ev.target.value as TransferTarget | '')}>
+              <option value="">연동 없음(단순 기록)</option>
+              {(Object.entries(TRANSFER_TARGET_LABEL) as [TransferTarget, string][]).map(([v, label]) => (
+                <option key={v} value={v}>{label}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="이동 대상 항목">
+            <select className="input" value={targetId} onChange={(ev) => setTargetId(ev.target.value ? Number(ev.target.value) : '')} disabled={!targetType}>
+              <option value="">선택 안 함</option>
+              {targetItems.map((it) => <option key={it.id} value={it.id}>{it.label}</option>)}
+            </select>
+          </Field>
+        </div>
+      )}
+      {type === 'transfer' && targetType === 'asset' && targetId !== '' && (
+        <Field label="대상 변화 방향">
+          <select className="input" value={targetDirection} onChange={(ev) => setTargetDirection(ev.target.value as TransferDirection)}>
+            {(Object.entries(TRANSFER_DIRECTION_LABEL) as [TransferDirection, string][]).map(([v, label]) => (
+              <option key={v} value={v}>{label}</option>
+            ))}
+          </select>
+        </Field>
+      )}
+      {type === 'expense' && (
+        <Field label="결제수단" required>
+          <select className="input" aria-label="결제수단" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
+            {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </Field>
+      )}
+      {type === 'income' && (
+        <Field label="입금 은행" required>
+          <select className="input" aria-label="입금 은행" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
+            <option value="" disabled>은행 선택</option>
+            {payMethod && !bankCats.some((b) => b.label === payMethod) && <option value={payMethod}>{payMethod}</option>}
+            {bankCats.map((b) => <option key={b.code} value={b.label}>{b.label}</option>)}
+          </select>
+        </Field>
+      )}
+      <Field label="메모 (선택)"><input type="text" className="input" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
 
       <div className="flex flex-col gap-3 p-3.5 bg-surface border border-border rounded-(--radius)">
-        <label className="flex items-center gap-2 text-[0.875rem] font-medium text-primary cursor-pointer select-none [&_input]:w-4 [&_input]:h-4 [&_input]:accent-accent [&_input]:cursor-pointer">
-          <input type="checkbox" checked={isRecurring} onChange={(ev) => setIsRecurring(ev.target.checked)} />
-          반복 거래로 등록
-        </label>
-        {isRecurring && (
-          <>
-            <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-              <Field label="반복 주기" required>
-                <select className="input" value={recurringCycle} onChange={(ev) => setRecurringCycle(ev.target.value as RecurringCycle)}>
-                  <option value="daily">매일</option>
-                  <option value="monthly">매월</option>
-                  <option value="weekly">매주</option>
-                  <option value="yearly">매년</option>
-                </select>
-              </Field>
-              {recurringCycle === 'weekly' ? (
-                <Field label="요일" required>
-                  <select className="input" value={recurringDay} onChange={(ev) => setRecurringDay(Number(ev.target.value))}>
-                    {WEEKDAY_LABEL.map((label, d) => <option key={d} value={d}>{label}요일</option>)}
-                  </select>
-                </Field>
-              ) : recurringCycle === 'daily' ? (
-                <Field label="안내">
-                  <div className="text-[0.82rem] text-secondary py-2">평일(월~금)에만 생성됩니다.</div>
-                </Field>
-              ) : (
-                <Field label="기준일" required>
-                  <select className="input" value={recurringDay} onChange={(ev) => setRecurringDay(Number(ev.target.value))}>
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                      <option key={d} value={d}>{d}일</option>
-                    ))}
-                  </select>
-                </Field>
-              )}
-            </div>
-            {recurringCycle === 'yearly' && (
-              <Field label="월" required>
-                <select className="input" value={recurringMonth} onChange={(ev) => setRecurringMonth(Number(ev.target.value))}>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m}월</option>)}
-                </select>
-              </Field>
-            )}
-            {recurringCycle !== 'weekly' && recurringCycle !== 'daily' && (
-              <Field label="주말인 경우">
-                <div className="flex gap-5 flex-wrap [&_label]:flex [&_label]:items-center [&_label]:gap-1.25 [&_label]:text-[0.82rem] [&_label]:text-secondary [&_label]:cursor-pointer [&_input]:accent-accent">
-                  <label><input type="radio" name="weekendAdjust" value="none" checked={weekendAdjust === 'none'} onChange={() => setWeekendAdjust('none')} />조정 안 함</label>
-                  <label><input type="radio" name="weekendAdjust" value="before" checked={weekendAdjust === 'before'} onChange={() => setWeekendAdjust('before')} />전 금요일</label>
-                  <label><input type="radio" name="weekendAdjust" value="after" checked={weekendAdjust === 'after'} onChange={() => setWeekendAdjust('after')} />다음 월요일</label>
-                </div>
-              </Field>
-            )}
-          </>
+        <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+          <Field label="시작일" required error={errors.startDate}>
+            <input type="date" className={`input${errors.startDate ? ' is-invalid' : ''}`} value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
+          </Field>
+          <Field label="반복 주기" required>
+            <select className="input" value={recurringCycle} onChange={(ev) => setRecurringCycle(ev.target.value as RecurringCycle)}>
+              <option value="daily">매일</option>
+              <option value="monthly">매월</option>
+              <option value="weekly">매주</option>
+              <option value="yearly">매년</option>
+            </select>
+          </Field>
+        </div>
+        {recurringCycle === 'weekly' ? (
+          <Field label="요일" required>
+            <select className="input" value={recurringDay} onChange={(ev) => setRecurringDay(Number(ev.target.value))}>
+              {WEEKDAY_LABEL.map((label, d) => <option key={d} value={d}>{label}요일</option>)}
+            </select>
+          </Field>
+        ) : recurringCycle === 'daily' ? (
+          <div className="text-[0.82rem] text-secondary">평일(월~금)에만 생성됩니다.</div>
+        ) : (
+          <Field label="기준일" required>
+            <select className="input" value={recurringDay} onChange={(ev) => setRecurringDay(Number(ev.target.value))}>
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                <option key={d} value={d}>{d}일</option>
+              ))}
+            </select>
+          </Field>
         )}
+        {recurringCycle === 'yearly' && (
+          <Field label="월" required>
+            <select className="input" value={recurringMonth} onChange={(ev) => setRecurringMonth(Number(ev.target.value))}>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m}월</option>)}
+            </select>
+          </Field>
+        )}
+        {recurringCycle !== 'weekly' && recurringCycle !== 'daily' && (
+          <Field label="주말인 경우">
+            <div className="flex gap-5 flex-wrap [&_label]:flex [&_label]:items-center [&_label]:gap-1.25 [&_label]:text-[0.82rem] [&_label]:text-secondary [&_label]:cursor-pointer [&_input]:accent-accent">
+              <label><input type="radio" name="recurringWeekendAdjust" value="none" checked={weekendAdjust === 'none'} onChange={() => setWeekendAdjust('none')} />조정 안 함</label>
+              <label><input type="radio" name="recurringWeekendAdjust" value="before" checked={weekendAdjust === 'before'} onChange={() => setWeekendAdjust('before')} />전 금요일</label>
+              <label><input type="radio" name="recurringWeekendAdjust" value="after" checked={weekendAdjust === 'after'} onChange={() => setWeekendAdjust('after')} />다음 월요일</label>
+            </div>
+          </Field>
+        )}
+        <label className="flex items-center gap-2 text-[0.875rem] font-medium text-primary cursor-pointer select-none [&_input]:w-4 [&_input]:h-4 [&_input]:accent-accent [&_input]:cursor-pointer">
+          <input type="checkbox" checked={active} onChange={(ev) => setActive(ev.target.checked)} />
+          활성 (일시정지하면 새 회차를 생성하지 않음)
+        </label>
       </div>
     </Modal>
   );

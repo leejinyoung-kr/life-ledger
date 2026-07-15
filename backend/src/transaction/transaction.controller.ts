@@ -44,12 +44,6 @@ export class TransactionController {
     return this.service.monthlyTrend(user.id, month);
   }
 
-  // 반복 거래 목록
-  @Get('recurring')
-  recurring(@CurrentUser() user: AuthUser) {
-    return this.service.recurring(user.id);
-  }
-
   // 내역 목록 (필터)
   @Get()
   findAll(@CurrentUser() user: AuthUser, @Query() query: QueryTransactionDto) {

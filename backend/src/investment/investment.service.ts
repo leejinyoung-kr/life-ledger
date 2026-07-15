@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Investment, InvestmentType, Prisma } from '@prisma/client';
+import { Investment, InvestmentType, Prisma, RecurringSchedule } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { parsePage } from '../common/pagination';
 import { RRule, periodOf, nthOccurrence } from '../transaction/recurring.util';
@@ -50,10 +50,6 @@ export class InvestmentService {
       profitRate: principal ? Math.round((profit / principal) * 1000) / 10 : 0,
       purchaseDate: v.purchase_date ? v.purchase_date.toISOString().slice(0, 10) : null,
       memo: v.memo,
-      recurringBuyEnabled: v.recurring_buy_enabled,
-      recurringBuyRule: v.recurring_buy_rule as Record<string, unknown> | null,
-      recurringBuyAmount: v.recurring_buy_amount ? v.recurring_buy_amount.toNumber() : null,
-      recurringBuyQuantity: v.recurring_buy_quantity ? v.recurring_buy_quantity.toNumber() : null,
       // 평가금액 최근 수정 시각 — 시세 API 연동 전까지는 수동 입력이라 신뢰도 가늠용으로 노출
       updatedAt: v.updated_at.toISOString(),
     };
@@ -147,48 +143,57 @@ export class InvestmentService {
     }
   }
 
-  // 반복매수(주식모으기) — 활성화된 종목의 미처리 회차를 그 시점 실시간 시세로 매수 처리.
-  // RecurringCronService가 국내는 매일 오전 9시, 해외는 미국 장이 열린 직후인 밤 11시에 호출(조회 시점에는 호출하지 않음).
+  // 반복매수(주식모으기) — 활성화된 자동이체 설정(RecurringSchedule, kind=investment)의 미처리 회차를
+  // 그 시점 실시간 시세로 매수 처리. RecurringCronService가 국내는 매일 오전 9시, 해외는 미국 장이 열린
+  // 직후인 밤 11시에 호출(조회 시점에는 호출하지 않음).
   // market 지정 시 국내(domestic)/해외(foreign) 중 한쪽만 대상으로 필터링 — 해외는 장 시작 전(오전 9시)에 돌리면
   // 전날 종가로 굳어있는 가격에 매수하게 되므로 시간을 분리해야 한다.
   // 종목별로 외부 시세조회 API(네이버/야후)를 호출하므로, 한꺼번에 몰아치지 않도록 RECURRING_BUY_BATCH_SIZE개씩 묶어
   // RECURRING_BUY_BATCH_DELAY_MS만큼 쉬어가며 처리한다.
   async materializeRecurringBuys(userId: number, market?: 'domestic' | 'foreign'): Promise<number> {
-    const rows = await this.prisma.investment.findMany({
+    const schedules = await this.prisma.recurringSchedule.findMany({
       where: {
         user_id: userId,
         deleted_at: null,
-        recurring_buy_enabled: true,
-        type: market === 'foreign' ? { in: FOREIGN_TYPES } : market === 'domestic' ? { notIn: FOREIGN_TYPES } : undefined,
+        kind: 'investment',
+        active: true,
+        investment: {
+          deleted_at: null,
+          type: market === 'foreign' ? { in: FOREIGN_TYPES } : market === 'domestic' ? { notIn: FOREIGN_TYPES } : undefined,
+        },
       },
+      include: { investment: true },
     });
-    if (!rows.length) return 0;
+    if (!schedules.length) return 0;
     const now = new Date();
 
-    for (let i = 0; i < rows.length; i += RECURRING_BUY_BATCH_SIZE) {
-      const batch = rows.slice(i, i + RECURRING_BUY_BATCH_SIZE);
-      await Promise.all(batch.map((inv) => this.materializeOneRecurringBuy(userId, inv, now)));
-      if (i + RECURRING_BUY_BATCH_SIZE < rows.length) await sleep(RECURRING_BUY_BATCH_DELAY_MS);
+    for (let i = 0; i < schedules.length; i += RECURRING_BUY_BATCH_SIZE) {
+      const batch = schedules.slice(i, i + RECURRING_BUY_BATCH_SIZE);
+      await Promise.all(batch.map((s) => this.materializeOneRecurringBuy(userId, s, now)));
+      if (i + RECURRING_BUY_BATCH_SIZE < schedules.length) await sleep(RECURRING_BUY_BATCH_DELAY_MS);
     }
-    return rows.length;
+    return schedules.length;
   }
 
-  // 종목 1개의 미처리 회차를 끝까지(또는 실패할 때까지) 처리 — materializeRecurringBuys의 배치 단위 작업
-  private async materializeOneRecurringBuy(userId: number, inv: Investment, now: Date): Promise<void> {
-    const rule = inv.recurring_buy_rule as unknown as RRule | null;
-    if (!rule?.cycle || (!inv.recurring_buy_amount && !inv.recurring_buy_quantity) || !inv.purchase_date || !inv.symbol) return;
+  // 스케줄 1개의 미처리 회차를 끝까지(또는 실패할 때까지) 처리 — materializeRecurringBuys의 배치 단위 작업
+  private async materializeOneRecurringBuy(
+    userId: number,
+    schedule: RecurringSchedule & { investment: Investment | null },
+    now: Date,
+  ): Promise<void> {
+    const inv = schedule.investment;
+    if (!inv || inv.deleted_at) return;
+    const rule = schedule.rule as unknown as RRule | null;
+    if (!rule?.cycle || (!schedule.buy_amount && !schedule.buy_quantity) || !inv.symbol) return;
     const isForeign = FOREIGN_TYPES.includes(inv.type);
 
-    let lastPeriod = inv.recurring_buy_last_period;
+    let lastPeriod = schedule.last_period;
     let quantity = inv.quantity;
 
-    // monthly: i=0은 lastPeriod(현재 달)에 막히므로 1부터 시작해 루프 한 번 줄임
-    // 나머지 주기(weekly/daily/yearly)는 i=0이 첫 유효 회차 — lastPeriod 중복 체크로 소급 방지
-    const startI = rule.cycle === 'monthly' ? 1 : 0;
-    for (let i = startI; i <= 120; i++) { // 안전 상한 — 10년치 월간 회차
-      const occ = nthOccurrence(inv.purchase_date, rule, i);
+    for (let i = 0; i <= 120; i++) { // 안전 상한 — 10년치 월간 회차
+      const occ = nthOccurrence(schedule.start_date, rule, i);
       if (occ > now) break;
-      if (occ < inv.purchase_date) continue; // 매수 시작일 이전 회차(연간 i=0이 시작월보다 이른 달인 경우)는 매수하지 않음
+      if (occ < schedule.start_date) continue; // 시작일 이전 회차(연간 i=0이 시작월보다 이른 달인 경우)는 매수하지 않음
       const period = periodOf(occ, rule.cycle);
       if (lastPeriod && period <= lastPeriod) continue;
 
@@ -208,10 +213,10 @@ export class InvestmentService {
         break;
       }
       // 수량 모드(n주): 매 회차 시세 × n주로 매수. 금액 모드: 고정 금액(국내 원/해외 달러)을 그 시점 단가로 나눠 수량 계산
-      const qtyDelta = inv.recurring_buy_quantity
-        ? inv.recurring_buy_quantity
-        : inv.recurring_buy_amount!.div(unitNative);
-      const nativeAmount = inv.recurring_buy_quantity ? qtyDelta.mul(unitNative) : inv.recurring_buy_amount!;
+      const qtyDelta = schedule.buy_quantity
+        ? schedule.buy_quantity
+        : schedule.buy_amount!.div(unitNative);
+      const nativeAmount = schedule.buy_quantity ? qtyDelta.mul(unitNative) : schedule.buy_amount!;
       const krwAmount = qtyDelta.mul(unitKrw);
 
       let applied: boolean;
@@ -235,9 +240,9 @@ export class InvestmentService {
               current_value: { increment: krwAmount },
               ...(isForeign ? { current_value_usd: { increment: nativeAmount } } : {}),
               quantity: quantity ? { increment: qtyDelta } : qtyDelta,
-              recurring_buy_last_period: period,
             },
           });
+          await tx.recurringSchedule.update({ where: { id: schedule.id }, data: { last_period: period } });
           return true;
         });
       } catch (e) {
@@ -322,40 +327,6 @@ export class InvestmentService {
   }
 
   // 반복매수 활성화 시 시세조회/회차계산에 필요한 값(종목코드·회차금액·규칙·최초매수일)이 모두 있는지 확인
-  private validateRecurringBuy(
-    dto: {
-      recurringBuyEnabled?: boolean;
-      symbol?: string;
-      recurringBuyAmount?: number;
-      recurringBuyQuantity?: number;
-      recurringBuyRule?: Record<string, unknown>;
-      purchaseDate?: string;
-    },
-    existing?: Investment,
-  ): void {
-    if (!dto.recurringBuyEnabled) return;
-    const symbol = dto.symbol ?? existing?.symbol;
-    const amount = dto.recurringBuyAmount ?? existing?.recurring_buy_amount?.toNumber();
-    const quantity = dto.recurringBuyQuantity ?? existing?.recurring_buy_quantity?.toNumber();
-    const rule = dto.recurringBuyRule ?? (existing?.recurring_buy_rule as Record<string, unknown> | null);
-    const purchaseDate = dto.purchaseDate ?? (existing?.purchase_date ? existing.purchase_date.toISOString().slice(0, 10) : undefined);
-    if (!symbol || !rule?.cycle || !purchaseDate || (!amount && !quantity)) {
-      throw new BadRequestException('반복매수를 사용하려면 종목코드/티커, 회차금액 또는 회차수량, 반복 규칙, 최초 매수일이 모두 필요합니다.');
-    }
-  }
-
-  // recurringBuyAmount/recurringBuyQuantity 상호 배타적 매핑 — 한쪽이 오면 다른 쪽은 null로 비움
-  private recurringFields(dto: {
-    recurringBuyEnabled?: boolean;
-    recurringBuyAmount?: number;
-    recurringBuyQuantity?: number;
-  }): { amount: Prisma.Decimal | null | undefined; quantity: Prisma.Decimal | null | undefined } {
-    if (dto.recurringBuyEnabled === false) return { amount: null, quantity: null };
-    if (dto.recurringBuyAmount !== undefined) return { amount: new Prisma.Decimal(dto.recurringBuyAmount), quantity: null };
-    if (dto.recurringBuyQuantity !== undefined) return { amount: null, quantity: new Prisma.Decimal(dto.recurringBuyQuantity) };
-    return { amount: undefined, quantity: undefined };
-  }
-
   // 투자원금/평가금액 입력값 → 원화 환산 — 해외종목(foreign_stock/foreign_etf)은 폼에서 달러로 입력받으므로
   // 실시간 환율로 원화 변환해 저장(principal/current_value는 항상 원화 기준으로 전체 자산 집계와 맞춤)
   private async toKrwAmount(type: InvestmentType, value: number): Promise<Prisma.Decimal> {
@@ -367,8 +338,6 @@ export class InvestmentService {
   // 투자 추가 — 소속 계좌(accountId) 필수
   async create(userId: number, dto: CreateInvestmentDto) {
     await this.findOwnedAccount(userId, dto.accountId);
-    this.validateRecurringBuy(dto);
-    const { amount: recurringAmount, quantity: recurringQuantity } = this.recurringFields(dto);
     const [principal, currentValue] = await Promise.all([
       this.toKrwAmount(dto.type, dto.principal),
       this.toKrwAmount(dto.type, dto.currentValue),
@@ -380,25 +349,13 @@ export class InvestmentService {
         name: dto.name,
         type: dto.type,
         symbol: dto.symbol,
-        quantity: dto.quantity !== undefined
-          ? new Prisma.Decimal(dto.quantity)
-          : dto.recurringBuyEnabled ? new Prisma.Decimal(0) : undefined,
+        quantity: dto.quantity !== undefined ? new Prisma.Decimal(dto.quantity) : undefined,
         principal,
         principal_usd: FOREIGN_TYPES.includes(dto.type) ? new Prisma.Decimal(dto.principal) : null,
         current_value: currentValue,
         current_value_usd: FOREIGN_TYPES.includes(dto.type) ? new Prisma.Decimal(dto.currentValue) : null,
         purchase_date: dto.purchaseDate ? new Date(dto.purchaseDate) : null,
         memo: dto.memo,
-        recurring_buy_enabled: dto.recurringBuyEnabled ?? false,
-        recurring_buy_rule: dto.recurringBuyEnabled
-          ? (dto.recurringBuyRule as Prisma.InputJsonValue)
-          : Prisma.JsonNull,
-        recurring_buy_amount: recurringAmount,
-        recurring_buy_quantity: recurringQuantity,
-        // 등록 시점까지의 회차는 "이미 투자중"인 값을 그대로 신뢰 — 과거 회차를 소급 매수하지 않도록 현재 회차로 선점
-        recurring_buy_last_period: dto.recurringBuyEnabled
-          ? periodOf(new Date(), (dto.recurringBuyRule as unknown as RRule).cycle)
-          : undefined,
       },
     });
     return this.toDto(created);
@@ -417,8 +374,6 @@ export class InvestmentService {
   async update(userId: number, id: number, dto: UpdateInvestmentDto) {
     const existing = await this.findOwned(userId, id);
     if (dto.accountId !== undefined) await this.findOwnedAccount(userId, dto.accountId);
-    this.validateRecurringBuy(dto, existing);
-    const { amount: recurringAmount, quantity: recurringQuantity } = this.recurringFields(dto);
     const type = dto.type ?? existing.type;
     const [principal, currentValue] = await Promise.all([
       dto.principal !== undefined ? this.toKrwAmount(type, dto.principal) : undefined,
@@ -431,9 +386,7 @@ export class InvestmentService {
         name: dto.name,
         type: dto.type,
         symbol: dto.symbol,
-        quantity: dto.quantity !== undefined
-          ? new Prisma.Decimal(dto.quantity)
-          : (dto.recurringBuyEnabled && !existing.quantity ? new Prisma.Decimal(0) : undefined),
+        quantity: dto.quantity !== undefined ? new Prisma.Decimal(dto.quantity) : undefined,
         principal,
         principal_usd: dto.principal !== undefined && FOREIGN_TYPES.includes(type)
           ? new Prisma.Decimal(dto.principal)
@@ -444,16 +397,6 @@ export class InvestmentService {
           : undefined,
         purchase_date: dto.purchaseDate ? new Date(dto.purchaseDate) : undefined,
         memo: dto.memo,
-        recurring_buy_enabled: dto.recurringBuyEnabled,
-        recurring_buy_rule: dto.recurringBuyEnabled === false
-          ? Prisma.JsonNull
-          : (dto.recurringBuyRule as Prisma.InputJsonValue | undefined),
-        recurring_buy_amount: recurringAmount,
-        recurring_buy_quantity: recurringQuantity,
-        // 비활성→활성으로 새로 켜는 경우에만 현재 회차로 선점 — 과거 회차 소급 매수 방지(이미 활성 중이던 항목은 기존 진행 회차 유지)
-        recurring_buy_last_period: dto.recurringBuyEnabled && !existing.recurring_buy_enabled
-          ? periodOf(new Date(), ((dto.recurringBuyRule ?? existing.recurring_buy_rule) as unknown as RRule).cycle)
-          : undefined,
       },
     });
     return this.toDto(updated);

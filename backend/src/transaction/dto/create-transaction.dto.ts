@@ -4,7 +4,6 @@ import {
   TransferDirection,
 } from '@prisma/client';
 import {
-  IsBoolean,
   IsDateString,
   IsEnum,
   IsInt,
@@ -45,14 +44,6 @@ export class CreateTransactionDto {
   @IsString()
   @MaxLength(300)
   memo?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isRecurring?: boolean;
-
-  // 반복 규칙 — cycle(주기)/day(기준일)/weekendAdjust(주말 처리)
-  @IsOptional()
-  recurringRule?: Record<string, unknown>;
 
   // 자산이동 누적 대상 종류 — type='transfer'일 때만 의미, targetId와 함께 지정해야 자동 반영됨
   @ValidateIf((o: CreateTransactionDto) => o.targetId !== undefined)

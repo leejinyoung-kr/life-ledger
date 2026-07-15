@@ -3,12 +3,13 @@
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
 > 마이그레이션: `20260610000000_init_consolidated`(전 도메인 통합) + `20260610010000_phase17a_security_core` · `20260610020000_phase17b_dataflow` · `20260610030000_phase17c_enhance` · `20260610040000_phase17d_extras`
 
-## 테이블 목록 (32)
+## 테이블 목록 (33)
 
 | 테이블 | 설명 |
 | --- | --- |
 | User | 사용자 (Google OAuth) |
-| Transaction | 수입/지출 내역 (반복 자동생성 포함) |
+| Transaction | 수입/지출 내역 |
+| RecurringSchedule | 자동이체 설정 (반복거래/반복매수 자동 생성 규칙 — 거래·투자 등록 폼과 분리) |
 | Saving | 예적금 |
 | InvestmentAccount | 투자 계좌 (예수금 보유 — 종목 여러 개가 공유) |
 | Investment | 투자 종목 (소속 계좌의 예수금을 매수/매도로 전환) |
@@ -48,6 +49,9 @@ User 1 ─── N (Transaction, Saving, InvestmentAccount, Investment, Subscrip
               SecurityRisk, LoginSession, Category, IdentityCard, Credential,
               EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport, RefreshToken)
 User 1 ─── 1 UserSettings
+User 1 ─── N RecurringSchedule
+RecurringSchedule 1 ─── N Transaction(recurring_schedule_id, 자동 생성 회차)
+Investment 1 ─── N RecurringSchedule(investment_id, kind=investment 전용)
 InvestmentAccount 1 ─── N Investment(account_id)
 EnvProject     1 ─── N EnvVar
 EnvVar         1 ─── N EnvVarHistory
@@ -67,7 +71,8 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ### 가계부 — Transaction / Saving / InvestmentAccount / Investment
 
-- `Transaction` — `type`(income/expense/transfer), `category`(소분류 code 저장 — 대분류는 Category.parent_code 로 파생), `amount`, `pay_method`, `is_recurring`, `recurring_rule`(JSON), 반복 회차(`recurring_parent_id`·`recurring_period`·`recurring_overridden`), `target_type`(saving/investment/asset)·`target_id` — transfer 거래가 가리키는 누적 대상(FK 아님, 지정 시 대상 잔액에 자동 반영. `investment` 대상은 `InvestmentAccount.id`를 가리킴), `target_direction`(increase/decrease — asset 대상 전용, 미지정 시 부채=감소·그 외=증가), soft delete
+- `Transaction` — `type`(income/expense/transfer), `category`(소분류 code 저장 — 대분류는 Category.parent_code 로 파생), `amount`, `pay_method`, `recurring_schedule_id`(RecurringSchedule FK — 자동이체 설정으로 생성된 회차인 경우)·`recurring_period`(회차 식별), `target_type`(saving/investment/asset)·`target_id` — transfer 거래가 가리키는 누적 대상(FK 아님, 지정 시 대상 잔액에 자동 반영. `investment` 대상은 `InvestmentAccount.id`를 가리킴), `target_direction`(increase/decrease — asset 대상 전용, 미지정 시 부채=감소·그 외=증가), soft delete
+- `RecurringSchedule` — 자동이체(자동 생성) 설정. `kind`(transaction/investment), `rule`(JSON: cycle/day/month/weekendAdjust), `start_date`, `last_period`(중복 생성 방지), `active`(일시정지). `kind=transaction`이면 거래 생성에 필요한 `tx_type`·`title`·`category`·`amount`·`pay_method`·`memo`·`target_*` 필드 사용, `kind=investment`이면 `investment_id`(대상 종목 FK)·`buy_amount`·`buy_quantity` 사용. 등록/수정 폼과 별개로, 크론(`RecurringCronService`)이 이 규칙에 따라 거래/투자 데이터를 순수 생성만 한다
 - `Saving` — `type`(savings/deposit/subscription/etc), `interest_rate`, `monthly_amount`, `maturity_date`, `balance`
 - `InvestmentAccount` — `name`(계좌명, 예: ISA·일반위탁), `cash_balance`(예수금 — 자산이동으로 충전, 매수/매도로 보유 종목과 전환. 계좌 내 종목들이 공유), `account_number_enc`(계좌번호, AES-256-GCM 암호화 — 동일 계좌명 다중 보유 시 구분용, 응답 시 마스킹)
 - `Investment` — `account_id`(InvestmentAccount FK), `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `principal_usd`(해외종목 달러 원금 — 국내종목은 null), `current_value`, `purchase_date`

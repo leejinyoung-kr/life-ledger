@@ -48,7 +48,6 @@ describe('TransactionService (자산이동 연동)', () => {
           if (where?.id?.in) {
             return txs.filter((t) => where.id.in.includes(t.id) && t.user_id === where.user_id && t.deleted_at == null);
           }
-          if (where?.is_recurring) return [];
           return txs.filter((t) => t.user_id === where.user_id && t.deleted_at == null);
         }),
         create: jest.fn(async ({ data }: any) => {

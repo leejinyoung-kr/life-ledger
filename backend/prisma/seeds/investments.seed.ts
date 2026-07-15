@@ -68,7 +68,7 @@ export const seedInvestments: SeedFn = async (prisma, userId) => {
   }
 
   for (const v of INVESTMENTS) {
-    await prisma.investment.create({
+    const created = await prisma.investment.create({
       data: {
         user_id: userId,
         account_id: accountId.get(v.account)!,
@@ -80,11 +80,21 @@ export const seedInvestments: SeedFn = async (prisma, userId) => {
         current_value: v.currentValue,
         purchase_date: d(v.purchaseDate),
         memo: v.memo,
-        recurring_buy_enabled: !!v.recurringBuy,
-        recurring_buy_rule: v.recurringBuy ? { cycle: 'monthly', day: v.recurringBuy.day, weekendAdjust: 'none' } : undefined,
-        recurring_buy_amount: v.recurringBuy?.amount,
       },
     });
+    // 반복매수(주식모으기)는 종목과 별도로 자동이체 설정(RecurringSchedule)에 등록
+    if (v.recurringBuy) {
+      await prisma.recurringSchedule.create({
+        data: {
+          user_id: userId,
+          kind: 'investment',
+          rule: { cycle: 'monthly', day: v.recurringBuy.day, weekendAdjust: 'none' },
+          start_date: d(v.purchaseDate),
+          investment_id: created.id,
+          buy_amount: v.recurringBuy.amount,
+        },
+      });
+    }
   }
   return INVESTMENTS.length;
 };

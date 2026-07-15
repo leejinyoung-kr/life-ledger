@@ -92,10 +92,8 @@ export class TransactionService {
       amount: t.amount.toNumber(),
       payMethod: t.pay_method,
       memo: t.memo,
-      isRecurring: t.is_recurring,
-      recurringRule: t.recurring_rule ?? null,
-      // 반복 원본에서 자동 생성된 회차인지 (프론트 🔁 표시용)
-      recurringParentId: t.recurring_parent_id ?? null,
+      // 자동이체 설정(RecurringSchedule)으로 생성된 회차인지 (프론트 🔁 표시용)
+      recurringScheduleId: t.recurring_schedule_id ?? null,
       targetType: t.target_type ?? null,
       targetId: t.target_id ?? null,
       targetDirection: t.target_direction ?? null,
@@ -157,63 +155,63 @@ export class TransactionService {
     return updated;
   }
 
-  // 활성 반복 템플릿의 회차를 현재 월까지 미리 생성한다.
-  // 회차는 recurring_period 로 식별 — 이미 있거나(편집 override 포함) 삭제된 회차는 다시 만들지 않는다.
+  // 활성 자동이체 설정(RecurringSchedule, kind=transaction)의 회차를 현재 월까지 미리 생성한다.
+  // 회차는 recurring_period 로 식별 — 이미 생성된 회차는 다시 만들지 않는다.
   // RecurringCronService가 매일 오전 9시에 전체 사용자 대상으로 호출(조회/생성 시점에는 호출하지 않음).
   async materializeRecurring(userId: number): Promise<number> {
-    const templates = await this.prisma.transaction.findMany({
-      where: { user_id: userId, deleted_at: null, is_recurring: true },
+    const schedules = await this.prisma.recurringSchedule.findMany({
+      where: { user_id: userId, deleted_at: null, kind: 'transaction', active: true },
     });
-    if (!templates.length) return 0;
+    if (!schedules.length) return 0;
     const now = new Date();
 
-    for (const t of templates) {
-      const rule = t.recurring_rule as unknown as RRule | null;
+    for (const s of schedules) {
+      const rule = s.rule as unknown as RRule | null;
       if (!rule?.cycle) continue;
 
-      // 이미 보유한 회차(템플릿 자신 + 생성분, 삭제분 포함)
+      // 이미 생성된 회차(삭제분 포함)
       const existing = await this.prisma.transaction.findMany({
-        where: { user_id: userId, OR: [{ id: t.id }, { recurring_parent_id: t.id }] },
+        where: { user_id: userId, recurring_schedule_id: s.id },
         select: { recurring_period: true },
       });
       const have = new Set(existing.map((e) => e.recurring_period).filter(Boolean) as string[]);
-      have.add(periodOf(t.date, rule.cycle)); // 템플릿 자신의 회차
 
       const toCreate: Prisma.TransactionCreateManyInput[] = [];
-      // yearly는 i=0(생성 연도분)부터 — rule.month가 생성월보다 미래면 같은 해에 별도 회차로 누적되어야 함
-      const startI = rule.cycle === 'yearly' ? 0 : 1;
-      for (let i = startI; i <= 120; i++) { // 안전 상한
-        const occ = nthOccurrence(t.date, rule, i);
+      for (let i = 0; i <= 120; i++) { // 안전 상한
+        const occ = nthOccurrence(s.start_date, rule, i);
         if (occ > now) break;
-        if (occ < t.date) continue; // 생성일 이전 회차(연간 i=0이 생성월보다 이른 달인 경우)는 만들지 않음
+        if (occ < s.start_date) continue; // 시작일 이전 회차(연간 i=0이 시작월보다 이른 달인 경우)는 만들지 않음
         const period = periodOf(occ, rule.cycle);
         if (have.has(period)) continue;
         have.add(period);
         toCreate.push({
-          user_id: userId, type: t.type, date: occ, title: t.title, category: t.category,
-          amount: t.amount, pay_method: t.pay_method, memo: t.memo,
-          is_recurring: false, recurring_rule: Prisma.JsonNull,
-          recurring_parent_id: t.id, recurring_period: period,
-          target_type: t.target_type, target_id: t.target_id, target_direction: t.target_direction,
+          user_id: userId, type: s.tx_type!, date: occ, title: s.title!, category: s.category!,
+          amount: s.amount!, pay_method: s.pay_method ?? '', memo: s.memo,
+          recurring_schedule_id: s.id, recurring_period: period,
+          target_type: s.target_type, target_id: s.target_id, target_direction: s.target_direction,
         });
       }
       if (toCreate.length) {
         await this.prisma.$transaction(async (tx) => {
           await tx.transaction.createMany({ data: toCreate });
-          // 자산이동 반복 템플릿이면 새로 생성된 회차분만큼 대상 잔액에 일괄 누적 (회차당 금액은 템플릿과 동일)
-          if (t.target_type && t.target_id) {
-            await this.applyTransferEffect(tx, userId, t.target_type, t.target_id, t.amount.mul(toCreate.length), t.target_direction);
+          // 자산이동 자동이체 설정이면 새로 생성된 회차분만큼 대상 잔액에 일괄 누적 (회차당 금액은 설정과 동일)
+          if (s.target_type && s.target_id) {
+            await this.applyTransferEffect(tx, userId, s.target_type, s.target_id, s.amount!.mul(toCreate.length), s.target_direction);
           }
+          await tx.recurringSchedule.update({
+            where: { id: s.id },
+            data: { last_period: toCreate[toCreate.length - 1].recurring_period as string },
+          });
         });
         this.sysLog.info({
           userId,
           category: 'recurring_tx',
-          message: `반복거래 '${t.title}' ${toCreate.length}건 회차 생성`,
-          metadata: { templateId: t.id, title: t.title, periods: toCreate.map((c) => c.recurring_period) },
+          message: `반복거래 '${s.title}' ${toCreate.length}건 회차 생성`,
+          metadata: { scheduleId: s.id, title: s.title, periods: toCreate.map((c) => c.recurring_period) },
         });
       }
     }
-    return templates.length;
+    return schedules.length;
   }
 
   // 사용자의 가장 최근 거래 월(YYYY-MM). 없으면 null — 더미 데이터(과거)에서도 추이가 보이도록 기준점 사용
@@ -324,29 +322,9 @@ export class TransactionService {
     return buckets;
   }
 
-  // 반복 거래 목록 — 동일한 규칙(제목·카테고리·유형·금액)은 한 번만 표시
-  async recurring(userId: number) {
-    const rows = await this.prisma.transaction.findMany({
-      where: { user_id: userId, deleted_at: null, is_recurring: true },
-      orderBy: { date: 'desc' },
-    });
-
-    const seen = new Set<string>();
-    const unique = rows.filter((r) => {
-      const key = `${r.title}|${r.category}|${r.type}|${r.amount}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-
-    return unique.map((r) => this.toDto(r));
-  }
-
   // 내역 추가
   async create(userId: number, dto: CreateTransactionDto) {
     const date = new Date(dto.date);
-    const isRecurring = dto.isRecurring ?? false;
-    const rule = dto.recurringRule as unknown as RRule | undefined;
     const hasTarget = dto.type === 'transfer' && dto.targetType != null && dto.targetId != null;
 
     const created = await this.prisma.$transaction(async (tx) => {
@@ -360,10 +338,6 @@ export class TransactionService {
           amount: new Prisma.Decimal(dto.amount),
           pay_method: dto.payMethod ?? '',
           memo: dto.memo,
-          is_recurring: isRecurring,
-          recurring_rule: isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull,
-          // 반복 템플릿이면 자신의 회차 식별자 기록 (자동 생성 시 중복 방지)
-          recurring_period: isRecurring && rule?.cycle ? periodOf(date, rule.cycle) : null,
           target_type: hasTarget ? dto.targetType : null,
           target_id: hasTarget ? dto.targetId : null,
           target_direction: hasTarget ? dto.targetDirection ?? null : null,
@@ -374,7 +348,6 @@ export class TransactionService {
       }
       return row;
     });
-    // 과거~현재 회차는 RecurringCronService가 매일 오전 9시에 채움 — 등록 시점엔 만들지 않음
     return this.toDto(created);
   }
 
@@ -453,8 +426,6 @@ export class TransactionService {
         // 지출만 결제수단 저장 — 수입/자산이동은 빈값
         pay_method: type === 'expense' ? payMethod : '',
         memo: memo || null,
-        is_recurring: false,
-        recurring_rule: Prisma.JsonNull,
       });
     }
 
@@ -533,11 +504,8 @@ export class TransactionService {
   // 내역 수정
   async update(userId: number, id: number, dto: UpdateTransactionDto) {
     const target = await this.findOwned(userId, id);
-    const isOccurrence = target.recurring_parent_id != null;
-    // 단일 범위로 회차(자동 생성분)를 직접 고치면 '개별 수정'으로 고정 → 이후 범위 수정에서 보존
-    const pinOverride = isOccurrence && (!dto.scope || dto.scope === 'one');
 
-    const mainPatch: Prisma.TransactionUpdateInput = {
+    const patch: Prisma.TransactionUpdateInput = {
       type: dto.type,
       date: dto.date ? new Date(dto.date) : undefined,
       title: dto.title,
@@ -545,37 +513,13 @@ export class TransactionService {
       amount: dto.amount !== undefined ? new Prisma.Decimal(dto.amount) : undefined,
       pay_method: dto.payMethod,
       memo: dto.memo,
-      is_recurring: dto.isRecurring,
-      recurring_rule: dto.isRecurring !== undefined
-        ? (dto.isRecurring && dto.recurringRule ? (dto.recurringRule as unknown as Prisma.InputJsonValue) : Prisma.JsonNull)
-        : undefined,
-      recurring_overridden: pinOverride ? true : undefined,
       target_type: dto.targetType !== undefined ? dto.targetType : undefined,
       target_id: dto.targetId !== undefined ? dto.targetId : undefined,
       target_direction: dto.targetDirection !== undefined ? dto.targetDirection : undefined,
     };
 
     return this.prisma.$transaction(async (tx) => {
-      const updated = await this.applyRowUpdatePatch(tx, userId, target, mainPatch);
-
-      // 반복 거래 범위 수정 — 날짜는 회차별 고유라 제외, 내용 필드만 전파.
-      // 사용자가 개별 수정(override)한 회차는 덮어쓰지 않으며, row마다 target/amount가 달라 개별 역반영·재적용한다.
-      if (dto.scope === 'future' || dto.scope === 'all') {
-        const templateId = target.recurring_parent_id ?? target.id; // 템플릿 기준
-        const where: Prisma.TransactionWhereInput = {
-          user_id: userId,
-          deleted_at: null,
-          id: { not: id },
-          recurring_overridden: false,
-          OR: [{ id: templateId }, { recurring_parent_id: templateId }],
-        };
-        if (dto.scope === 'future') where.date = { gte: target.date }; // 이번 회차 이후
-        const rows = await tx.transaction.findMany({ where });
-        const { date: _omitDate, recurring_overridden: _omitOverride, ...contentPatch } = mainPatch;
-        for (const row of rows) {
-          await this.applyRowUpdatePatch(tx, userId, row, contentPatch);
-        }
-      }
+      const updated = await this.applyRowUpdatePatch(tx, userId, target, patch);
       return this.toDto(updated);
     });
   }
