@@ -1,6 +1,5 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import * as webpush from 'web-push';
+import { Injectable } from '@nestjs/common';
+import { WebPushService } from '@leejinyoun/core-notification';
 import { PrismaService } from '../prisma/prisma.service';
 
 // 푸시 페이로드 — 민감정보 금지(제목/요약만). 상세는 앱을 열어 확인하게 한다.
@@ -11,35 +10,15 @@ export interface PushPayload {
 }
 
 @Injectable()
-export class PushService implements OnModuleInit {
-  private readonly logger = new Logger(PushService.name);
-  private enabled = false;
-  private publicKey: string | null = null;
-
+export class PushService {
   constructor(
     private prisma: PrismaService,
-    private config: ConfigService,
+    private webPush: WebPushService,
   ) {}
-
-  // 부팅 시 VAPID 키 유무로 활성화 결정 — 키 없으면 발송 기능 전체 비활성(no-op)
-  onModuleInit(): void {
-    const publicKey = this.config.get<string>('VAPID_PUBLIC_KEY');
-    const privateKey = this.config.get<string>('VAPID_PRIVATE_KEY');
-    const subject = this.config.get<string>('VAPID_SUBJECT') ?? 'mailto:admin@docnexus.local';
-
-    if (publicKey && privateKey) {
-      webpush.setVapidDetails(subject, publicKey, privateKey);
-      this.publicKey = publicKey;
-      this.enabled = true;
-      this.logger.log('Web Push 활성화됨 (VAPID 키 감지)');
-    } else {
-      this.logger.warn('VAPID 키 없음 — Web Push 비활성 (구독/발송 no-op)');
-    }
-  }
 
   // 프론트가 구독 전 공개키를 받아간다. 비활성이면 enabled=false 만 반환
   getPublicKey(): { enabled: boolean; publicKey: string | null } {
-    return { enabled: this.enabled, publicKey: this.publicKey };
+    return this.webPush.getPublicKey();
   }
 
   // 구독 저장 — endpoint 기준 upsert (같은 기기 재구독 시 키 갱신). 비활성이어도 저장은 허용
@@ -78,40 +57,33 @@ export class PushService implements OnModuleInit {
   // 테스트 발송 — 본인 모든 기기로 더미 푸시. 진단용 상태(서버활성/구독수)도 반환
   async sendTest(userId: number): Promise<{ enabled: boolean; subscriptions: number }> {
     const subscriptions = await this.prisma.pushSubscription.count({ where: { user_id: userId } });
-    if (this.enabled && subscriptions > 0) {
+    const { enabled } = this.webPush.getPublicKey();
+    if (enabled && subscriptions > 0) {
       await this.sendToUser(userId, {
         title: '테스트 푸시',
         body: '푸시 알림이 정상 작동합니다.',
         url: '/settings',
       });
     }
-    return { enabled: this.enabled, subscriptions };
+    return { enabled, subscriptions };
   }
 
   // 한 사용자의 모든 기기로 푸시 발송 — 비활성이면 즉시 반환(no-op). 만료(404/410) 구독은 정리
   async sendToUser(userId: number, payload: PushPayload): Promise<void> {
-    if (!this.enabled) return;
+    const { enabled } = this.webPush.getPublicKey();
+    if (!enabled) return;
 
     const subs = await this.prisma.pushSubscription.findMany({ where: { user_id: userId } });
     if (!subs.length) return;
 
-    const data = JSON.stringify(payload);
     await Promise.all(
       subs.map(async (s) => {
-        try {
-          await webpush.sendNotification(
-            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-            data,
-          );
-        } catch (e) {
-          const status = (e as { statusCode?: number }).statusCode;
-          // 만료/폐기된 구독은 삭제, 그 외는 로깅만
-          if (status === 404 || status === 410) {
-            await this.prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
-          } else {
-            const body = (e as { body?: string }).body;
-            this.logger.warn(`푸시 발송 실패 (sub ${s.id}, status ${status ?? '?'}, body: ${body ?? '?'})`);
-          }
+        const result = await this.webPush.sendToSubscription(
+          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+          payload,
+        );
+        if (result.expired) {
+          await this.prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
         }
       }),
     );
