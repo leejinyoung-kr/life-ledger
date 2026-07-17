@@ -21,6 +21,8 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      secrets:
+        - npm_read_token
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -48,6 +50,8 @@ services:
       args:
         NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL}
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      secrets:
+        - npm_read_token
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -66,3 +70,7 @@ services:
 volumes:
   db_data:
   db_backups:
+
+secrets:
+  npm_read_token:
+    environment: NPM_READ_TOKEN

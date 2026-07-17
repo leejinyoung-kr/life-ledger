@@ -24,3 +24,5 @@ jobs:
           docker compose build
           docker compose up -d
           docker compose ps
+        env:
+          NPM_READ_TOKEN: ${{ secrets.NPM_READ_TOKEN }}
