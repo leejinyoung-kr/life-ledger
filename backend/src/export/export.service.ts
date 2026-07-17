@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import AdmZip from 'adm-zip';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccessLogService } from '../access-log/access-log.service';
-import type { ClientInfo } from '../common/client-info.decorator';
+import type { ClientInfo } from '@leejinyoun/core-logging';
 
 @Injectable()
 export class ExportService {

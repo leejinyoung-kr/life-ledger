@@ -13,7 +13,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '@leejinyoun/core-auth';
 import { JwtAuthGuard } from '@leejinyoun/core-auth';
 import type { AuthUser } from '../auth/auth-user';
-import { Client, type ClientInfo } from '../common/client-info.decorator';
+import { Client, type ClientInfo } from '@leejinyoun/core-logging';
 import { AccessLogService } from '../access-log/access-log.service';
 import { SecurityService } from './security.service';
 import { VaultService } from './vault.service';

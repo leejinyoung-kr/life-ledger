@@ -8,7 +8,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { requestLogger } from './common/request-logger.middleware';
+import { requestLogger } from '@leejinyoun/core-logging';
 
 // 부팅 시 핵심 시크릿 검증 — 미설정/약함/placeholder 기본값이면 즉시 종료.
 // 약한 시크릿으로 운영 배포되는 것을 막는다(런타임 500 으로 미루지 않음).

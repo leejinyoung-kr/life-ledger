@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AccessAction } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import type { ClientInfo } from '../common/client-info.decorator';
+import type { ClientInfo } from '@leejinyoun/core-logging';
 
 // 로그 기록 대상 (열람한 보관함 레코드)
 export interface AccessTarget {

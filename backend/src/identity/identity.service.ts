@@ -3,7 +3,7 @@ import { IdentityCard } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '@leejinyoun/core-security';
 import { AccessLogService } from '../access-log/access-log.service';
-import type { ClientInfo } from '../common/client-info.decorator';
+import type { ClientInfo } from '@leejinyoun/core-logging';
 import { maskTail, toDateOrNull, toDateStr } from '../common/vault.util';
 import { CreateIdentityDto } from './dto/create-identity.dto';
 import { UpdateIdentityDto } from './dto/update-identity.dto';

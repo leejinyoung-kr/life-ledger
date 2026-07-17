@@ -7,7 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '@leejinyoun/core-security';
 import { AccessLogService } from '../access-log/access-log.service';
 import { parsePage } from '@leejinyoun/core-common';
-import type { ClientInfo } from '../common/client-info.decorator';
+import type { ClientInfo } from '@leejinyoun/core-logging';
 import { CreateCredentialDto } from './dto/create-credential.dto';
 import { QueryCredentialDto } from './dto/query-credential.dto';
 import { UpdateCredentialDto } from './dto/update-credential.dto';

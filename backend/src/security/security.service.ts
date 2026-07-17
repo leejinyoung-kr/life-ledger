@@ -4,7 +4,7 @@ import { LoginSession } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '@leejinyoun/core-security';
 import { AccessLogService } from '../access-log/access-log.service';
-import type { ClientInfo } from '../common/client-info.decorator';
+import type { ClientInfo } from '@leejinyoun/core-logging';
 
 type RiskCategory = 'reuse' | 'weak' | 'no2fa' | 'breach';
 type RiskSeverity = 'critical' | 'danger' | 'warning' | 'info';
