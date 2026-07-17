@@ -12,6 +12,7 @@ jest.mock('@aws-sdk/s3-request-presigner', () => ({
 }));
 
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { StorageService } from '@leejinyoun/core-storage';
 import { FileService } from './file.service';
 
 // MIME 매직바이트 검증·inline XSS 차단·폴더 재귀삭제 단일 트랜잭션·업로드 보상삭제 회귀 테스트.
@@ -55,17 +56,21 @@ describe('FileService', () => {
       userSettings: { findUnique: jest.fn().mockResolvedValue({ notif_upload: false }) },
       $transaction: jest.fn((ops: any[]) => Promise.all(ops)),
     };
-    process.env.B2_BUCKET_NAME = 'test-bucket';
-    process.env.B2_ENDPOINT = 'https://example.com';
-    process.env.B2_BUCKET_REGION = 'eu';
-    process.env.B2_KEY_ID = 'key';
-    process.env.B2_APPLICATION_KEY = 'secret';
   });
 
   const notification = { create: jest.fn().mockResolvedValue({ title: 't', description: 'd' }) };
   const push = { sendToUser: jest.fn() };
   const sysLog = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
-  const svc = () => new FileService(prisma, notification as any, push as any, sysLog as any);
+  // @aws-sdk/client-s3, @aws-sdk/s3-request-presigner 가 모킹되어 있어
+  // StorageService 내부의 S3 호출도 함께 가짜로 대체된다.
+  const storage = new StorageService({
+    bucket: 'test-bucket',
+    endpoint: 'https://example.com',
+    region: 'eu',
+    accessKeyId: 'key',
+    secretAccessKey: 'secret',
+  });
+  const svc = () => new FileService(prisma, notification as any, push as any, sysLog as any, storage);
 
   describe('업로드 — MIME 매직바이트 검증', () => {
     it('declared mime 과 실제 시그니처가 다르면 거부', async () => {

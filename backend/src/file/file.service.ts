@@ -1,15 +1,5 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import {
-  S3Client,
-  PutObjectCommand,
-  DeleteObjectCommand,
-  GetObjectCommand,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { StorageService } from '@leejinyoun/core-storage';
 import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
@@ -17,128 +7,15 @@ import { PushService } from '../push/push.service';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
 import { SystemLogService } from '../system-log/system-log.service';
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
-
-// 허용 MIME 접두/타입 화이트리스트 — 실행파일·스크립트 등 위험 업로드 차단
-const ALLOWED_MIME_PREFIXES = ['image/', 'video/', 'audio/', 'text/'];
-const ALLOWED_MIME_EXACT = new Set([
-  'application/pdf',
-  'application/zip',
-  'application/json',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'application/octet-stream',
-]);
-function isAllowedMime(mime: string): boolean {
-  return ALLOWED_MIME_PREFIXES.some((p) => mime.startsWith(p)) || ALLOWED_MIME_EXACT.has(mime);
-}
-
-// inline 미리보기 시 브라우저가 직접 실행/렌더링하면 XSS 위험이 있는 형식 — attachment 로 강제
-const INLINE_BLOCKED_MIME = new Set([
-  'text/html',
-  'application/xhtml+xml',
-  'image/svg+xml',
-  'text/xml',
-  'application/xml',
-]);
-
-// ZIP 컨테이너 기반 오피스 포맷 — PK 시그니처 허용 대상
-const ZIP_FAMILY_MIME = new Set([
-  'application/zip',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-]);
-
-// 레거시 OLE 복합문서 기반 오피스 포맷 — D0CF11E0 시그니처 허용 대상
-const OLE_FAMILY_MIME = new Set([
-  'application/msword',
-  'application/vnd.ms-excel',
-  'application/vnd.ms-powerpoint',
-]);
-
-function startsWithBytes(buf: Buffer, sig: number[]): boolean {
-  return buf.length >= sig.length && sig.every((b, i) => buf[i] === b);
-}
-
-// 매직바이트 시그니처 → 선언 mimetype 허용 여부 검사 규칙.
-// 시그니처가 매칭되는데 declared mime 이 허용되지 않으면 위장 업로드로 간주해 차단.
-const MAGIC_RULES: { test: (buf: Buffer) => boolean; allow: (mime: string) => boolean }[] = [
-  { test: (b) => startsWithBytes(b, [0xff, 0xd8, 0xff]), allow: (m) => m === 'image/jpeg' },
-  { test: (b) => startsWithBytes(b, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), allow: (m) => m === 'image/png' },
-  { test: (b) => startsWithBytes(b, [0x47, 0x49, 0x46, 0x38]), allow: (m) => m === 'image/gif' },
-  {
-    test: (b) => startsWithBytes(b, [0x52, 0x49, 0x46, 0x46]) && b.subarray(8, 12).toString('ascii') === 'WEBP',
-    allow: (m) => m === 'image/webp',
-  },
-  {
-    test: (b) => startsWithBytes(b, [0x52, 0x49, 0x46, 0x46]) && b.subarray(8, 12).toString('ascii') === 'WAVE',
-    allow: (m) => m === 'audio/wav' || m === 'audio/x-wav' || m === 'audio/wave',
-  },
-  { test: (b) => startsWithBytes(b, [0x25, 0x50, 0x44, 0x46]), allow: (m) => m === 'application/pdf' },
-  {
-    test: (b) => startsWithBytes(b, [0x50, 0x4b, 0x03, 0x04]) || startsWithBytes(b, [0x50, 0x4b, 0x05, 0x06]),
-    allow: (m) => ZIP_FAMILY_MIME.has(m),
-  },
-  { test: (b) => startsWithBytes(b, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]), allow: (m) => OLE_FAMILY_MIME.has(m) },
-  { test: (b) => startsWithBytes(b, [0x49, 0x44, 0x33]), allow: (m) => m === 'audio/mpeg' },
-  { test: (b) => b.length >= 2 && b[0] === 0xff && (b[1] & 0xe0) === 0xe0, allow: (m) => m === 'audio/mpeg' },
-  {
-    test: (b) => b.length >= 12 && b.subarray(4, 8).toString('ascii') === 'ftyp',
-    allow: (m) => m.startsWith('video/') || m.startsWith('audio/'),
-  },
-  { test: (b) => startsWithBytes(b, [0x1a, 0x45, 0xdf, 0xa3]), allow: (m) => m === 'video/webm' || m === 'video/x-matroska' },
-  // 실행파일 시그니처 — 선언 형식과 무관하게 항상 차단
-  { test: (b) => startsWithBytes(b, [0x4d, 0x5a]), allow: () => false },
-  { test: (b) => startsWithBytes(b, [0x7f, 0x45, 0x4c, 0x46]), allow: () => false },
-  {
-    test: (b) =>
-      startsWithBytes(b, [0xfe, 0xed, 0xfa, 0xce]) ||
-      startsWithBytes(b, [0xfe, 0xed, 0xfa, 0xcf]) ||
-      startsWithBytes(b, [0xcf, 0xfa, 0xed, 0xfe]) ||
-      startsWithBytes(b, [0xce, 0xfa, 0xed, 0xfe]),
-    allow: () => false,
-  },
-];
-
-// 매직바이트로 실제 형식을 판별해 declared mimetype 과 비교 — 알려진 시그니처가 없으면 통과(text/* 등)
-function checkMagicBytes(buf: Buffer, declaredMime: string): void {
-  for (const rule of MAGIC_RULES) {
-    if (rule.test(buf)) {
-      if (!rule.allow(declaredMime)) {
-        throw new BadRequestException('파일 내용이 선언된 형식과 일치하지 않습니다.');
-      }
-      return;
-    }
-  }
-}
-
 @Injectable()
 export class FileService {
-  private readonly s3: S3Client;
-  private readonly bucket: string;
-
   constructor(
     private prisma: PrismaService,
     private notification: NotificationService,
     private push: PushService,
     private sysLog: SystemLogService,
-  ) {
-    this.bucket = process.env.B2_BUCKET_NAME!;
-    this.s3 = new S3Client({
-      endpoint: process.env.B2_ENDPOINT!,
-      region: process.env.B2_BUCKET_REGION!,
-      credentials: {
-        accessKeyId: process.env.B2_KEY_ID!,
-        secretAccessKey: process.env.B2_APPLICATION_KEY!,
-      },
-      forcePathStyle: true,
-    });
-  }
+    private storage: StorageService,
+  ) {}
 
   // 현재 폴더의 하위 폴더·파일 목록 + 조상 경로(브레드크럼) + 전체 사용량
   async list(userId: number, folderId?: number) {
@@ -201,11 +78,7 @@ export class FileService {
   // 파일 업로드 — MIME 화이트리스트 검증 + SHA-256 중복 제거 후 B2 저장·DB 기록.
   // 동일 내용(해시 일치) 파일이 이미 있으면 B2 재업로드 없이 기존 오브젝트를 가리키는 메타만 추가한다.
   async upload(userId: number, file: Express.Multer.File, folderId?: number) {
-    if (file.size > MAX_FILE_SIZE)
-      throw new BadRequestException('파일 크기는 50MB를 초과할 수 없습니다.');
-    if (!isAllowedMime(file.mimetype))
-      throw new BadRequestException(`허용되지 않는 파일 형식입니다: ${file.mimetype}`);
-    checkMagicBytes(file.buffer, file.mimetype);
+    this.storage.validateUpload(file);
 
     if (folderId) await this.findOwnedFolder(userId, folderId);
 
@@ -221,15 +94,7 @@ export class FileService {
     const objectKey = dup?.object_key ?? `users/${userId}/${randomUUID()}${ext ? '.' + ext : ''}`;
 
     if (!dup) {
-      await this.s3.send(
-        new PutObjectCommand({
-          Bucket: this.bucket,
-          Key: objectKey,
-          Body: file.buffer,
-          ContentType: file.mimetype,
-          ContentLength: file.size,
-        }),
-      );
+      await this.storage.putObject(objectKey, file.buffer, file.mimetype);
     }
 
     let saved;
@@ -248,7 +113,7 @@ export class FileService {
     } catch (e) {
       // DB 기록 실패 시 방금 올린 B2 오브젝트 보상삭제 (dup 재사용분은 보존)
       if (!dup) {
-        await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: objectKey })).catch((e2: unknown) => {
+        await this.storage.deleteObject(objectKey).catch((e2: unknown) => {
           this.sysLog.error({ userId, category: 'file', message: `DB 저장 실패 후 B2 보상삭제도 실패 — key: ${objectKey}`, metadata: { objectKey, dbError: (e as Error).message, b2Error: (e2 as Error).message } });
         });
       }
@@ -291,16 +156,7 @@ export class FileService {
   // text/html·image/svg+xml 등 inline 렌더링 시 XSS 위험이 있는 형식은 attachment 로 강제 전환
   async getDownloadUrl(userId: number, fileId: number, disposition: 'attachment' | 'inline' = 'attachment') {
     const file = await this.findOwnedFile(userId, fileId);
-    const safeDisposition = disposition === 'inline' && INLINE_BLOCKED_MIME.has(file.mime_type) ? 'attachment' : disposition;
-    const url = await getSignedUrl(
-      this.s3,
-      new GetObjectCommand({
-        Bucket: this.bucket,
-        Key: file.object_key,
-        ResponseContentDisposition: `${safeDisposition}; filename="${encodeURIComponent(file.name)}"`,
-      }),
-      { expiresIn: 300 },
-    );
+    const url = await this.storage.getDownloadUrl(file.object_key, file.name, file.mime_type, disposition);
     return { url };
   }
 
@@ -318,9 +174,7 @@ export class FileService {
       where: { object_key: file.object_key, deleted_at: null },
     });
     if (stillReferenced === 0) {
-      await this.s3.send(
-        new DeleteObjectCommand({ Bucket: this.bucket, Key: file.object_key }),
-      );
+      await this.storage.deleteObject(file.object_key);
     }
 
     return { id: fileId };
