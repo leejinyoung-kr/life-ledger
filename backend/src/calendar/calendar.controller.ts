@@ -11,9 +11,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { CurrentUser } from '@leejinyoun/core-auth';
+import { JwtAuthGuard } from '@leejinyoun/core-auth';
+import type { AuthUser } from '../auth/auth-user';
 import { CalendarService } from './calendar.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { QueryEventDto } from './dto/query-event.dto';

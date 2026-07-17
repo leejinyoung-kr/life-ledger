@@ -1,9 +1,9 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { CurrentUser } from '@leejinyoun/core-auth';
+import { JwtAuthGuard } from '@leejinyoun/core-auth';
+import type { AuthUser } from '../auth/auth-user';
 import { AiService } from './ai.service';
 import { GenerateReportDto } from './dto/generate-report.dto';
 

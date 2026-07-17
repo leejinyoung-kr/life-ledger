@@ -12,7 +12,7 @@ import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { memoryStorage } from 'multer';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@leejinyoun/core-auth';
 import { ConvertService, type ImageFormat } from './convert.service';
 
 @ApiTags('파일 변환')

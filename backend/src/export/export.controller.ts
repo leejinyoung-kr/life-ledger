@@ -2,9 +2,9 @@ import { Controller, Get, Res, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { CurrentUser } from '@leejinyoun/core-auth';
+import { JwtAuthGuard } from '@leejinyoun/core-auth';
+import type { AuthUser } from '../auth/auth-user';
 import { Client, type ClientInfo } from '../common/client-info.decorator';
 import { ExportService } from './export.service';
 

@@ -1,3 +1,6 @@
+// AppModule(및 그 안에서 import되는 다른 모듈 파일들)이 로드되는 시점에 process.env.*를
+// 직접 읽는 코드가 있어, ConfigModule.forRoot()보다 먼저 .env가 로드되어 있어야 한다.
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';

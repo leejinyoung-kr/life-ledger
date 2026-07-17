@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Headers, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { CurrentUser } from '@leejinyoun/core-auth';
+import type { AuthUser } from '../auth/auth-user';
 import { SubscribeDto, UnsubscribeDto } from './dto/subscribe.dto';
 import { PushService } from './push.service';
 

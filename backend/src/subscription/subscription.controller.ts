@@ -11,9 +11,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { CurrentUser } from '@leejinyoun/core-auth';
+import { JwtAuthGuard } from '@leejinyoun/core-auth';
+import type { AuthUser } from '../auth/auth-user';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { QuerySubscriptionDto } from './dto/query-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';

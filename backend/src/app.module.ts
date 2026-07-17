@@ -3,7 +3,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@leejinyoun/core-auth';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AssetModule } from './asset/asset.module';

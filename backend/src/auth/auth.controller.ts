@@ -13,10 +13,8 @@ import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiExcludeController } from '@nestjs/swagger';
 import type { CookieOptions, Request, Response } from 'express';
-import { CurrentUser } from './decorators/current-user.decorator';
-import { Public } from './decorators/public.decorator';
-import { GoogleAuthGuard } from './guards/google-auth.guard';
-import type { AuthUser } from './strategies/jwt.strategy';
+import { CurrentUser, GoogleAuthGuard, Public } from '@leejinyoun/core-auth';
+import type { AuthUser } from './auth-user';
 import { AuthService, GoogleUser } from './auth.service';
 import { RequestEmailCodeDto, VerifyEmailCodeDto } from './dto/email-login.dto';
 
@@ -65,9 +63,11 @@ export class AuthController {
   ) {}
 
   // 현재 로그인 사용자 (토큰 필요) — 사이드바/설정 표시용
+  // JwtStrategy(core-auth)는 토큰의 모든 클레임을 req.user에 그대로 싣기 때문에,
+  // 프론트로 나가는 응답 계약을 지키기 위해 필요한 필드만 골라 반환한다.
   @Get('me')
   me(@CurrentUser() user: AuthUser): AuthUser {
-    return user;
+    return { id: user.id, email: user.email, name: user.name, picture: user.picture };
   }
 
   // 계정 영구 삭제 (토큰 필요) — 전 도메인 데이터 + 사용자 제거

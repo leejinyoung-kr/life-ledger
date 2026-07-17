@@ -12,9 +12,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import { CurrentUser } from '@leejinyoun/core-auth';
+import { JwtAuthGuard } from '@leejinyoun/core-auth';
+import type { AuthUser } from '../auth/auth-user';
 import { CreateRecurringScheduleDto } from './dto/create-recurring-schedule.dto';
 import { QueryRecurringScheduleDto } from './dto/query-recurring-schedule.dto';
 import { UpdateRecurringScheduleDto } from './dto/update-recurring-schedule.dto';

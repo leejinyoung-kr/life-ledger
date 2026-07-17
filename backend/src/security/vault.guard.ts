@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable } 
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
-import type { AuthUser } from '../auth/strategies/jwt.strategy';
+import type { AuthUser } from '../auth/auth-user';
 
 // 마스터 잠금이 켜진 사용자는 reveal 류 호출 시 유효한 vault 토큰(x-vault-token)을 요구.
 // 미설정 사용자는 그대로 통과한다. 잠김/만료 시 423(Locked) + code:VAULT_LOCKED 로 응답해 프론트가 잠금해제 모달을 띄운다.
