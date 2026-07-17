@@ -4,7 +4,7 @@ import { Credential, Prisma } from '@prisma/client';
 import * as ExcelJS from 'exceljs';
 import { authenticator } from 'otplib';
 import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto.service';
+import { CryptoService } from '@leejinyoun/core-security';
 import { AccessLogService } from '../access-log/access-log.service';
 import { parsePage } from '@leejinyoun/core-common';
 import type { ClientInfo } from '../common/client-info.decorator';

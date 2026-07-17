@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { LoginSession } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto.service';
+import { CryptoService } from '@leejinyoun/core-security';
 import { AccessLogService } from '../access-log/access-log.service';
 import type { ClientInfo } from '../common/client-info.decorator';
 

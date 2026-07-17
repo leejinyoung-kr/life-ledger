@@ -1,13 +1,15 @@
 import { NotFoundException } from '@nestjs/common';
 import { EnvService } from './env.service';
-import { CryptoService } from '../common/crypto.service';
+import { CryptoService } from '@leejinyoun/core-security';
 
 // ENV 보관함 — reveal/export/diff 감사 로그 기록, 값 마스킹, 이력/롤백 회귀 테스트.
 // CryptoService 는 실제 사용(라운드트립 검증), Prisma/AccessLog 는 인메모리 가짜.
 describe('EnvService', () => {
   const ORIGINAL = process.env.CREDENTIAL_SECRET;
+  let crypto: CryptoService;
   beforeAll(() => {
     process.env.CREDENTIAL_SECRET = 'unit-test-secret';
+    crypto = new CryptoService({ secret: process.env.CREDENTIAL_SECRET });
   });
   afterAll(() => {
     process.env.CREDENTIAL_SECRET = ORIGINAL;
@@ -19,7 +21,6 @@ describe('EnvService', () => {
   let seq: number;
   let prisma: any;
   let accessLog: any;
-  const crypto = new CryptoService();
   const svc = () => new EnvService(prisma, crypto, accessLog);
 
   beforeEach(() => {

@@ -24,7 +24,7 @@ import { TrashModule } from './trash/trash.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { SearchModule } from './search/search.module';
 import { DashboardModule } from './dashboard/dashboard.module';
-import { CryptoModule } from './common/crypto.module';
+import { CryptoModule } from '@leejinyoun/core-security';
 import { IdentityModule } from './identity/identity.module';
 import { CredentialModule } from './credential/credential.module';
 import { EnvModule } from './env/env.module';
@@ -67,7 +67,7 @@ import { AllExceptionsFilter } from '@leejinyoun/core-common';
     CategoryModule,
     SearchModule,
     DashboardModule,
-    CryptoModule,
+    CryptoModule.forRoot({ secret: process.env.CREDENTIAL_SECRET }),
     IdentityModule,
     CredentialModule,
     EnvModule,

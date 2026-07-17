@@ -1,14 +1,16 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { CredentialService } from './credential.service';
-import { CryptoService } from '../common/crypto.service';
+import { CryptoService } from '@leejinyoun/core-security';
 
 // 계정 보관함 — 비번/TOTP 암호화 저장·복호화·백업코드·엑셀 입출력 회귀 테스트.
 // CryptoService 는 실제 사용(라운드트립 검증), Prisma/AccessLog 는 인메모리 가짜.
 describe('CredentialService', () => {
   const ORIGINAL = process.env.CREDENTIAL_SECRET;
+  let crypto: CryptoService;
   beforeAll(() => {
     process.env.CREDENTIAL_SECRET = 'unit-test-secret';
+    crypto = new CryptoService({ secret: process.env.CREDENTIAL_SECRET });
   });
   afterAll(() => {
     process.env.CREDENTIAL_SECRET = ORIGINAL;
@@ -18,7 +20,6 @@ describe('CredentialService', () => {
   let seq: number;
   let prisma: any;
   let accessLog: any;
-  const crypto = new CryptoService();
   const svc = () => new CredentialService(prisma, crypto, accessLog);
 
   beforeEach(() => {

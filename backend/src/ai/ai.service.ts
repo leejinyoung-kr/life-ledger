@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { AiReport } from '@prisma/client';
 import OpenAI from 'openai';
-import { CryptoService } from '../common/crypto.service';
+import { CryptoService } from '@leejinyoun/core-security';
 import { PrismaService } from '../prisma/prisma.service';
 import { SystemLogService } from '../system-log/system-log.service';
 import type { ReportPeriod } from './dto/generate-report.dto';

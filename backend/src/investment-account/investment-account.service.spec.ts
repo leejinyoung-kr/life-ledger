@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { InvestmentAccountService } from './investment-account.service';
-import { CryptoService } from '../common/crypto.service';
+import { CryptoService } from '@leejinyoun/core-security';
 import { PriceLookupService } from '../investment/price-lookup.service';
 import { ExchangeDirection } from './dto/exchange-investment-account.dto';
 
@@ -9,8 +9,10 @@ import { ExchangeDirection } from './dto/exchange-investment-account.dto';
 // CryptoService 는 실제 사용(라운드트립 검증), Prisma 는 인메모리 가짜.
 describe('InvestmentAccountService', () => {
   const ORIGINAL = process.env.CREDENTIAL_SECRET;
+  let crypto: CryptoService;
   beforeAll(() => {
     process.env.CREDENTIAL_SECRET = 'unit-test-secret';
+    crypto = new CryptoService({ secret: process.env.CREDENTIAL_SECRET });
   });
   afterAll(() => {
     process.env.CREDENTIAL_SECRET = ORIGINAL;
@@ -20,7 +22,6 @@ describe('InvestmentAccountService', () => {
   let investments: any[];
   let seq: number;
   let prisma: any;
-  const crypto = new CryptoService();
   const priceLookup = { getExchangeRate: jest.fn(async () => 1300) } as unknown as PriceLookupService;
   const svc = () => new InvestmentAccountService(prisma, crypto, priceLookup);
 
