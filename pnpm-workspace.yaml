@@ -11,3 +11,11 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - '@leejinyoun/core-auth@0.0.1 || 0.1.0'
+  - '@leejinyoun/core-common@0.0.1 || 0.1.0'
+  - '@leejinyoun/core-logging@0.0.1 || 0.1.0'
+  - '@leejinyoun/core-notification@0.0.1 || 0.1.0'
+  - '@leejinyoun/core-security@0.0.1 || 0.1.0'
+  - '@leejinyoun/core-storage@0.0.1 || 0.1.0'

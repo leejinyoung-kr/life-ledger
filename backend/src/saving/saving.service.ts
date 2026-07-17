@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Saving } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { parsePage } from '../common/pagination';
+import { parsePage } from '@leejinyoun/core-common';
 import { CreateSavingDto } from './dto/create-saving.dto';
 import { QuerySavingDto } from './dto/query-saving.dto';
 import { UpdateSavingDto } from './dto/update-saving.dto';

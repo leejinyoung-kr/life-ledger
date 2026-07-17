@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Asset, AssetType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { parsePage } from '../common/pagination';
+import { parsePage } from '@leejinyoun/core-common';
 import { PriceLookupService } from '../investment/price-lookup.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';

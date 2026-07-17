@@ -6,7 +6,7 @@ import { authenticator } from 'otplib';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto.service';
 import { AccessLogService } from '../access-log/access-log.service';
-import { parsePage } from '../common/pagination';
+import { parsePage } from '@leejinyoun/core-common';
 import type { ClientInfo } from '../common/client-info.decorator';
 import { CreateCredentialDto } from './dto/create-credential.dto';
 import { QueryCredentialDto } from './dto/query-credential.dto';

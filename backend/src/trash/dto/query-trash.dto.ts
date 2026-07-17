@@ -1,5 +1,5 @@
 import { IsOptional, IsString } from 'class-validator';
-import { PageQueryDto } from '../../common/dto/page-query.dto';
+import { PageQueryDto } from '@leejinyoun/core-common';
 
 // 휴지통 목록 조회 — 유형(라벨)/이름 검색 + 페이지네이션.
 // 휴지통은 9개 테이블을 메모리에서 합쳐 정렬하므로 필터/슬라이스도 서비스에서 수행한다.

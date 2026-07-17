@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Subscription, SubscriptionCycle } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { parsePage } from '../common/pagination';
+import { parsePage } from '@leejinyoun/core-common';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { QuerySubscriptionDto } from './dto/query-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';

@@ -40,7 +40,7 @@ import { MailModule } from './mail/mail.module';
 import { HealthModule } from './health/health.module';
 import { SystemLogModule } from './system-log/system-log.module';
 import { RecurringScheduleModule } from './recurring-schedule/recurring-schedule.module';
-import { AllExceptionsFilter } from './common/all-exceptions.filter';
+import { AllExceptionsFilter } from '@leejinyoun/core-common';
 
 @Module({
   imports: [

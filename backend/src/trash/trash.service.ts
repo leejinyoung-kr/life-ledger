@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { parsePage } from '../common/pagination';
+import { parsePage } from '@leejinyoun/core-common';
 import { QueryTrashDto } from './dto/query-trash.dto';
 
 // soft-delete 패턴을 공유하는 Prisma delegate 의 최소 인터페이스
