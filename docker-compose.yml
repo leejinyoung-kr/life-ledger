@@ -1,3 +1,5 @@
+name: nexus-doc
+
 services:
   db:
     image: mariadb:11
