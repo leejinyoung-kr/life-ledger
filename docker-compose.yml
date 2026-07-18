@@ -1,6 +1,9 @@
 services:
   db:
     image: mariadb:11
+    # doc-nexus 전용이 아니라 Nexus 패밀리(doc-nexus/work-nexus 등)가 데이터베이스명만
+    # 다르게(docnexus/worknexus) 공유하는 서버라 이름을 프로젝트 중립적으로 고정.
+    container_name: nexus-db
     restart: unless-stopped
     environment:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
