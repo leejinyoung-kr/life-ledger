@@ -35,6 +35,7 @@ jobs:
         run: |
           cd ~/doc-nexus
           pnpm install --frozen-lockfile
+          pnpm --filter backend exec prisma generate
           pnpm --filter backend test
           pnpm --filter frontend lint
           pnpm --filter frontend test
