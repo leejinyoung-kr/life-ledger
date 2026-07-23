@@ -16,11 +16,25 @@ jobs:
     steps:
       # actions/checkout을 쓰지 않고 러너가 이미 갖고 있는 ~/doc-nexus 클론을 그대로 갱신한다.
       # .env / backend/.env 는 git에 커밋되지 않으므로, fresh checkout을 쓰면 이 파일들이 사라진다.
-      - name: Pull latest and redeploy
+      - name: Pull latest
         run: |
           cd ~/doc-nexus
           git fetch origin develop
           git reset --hard origin/develop
+
+      - name: Install and verify
+        run: |
+          cd ~/doc-nexus
+          pnpm install --frozen-lockfile
+          pnpm --filter backend test
+          pnpm --filter frontend lint
+          pnpm --filter frontend test
+        env:
+          NPM_READ_TOKEN: ${{ secrets.NPM_READ_TOKEN }}
+
+      - name: Build and deploy
+        run: |
+          cd ~/doc-nexus
           docker compose build
           docker compose up -d
           docker compose ps
