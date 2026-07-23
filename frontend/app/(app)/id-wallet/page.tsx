@@ -193,7 +193,7 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 'a
     setExpireDate(editing?.expireDate ?? '');
     setMemo(editing?.memo ?? '');
     setFileId(editing?.fileId ?? null);
-  }, [state.open, editing]);
+  }, [state.open, editing, reset]);
 
   // 사본 이미지 업로드 — 파일 보관함에 저장 후 file.id 를 연결값으로 보관
   async function handleUploadFile(e: React.ChangeEvent<HTMLInputElement>) {

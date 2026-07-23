@@ -327,7 +327,7 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset(); setTitle(''); setType('pay'); setMemo(''); setRecurFreq('none'); setRecurUntil('');
     setDate(state.date ?? new Date().toISOString().slice(0, 10));
-  }, [state.open, state.date]);
+  }, [state.open, state.date, reset]);
 
   function validate() {
     const err: Record<string, string> = {};

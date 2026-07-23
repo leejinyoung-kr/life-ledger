@@ -236,7 +236,7 @@ function GoalModal({ open, mode, editing, onClose, onSaved }: { open: boolean; m
     setUnit(editing?.unit ?? 'won');
     setCurrentVal(editing ? String(editing.currentVal) : '');
     setTargetVal(editing ? String(editing.targetVal) : '');
-  }, [open, editing]);
+  }, [open, editing, reset]);
 
   function calcTone(pct: number): GoalTone {
     if (pct >= 75) return 'green';
@@ -313,7 +313,7 @@ function AddTaskModal({ open, onClose, onSaved }: { open: boolean; onClose: () =
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset(); setText(''); setDueDate(''); setPriority('normal'); setMemo('');
-  }, [open]);
+  }, [open, reset]);
 
   function validate() {
     const err: Record<string, string> = {};

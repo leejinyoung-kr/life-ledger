@@ -270,7 +270,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
     setMaturityDate(src?.maturityDate ?? '');
     setBalance(src ? String(src.balance) : '');
     setMemo(src?.memo ?? '');
-  }, [state.open, e, state.prefill]);
+  }, [state.open, e, state.prefill, reset]);
 
   function validate() {
     const err: Record<string, string> = {};

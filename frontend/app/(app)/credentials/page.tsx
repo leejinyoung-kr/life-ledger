@@ -478,7 +478,7 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 
     setPw('');
     setTotp('');
     setMemo(editing?.memo ?? '');
-  }, [state.open, editing]);
+  }, [state.open, editing, reset]);
 
   function validate() {
     const err: Record<string, string> = {};

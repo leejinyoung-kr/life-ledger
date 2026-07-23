@@ -210,7 +210,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
     setPayMethod(e?.payMethod ?? SUB_PAY_METHODS[0]);
     setLastUsedAt(e?.lastUsedAt ?? '');
     setMemo(e?.memo ?? '');
-  }, [state.open, e]);
+  }, [state.open, e, reset]);
 
   function validate() {
     const err: Record<string, string> = {};

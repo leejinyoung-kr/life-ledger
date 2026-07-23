@@ -487,7 +487,7 @@ function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; mod
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setName(editing?.name ?? '');
     setDescription(editing?.description ?? '');
-  }, [state.open, editing]);
+  }, [state.open, editing, reset]);
 
   async function handleSave() {
     if (!name.trim()) { setErrors({ name: '프로젝트명을 입력하세요.' }); return; }
@@ -536,7 +536,7 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
     setValue('');
     setMemo(editing?.memo ?? '');
     setEnvs([editing?.env ?? currentEnv]);
-  }, [state.open, editing, currentEnv]);
+  }, [state.open, editing, currentEnv, reset]);
 
   function handleToggleEnv(e: EnvKind) {
     setEnvs((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));

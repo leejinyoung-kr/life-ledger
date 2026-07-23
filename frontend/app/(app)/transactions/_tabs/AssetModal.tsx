@@ -35,7 +35,7 @@ export function AssetModal({ assetType, state, onClose, onSaved }: {
     setAmount(src ? String(src.amount) : '');
     setInterestRate(src?.interestRate != null ? String(src.interestRate) : '');
     setMemo(src?.memo ?? '');
-  }, [state.open, e, state.prefill]);
+  }, [state.open, e, state.prefill, reset]);
 
   function validate() {
     const err: Record<string, string> = {};
