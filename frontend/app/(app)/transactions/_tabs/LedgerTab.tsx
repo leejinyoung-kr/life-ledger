@@ -91,12 +91,14 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   }, [applied, page, limit]);
   const month = applied.to.slice(0, 7);
 
-  const rowsQuery = useApiQuery<Paginated<Transaction>>(qk.transactions.list({ ...applied, page, limit }), `/transactions?${listQs}`);
+  const rowsQuery = useApiQuery<Paginated<Transaction> & { sumIncome: number; sumExpense: number; sumTransfer: number }>(qk.transactions.list({ ...applied, page, limit }), `/transactions?${listQs}`);
   const summaryQuery = useApiQuery<TransactionSummary>(qk.transactions.summary(month), `/transactions/summary?month=${month}`);
   const trendQuery = useApiQuery<TrendBucket[]>(qk.transactions.monthlyTrend(month), `/transactions/monthly-trend?month=${month}`);
   const recurringQuery = useApiQuery<RecurringSchedule[]>(qk.recurringSchedules.list('transaction'), '/recurring-schedules?kind=transaction');
   const rows = useMemo(() => rowsQuery.data?.items ?? [], [rowsQuery.data]);
   const total = rowsQuery.data?.total ?? 0;
+  const sumIncome = rowsQuery.data?.sumIncome ?? 0;
+  const sumExpense = rowsQuery.data?.sumExpense ?? 0;
   const summary = summaryQuery.data ?? null;
   const trend = trendQuery.data ?? [];
   const recurring = recurringQuery.data ?? [];
@@ -332,8 +334,13 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {total}건</span>
+      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+        <div className="flex items-baseline gap-1.5 text-[0.78rem] text-secondary">
+          <span>총 {total}건 · 필터 합계</span>
+          <span className="amount-income text-[0.95rem]">{won(sumIncome)}</span>
+          <span>/</span>
+          <span className="amount-expense text-[0.95rem]">{won(sumExpense)}</span>
+        </div>
         <div className="flex items-center gap-2">
           <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />

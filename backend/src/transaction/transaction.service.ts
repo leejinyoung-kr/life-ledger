@@ -242,6 +242,13 @@ export class TransactionService {
     return where;
   }
 
+  // 현재 필터(where)에 해당하는 전체 행의 유형별 합계 — 페이지와 무관하게 필터 전체 기준
+  private async sumsFor(where: Prisma.TransactionWhereInput) {
+    const grouped = await this.prisma.transaction.groupBy({ by: ['type'], where, _sum: { amount: true } });
+    const sumOf = (type: TransactionType) => grouped.find((g) => g.type === type)?._sum.amount?.toNumber() ?? 0;
+    return { sumIncome: sumOf('income'), sumExpense: sumOf('expense'), sumTransfer: sumOf('transfer') };
+  }
+
   // 내역 목록 — 날짜범위/유형/카테고리/검색어 필터.
   // 반복 회차는 RecurringCronService가 매일 오전 9시에 일괄 생성(idempotent) — 조회 시점에는 만들지 않음.
   // page 지정 시 서버 페이징(Paginated), 없으면 전체 배열.
@@ -255,11 +262,15 @@ export class TransactionService {
         this.prisma.transaction.findMany({ where, orderBy, skip: pg.skip, take: pg.take }),
         this.prisma.transaction.count({ where }),
       ]);
-      return { items: rows.map((r) => this.toDto(r)), total, page: pg.page, limit: pg.limit };
+      const sums = await this.sumsFor(where);
+      return { items: rows.map((r) => this.toDto(r)), total, page: pg.page, limit: pg.limit, ...sums };
     }
 
-    const rows = await this.prisma.transaction.findMany({ where, orderBy });
-    return rows.map((r) => this.toDto(r));
+    const [rows, sums] = await Promise.all([
+      this.prisma.transaction.findMany({ where, orderBy }),
+      this.sumsFor(where),
+    ]);
+    return { items: rows.map((r) => this.toDto(r)), ...sums };
   }
 
   // 월 요약 — 수입/지출/저축이동 합계 + 실소비/잔액. month 미지정 시 최근 월 사용

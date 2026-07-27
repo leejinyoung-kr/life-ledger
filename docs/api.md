@@ -25,7 +25,7 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /transactions?from=&to=&type=&category=&q= | 내역 목록 (날짜범위/유형/카테고리/검색 필터) |
+| GET | /transactions?from=&to=&type=&category=&q=&page=&limit= | 내역 목록 (날짜범위/유형/카테고리/검색 필터, `page` 지정 시 서버 페이징) |
 | GET | /transactions/summary?month= | 월 요약 (수입/지출/저축이동/실소비/잔액) |
 | GET | /transactions/monthly-trend?month= | 월별 지출 추이 (최근 5개월) |
 | POST | /transactions | 내역 추가 (`type='transfer'`이고 `targetType`·`targetId` 지정 시 대상 잔액에 자동 반영) |
@@ -35,6 +35,8 @@ Base URL: `http://localhost:8000/api/v1`
 | DELETE | /transactions/:id | 내역 삭제 (soft delete) |
 
 > 반복거래/반복매수는 이 엔드포인트가 아닌 [자동이체 설정](#자동이체-설정) API에서 별도로 등록/관리한다 — 거래·투자 등록은 항상 순수 데이터 생성만 한다.
+
+> 목록 응답(페이징 시): `{ items, total, page, limit, sumIncome, sumExpense, sumTransfer }` — 합계는 현재 페이지가 아닌 필터 전체 기준.
 
 > **엑셀 양식 컬럼** (화면 테이블 순서): `유형` · `카테고리` · `내역` · `금액` · `날짜` (필수) / `결제수단` (지출일 때만 필수) / `메모` (선택)
 > 유형·카테고리는 한글 라벨로 입출력하며 업로드 시 코드로 역매핑된다. 양식 다운로드는 프론트(exceljs)에서 생성한다.
