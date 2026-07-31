@@ -15,6 +15,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
 FROM deps AS build
 COPY backend ./backend
 RUN pnpm --filter backend exec prisma generate
+RUN pnpm --filter backend run test
 RUN pnpm --filter backend run build
 
 FROM base AS runtime

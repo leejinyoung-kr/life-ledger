@@ -19,6 +19,8 @@ ARG NEXT_PUBLIC_BACKEND_URL
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN pnpm --filter frontend run lint
+RUN pnpm --filter frontend run test
 RUN pnpm --filter frontend run build
 
 FROM base AS runtime
