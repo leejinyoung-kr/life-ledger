@@ -12,10 +12,14 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm config set "//npm.pkg.github.com/:_authToken" "$(cat /run/secrets/npm_read_token)" \
     && pnpm install --frozen-lockfile
 
-FROM deps AS build
+FROM deps AS prepare
 COPY backend ./backend
 RUN pnpm --filter backend exec prisma generate
+
+FROM prepare AS test
 RUN pnpm --filter backend run test
+
+FROM prepare AS build
 RUN pnpm --filter backend run build
 
 FROM base AS runtime
@@ -25,6 +29,9 @@ ENV TZ=Asia/Seoul
 RUN apk add --no-cache mariadb-client tzdata \
     && cp /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone
+# test 스테이지는 build와 독립적이라 BuildKit이 병렬로 실행한다.
+# 아래 COPY는 산출물이 필요해서가 아니라 test 스테이지를 빌드 그래프에 강제로 포함시켜(=반드시 통과해야 진행되도록) 넣은 것.
+COPY --from=test /app/backend/package.json /tmp/.test-ok
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/backend/node_modules ./backend/node_modules
 COPY --from=build /app/backend/package.json ./backend/package.json
@@ -34,7 +41,8 @@ COPY --from=build /app/backend/prisma ./backend/prisma
 
 RUN addgroup -S app && adduser -S app -G app \
     && mkdir -p /app/backend/backups \
-    && chown -R app:app /app
+    && chown -R app:app /app \
+    && rm -f /tmp/.test-ok
 USER app
 
 WORKDIR /app/backend

@@ -30,9 +30,23 @@ jobs:
           cd ~/doc-nexus
           (
             flock -x 200
-            docker compose build
+            # 실제로 바뀐 경로만 보고 backend/frontend 중 필요한 서비스만 빌드한다.
+            # diff 자체가 실패하면(첫 push 등) 안전하게 둘 다 빌드.
+            CHANGED=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" 2>/dev/null)
+            SERVICES=""
+            if [ -z "$CHANGED" ] || echo "$CHANGED" | grep -qE '^(backend/|docker-compose\.yml)'; then
+              SERVICES="$SERVICES backend"
+            fi
+            if [ -z "$CHANGED" ] || echo "$CHANGED" | grep -qE '^(frontend/|docker-compose\.yml)'; then
+              SERVICES="$SERVICES frontend"
+            fi
+            echo "changed files: $CHANGED"
+            echo "building services:$SERVICES"
+            docker compose build $SERVICES
             docker compose up -d
             docker compose ps
           ) 200>/tmp/nexus-deploy.lock
         env:
           NPM_READ_TOKEN: ${{ secrets.NPM_READ_TOKEN }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
