@@ -22,11 +22,17 @@ jobs:
           git fetch origin develop
           git reset --hard origin/develop
 
+      # nexus 패밀리(doc-nexus/work-nexus/nexus-devops-agent)가 레포별로 별도 self-hosted 러너를
+      # 쓰지만 실제로는 같은 물리 홈서버라, 여러 레포가 동시에 push되면 docker build가 서로 CPU를
+      # 경합해서 오히려 더 느려진다. flock으로 홈서버 전체에서 배포가 한 번에 하나만 돌도록 강제한다.
       - name: Build and deploy
         run: |
           cd ~/doc-nexus
-          docker compose build
-          docker compose up -d
-          docker compose ps
+          (
+            flock -x 200
+            docker compose build
+            docker compose up -d
+            docker compose ps
+          ) 200>/tmp/nexus-deploy.lock
         env:
           NPM_READ_TOKEN: ${{ secrets.NPM_READ_TOKEN }}
