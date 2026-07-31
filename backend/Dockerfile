@@ -7,7 +7,8 @@ FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
-RUN --mount=type=secret,id=npm_read_token \
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    --mount=type=secret,id=npm_read_token \
     pnpm config set "//npm.pkg.github.com/:_authToken" "$(cat /run/secrets/npm_read_token)" \
     && pnpm install --frozen-lockfile
 
