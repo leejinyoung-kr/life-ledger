@@ -31,9 +31,7 @@ frontend/
 │   │   ├── transactions/  # 수입/지출 내역
 │   │   ├── networth/      # 순자산
 │   │   ├── subscriptions/ # 구독 관리
-│   │   ├── tasks/         # 할 일 / 목표
-│   │   ├── notes/         # 메모
-│   │   ├── calendar/      # 캘린더
+│   │   ├── goals/         # 목표
 │   │   ├── notifications/ # 알림
 │   │   ├── security/      # 보안
 │   │   ├── settings/      # 설정

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface SearchResult {
-  type: 'tx' | 'note' | 'cred' | 'id' | 'env';
+  type: 'tx' | 'cred' | 'id' | 'env';
   icon: string;
   title: string;
   sub: string;
@@ -13,22 +13,17 @@ export interface SearchResult {
 export class SearchService {
   constructor(private prisma: PrismaService) {}
 
-  // 통합 검색 — 거래·메모·계정·신원·ENV. 암호화 컬럼은 검색 대상에서 제외(평문 메타만). 타입별 최대 5건.
+  // 통합 검색 — 거래·계정·신원·ENV. 암호화 컬럼은 검색 대상에서 제외(평문 메타만). 타입별 최대 5건.
   async search(userId: number, q: string): Promise<SearchResult[]> {
     const term = q.trim();
     if (!term) return [];
     const like = { contains: term };
     const base = { user_id: userId, deleted_at: null };
 
-    const [txs, notes, creds, ids, projects, vars] = await Promise.all([
+    const [txs, creds, ids, projects, vars] = await Promise.all([
       this.prisma.transaction.findMany({
         where: { ...base, title: like },
         orderBy: { date: 'desc' },
-        take: 5,
-      }),
-      this.prisma.note.findMany({
-        where: { ...base, OR: [{ title: like }, { body: like }] },
-        orderBy: { updated_at: 'desc' },
         take: 5,
       }),
       this.prisma.credential.findMany({
@@ -58,10 +53,6 @@ export class SearchService {
       ...txs.map((t): SearchResult => ({
         type: 'tx', icon: '💰', title: t.title,
         sub: `${t.date.toISOString().slice(0, 10)} · 가계부`, href: '/transactions',
-      })),
-      ...notes.map((n): SearchResult => ({
-        type: 'note', icon: '📝', title: n.title,
-        sub: `${n.updated_at.toISOString().slice(0, 10)} · 메모`, href: '/notes',
       })),
       ...creds.map((c): SearchResult => ({
         type: 'cred', icon: '🔑', title: c.name,

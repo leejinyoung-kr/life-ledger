@@ -26,7 +26,7 @@ export class DashboardService {
     const monthEnd = new Date(Date.UTC(y, m + 1, 1));
     const today = new Date(Date.UTC(y, m, now.getUTCDate()));
 
-    const [byType, assetSummary, activeSubs, recent, upcoming] = await Promise.all([
+    const [byType, assetSummary, activeSubs, recent] = await Promise.all([
       this.prisma.transaction.groupBy({
         by: ['type'],
         where: { user_id: userId, deleted_at: null, date: { gte: monthStart, lt: monthEnd } },
@@ -38,11 +38,6 @@ export class DashboardService {
         where: { user_id: userId, deleted_at: null },
         orderBy: [{ date: 'desc' }, { id: 'desc' }],
         take: 5,
-      }),
-      this.prisma.calendarEvent.findMany({
-        where: { user_id: userId, deleted_at: null, date: { gte: today } },
-        orderBy: { date: 'asc' },
-        take: 4,
       }),
     ]);
 
@@ -57,7 +52,6 @@ export class DashboardService {
         activeSubs,
       },
       recent: recent.map((r) => ({ type: r.type, title: r.title, amount: r.amount.toNumber(), date: r.date.toISOString().slice(0, 10) })),
-      upcoming: upcoming.map((u) => ({ type: u.type, title: u.title, date: u.date.toISOString().slice(0, 10) })),
     };
   }
 
@@ -105,21 +99,19 @@ export class DashboardService {
     until.setUTCDate(until.getUTCDate() + withinDays);
     const range = { gte: today, lte: until };
 
-    const [ids, savings, subs, tasks] = await Promise.all([
+    const [ids, savings, subs] = await Promise.all([
       this.prisma.identityCard.findMany({ where: { user_id: userId, deleted_at: null, expire_date: range }, select: { name: true, expire_date: true } }),
       this.prisma.saving.findMany({ where: { user_id: userId, deleted_at: null, maturity_date: range }, select: { name: true, maturity_date: true } }),
       this.prisma.subscription.findMany({ where: { user_id: userId, deleted_at: null, next_payment_date: range }, select: { name: true, next_payment_date: true, status: true } }),
-      this.prisma.task.findMany({ where: { user_id: userId, deleted_at: null, done: false, due_date: range }, select: { text: true, due_date: true } }),
     ]);
 
     const DAY = 86400000;
     const dday = (d: Date) => Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - today.getTime()) / DAY);
-    type Item = { kind: 'identity' | 'saving' | 'subscription' | 'task'; title: string; date: string; dday: number };
+    type Item = { kind: 'identity' | 'saving' | 'subscription'; title: string; date: string; dday: number };
     const items: Item[] = [
       ...ids.map((i) => ({ kind: 'identity' as const, title: `${i.name} 만료`, date: i.expire_date!.toISOString().slice(0, 10), dday: dday(i.expire_date!) })),
       ...savings.map((s) => ({ kind: 'saving' as const, title: `${s.name} 만기`, date: s.maturity_date!.toISOString().slice(0, 10), dday: dday(s.maturity_date!) })),
       ...subs.map((s) => ({ kind: 'subscription' as const, title: `${s.name} ${s.status === 'trial' ? '체험 종료' : '결제'}`, date: s.next_payment_date.toISOString().slice(0, 10), dday: dday(s.next_payment_date) })),
-      ...tasks.map((t) => ({ kind: 'task' as const, title: `${t.text} 마감`, date: t.due_date!.toISOString().slice(0, 10), dday: dday(t.due_date!) })),
     ];
     return items.sort((a, b) => a.dday - b.dday);
   }

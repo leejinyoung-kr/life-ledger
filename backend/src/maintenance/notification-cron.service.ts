@@ -45,7 +45,7 @@ export class NotificationCronService {
     return 1;
   }
 
-  // 한 사용자의 알림 후보를 생성 (예적금만기·구독결제/체험·신원만료·할일마감·비번회전)
+  // 한 사용자의 알림 후보를 생성 (예적금만기·구독결제/체험·신원만료·비번회전)
   private async runForUser(userId: number): Promise<number> {
     const now = new Date();
     const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -91,17 +91,6 @@ export class NotificationCronService {
         n += await this.emit(userId, {
           group: 'system', tone: 'warning',
           title: `${i.name} 문서 만료 임박`, description: '신원 문서 유효기간이 60일 이내입니다.', source: '신원 지갑',
-        });
-      }
-
-      // 5) 할일 마감 D-1
-      const tasks = await this.prisma.task.findMany({
-        where: { user_id: userId, deleted_at: null, done: false, due_date: { gte: today, lte: addDays(today, 1) } },
-      });
-      for (const t of tasks) {
-        n += await this.emit(userId, {
-          group: 'system', tone: 'warning',
-          title: `'${t.text}' 마감 임박`, description: '할일 마감이 하루 이내입니다.', source: '할일',
         });
       }
     }

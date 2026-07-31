@@ -52,24 +52,6 @@ export const seedTrash: SeedFn = async (prisma, userId) => {
   });
   count++;
 
-  // 메모 — 28일 전 삭제 (2일, 임박)
-  await prisma.note.create({
-    data: {
-      user_id: userId, title: '회의 메모 (4월)', body: '# 4월 회의\n\n- 정리 완료', tag: '기타',
-      deleted_at: daysAgo(28),
-    },
-  });
-  count++;
-
-  // 할일 — 29일 전 삭제 (1일, 임박)
-  await prisma.task.create({
-    data: {
-      user_id: userId, text: '구 면허 갱신 신청', priority: 'low', done: false,
-      deleted_at: daysAgo(29),
-    },
-  });
-  count++;
-
   // 투자 — 3일 전 삭제 (27일). 소속 계좌는 투자 시드에서 만든 '일반위탁' 재사용
   const account = await prisma.investmentAccount.findFirst({ where: { user_id: userId, name: '일반위탁' } });
   if (account) {
@@ -89,15 +71,6 @@ export const seedTrash: SeedFn = async (prisma, userId) => {
       user_id: userId, type: 'expense', date: d('2026-05-20'), title: '중복 결제 환불건',
       category: 'living_daily', amount: 12000, pay_method: '신한카드', memo: '환불되어 삭제',
       deleted_at: daysAgo(7),
-    },
-  });
-  count++;
-
-  // 메모 — 15일 전 삭제 (15일)
-  await prisma.note.create({
-    data: {
-      user_id: userId, title: '임시 메모', body: '# 테스트\n\n- 삭제 예정', tag: '기타',
-      deleted_at: daysAgo(15),
     },
   });
   count++;

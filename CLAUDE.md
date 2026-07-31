@@ -11,7 +11,7 @@
 - 자격증명 관리 (계정·신원 번호·ENV 값 AES-256-GCM 암호화 저장) — **구현 완료**
 - 파일 보관함 (Backblaze B2 — 폴더·업로드·presigned·MIME/매직바이트 검증·SHA-256 중복제거) — **구현 완료**
 - 자산 현황 (금융 자산 요약·월별 추이·현금흐름 예측) — 구현 완료
-- 캘린더 / 할 일 / 메모 / 구독 — 구현 완료
+- 목표 / 구독 — 구현 완료
 - 보안 코어 (마스터 잠금·접근 감사 로그·보안점수 추이·비번 회전·2FA 백업코드·강도 통계) — 구현 완료
 - 외부 연동 (HIBP 유출 비밀번호 검사) — 구현 완료
 - 통합 검색 / 데이터 내보내기(JSON·ZIP)·가져오기(계정 JSON 복원) — 구현 완료
@@ -34,16 +34,14 @@ doc-nexus/
 │       ├── investment/    # 투자
 │       ├── subscription/  # 구독 서비스
 │       ├── asset/         # 자산 (순자산)
-│       ├── note/          # 메모
-│       ├── calendar/      # 캘린더 이벤트
 │       ├── notification/  # 알림
-│       ├── task/          # 할 일 + 목표
+│       ├── goal/          # 목표
 │       ├── security/      # 보안센터 + 마스터 잠금(VaultService/VaultGuard) + 유출검사·강도통계
 │       ├── access-log/    # 보관함 접근 감사 로그 (전역)
 │       ├── settings/      # 사용자 설정
 │       ├── category/      # 카테고리 관리
 │       ├── trash/         # 휴지통
-│       ├── search/        # 통합 검색 (거래·메모·계정·신원·ENV)
+│       ├── search/        # 통합 검색 (거래·계정·신원·ENV)
 │       ├── dashboard/     # 대시보드 요약 + 현금흐름 예측 + 통합 D-day
 │       ├── identity/      # 신원 지갑 (번호 AES 암호화 + 사본 이미지 fileId)
 │       ├── credential/    # 계정 보관함 (비번·TOTP·백업코드 AES + 엑셀)
@@ -100,10 +98,7 @@ doc-nexus/
 | NetWorthSnapshot | user_id, month, total_assets, total_debt | 구현 완료 |
 | UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, categories/widgets(JSON), menu_order | 구현 완료 |
 | Notification | user_id, group, tone, title, description, source, read_at | 구현 완료 |
-| Task | user_id, text, due_date, done, priority | 구현 완료 |
 | Goal | user_id, name, current_val, target_val, pct, tone | 구현 완료 |
-| Note | user_id, title, body, tag | 구현 완료 |
-| CalendarEvent | user_id, date, type, title, memo | 구현 완료 |
 | SecurityRisk | user_id, category, severity, title, resolved | 구현 완료 |
 | LoginSession | user_id, device, device_type, location, is_current, revoked_at | 구현 완료 |
 | Category | user_id, domain, code, label, parent_code(2계층), sort_order, is_active | 구현 완료 |
@@ -122,7 +117,7 @@ doc-nexus/
 | EmailLoginCode | email, code_hash(SHA-256), expires_at, consumed_at, attempts (이메일 인증코드 로그인, 화이트리스트 대조) | 구현 완료 |
 | SystemLog | user_id(nullable, FK 아님), level(info/warn/error), category, message, metadata(JSON) — 크론·투자갱신 등 백그라운드 작업 로그, 90일 경과 시 자동 삭제 | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 33개 테이블
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 30개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---
@@ -136,9 +131,7 @@ doc-nexus/
 | Frontend — 가계부 (수입/지출/예적금/투자) | 구현 완료 |
 | Frontend — 순자산 | 구현 완료 |
 | Frontend — 구독 관리 | 구현 완료 |
-| Frontend — 할 일 / 목표 | 구현 완료 |
-| Frontend — 메모 | 구현 완료 |
-| Frontend — 캘린더 | 구현 완료 |
+| Frontend — 목표 | 구현 완료 |
 | Frontend — 알림 | 구현 완료 |
 | Frontend — 보안 | 구현 완료 |
 | Frontend — 설정 | 구현 완료 |
@@ -149,7 +142,7 @@ doc-nexus/
 | Frontend — 시스템 로그 | 구현 완료 (백엔드 연동) |
 | Frontend — React Query 전환 | 전 페이지·공통 컴포넌트 완료 |
 | Backend — Google OAuth + JWT (전역 가드 + Rate-limit) | 구현 완료 |
-| Backend — 가계부/구독/자산/메모/캘린더/할일/목표 | 구현 완료 |
+| Backend — 가계부/구독/자산/목표 | 구현 완료 |
 | Backend — 알림/보안/설정/휴지통/통합검색/대시보드 | 구현 완료 |
 | Backend — 보관함 (신원/계정/ENV, AES 암호화) | 구현 완료 |
 | Backend — 마스터 잠금·접근로그·보안점수추이·유출검사·강도통계 | 구현 완료 |
@@ -158,7 +151,7 @@ doc-nexus/
 | Backend — 현금흐름 예측·통합 D-day | 구현 완료 |
 | Backend — AI 리포트 (OpenAI, 사용자별 키) | 구현 완료 |
 | Backend — 시스템 로그 / 순자산 월간 스냅샷 / 투자 현재가 자동 갱신 | 구현 완료 |
-| DB | 33개 테이블 구현 완료 |
+| DB | 30개 테이블 구현 완료 |
 
 ---
 

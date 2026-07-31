@@ -1,9 +1,9 @@
 # DocNexus — ERD
 
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
-> 마이그레이션: `20260610000000_init_consolidated`(전 도메인 통합) + `20260610010000_phase17a_security_core` · `20260610020000_phase17b_dataflow` · `20260610030000_phase17c_enhance` · `20260610040000_phase17d_extras`
+> 마이그레이션: `20260713000000_init`(전 도메인 통합) + `20260715104820_add_recurring_schedule` · `20260715105206_drop_legacy_recurring_columns` · `20260731121236_remove_note_task_calendar`
 
-## 테이블 목록 (33)
+## 테이블 목록 (30)
 
 | 테이블 | 설명 |
 | --- | --- |
@@ -18,10 +18,7 @@
 | NetWorthSnapshot | 순자산 월별 스냅샷 |
 | UserSettings | 사용자 설정 (1:1) |
 | Notification | 알림 |
-| Task | 할 일 |
 | Goal | 목표 |
-| Note | 메모 |
-| CalendarEvent | 캘린더 일정 |
 | SecurityRisk | 보안 위험 (시드/표시용) |
 | LoginSession | 로그인 세션 |
 | Category | 카테고리 (도메인별, 가계부는 대분류→소분류 2계층) |
@@ -45,7 +42,7 @@
 
 ```text
 User 1 ─── N (Transaction, Saving, InvestmentAccount, Investment, Subscription, Asset, NetWorthSnapshot,
-              Notification, Task, Goal, Note, CalendarEvent,
+              Notification, Goal,
               SecurityRisk, LoginSession, Category, IdentityCard, Credential,
               EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport, RefreshToken)
 User 1 ─── 1 UserSettings

@@ -114,25 +114,6 @@ Base URL: `http://localhost:8000/api/v1`
 | PUT | /assets/:id | 자산 수정 |
 | DELETE | /assets/:id | 자산 삭제 (soft delete) |
 
-## 메모
-
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| GET | /notes | 메모 목록 |
-| POST | /notes | 메모 생성 |
-| PUT | /notes/:id | 메모 수정 |
-| DELETE | /notes/:id | 메모 삭제 (soft delete) |
-
-## 캘린더
-
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| GET | /calendar | 이벤트 목록 |
-| GET | /calendar/upcoming | 다가오는 이벤트 |
-| POST | /calendar | 이벤트 생성 |
-| PUT | /calendar/:id | 이벤트 수정 |
-| DELETE | /calendar/:id | 이벤트 삭제 (soft delete) |
-
 ## 알림
 
 | Method | Endpoint | 설명 |
@@ -144,16 +125,7 @@ Base URL: `http://localhost:8000/api/v1`
 | DELETE | /notifications/bulk | 선택 일괄 삭제 |
 | DELETE | /notifications | 전체 삭제 |
 
-> 알림 자동생성 크론(매일 9시): 예적금만기·구독결제/체험·신원만료·할일마감·비번회전(90일). `notif_maturity`·`notif_deadline` 설정으로 게이팅.
-
-## 할 일
-
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| GET | /tasks | 할 일 목록 |
-| POST | /tasks | 할 일 추가 |
-| PUT | /tasks/:id | 할 일 수정 |
-| DELETE | /tasks/:id | 할 일 삭제 (soft delete) |
+> 알림 자동생성 크론(매일 9시): 예적금만기·구독결제/체험·신원만료·비번회전(90일). `notif_maturity`·`notif_deadline` 설정으로 게이팅.
 
 ## 목표
 
@@ -222,15 +194,15 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /search?q= | 거래·메모·계정·신원·ENV 통합 검색 (타입별 최대 5건, 암호화 컬럼 제외) |
+| GET | /search?q= | 거래·계정·신원·ENV 통합 검색 (타입별 최대 5건, 암호화 컬럼 제외) |
 
 ## 대시보드
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /dashboard/summary | 요약 — 이번 달 수입/지출·순자산·활성구독 + 최근 거래·다가오는 일정 |
+| GET | /dashboard/summary | 요약 — 이번 달 수입/지출·순자산·활성구독 + 최근 거래 |
 | GET | /dashboard/cashflow-forecast | 현금흐름 예측 — 활성 구독 + 반복 지출거래 월 환산·합산 |
-| GET | /dashboard/deadlines | 통합 D-day — 신원만료·예적금만기·구독결제·할일마감 임박순 |
+| GET | /dashboard/deadlines | 통합 D-day — 신원만료·예적금만기·구독결제 임박순 |
 
 ## 신원 지갑
 
@@ -291,7 +263,7 @@ Base URL: `http://localhost:8000/api/v1`
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | /export/credentials | 계정 JSON 백업 (비번/TOTP 암호문 보존) |
-| GET | /export/backup | 전체 데이터 ZIP (도메인별 JSON + 메모 마크다운) |
+| GET | /export/backup | 전체 데이터 ZIP (도메인별 JSON) |
 
 > 암호화 컬럼은 암호문(`v1:...`)으로 내보내며, 동일한 `CREDENTIAL_SECRET` 환경에서만 복호화 가능하다.
 

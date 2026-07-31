@@ -36,25 +36,23 @@ export class ExportService {
     };
   }
 
-  // 전체 데이터 백업 ZIP — 도메인별 JSON + 메모 마크다운.
+  // 전체 데이터 백업 ZIP — 도메인별 JSON.
   // 암호화 컬럼은 암호문 그대로 포함(복호화하지 않음).
   async backupZip(userId: number, client?: ClientInfo): Promise<Buffer> {
     await this.accessLog.log(userId, 'data_export', { type: 'account', id: userId, name: 'export:backup' }, client);
     const where = { where: { user_id: userId, deleted_at: null } };
     const [
       transactions, savings, investments, subscriptions, assets,
-      tasks, goals, calendarEvents, notifications, securityRisks,
+      goals, notifications, securityRisks,
       categories, identityCards, credentials, envProjects, envVars,
-      notes, settings,
+      settings,
     ] = await this.prisma.$transaction([
       this.prisma.transaction.findMany(where),
       this.prisma.saving.findMany(where),
       this.prisma.investment.findMany(where),
       this.prisma.subscription.findMany(where),
       this.prisma.asset.findMany(where),
-      this.prisma.task.findMany(where),
       this.prisma.goal.findMany({ where: { user_id: userId } }),
-      this.prisma.calendarEvent.findMany(where),
       this.prisma.notification.findMany({ where: { user_id: userId } }),
       this.prisma.securityRisk.findMany({ where: { user_id: userId } }),
       this.prisma.category.findMany(), // 전역 공용 분류표 스냅샷 (user 무관)
@@ -62,7 +60,6 @@ export class ExportService {
       this.prisma.credential.findMany(where),
       this.prisma.envProject.findMany(where),
       this.prisma.envVar.findMany(where),
-      this.prisma.note.findMany(where),
       this.prisma.userSettings.findUnique({ where: { user_id: userId } }),
     ]);
 
@@ -72,18 +69,12 @@ export class ExportService {
     // 도메인별 JSON
     const data: Record<string, unknown> = {
       transactions, savings, investments, subscriptions, assets,
-      tasks, goals, calendarEvents, notifications, securityRisks,
+      goals, notifications, securityRisks,
       categories, identityCards, credentials, envProjects, envVars,
-      notes, settings,
+      settings,
     };
     for (const [name, rows] of Object.entries(data)) {
       zip.addFile(`data/${name}.json`, json(rows));
-    }
-
-    // 메모 → 개별 마크다운 파일
-    for (const n of notes) {
-      const safe = n.title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 60) || 'note';
-      zip.addFile(`notes/${n.id}_${safe}.md`, Buffer.from(`# ${n.title}\n\n${n.body}\n`, 'utf8'));
     }
 
     // 안내
@@ -95,7 +86,6 @@ export class ExportService {
           `생성: ${new Date().toISOString()}`,
           '',
           '- data/ : 도메인별 전체 데이터(JSON)',
-          '- notes/ : 메모 마크다운',
           '- 계정 비밀번호·신원 번호·ENV 값은 AES-256-GCM 암호문(v1:...)으로 포함됩니다.',
           '  동일한 CREDENTIAL_SECRET 환경에서만 복호화할 수 있습니다.',
         ].join('\n'),

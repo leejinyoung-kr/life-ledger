@@ -20,9 +20,6 @@ import { seedSubscriptions } from './seeds/subscriptions.seed';
 import { seedAssets } from './seeds/assets.seed';
 import { seedSettings } from './seeds/settings.seed';
 import { seedNotifications } from './seeds/notifications.seed';
-import { seedTasks } from './seeds/tasks.seed';
-import { seedNotes } from './seeds/notes.seed';
-import { seedCalendar } from './seeds/calendar.seed';
 import { seedTrash } from './seeds/trash.seed';
 import { seedSecurity } from './seeds/security.seed';
 import { seedCategories } from './seeds/categories.seed';
@@ -44,9 +41,6 @@ const SEEDS: { name: string; run: SeedFn }[] = [
   { name: '구독', run: seedSubscriptions },
   { name: '설정', run: seedSettings },
   { name: '알림', run: seedNotifications },
-  { name: '할일/목표', run: seedTasks },
-  { name: '메모', run: seedNotes },
-  { name: '캘린더', run: seedCalendar },
   { name: '계정보관함', run: seedCredentials },
   { name: 'ENV보관함', run: seedEnv },
   { name: '신원지갑', run: seedIdentity },

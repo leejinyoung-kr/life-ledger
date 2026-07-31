@@ -3,12 +3,12 @@
 /**
  * 공통 통합 검색.
  * 헤더엔 돋보기 아이콘 트리거만 두고, 클릭/⌘K(Ctrl+K) 시 중앙 모달 팔레트를 띄운다.
- * 가계부/계정/파일/메모를 한 입력창에서 검색하고 타입별로 그룹핑해 보여준다. Esc 로 닫기.
+ * 가계부/계정/파일을 한 입력창에서 검색하고 타입별로 그룹핑해 보여준다. Esc 로 닫기.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useApiQuery } from '@/lib/query';
 
-type SearchType = 'tx' | 'note' | 'cred' | 'id' | 'env';
+type SearchType = 'tx' | 'cred' | 'id' | 'env';
 
 interface SearchEntry {
   type: SearchType;
@@ -19,11 +19,11 @@ interface SearchEntry {
 }
 
 // 타입 코드 → 한글 라벨
-const TYPE_LABEL: Record<SearchType, string> = { tx: '가계부', note: '메모', cred: '계정', id: '신원', env: 'ENV' };
+const TYPE_LABEL: Record<SearchType, string> = { tx: '가계부', cred: '계정', id: '신원', env: 'ENV' };
 
 // 도메인 필터 칩 (전체 + 타입별)
 const FILTERS: { key: SearchType | 'all'; label: string }[] = [
-  { key: 'all', label: '전체' }, { key: 'tx', label: '가계부' }, { key: 'note', label: '메모' },
+  { key: 'all', label: '전체' }, { key: 'tx', label: '가계부' },
   { key: 'cred', label: '계정' }, { key: 'id', label: '신원' }, { key: 'env', label: 'ENV' },
 ];
 
@@ -160,7 +160,7 @@ export default function GlobalSearch() {
                 ref={inputRef}
                 className="w-full h-12 bg-transparent pl-9 pr-3 text-[0.9rem] text-primary outline-none placeholder:text-muted"
                 type="text"
-                placeholder="가계부·메모·계정·신원·ENV 통합 검색..."
+                placeholder="가계부·계정·신원·ENV 통합 검색..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitRecent(); } }}
@@ -207,7 +207,7 @@ export default function GlobalSearch() {
                     ))}
                   </div>
                 ) : (
-                  <div className="p-6 text-center text-[0.855rem] text-muted">가계부·메모·계정·신원·ENV를 검색하세요.</div>
+                  <div className="p-6 text-center text-[0.855rem] text-muted">가계부·계정·신원·ENV를 검색하세요.</div>
                 )
               ) : (
                 Object.entries(groups).map(([type, items]) => (
@@ -228,7 +228,7 @@ export default function GlobalSearch() {
 }
 
 const ICON_BG: Record<SearchType, string> = {
-  tx: 'bg-accent-dim', note: 'bg-elevated', cred: 'bg-blue-dim', id: 'bg-amber-dim', env: 'bg-accent-dim',
+  tx: 'bg-accent-dim', cred: 'bg-blue-dim', id: 'bg-amber-dim', env: 'bg-accent-dim',
 };
 
 // 검색 결과 한 줄

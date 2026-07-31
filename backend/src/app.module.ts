@@ -9,17 +9,15 @@ import { AppService } from './app.service';
 import { AssetModule } from './asset/asset.module';
 import { CategoryModule } from './category/category.module';
 import { AuthModule } from './auth/auth.module';
-import { CalendarModule } from './calendar/calendar.module';
+import { GoalModule } from './goal/goal.module';
 import { InvestmentModule } from './investment/investment.module';
 import { InvestmentAccountModule } from './investment-account/investment-account.module';
-import { NoteModule } from './note/note.module';
 import { NotificationModule } from './notification/notification.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SavingModule } from './saving/saving.module';
 import { SecurityModule } from './security/security.module';
 import { SettingsModule } from './settings/settings.module';
 import { SubscriptionModule } from './subscription/subscription.module';
-import { TaskModule } from './task/task.module';
 import { TrashModule } from './trash/trash.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { SearchModule } from './search/search.module';
@@ -59,9 +57,7 @@ import { AllExceptionsFilter } from '@leejinyoun/core-common';
     AssetModule,
     SettingsModule,
     NotificationModule,
-    TaskModule,
-    NoteModule,
-    CalendarModule,
+    GoalModule,
     TrashModule,
     SecurityModule,
     CategoryModule,
