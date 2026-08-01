@@ -43,6 +43,11 @@ jobs:
             echo "changed files: $CHANGED"
             echo "building services:$SERVICES"
             docker compose build $SERVICES
+            # 컨테이너를 띄우기 전에 새 이미지로 1회성 컨테이너를 만들어 마이그레이션부터 적용한다.
+            # docker compose run은 서비스에 정의된 environment/networks를 그대로 물려받아
+            # nexus-db로 정상 접속되고, 실행 후 자동 종료(--rm)되어 실제 서비스에는 영향 없다.
+            # backend를 안 빌드한 경우에도 스키마 확인 차원에서 매번 실행 (변경 없으면 즉시 끝남).
+            docker compose run --rm backend npx prisma migrate deploy
             docker compose up -d
             docker compose ps
           ) 200>/tmp/nexus-deploy.lock
