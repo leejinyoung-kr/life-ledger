@@ -40,11 +40,8 @@
 | investment | /investments | 구현 완료 |
 | subscription | /subscriptions | 구현 완료 |
 | asset | /assets | 구현 완료 |
-| note | /notes | 구현 완료 |
-| calendar | /calendar | 구현 완료 |
+| calendar | /calendar (실제 일정 + 구독결제·예적금만기·신원만료 가상 이벤트) | 구현 완료 |
 | notification | /notifications | 구현 완료 |
-| task | /tasks | 구현 완료 |
-| goal | /goals | 구현 완료 |
 | security | /security (보안센터 + 마스터잠금 Vault + 유출검사·강도통계) | 구현 완료 |
 | access-log | (전역, /security/access-logs로 노출) | 구현 완료 |
 | settings | /settings | 구현 완료 |
@@ -72,9 +69,9 @@
 
 | 일정 | 파일 | 내용 |
 | --- | --- | --- |
-| 매일 03:00 | trash-cron.service.ts | soft-delete 후 30일 경과 항목 영구삭제 (거래·예적금·투자·구독·자산·할일·노트·캘린더·신원·계정·ENV 등) + 시스템 로그 90일 경과분 삭제 |
+| 매일 03:00 | trash-cron.service.ts | soft-delete 후 30일 경과 항목 영구삭제 (거래·예적금·투자·구독·자산·캘린더·신원·계정·ENV 등) + 시스템 로그 90일 경과분 삭제 |
 | 매일 04:00 | db-backup-cron.service.ts | `mariadb-dump` → gzip 압축 후 `backups/`에 저장, 30일 경과 백업 자동 삭제 |
-| 매일 09:00 | notification-cron.service.ts | 사용자별 알림 생성(예적금 만기 D-30, 구독결제/체험종료 D-3, 신원만료 D-60, 할일마감 D-1, 비번회전 90일) + 웹푸시 발송. 만기/마감 알림은 설정(`notifMaturity`/`notifDeadline`)으로 개별 토글 가능 |
+| 매일 09:00 | notification-cron.service.ts | 사용자별 알림 생성(예적금 만기 D-30, 구독결제/체험종료 D-3, 신원만료 D-60, 비번회전 90일) + 웹푸시 발송. 만기/마감 알림은 설정(`notifMaturity`/`notifDeadline`)으로 개별 토글 가능 |
 | 매일 09:00 | security-snapshot-cron.service.ts | 사용자별 보안 점수 일별 스냅샷 적재 |
 | 매일 09:00 | recurring-cron.service.ts (`run`) | 반복거래(국내, `transaction.service.ts`의 `materializeRecurring`)는 매일 실행. 반복매수(국내, `investment.service.ts`의 `materializeRecurringBuys`) + 국내 투자 종목 현재가 갱신(`refreshCurrentValues`)은 실제 증권시장이 열리는 평일(KST 기준, `isWeekdayKST()`)에만 실행하고 주말엔 건너뜀. 전체 사용자를 순회하며, 사용자별 실패는 로그만 남기고 계속 진행. 반복거래/반복매수는 서로 독립적으로 처리 건수를 집계해 완료 로그도 따로 남기며, 처리한 항목이 0건이고 실패도 없으면 그 로그는 남기지 않는다. 반복매수는 종목별로 외부 시세조회 API(네이버/야후)를 호출하므로 3종목씩 묶어 묶음 사이 3초 대기(현재가 갱신은 5종목씩 2초 대기) |
 | 매일 23:00 | recurring-cron.service.ts (`runForeign`) | 반복매수(해외 — foreign_stock/foreign_etf) 회차 일괄 생성 + 해외 투자 종목 현재가 갱신. 미국 장이 열린 직후 실시간 가격으로 매수하도록 국내 배치와 시간을 분리. 평일(KST 기준)에만 실행하고 주말엔 로그 없이 조용히 건너뜀. 처리한 반복매수가 0건이고 실패도 없으면 완료 로그를 남기지 않는다 |
@@ -92,8 +89,6 @@
 | /transactions | 구현 완료 |
 | /networth | 구현 완료 |
 | /subscriptions | 구현 완료 |
-| /tasks | 구현 완료 |
-| /notes | 구현 완료 |
 | /calendar | 구현 완료 |
 | /notifications | 구현 완료 |
 | /security | 구현 완료 |

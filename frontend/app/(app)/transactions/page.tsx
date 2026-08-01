@@ -49,10 +49,12 @@ function TransactionsPageInner() {
   const savingCatQuery = useApiQuery<Category[]>(['categories', 'saving'], '/categories?domain=saving');
   const investCatQuery = useApiQuery<Category[]>(['categories', 'investment'], '/categories?domain=investment');
   const bankCatQuery = useApiQuery<Category[]>(['categories', 'bank'], '/categories?domain=bank');
+  const payMethodCatQuery = useApiQuery<Category[]>(['categories', 'pay_method'], '/categories?domain=pay_method');
   const txCats = useMemo(() => (txCatQuery.data ?? []).filter((c) => c.isActive), [txCatQuery.data]);
   const savingCats = useMemo(() => (savingCatQuery.data ?? []).filter((c) => c.isActive), [savingCatQuery.data]);
   const investCats = useMemo(() => (investCatQuery.data ?? []).filter((c) => c.isActive), [investCatQuery.data]);
   const bankCats = useMemo(() => (bankCatQuery.data ?? []).filter((c) => c.isActive), [bankCatQuery.data]);
+  const payMethodCats = useMemo(() => (payMethodCatQuery.data ?? []).filter((c) => c.isActive), [payMethodCatQuery.data]);
 
   function handleOpenAddModal() {
     setAddTrigger((prev) => ({ ...prev, [tab]: prev[tab] + 1 }));
@@ -81,7 +83,7 @@ function TransactionsPageInner() {
         </div>
       </div>
 
-      {tab === 'ledger' && <LedgerTab categories={txCats} bankCats={bankCats} addTrigger={addTrigger.ledger} />}
+      {tab === 'ledger' && <LedgerTab categories={txCats} bankCats={bankCats} payMethodCats={payMethodCats} addTrigger={addTrigger.ledger} />}
       {tab === 'savings' && <SavingsTab savingCats={savingCats} bankCats={bankCats} addTrigger={addTrigger.savings} />}
       {tab === 'invest' && <InvestTab investCats={investCats} addTrigger={addTrigger.invest} />}
       {tab === 'realestate' && <RealEstateTab addTrigger={addTrigger.realestate} />}

@@ -43,7 +43,7 @@ export class ExportService {
     const where = { where: { user_id: userId, deleted_at: null } };
     const [
       transactions, savings, investments, subscriptions, assets,
-      goals, notifications, securityRisks,
+      calendarEvents, notifications, securityRisks,
       categories, identityCards, credentials, envProjects, envVars,
       settings,
     ] = await this.prisma.$transaction([
@@ -52,7 +52,7 @@ export class ExportService {
       this.prisma.investment.findMany(where),
       this.prisma.subscription.findMany(where),
       this.prisma.asset.findMany(where),
-      this.prisma.goal.findMany({ where: { user_id: userId } }),
+      this.prisma.calendarEvent.findMany(where),
       this.prisma.notification.findMany({ where: { user_id: userId } }),
       this.prisma.securityRisk.findMany({ where: { user_id: userId } }),
       this.prisma.category.findMany(), // 전역 공용 분류표 스냅샷 (user 무관)
@@ -69,7 +69,7 @@ export class ExportService {
     // 도메인별 JSON
     const data: Record<string, unknown> = {
       transactions, savings, investments, subscriptions, assets,
-      goals, notifications, securityRisks,
+      calendarEvents, notifications, securityRisks,
       categories, identityCards, credentials, envProjects, envVars,
       settings,
     };

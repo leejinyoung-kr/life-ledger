@@ -26,7 +26,7 @@ model User {
   notifications      Notification[]
   aiReports          AiReport[]
   aiUsageLogs        AiUsageLog[]
-  goals              Goal[]
+  calendarEvents     CalendarEvent[]
   securityRisks      SecurityRisk[]
   loginSessions      LoginSession[]
   identityCards      IdentityCard[]
@@ -424,33 +424,44 @@ model AiUsageLog {
   @@map("ai_usage_log")
 }
 
-/// 목표 진행바 색: green(정상) | warning(주의) | danger(위험)
-enum GoalTone {
-  green
-  warning
-  danger
+/// 일정 유형: pay(구독 결제) | due(입금/만기) | exp(서류 만료) | task(할일)
+enum CalEventType {
+  pay
+  due
+  exp
+  task
 
-  @@map("goal_tone")
+  @@map("cal_event_type")
 }
 
-/// 목표 (할일/목표 페이지 - 목표). 진행률(pct)·색(tone)은 표시값으로 직접 보관
-model Goal {
-  id          Int       @id @default(autoincrement())
+/// 반복 주기: none(반복 없음) | weekly | monthly | yearly
+enum CalRecurFreq {
+  none
+  weekly
+  monthly
+  yearly
+
+  @@map("cal_recur_freq")
+}
+
+/// 캘린더 일정 (캘린더 페이지)
+model CalendarEvent {
+  id          Int          @id @default(autoincrement())
   user_id     Int /// user.id FK
-  name        String    @db.VarChar(200)
-  unit        String    @db.VarChar(10) /// won|percent
-  current_val Decimal   @db.Decimal(15, 2)
-  target_val  Decimal   @db.Decimal(15, 2)
-  pct         Int /// 진행률(%)
-  tone        GoalTone  @default(green)
+  date        DateTime     @db.Date
+  type        CalEventType
+  title       String       @db.VarChar(200)
+  memo        String?      @db.VarChar(300)
+  recur_freq  CalRecurFreq @default(none)
+  recur_until DateTime?    @db.Date /// 반복 종료일 (null = 무기한)
   deleted_at  DateTime?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
+  created_at  DateTime     @default(now())
+  updated_at  DateTime     @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@index([user_id])
-  @@map("goal")
+  @@index([user_id, date])
+  @@map("calendar_event")
 }
 
 /// 위험 종류: reuse(재사용) | weak(취약) | no2fa(2FA 미설정) | breach(유출 의심)

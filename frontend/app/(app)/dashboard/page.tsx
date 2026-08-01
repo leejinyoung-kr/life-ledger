@@ -13,9 +13,11 @@ import { IconWon, IconLock, IconCube, IconUpload, IconRepeat, IconPie } from '@/
 import { won, signedWon, type TransactionType } from '@/lib/finance';
 import { type AiReport, formatReportDate } from '@/lib/aiReport';
 
+type EvType = 'pay' | 'due' | 'exp' | 'task';
 interface Summary {
   stats: { income: number; expense: number; netWorth: number; activeSubs: number };
   recent: { type: TransactionType; title: string; amount: number; date: string }[];
+  upcoming: { type: EvType; title: string; date: string }[];
 }
 
 interface Forecast {
@@ -30,7 +32,9 @@ interface Deadline { kind: DeadlineKind; title: string; date: string; dday: numb
 const DEADLINE_DOT: Record<DeadlineKind, 'green' | 'warning' | 'muted'> = { identity: 'warning', saving: 'muted', subscription: 'warning', task: 'green' };
 const DEADLINE_LABEL: Record<DeadlineKind, string> = { identity: '신원', saving: '예적금', subscription: '구독', task: '할일' };
 
+const EV_LABEL: Record<EvType, string> = { pay: '결제', due: '만기', exp: '만료', task: '할일' };
 const TX_DOT: Record<TransactionType, 'green' | 'warning' | 'muted'> = { income: 'green', expense: 'muted', transfer: 'muted' };
+const EV_DOT: Record<EvType, 'green' | 'warning' | 'muted'> = { pay: 'warning', exp: 'warning', task: 'green', due: 'muted' };
 const DOT_COLOR = { green: 'bg-accent', warning: 'bg-warning', muted: 'bg-muted' } as const;
 // 색상만으로 구분되던 상태 점에 스크린리더용 라벨 부여
 const DOT_LABEL = { green: '정상', warning: '주의', muted: '정보' } as const;
@@ -223,6 +227,19 @@ export default function DashboardPage() {
               </CardBody>
             </Card>
           )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>📅 다가오는 일정</CardTitle>
+              <Button href="/calendar" variant="ghost" size="sm">전체</Button>
+            </CardHeader>
+            <CardBody compact>
+              {s && s.upcoming.length === 0 && <div className="py-2.5 text-muted text-[0.84rem]">다가오는 일정이 없습니다.</div>}
+              {s?.upcoming.map((u, i) => (
+                <ActivityRow key={i} dot={EV_DOT[u.type]} text={<strong>{u.title}</strong>} time={`${u.date} · ${EV_LABEL[u.type]}`} />
+              ))}
+            </CardBody>
+          </Card>
         </div>
       </div>
 

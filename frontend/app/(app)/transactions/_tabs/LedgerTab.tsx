@@ -21,7 +21,7 @@ import { downloadTransactionTemplate } from '@/lib/excel';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import {
-  PAY_METHODS, TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, TRANSFER_DIRECTION_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
+  TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, TRANSFER_DIRECTION_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
   won, signedWon, dotDate,
   type Category, type Transaction, type TransactionSummary, type TrendBucket,
   type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget, type TransferDirection,
@@ -41,7 +41,7 @@ type LedgerDraft = {
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Transaction; prefill?: LedgerDraft };
 type RecurringModalState = { open: boolean; editing?: RecurringSchedule };
 
-export default function LedgerTab({ categories, bankCats, addTrigger }: { categories: Category[]; bankCats: Category[]; addTrigger: number }) {
+export default function LedgerTab({ categories, bankCats, payMethodCats, addTrigger }: { categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; addTrigger: number }) {
   const [pendingFrom, setPendingFrom] = useState(() => monthsAgo(1));
   const [pendingTo, setPendingTo] = useState(toDay);
   const [pendingType, setPendingType] = useState('');
@@ -58,6 +58,8 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
   useAddTrigger(addTrigger, () => setModal({ open: true, mode: 'add' }));
 
   const catMap = Object.fromEntries(categories.map((c) => [c.code, c.label]));
+  const payMethodMap = Object.fromEntries(payMethodCats.map((c) => [c.code, c.label]));
+  const bankMap = Object.fromEntries(bankCats.map((c) => [c.code, c.label]));
   // 2계층: 대분류(parentCode 없음) / 소분류(parentCode 있음) 분리. 필터·엑셀·표시에 사용
   const parentCats = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
   const leafCats = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
@@ -165,7 +167,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
 
   async function downloadTemplate() {
     try {
-      await downloadTransactionTemplate(leafCats.map((c) => c.label));
+      await downloadTransactionTemplate(leafCats.map((c) => c.label), payMethodCats.map((c) => c.label));
       notify.excelDownloaded();
     } catch {
       notify.error('양식 생성에 실패했습니다.');
@@ -379,7 +381,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
                   <td className="td-center"><span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span></td>
                   <td className="td-center"><span className="cat-chip">{catMap[row.category] ?? row.category}</span></td>
                   <td className="td-name">{row.recurringScheduleId != null && <span title="자동이체로 생성됨">🔁 </span>}{row.title}</td>
-                  <td className="td-center td-muted">{row.payMethod}</td>
+                  <td className="td-center td-muted">{row.type === 'expense' ? (payMethodMap[row.payMethod] ?? row.payMethod) : row.type === 'income' ? (bankMap[row.payMethod] ?? row.payMethod) : row.payMethod}</td>
                   <td className={`td-right amount-${row.type}`}>{signedWon(row.type, row.amount)}</td>
                   <td className="td-center td-muted">{row.memo ?? '-'}</td>
                   <td className="td-center td-muted">{dotDate(row.date)}</td>
@@ -404,7 +406,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
                 {[
                   { label: '유형', value: <span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span> },
                   { label: '카테고리', value: <span className="cat-chip">{catMap[row.category] ?? row.category}</span> },
-                  ...(row.type === 'expense' ? [{ label: '결제수단', value: row.payMethod }] : []),
+                  ...(row.type === 'expense' ? [{ label: '결제수단', value: payMethodMap[row.payMethod] ?? row.payMethod }] : []),
                   { label: '날짜', value: dotDate(row.date) },
                   ...(row.memo ? [{ label: '메모', value: row.memo }] : []),
                 ].map(({ label, value }) => (
@@ -425,6 +427,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
         state={modal}
         categories={categories}
         bankCats={bankCats}
+        payMethodCats={payMethodCats}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setModal((s) => ({ ...s, open: false })); reload(); }}
       />
@@ -432,6 +435,7 @@ export default function LedgerTab({ categories, bankCats, addTrigger }: { catego
         state={recurringModal}
         categories={categories}
         bankCats={bankCats}
+        payMethodCats={payMethodCats}
         onClose={() => setRecurringModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setRecurringModal((s) => ({ ...s, open: false })); reloadRecurring(); }}
       />
@@ -447,7 +451,7 @@ function parentTypeOf(parentCode: string | null | undefined): TransactionType {
   return 'expense';
 }
 
-function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state: ModalState; categories: Category[]; bankCats: Category[]; onClose: () => void; onSaved: () => void }) {
+function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSaved }: { state: ModalState; categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
   const parents = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
   const leaves = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
@@ -457,7 +461,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
   const [parentCode, setParentCode] = useState('');
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
-  const [payMethod, setPayMethod] = useState(PAY_METHODS[0]);
+  const [payMethod, setPayMethod] = useState(payMethodCats[0]?.code ?? '');
   const [memo, setMemo] = useState('');
   const [targetType, setTargetType] = useState<TransferTarget | ''>('');
   const [targetId, setTargetId] = useState<number | ''>('');
@@ -496,7 +500,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
     setParentCode(initParent);
     setCategory(initLeaf);
     setAmount(e ? String(e.amount) : pf?.amount ? String(pf.amount) : '');
-    setPayMethod(e?.payMethod ?? pf?.payMethod ?? (initType === 'income' ? (bankCats[0]?.label ?? '') : initType === 'transfer' ? '' : PAY_METHODS[0]));
+    setPayMethod(e?.payMethod ?? pf?.payMethod ?? (initType === 'income' ? (bankCats[0]?.code ?? '') : initType === 'transfer' ? '' : (payMethodCats[0]?.code ?? '')));
     setMemo(e?.memo ?? pf?.memo ?? '');
     setTargetType(e?.targetType ?? '');
     setTargetId(e?.targetId ?? '');
@@ -520,7 +524,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
     setParentCode(fp?.code ?? '');
     setCategory(leaves.find((l) => l.parentCode === fp?.code)?.code ?? '');
     // 지출=결제수단, 수입=입금은행, 이체=없음
-    setPayMethod(t === 'expense' ? PAY_METHODS[0] : t === 'income' ? (bankCats[0]?.label ?? '') : '');
+    setPayMethod(t === 'expense' ? (payMethodCats[0]?.code ?? '') : t === 'income' ? (bankCats[0]?.code ?? '') : '');
     if (t !== 'transfer') { setTargetType(''); setTargetId(''); }
   }
 
@@ -622,7 +626,10 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
       {type === 'expense' && (
         <Field label="결제수단" required>
           <select className="input" aria-label="결제수단" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
-            {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+            <option value="" disabled>결제수단 선택</option>
+            {/* 기존 값이 목록에 없으면 그대로 노출 */}
+            {payMethod && !payMethodCats.some((m) => m.code === payMethod) && <option value={payMethod}>{payMethod}</option>}
+            {payMethodCats.map((m) => <option key={m.code} value={m.code}>{m.label}</option>)}
           </select>
         </Field>
       )}
@@ -631,8 +638,8 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
           <select className="input" aria-label="입금 은행" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
             <option value="" disabled>은행 선택</option>
             {/* 기존 값이 목록에 없으면 그대로 노출 */}
-            {payMethod && !bankCats.some((b) => b.label === payMethod) && <option value={payMethod}>{payMethod}</option>}
-            {bankCats.map((b) => <option key={b.code} value={b.label}>{b.label}</option>)}
+            {payMethod && !bankCats.some((b) => b.code === payMethod) && <option value={payMethod}>{payMethod}</option>}
+            {bankCats.map((b) => <option key={b.code} value={b.code}>{b.label}</option>)}
           </select>
         </Field>
       )}
@@ -643,7 +650,7 @@ function LedgerModal({ state, categories, bankCats, onClose, onSaved }: { state:
 
 // 자동이체 설정 모달 — "데이터는 그냥 생성만" 원칙에 따라 거래 생성 모달과 완전히 분리된 반복 규칙 등록/수정 전용 모달.
 // 저장 시 실제 거래는 만들지 않고 RecurringSchedule만 생성/수정 — 회차 생성은 크론이 규칙에 따라 처리한다.
-function RecurringTransactionModal({ state, categories, bankCats, onClose, onSaved }: { state: RecurringModalState; categories: Category[]; bankCats: Category[]; onClose: () => void; onSaved: () => void }) {
+function RecurringTransactionModal({ state, categories, bankCats, payMethodCats, onClose, onSaved }: { state: RecurringModalState; categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const r = state.editing;
   const parents = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
   const leaves = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
@@ -653,7 +660,7 @@ function RecurringTransactionModal({ state, categories, bankCats, onClose, onSav
   const [parentCode, setParentCode] = useState('');
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
-  const [payMethod, setPayMethod] = useState(PAY_METHODS[0]);
+  const [payMethod, setPayMethod] = useState(payMethodCats[0]?.code ?? '');
   const [memo, setMemo] = useState('');
   const [active, setActive] = useState(true);
   const [recurringCycle, setRecurringCycle] = useState<RecurringCycle>('monthly');
@@ -693,7 +700,7 @@ function RecurringTransactionModal({ state, categories, bankCats, onClose, onSav
     setParentCode(initParent);
     setCategory(initLeaf);
     setAmount(r?.amount != null ? String(r.amount) : '');
-    setPayMethod(r?.payMethod ?? (initType === 'income' ? (bankCats[0]?.label ?? '') : initType === 'transfer' ? '' : PAY_METHODS[0]));
+    setPayMethod(r?.payMethod ?? (initType === 'income' ? (bankCats[0]?.code ?? '') : initType === 'transfer' ? '' : (payMethodCats[0]?.code ?? '')));
     setMemo(r?.memo ?? '');
     setActive(r?.active ?? true);
     setRecurringCycle(r?.rule?.cycle ?? 'monthly');
@@ -720,7 +727,7 @@ function RecurringTransactionModal({ state, categories, bankCats, onClose, onSav
     const fp = parents.find((p) => parentTypeOf(p.code) === t);
     setParentCode(fp?.code ?? '');
     setCategory(leaves.find((l) => l.parentCode === fp?.code)?.code ?? '');
-    setPayMethod(t === 'expense' ? PAY_METHODS[0] : t === 'income' ? (bankCats[0]?.label ?? '') : '');
+    setPayMethod(t === 'expense' ? (payMethodCats[0]?.code ?? '') : t === 'income' ? (bankCats[0]?.code ?? '') : '');
     if (t !== 'transfer') { setTargetType(''); setTargetId(''); }
   }
 
@@ -823,7 +830,9 @@ function RecurringTransactionModal({ state, categories, bankCats, onClose, onSav
       {type === 'expense' && (
         <Field label="결제수단" required>
           <select className="input" aria-label="결제수단" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
-            {PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+            <option value="" disabled>결제수단 선택</option>
+            {payMethod && !payMethodCats.some((m) => m.code === payMethod) && <option value={payMethod}>{payMethod}</option>}
+            {payMethodCats.map((m) => <option key={m.code} value={m.code}>{m.label}</option>)}
           </select>
         </Field>
       )}
@@ -831,8 +840,8 @@ function RecurringTransactionModal({ state, categories, bankCats, onClose, onSav
         <Field label="입금 은행" required>
           <select className="input" aria-label="입금 은행" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
             <option value="" disabled>은행 선택</option>
-            {payMethod && !bankCats.some((b) => b.label === payMethod) && <option value={payMethod}>{payMethod}</option>}
-            {bankCats.map((b) => <option key={b.code} value={b.label}>{b.label}</option>)}
+            {payMethod && !bankCats.some((b) => b.code === payMethod) && <option value={payMethod}>{payMethod}</option>}
+            {bankCats.map((b) => <option key={b.code} value={b.code}>{b.label}</option>)}
           </select>
         </Field>
       )}

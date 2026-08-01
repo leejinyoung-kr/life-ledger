@@ -202,8 +202,6 @@ export function recurringRuleSummary(rule: RecurringRule): string {
   return `${CYCLE_LABEL[rule.cycle]} ${rule.day}일`;
 }
 
-export const PAY_METHODS = ['신한카드', '카카오페이', '현금', '계좌이체'];
-
 export const SAVING_TYPE_LABEL: Record<SavingType, string> = {
   savings: '적금',
   deposit: '예금',

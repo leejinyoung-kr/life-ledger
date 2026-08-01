@@ -9,7 +9,7 @@ import { AppService } from './app.service';
 import { AssetModule } from './asset/asset.module';
 import { CategoryModule } from './category/category.module';
 import { AuthModule } from './auth/auth.module';
-import { GoalModule } from './goal/goal.module';
+import { CalendarModule } from './calendar/calendar.module';
 import { InvestmentModule } from './investment/investment.module';
 import { InvestmentAccountModule } from './investment-account/investment-account.module';
 import { NotificationModule } from './notification/notification.module';
@@ -57,7 +57,7 @@ import { AllExceptionsFilter } from '@leejinyoun/core-common';
     AssetModule,
     SettingsModule,
     NotificationModule,
-    GoalModule,
+    CalendarModule,
     TrashModule,
     SecurityModule,
     CategoryModule,

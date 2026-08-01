@@ -14,7 +14,7 @@ interface SoftDeleteDelegate {
 // 휴지통이 모으는 도메인 종류
 type Kind =
   | 'transaction' | 'saving' | 'investment' | 'subscription'
-  | 'asset' | 'task' | 'goal' | 'note' | 'calendar';
+  | 'asset' | 'calendar';
 
 const DAY = 24 * 60 * 60 * 1000;
 const RETENTION_DAYS = 30; // 30일 보관 후 자동 영구삭제 정책
@@ -35,9 +35,6 @@ export class TrashService {
       investment: { delegate: p.investment, label: '투자', chip: '📈 투자', name: (r) => String(r.name) },
       subscription: { delegate: p.subscription, label: '구독', chip: '📺 구독', name: (r) => String(r.name) },
       asset: { delegate: p.asset, label: '자산', chip: '💼 자산', name: (r) => String(r.name) },
-      task: { delegate: p.task, label: '할일', chip: '✅ 할일', name: (r) => String(r.text) },
-      goal: { delegate: p.goal, label: '목표', chip: '🎯 목표', name: (r) => String(r.name) },
-      note: { delegate: p.note, label: '메모', chip: '📝 메모', name: (r) => String(r.title) },
       calendar: { delegate: p.calendarEvent, label: '일정', chip: '📅 일정', name: (r) => String(r.title) },
     };
   }
@@ -170,7 +167,7 @@ export class TrashService {
   // 휴지통 비우기 (모든 종류의 삭제 항목 영구 삭제)
   async empty(userId: number) {
     const p = this.prisma as unknown as Record<string, { deleteMany(args: unknown): Promise<{ count: number }> }>;
-    const models = ['transaction', 'saving', 'investment', 'subscription', 'asset', 'task', 'goal', 'note', 'calendarEvent'];
+    const models = ['transaction', 'saving', 'investment', 'subscription', 'asset', 'calendarEvent'];
     let purged = 0;
     for (const m of models) {
       const res = await p[m].deleteMany({ where: { user_id: userId, deleted_at: { not: null } } });

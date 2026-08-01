@@ -26,7 +26,7 @@ export class DashboardService {
     const monthEnd = new Date(Date.UTC(y, m + 1, 1));
     const today = new Date(Date.UTC(y, m, now.getUTCDate()));
 
-    const [byType, assetSummary, activeSubs, recent] = await Promise.all([
+    const [byType, assetSummary, activeSubs, recent, upcoming] = await Promise.all([
       this.prisma.transaction.groupBy({
         by: ['type'],
         where: { user_id: userId, deleted_at: null, date: { gte: monthStart, lt: monthEnd } },
@@ -38,6 +38,11 @@ export class DashboardService {
         where: { user_id: userId, deleted_at: null },
         orderBy: [{ date: 'desc' }, { id: 'desc' }],
         take: 5,
+      }),
+      this.prisma.calendarEvent.findMany({
+        where: { user_id: userId, deleted_at: null, date: { gte: today } },
+        orderBy: { date: 'asc' },
+        take: 4,
       }),
     ]);
 
@@ -52,6 +57,7 @@ export class DashboardService {
         activeSubs,
       },
       recent: recent.map((r) => ({ type: r.type, title: r.title, amount: r.amount.toNumber(), date: r.date.toISOString().slice(0, 10) })),
+      upcoming: upcoming.map((u) => ({ type: u.type, title: u.title, date: u.date.toISOString().slice(0, 10) })),
     };
   }
 

@@ -91,7 +91,7 @@ src/
 ├── subscription/  # 구독 서비스
 ├── asset/         # 자산 (순자산)
 ├── notification/  # 알림
-├── goal/          # 목표
+├── calendar/      # 캘린더
 ├── security/      # 보안센터 + 마스터 잠금(Vault) + 유출검사·강도통계
 ├── access-log/    # 보관함 접근 감사 로그 (전역)
 ├── settings/      # 사용자 설정

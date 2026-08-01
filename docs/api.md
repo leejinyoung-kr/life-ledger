@@ -126,15 +126,17 @@ Base URL: `http://localhost:8000/api/v1`
 | DELETE | /notifications | 전체 삭제 |
 
 > 알림 자동생성 크론(매일 9시): 예적금만기·구독결제/체험·신원만료·비번회전(90일). `notif_maturity`·`notif_deadline` 설정으로 게이팅.
+> 캘린더 자체는 별도 알림 크론이 없다 — 대시보드 "다가오는 일정" 위젯으로 노출.
 
-## 목표
+## 캘린더
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /goals | 목표 목록 |
-| POST | /goals | 목표 추가 |
-| PUT | /goals/:id | 목표 수정 |
-| DELETE | /goals/:id | 목표 삭제 (soft delete) |
+| GET | /calendar | 이벤트 목록 (실제 + 구독결제·예적금만기·신원만료 가상 이벤트) |
+| GET | /calendar/upcoming | 다가오는 이벤트 |
+| POST | /calendar | 이벤트 생성 |
+| PUT | /calendar/:id | 이벤트 수정 |
+| DELETE | /calendar/:id | 이벤트 삭제 (soft delete, 가상 이벤트는 원본 테이블 soft delete) |
 
 ## 보안
 
@@ -200,7 +202,7 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /dashboard/summary | 요약 — 이번 달 수입/지출·순자산·활성구독 + 최근 거래 |
+| GET | /dashboard/summary | 요약 — 이번 달 수입/지출·순자산·활성구독 + 최근 거래·다가오는 일정 |
 | GET | /dashboard/cashflow-forecast | 현금흐름 예측 — 활성 구독 + 반복 지출거래 월 환산·합산 |
 | GET | /dashboard/deadlines | 통합 D-day — 신원만료·예적금만기·구독결제 임박순 |
 

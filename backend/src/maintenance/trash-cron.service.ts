@@ -22,6 +22,7 @@ export class TrashCronService {
       () => this.prisma.investment.deleteMany({ where }),
       () => this.prisma.subscription.deleteMany({ where }),
       () => this.prisma.asset.deleteMany({ where }),
+      () => this.prisma.calendarEvent.deleteMany({ where }),
       () => this.prisma.identityCard.deleteMany({ where }),
       () => this.prisma.credential.deleteMany({ where }),
     ];

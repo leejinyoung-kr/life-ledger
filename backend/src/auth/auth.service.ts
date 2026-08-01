@@ -325,7 +325,7 @@ export class AuthService {
       this.prisma.netWorthSnapshot.deleteMany(w),
       this.prisma.userSettings.deleteMany(w),
       this.prisma.notification.deleteMany(w),
-      this.prisma.goal.deleteMany(w),
+      this.prisma.calendarEvent.deleteMany(w),
       this.prisma.securityRisk.deleteMany(w),
       this.prisma.loginSession.deleteMany(w),
       // category 는 전역 공용 — 특정 유저 삭제로 지우지 않음 (created_by 만 남고 데이터 보존)

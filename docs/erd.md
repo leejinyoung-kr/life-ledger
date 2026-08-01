@@ -1,7 +1,7 @@
 # DocNexus — ERD
 
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
-> 마이그레이션: `20260713000000_init`(전 도메인 통합) + `20260715104820_add_recurring_schedule` · `20260715105206_drop_legacy_recurring_columns` · `20260731121236_remove_note_task_calendar`
+> 마이그레이션: `20260713000000_init`(전 도메인 통합) + `20260715104820_add_recurring_schedule` · `20260715105206_drop_legacy_recurring_columns` · `20260731121236_remove_note_task_calendar` · `20260801140000_restore_calendar_remove_goal`
 
 ## 테이블 목록 (30)
 
@@ -18,7 +18,7 @@
 | NetWorthSnapshot | 순자산 월별 스냅샷 |
 | UserSettings | 사용자 설정 (1:1) |
 | Notification | 알림 |
-| Goal | 목표 |
+| CalendarEvent | 캘린더 일정 |
 | SecurityRisk | 보안 위험 (시드/표시용) |
 | LoginSession | 로그인 세션 |
 | Category | 카테고리 (도메인별, 가계부는 대분류→소분류 2계층) |
@@ -42,7 +42,7 @@
 
 ```text
 User 1 ─── N (Transaction, Saving, InvestmentAccount, Investment, Subscription, Asset, NetWorthSnapshot,
-              Notification, Goal,
+              Notification, CalendarEvent,
               SecurityRisk, LoginSession, Category, IdentityCard, Credential,
               EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport, RefreshToken)
 User 1 ─── 1 UserSettings

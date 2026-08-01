@@ -391,6 +391,12 @@ export class TransactionService {
       select: { code: true, label: true },
     });
     const catCode = new Map(cats.map((c) => [c.label, c.code]));
+    // 결제수단 라벨 → 코드
+    const payMethods = await this.prisma.category.findMany({
+      where: { domain: 'pay_method' },
+      select: { code: true, label: true },
+    });
+    const payMethodCode = new Map(payMethods.map((c) => [c.label, c.code]));
     const memoCol = colOf['메모'];
 
     const valid: Prisma.TransactionCreateManyInput[] = [];
@@ -410,6 +416,7 @@ export class TransactionService {
 
       const type = TYPE_CODE[typeLabel];
       const category = catCode.get(catLabel);
+      const payMethodCd = payMethodCode.get(payMethod);
       const amount = parseAmount(amountRaw);
       const date = parseDate(dateRaw);
 
@@ -418,7 +425,7 @@ export class TransactionService {
       if (!category) bad.push('카테고리');
       if (!title) bad.push('내역');
       // 결제수단은 지출일 때만 필수
-      if (type === 'expense' && !payMethod) bad.push('결제수단');
+      if (type === 'expense' && !payMethodCd) bad.push('결제수단');
       if (amount == null) bad.push('금액');
       if (!date) bad.push('날짜');
       if (bad.length) {
@@ -435,7 +442,7 @@ export class TransactionService {
         category: category!,
         amount: new Prisma.Decimal(amount!),
         // 지출만 결제수단 저장 — 수입/자산이동은 빈값
-        pay_method: type === 'expense' ? payMethod : '',
+        pay_method: type === 'expense' ? payMethodCd! : '',
         memo: memo || null,
       });
     }
@@ -458,6 +465,16 @@ export class TransactionService {
       select: { code: true, label: true },
     });
     const catLabel = new Map(cats.map((c) => [c.code, c.label]));
+    const payMethods = await this.prisma.category.findMany({
+      where: { domain: 'pay_method' },
+      select: { code: true, label: true },
+    });
+    const payMethodLabel = new Map(payMethods.map((c) => [c.code, c.label]));
+    const banks = await this.prisma.category.findMany({
+      where: { domain: 'bank' },
+      select: { code: true, label: true },
+    });
+    const bankLabel = new Map(banks.map((c) => [c.code, c.label]));
 
     const wb = new ExcelJS.stream.xlsx.WorkbookWriter({ stream, useStyles: true });
     const ws = wb.addWorksheet('가계부');
@@ -489,7 +506,11 @@ export class TransactionService {
           type: TYPE_LABEL[t.type],
           category: catLabel.get(t.category) ?? t.category,
           title: t.title,
-          payMethod: t.pay_method,
+          payMethod: t.type === 'expense'
+            ? (payMethodLabel.get(t.pay_method) ?? t.pay_method)
+            : t.type === 'income'
+              ? (bankLabel.get(t.pay_method) ?? t.pay_method)
+              : t.pay_method,
           amount: t.amount.toNumber(),
           date: toDateStr(t.date),
           memo: t.memo ?? '',
