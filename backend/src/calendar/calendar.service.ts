@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma, CalendarEvent, CalRecurFreq } from '@prisma/client';
 import KoreanLunarCalendar from 'korean-lunar-calendar';
 import { PrismaService } from '../prisma/prisma.service';
+import { HolidayService } from '../holiday/holiday.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
@@ -139,11 +140,12 @@ function nextOccurrenceOnOrAfter(event: CalendarEvent, from: Date): Date | null 
   return null;
 }
 
-// 가상 이벤트 ID 오프셋 — 실제 calendar_event.id 와 충돌하지 않도록 큰 값 사용
+// 가상 이벤트 ID 오프셋 — 실제 calendar_event.id 와 충돌하지 않도록 큰 값 사용 (holiday는 삭제 불가, 가장 높은 오프셋)
 const VIRT_OFFSET = {
   subscription: 1_000_000,
   saving: 2_000_000,
   identity: 3_000_000,
+  holiday: 4_000_000,
 };
 type VirtSource = keyof typeof VIRT_OFFSET;
 
@@ -151,6 +153,8 @@ type VirtSource = keyof typeof VIRT_OFFSET;
 function decodeVirtId(
   id: number,
 ): { sourceType: VirtSource; sourceId: number } | null {
+  if (id >= VIRT_OFFSET.holiday)
+    return { sourceType: 'holiday', sourceId: id - VIRT_OFFSET.holiday };
   if (id >= VIRT_OFFSET.identity)
     return { sourceType: 'identity', sourceId: id - VIRT_OFFSET.identity };
   if (id >= VIRT_OFFSET.saving)
@@ -181,7 +185,32 @@ export interface CalEventDto {
 
 @Injectable()
 export class CalendarService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private holidayService: HolidayService,
+  ) {}
+
+  // 사용자의 "공휴일 표시" 설정 조회 (설정 행이 없으면 기본값 true)
+  private async showHolidays(userId: number): Promise<boolean> {
+    const settings = await this.prisma.userSettings.findUnique({
+      where: { user_id: userId },
+      select: { show_holidays: true },
+    });
+    return settings?.show_holidays ?? true;
+  }
+
+  // 공휴일을 캘린더 가상 이벤트 DTO로 변환 (삭제 불가 — id는 응답 내에서만 유일하면 됨)
+  private toHolidayDtos(holidays: { date: Date; name: string; isSubstitute: boolean }[]): CalEventDto[] {
+    return holidays.map((h, idx) => ({
+      id: VIRT_OFFSET.holiday + idx,
+      date: toDateStr(h.date),
+      type: 'holiday',
+      title: h.name,
+      memo: null,
+      virtual: true,
+      sourceType: 'holiday',
+    }));
+  }
 
   // 실제 CalendarEvent 엔티티 → DTO (occurrenceDate 지정 시 반복 일정의 특정 발생일로 표시)
   private toDto(e: CalendarEvent, occurrenceDate?: Date): CalEventDto {
@@ -292,12 +321,13 @@ export class CalendarService {
       ];
     }
 
-    const [rows, virtual] = await Promise.all([
+    const [rows, virtual, holidays] = await Promise.all([
       this.prisma.calendarEvent.findMany({
         where,
         orderBy: [{ date: 'asc' }, { id: 'asc' }],
       }),
       this.virtualEvents(userId, range),
+      range ? this.holidaysForRange(userId, range) : Promise.resolve([]),
     ]);
 
     const expanded = range
@@ -308,9 +338,19 @@ export class CalendarService {
         )
       : rows.map((r) => this.toDto(r));
 
-    return [...expanded, ...virtual].sort(
+    return [...expanded, ...virtual, ...holidays].sort(
       (a, b) => a.date.localeCompare(b.date) || a.id - b.id,
     );
+  }
+
+  // 사용자가 공휴일 표시를 켰을 때만 해당 범위의 공휴일 DTO 목록 반환
+  private async holidaysForRange(
+    userId: number,
+    range: { gte: Date; lt: Date },
+  ): Promise<CalEventDto[]> {
+    if (!(await this.showHolidays(userId))) return [];
+    const holidays = await this.holidayService.getForRange(range);
+    return this.toHolidayDtos(holidays);
   }
 
   // 다가오는 일정 — 오늘 이후 가까운 순(반복 일정은 다음 발생일 1건). 실제 + 가상 합산 후 limit 적용
@@ -318,7 +358,9 @@ export class CalendarService {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    const [rows, virtual] = await Promise.all([
+    const oneYearLater = new Date(Date.UTC(today.getUTCFullYear() + 1, today.getUTCMonth(), today.getUTCDate()));
+
+    const [rows, virtual, holidays] = await Promise.all([
       this.prisma.calendarEvent.findMany({
         where: {
           user_id: userId,
@@ -334,6 +376,7 @@ export class CalendarService {
         orderBy: { date: 'asc' },
       }),
       this.virtualEvents(userId, { gte: today }),
+      this.holidaysForRange(userId, { gte: today, lt: oneYearLater }),
     ]);
 
     const addDays = (ev: CalEventDto) => ({
@@ -351,7 +394,7 @@ export class CalendarService {
       })
       .filter((d): d is CalEventDto => d !== null);
 
-    return [...upcomingRows.map(addDays), ...virtual.map(addDays)]
+    return [...upcomingRows.map(addDays), ...virtual.map(addDays), ...holidays.map(addDays)]
       .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)
       .slice(0, limit);
   }
@@ -366,9 +409,28 @@ export class CalendarService {
     if (!isLunar) return { date: input, lunarMonth: null, lunarDay: null };
     const lunarMonth = input.getUTCMonth() + 1;
     const lunarDay = input.getUTCDate();
-    const solar = lunarToSolar(input.getUTCFullYear(), lunarMonth, lunarDay, lunarLeap);
-    if (!solar) throw new BadRequestException('유효하지 않은 음력 날짜입니다.');
+    const lunarYear = input.getUTCFullYear();
+    const solar = lunarToSolar(lunarYear, lunarMonth, lunarDay, lunarLeap);
+    if (!solar) {
+      throw new BadRequestException(this.lunarDateErrorMessage(lunarYear, lunarMonth, lunarDay, lunarLeap));
+    }
     return { date: solar, lunarMonth, lunarDay };
+  }
+
+  // 음력 날짜 변환 실패 원인을 추정해 사용자에게 구체적으로 안내 (예: 그 달은 29일까지만 있음 / 윤달 없음)
+  private lunarDateErrorMessage(
+    year: number,
+    month: number,
+    day: number,
+    leap: boolean,
+  ): string {
+    if (leap && lunarToSolar(year, month, 1, false)) {
+      return `음력 ${year}년 ${month}월에는 윤달이 없습니다. 윤달 체크를 해제해주세요.`;
+    }
+    if (day > 29 && lunarToSolar(year, month, 29, leap)) {
+      return `음력 ${year}년 ${month}월은 29일까지만 있습니다. 날짜를 다시 확인해주세요.`;
+    }
+    return '유효하지 않은 음력 날짜입니다. 날짜를 다시 확인해주세요.';
   }
 
   // 일정 추가 (수동 등록만)
@@ -440,6 +502,9 @@ export class CalendarService {
   async remove(userId: number, id: number) {
     const virt = decodeVirtId(id);
     if (virt) {
+      if (virt.sourceType === 'holiday') {
+        throw new BadRequestException('공휴일은 삭제할 수 없습니다.');
+      }
       await this.removeVirtual(userId, virt.sourceType, virt.sourceId);
       return { id };
     }

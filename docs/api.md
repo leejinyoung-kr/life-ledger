@@ -132,11 +132,13 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /calendar | 이벤트 목록 (실제 + 구독결제·예적금만기·신원만료 가상 이벤트) |
+| GET | /calendar | 이벤트 목록 (실제 + 구독결제·예적금만기·신원만료·공휴일 가상 이벤트) |
 | GET | /calendar/upcoming | 다가오는 이벤트 |
-| POST | /calendar | 이벤트 생성 |
+| POST | /calendar | 이벤트 생성 (양력/음력, 음력은 매년 반복만 지원) |
 | PUT | /calendar/:id | 이벤트 수정 |
-| DELETE | /calendar/:id | 이벤트 삭제 (soft delete, 가상 이벤트는 원본 테이블 soft delete) |
+| DELETE | /calendar/:id | 이벤트 삭제 (soft delete, 가상 이벤트는 원본 테이블 soft delete, 공휴일은 삭제 불가) |
+
+> 공휴일 표시: `UserSettings.show_holidays` 켜져 있을 때만 응답에 포함. 공공데이터포털 특일 정보 API를 연도 단위로 캐싱(`HOLIDAY_API_KEY` 미설정 시 비활성).
 
 ## 보안
 

@@ -32,6 +32,10 @@ export class UpdateSettingsDto {
   notifDeadline?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  showHolidays?: boolean;
+
+  @IsOptional()
   @IsIn(['7d', '1d', '12h', 'none'])
   sessionExpiry?: string;
 

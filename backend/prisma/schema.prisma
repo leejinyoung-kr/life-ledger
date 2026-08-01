@@ -334,6 +334,7 @@ model UserSettings {
   notif_upload        Boolean  @default(false)
   notif_maturity      Boolean  @default(true) /// 예적금/구독 만기·결제 임박 알림 수신
   notif_deadline      Boolean  @default(true) /// 신원 만료·할일 마감 임박 알림 수신
+  show_holidays       Boolean  @default(true) /// 캘린더에 공휴일·대체공휴일 표시 여부
   session_expiry      String   @default("7d") @db.VarChar(10) /// 7d|1d|12h|none
   pw_auto_hide        String   @default("10s") @db.VarChar(10) /// 10s|30s|1m|none
   openai_api_key      String?  @db.VarChar(512) /// OpenAI API 키 (AI 리포트 생성, AES-256-GCM 암호문 'v1:...')
@@ -466,6 +467,20 @@ model CalendarEvent {
 
   @@index([user_id, date])
   @@map("calendar_event")
+}
+
+/// 공휴일·대체공휴일 (전 사용자 공용 캐시 — 공공데이터포털 특일 정보 API에서 연 단위로 가져와 저장)
+model Holiday {
+  id            Int      @id @default(autoincrement())
+  date          DateTime @db.Date /// 공휴일 날짜
+  name          String   @db.VarChar(100) /// 공휴일명 (대체공휴일은 원본 명칭 그대로, is_substitute로 구분)
+  is_substitute Boolean  @default(false) /// 대체공휴일 여부
+  year          Int /// 조회 연도(solYear 기준, 캐시 갱신 단위)
+  created_at    DateTime @default(now())
+
+  @@unique([date, name])
+  @@index([year])
+  @@map("holiday")
 }
 
 /// 위험 종류: reuse(재사용) | weak(취약) | no2fa(2FA 미설정) | breach(유출 의심)

@@ -1,9 +1,9 @@
 # DocNexus — ERD
 
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
-> 마이그레이션: `20260713000000_init`(전 도메인 통합) + `20260715104820_add_recurring_schedule` · `20260715105206_drop_legacy_recurring_columns` · `20260731121236_remove_note_task_calendar` · `20260801140000_restore_calendar_remove_goal`
+> 마이그레이션: `20260713000000_init`(전 도메인 통합) + `20260715104820_add_recurring_schedule` · `20260715105206_drop_legacy_recurring_columns` · `20260731121236_remove_note_task_calendar` · `20260801140000_restore_calendar_remove_goal` · `20260801225151_add_calendar_lunar` · `20260801233607_add_holiday_and_show_holidays`
 
-## 테이블 목록 (30)
+## 테이블 목록 (31)
 
 | 테이블 | 설명 |
 | --- | --- |
@@ -18,7 +18,8 @@
 | NetWorthSnapshot | 순자산 월별 스냅샷 |
 | UserSettings | 사용자 설정 (1:1) |
 | Notification | 알림 |
-| CalendarEvent | 캘린더 일정 |
+| CalendarEvent | 캘린더 일정 (양력/음력, 매년 음력 반복 지원) |
+| Holiday | 공휴일·대체공휴일 (전 사용자 공용 캐시, 공공데이터포털 특일 정보 API 연동) |
 | SecurityRisk | 보안 위험 (시드/표시용) |
 | LoginSession | 로그인 세션 |
 | Category | 카테고리 (도메인별, 가계부는 대분류→소분류 2계층) |
@@ -83,6 +84,7 @@ LoginSession   1 ─── N RefreshToken(session_id)
 ### 설정 — UserSettings (1:1)
 
 - 알림: `notif_monthly`·`notif_upload`·`notif_maturity`·`notif_deadline`
+- 캘린더: `show_holidays`(공휴일·대체공휴일 표시 여부)
 - 보안: `session_expiry`, `pw_auto_hide`, `master_lock_enabled`·`master_lock_hash`(scrypt)·`master_lock_timeout`
 - API: `openai_api_key`, `openai_model`
 - JSON: `categories`[{emoji,name}], `widgets`[{id,on}](순서=표시순서), `menu_order`(사이드바 1차 메뉴 순서)

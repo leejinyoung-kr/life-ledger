@@ -12,7 +12,7 @@
 | 상태관리 | TanStack Query (React Query) — lib/query·queryKeys | 전 페이지 전환 완료 |
 | Backend | NestJS 11, TypeScript | 32개 모듈 구현 완료 |
 | ORM | Prisma | 구현 완료 |
-| DB | MariaDB 11 | 32개 테이블 구현 완료 |
+| DB | MariaDB 11 | 31개 테이블 구현 완료 |
 | Auth | Google OAuth 2.0 + JWT (전역 가드 + 새 기기 감지) | 구현 완료 |
 | Rate-limit | @nestjs/throttler | 구현 완료 |
 | 암호화 | AES-256-GCM(`CREDENTIAL_SECRET`) / 마스터잠금 scrypt | 구현 완료 |

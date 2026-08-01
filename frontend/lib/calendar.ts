@@ -3,8 +3,8 @@
  * 백엔드 응답 DTO(/calendar)와 1:1 대응한다.
  */
 
-export type EvType = 'pay' | 'due' | 'exp' | 'task';
-export type VirtSource = 'subscription' | 'saving' | 'identity';
+export type EvType = 'pay' | 'due' | 'exp' | 'task' | 'holiday';
+export type VirtSource = 'subscription' | 'saving' | 'identity' | 'holiday';
 export type RecurFreq = 'none' | 'weekly' | 'monthly' | 'yearly';
 
 export interface CalEvent {
@@ -48,6 +48,7 @@ export const VIRT_SOURCE_META: Record<VirtSource, { label: string; path: string 
   subscription: { label: '구독',     path: '/subscriptions' },
   saving:       { label: '예적금',   path: '/transactions' },
   identity:     { label: '신원지갑', path: '/id-wallet' },
+  holiday:      { label: '공휴일',   path: '' },
 };
 
 export interface UpcomingEvent extends CalEvent {
@@ -59,6 +60,7 @@ export const EV_TYPE_LABEL: Record<EvType, string> = {
   due: '입금 / 만기',
   exp: '서류 만료',
   task: '할일',
+  holiday: '공휴일',
 };
 
 // 입력 폼 유형 옵션 (코드 ↔ 라벨)

@@ -35,7 +35,8 @@ doc-nexus/
 │       ├── subscription/  # 구독 서비스
 │       ├── asset/         # 자산 (순자산)
 │       ├── notification/  # 알림
-│       ├── calendar/      # 캘린더 (실제 일정 + 구독/예적금/신원 가상 이벤트 연동)
+│       ├── calendar/      # 캘린더 (실제 일정(양력/음력) + 구독/예적금/신원/공휴일 가상 이벤트 연동)
+│       ├── holiday/       # 공휴일·대체공휴일 (공공데이터포털 특일 정보 API 연동 + 연 단위 캐싱)
 │       ├── security/      # 보안센터 + 마스터 잠금(VaultService/VaultGuard) + 유출검사·강도통계
 │       ├── access-log/    # 보관함 접근 감사 로그 (전역)
 │       ├── settings/      # 사용자 설정
@@ -98,7 +99,8 @@ doc-nexus/
 | NetWorthSnapshot | user_id, month, total_assets, total_debt | 구현 완료 |
 | UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, categories/widgets(JSON), menu_order | 구현 완료 |
 | Notification | user_id, group, tone, title, description, source, read_at | 구현 완료 |
-| CalendarEvent | user_id, date, type(pay/due/exp/task), title, recur_freq, recur_until | 구현 완료 |
+| CalendarEvent | user_id, date, type(pay/due/exp/task), title, is_lunar/lunar_month/lunar_day/lunar_leap, recur_freq, recur_until | 구현 완료 |
+| Holiday | date, name, is_substitute, year (전 사용자 공용 캐시, user_id 없음) | 구현 완료 |
 | SecurityRisk | user_id, category, severity, title, resolved | 구현 완료 |
 | LoginSession | user_id, device, device_type, location, is_current, revoked_at | 구현 완료 |
 | Category | user_id, domain, code, label, parent_code(2계층), sort_order, is_active | 구현 완료 |
@@ -117,7 +119,7 @@ doc-nexus/
 | EmailLoginCode | email, code_hash(SHA-256), expires_at, consumed_at, attempts (이메일 인증코드 로그인, 화이트리스트 대조) | 구현 완료 |
 | SystemLog | user_id(nullable, FK 아님), level(info/warn/error), category, message, metadata(JSON) — 크론·투자갱신 등 백그라운드 작업 로그, 90일 경과 시 자동 삭제 | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 30개 테이블
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 31개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---
@@ -151,7 +153,7 @@ doc-nexus/
 | Backend — 현금흐름 예측·통합 D-day | 구현 완료 |
 | Backend — AI 리포트 (OpenAI, 사용자별 키) | 구현 완료 |
 | Backend — 시스템 로그 / 순자산 월간 스냅샷 / 투자 현재가 자동 갱신 | 구현 완료 |
-| DB | 30개 테이블 구현 완료 |
+| DB | 31개 테이블 구현 완료 |
 
 ---
 
@@ -233,26 +235,11 @@ docker compose exec backend npx prisma migrate deploy
 
 - `COMMENT='한글 테이블명'` 형태로 간결하게 작성 (예: `COMMENT='사용자'`)
 
-### KST 타임스탬프 트리거
+### 타임스탬프
 
-신규 테이블에 `created_at` / `updated_at` 이 있으면
-반드시 KST 트리거를 함께 추가한다.
-Prisma가 `@default(now())` / `@updatedAt` 을 UTC 문자열로
-전송하므로 트리거로 덮어씌워야 한국시간으로 저장된다.
-(전제: MySQL `@@global.time_zone = +09:00`)
-
-<!-- markdownlint-disable MD013 -->
-```sql
--- created_at + updated_at 모두 있는 경우
-CREATE TRIGGER `tr_xxx_bi` BEFORE INSERT ON `xxx` FOR EACH ROW SET NEW.created_at = NOW(), NEW.updated_at = NOW();
-CREATE TRIGGER `tr_xxx_bu` BEFORE UPDATE ON `xxx` FOR EACH ROW SET NEW.updated_at = NOW();
-
--- created_at 만 있는 경우
-CREATE TRIGGER `tr_xxx_bi` BEFORE INSERT ON `xxx` FOR EACH ROW SET NEW.created_at = NOW();
-```
-<!-- markdownlint-enable MD013 -->
-
-트리거는 별도 마이그레이션 파일로 분리하거나, 테이블 생성 마이그레이션 하단에 함께 작성한다.
+운영 DB(TiDB Cloud)는 트리거를 지원하지 않아 **BEFORE INSERT/UPDATE 트리거 기반 KST 강제 방식은 사용하지 않는다.**
+`created_at`/`updated_at`은 Prisma `@default(now())`/`@updatedAt` 그대로 사용하며 **UTC 기준**으로 저장된다.
+신규 테이블 마이그레이션에 `CREATE TRIGGER`를 추가하지 않는다 — 컬럼 코멘트는 기존 관례대로 `'생성일(KST)'`/`'수정일(KST)'` 표기를 유지한다(트리거 제거 이전부터 이어진 표기, 실제 값은 UTC).
 
 ---
 

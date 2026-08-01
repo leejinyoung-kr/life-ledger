@@ -27,6 +27,7 @@ export interface Settings {
   notifUpload: boolean;
   notifMaturity: boolean;
   notifDeadline: boolean;
+  showHolidays: boolean;
   sessionExpiry: string; // 7d|1d|12h|none
   pwAutoHide: string; // 10s|30s|1m|none
   openaiApiKeySet: boolean;

@@ -18,11 +18,13 @@ import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
+import Toggle from '@/components/ui/Toggle';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { NAV_BTN_34 } from '@/components/ui/styles';
 import { useConfirm } from '@/components/ConfirmModal';
 import { api } from '@/lib/api';
+import type { Settings } from '@/lib/settings';
 import {
   EV_TYPE_LABEL, EV_TYPE_OPTIONS, EV_LEGEND, VIRT_SOURCE_META, ddLabel,
   RECUR_FREQ_LABEL, RECUR_FREQ_OPTIONS, LUNAR_RECUR_FREQ_OPTIONS,
@@ -31,12 +33,12 @@ import {
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 
-// 일정 유형별 색 (그리드 칩 / 점)
+// 일정 유형별 색 (그리드 칩 / 점) — 공휴일은 전통적인 빨간 표기 관례에 따라 구독 결제와 동일한 danger 톤 재사용
 const EV_BG: Record<EvType, string> = {
-  pay: 'bg-danger-dim text-danger', due: 'bg-blue-dim text-blue', exp: 'bg-warning-dim text-warning', task: 'bg-accent-dim text-accent',
+  pay: 'bg-danger-dim text-danger', due: 'bg-blue-dim text-blue', exp: 'bg-warning-dim text-warning', task: 'bg-accent-dim text-accent', holiday: 'bg-danger-dim text-danger',
 };
 const DOT_BG: Record<EvType, string> = {
-  pay: 'bg-danger', due: 'bg-blue', exp: 'bg-warning', task: 'bg-accent',
+  pay: 'bg-danger', due: 'bg-blue', exp: 'bg-warning', task: 'bg-accent', holiday: 'bg-danger',
 };
 
 // 2자리 0 패딩
@@ -92,6 +94,8 @@ export default function CalendarPage() {
   const month = view ? `${view.year}-${pad(view.month + 1)}` : null;
   const eventsQuery = useApiQuery<CalEvent[]>(qk.calendar.list(month ?? undefined), `/calendar?month=${month}`, { enabled: !!month });
   const upcomingQuery = useApiQuery<UpcomingEvent[]>(['calendar', 'upcoming'], '/calendar/upcoming');
+  const settingsQuery = useApiQuery<Settings>(qk.settings.detail(), '/settings');
+  const showHolidays = settingsQuery.data?.showHolidays ?? true;
   const eventsByDate = useMemo(() => {
     const map: Record<string, CalEvent[]> = {};
     for (const ev of eventsQuery.data ?? []) (map[ev.date] ??= []).push(ev);
@@ -143,6 +147,17 @@ export default function CalendarPage() {
     setView({ year: now.getFullYear(), month: now.getMonth() });
   }
 
+  // 공휴일 표시 on/off (설정에 저장 — 캘린더 응답이 이 값을 반영하므로 함께 무효화)
+  async function handleToggleHolidays() {
+    try {
+      await api.put('/settings', { showHolidays: !showHolidays });
+      invalidate(qk.settings.detail());
+      reload();
+    } catch (err) {
+      notify.error((err as Error).message || '설정 저장에 실패했습니다.');
+    }
+  }
+
   const cells = view ? buildMonth(view.year, view.month) : [];
   const navBtn = `${NAV_BTN_34} text-[1.1rem] leading-none`;
 
@@ -192,16 +207,20 @@ export default function CalendarPage() {
           {/* 월 그리드 */}
           <div className="grid grid-cols-7 bg-border gap-px border border-border rounded-[var(--radius-lg)] overflow-hidden">
             {DOW.map((d) => <div key={d} className="bg-surface p-2 text-center text-[0.7rem] font-semibold text-muted uppercase">{d}</div>)}
-            {cells.map((cell) => {
+            {cells.map((cell, i) => {
               const events = cell.iso ? eventsByDate[cell.iso] : undefined;
               const isToday = cell.iso === todayIso;
+              // 그리드는 항상 일요일(0열)부터 시작하므로 인덱스%7 == 0/6이 주말
+              const dow = i % 7;
+              const isHoliday = !!events?.some((ev) => ev.type === 'holiday');
+              const isRedDate = !cell.dim && (dow === 0 || dow === 6 || isHoliday);
               return (
                 <div
                   key={cell.key}
                   className={`min-h-[92px] max-md:min-h-[64px] p-1.5 flex flex-col gap-[3px] ${cell.dim ? 'bg-surface text-muted' : 'bg-background cursor-pointer hover:bg-surface transition-colors'}`}
                   onClick={cell.iso ? () => setAddModal({ open: true, date: cell.iso }) : undefined}
                 >
-                  <span className={isToday ? 'bg-accent text-white w-[22px] h-[22px] rounded-full flex items-center justify-center text-[0.78rem] font-semibold' : 'text-[0.78rem] font-semibold text-secondary'}>{cell.day}</span>
+                  <span className={isToday ? 'bg-accent text-white w-[22px] h-[22px] rounded-full flex items-center justify-center text-[0.78rem] font-semibold' : `text-[0.78rem] font-semibold ${isRedDate ? 'text-danger' : 'text-secondary'}`}>{cell.day}</span>
                   {/* PC/태블릿 — 제목 칩 (좁은 화면은 글자가 안 들어가 점으로 대체) */}
                   <div className="max-md:hidden flex flex-col gap-[3px]">
                     {events?.map((ev) => (
@@ -248,12 +267,14 @@ export default function CalendarPage() {
                       <div className="text-[0.84rem] font-medium">{u.title}</div>
                       <div className="text-[0.72rem] text-muted">{EV_TYPE_LABEL[u.type]} · {ddLabel(u.daysUntil)}</div>
                     </div>
-                    <button
-                      type="button"
-                      className="icon-btn-danger"
-                      onClick={() => handleRemoveEvent(u)}
-                      aria-label="일정 삭제"
-                    ><IconTrash width={12} height={12} /></button>
+                    {u.type !== 'holiday' && (
+                      <button
+                        type="button"
+                        className="icon-btn-danger"
+                        onClick={() => handleRemoveEvent(u)}
+                        aria-label="일정 삭제"
+                      ><IconTrash width={12} height={12} /></button>
+                    )}
                   </div>
                 );
               })}
@@ -264,10 +285,17 @@ export default function CalendarPage() {
             <CardHeader><CardTitle>범례</CardTitle></CardHeader>
             <CardBody>
               {EV_LEGEND.map((l) => (
-                <div className="flex items-center gap-2 text-[0.78rem] mb-1.5 last:mb-0" key={l.type}>
+                <div className="flex items-center gap-2 text-[0.78rem] mb-1.5" key={l.type}>
                   <span className={`w-2.5 h-2.5 rounded-[3px] ${DOT_BG[l.type]}`} />{l.label}
                 </div>
               ))}
+              <div className="flex items-center gap-2 text-[0.78rem] mb-3.5">
+                <span className="w-2.5 h-2.5 rounded-[3px] bg-danger" />공휴일
+              </div>
+              <div className="flex items-center justify-between pt-3 border-t border-border-subtle">
+                <span className="text-[0.78rem] text-secondary">공휴일 표시</span>
+                <Toggle on={showHolidays} onToggle={handleToggleHolidays} label="공휴일 표시" />
+              </div>
             </CardBody>
           </Card>
         </div>
@@ -291,7 +319,7 @@ export default function CalendarPage() {
 function EventDetailModal({ event, onClose, onDelete }: { event: CalEvent | null; onClose: () => void; onDelete: (ev: CalEvent) => void }) {
   if (!event) return null;
   const [, m, d] = event.date.split('-');
-  const sourceMeta = event.virtual && event.sourceType ? VIRT_SOURCE_META[event.sourceType] : null;
+  const sourceMeta = event.virtual && event.sourceType && event.sourceType !== 'holiday' ? VIRT_SOURCE_META[event.sourceType] : null;
   return (
     <Modal open={!!event} onClose={onClose} title="일정 상세">
       <div className="flex flex-col gap-3">
@@ -314,7 +342,9 @@ function EventDetailModal({ event, onClose, onDelete }: { event: CalEvent | null
         {event.memo && <p className="text-[0.875rem] text-secondary bg-surface border border-border-subtle rounded-(--radius) px-3 py-2">{event.memo}</p>}
       </div>
       <div className="flex justify-between mt-5">
-        <Button variant="danger" size="sm" onClick={() => onDelete(event)}>삭제</Button>
+        {event.type !== 'holiday' ? (
+          <Button variant="danger" size="sm" onClick={() => onDelete(event)}>삭제</Button>
+        ) : <span />}
         <Button variant="ghost" size="sm" onClick={onClose}>닫기</Button>
       </div>
     </Modal>
@@ -391,8 +421,8 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
       });
       notify.added('일정');
       onSaved();
-    } catch {
-      notify.saveFailed();
+    } catch (err) {
+      notify.error((err as Error).message || '저장에 실패했습니다.');
     } finally {
       setSaving(false);
     }
@@ -413,10 +443,10 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
           </select>
         </Field>
       </div>
-      <div className="flex items-center gap-4 -mt-1">
+      <div className="flex items-center gap-4 -mt-1 max-md:flex-col max-md:items-start max-md:gap-1.5">
         <label className="flex items-center gap-1.5 text-[0.84rem] text-secondary cursor-pointer">
           <input type="checkbox" checked={isLunar} onChange={(e) => handleLunarToggle(e.target.checked)} />
-          🌙 음력 날짜 (위 날짜의 월/일을 음력으로 입력)
+          🌙 음력 날짜
         </label>
         {isLunar && (
           <label className="flex items-center gap-1.5 text-[0.84rem] text-secondary cursor-pointer">
@@ -425,6 +455,9 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
           </label>
         )}
       </div>
+      {isLunar && (
+        <p className="text-[0.72rem] text-muted -mt-1">위 날짜의 월/일을 음력으로 입력합니다.</p>
+      )}
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="반복">
           <select className="input" aria-label="반복" value={recurFreq} onChange={(e) => setRecurFreq(e.target.value as RecurFreq)}>
