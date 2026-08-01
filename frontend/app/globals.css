@@ -181,7 +181,7 @@
    ════════════════════════════════════════ */
 
 .input {
-  width: 100%; background: var(--bg-base); border: 1px solid var(--border);
+  width: 100%; min-width: 0; background: var(--bg-base); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 8px 12px; color: var(--text-primary);
   font-size: 0.875rem; transition: border-color var(--ease), box-shadow var(--ease); outline: none;
 }
