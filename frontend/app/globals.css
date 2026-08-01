@@ -190,6 +190,12 @@
 /* 좌측 돋보기 아이콘용 패딩 — .input 의 shorthand padding 을 명시도로 덮어쓴다 */
 .input.pl-icon { padding-left: 34px; }
 select.input option { background: var(--bg-base); }
+/* iOS Safari는 date/time input에 네이티브 appearance를 적용해 width:100%를 무시하고
+   내부 콘텐츠 크기만큼 박스를 넓힌다 — appearance 제거로 일반 input과 동일한 박스 모델을 따르게 한다 */
+input[type="date"].input, input[type="time"].input, input[type="datetime-local"].input {
+  -webkit-appearance: none;
+  appearance: none;
+}
 
 /* 공통 체크박스 — 네이티브 스타일 대신 앱 톤(둥근 사각형 + 강조색)에 맞춤 */
 .checkbox {
