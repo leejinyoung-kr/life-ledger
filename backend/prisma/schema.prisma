@@ -452,6 +452,10 @@ model CalendarEvent {
   type        CalEventType
   title       String       @db.VarChar(200)
   memo        String?      @db.VarChar(300)
+  is_lunar    Boolean      @default(false) /// 음력 날짜 여부 (true면 lunar_month/lunar_day가 기준)
+  lunar_month Int?         /// 음력 월 (is_lunar=true일 때만 사용)
+  lunar_day   Int?         /// 음력 일
+  lunar_leap  Boolean      @default(false) /// 윤달 여부
   recur_freq  CalRecurFreq @default(none)
   recur_until DateTime?    @db.Date /// 반복 종료일 (null = 무기한)
   deleted_at  DateTime?

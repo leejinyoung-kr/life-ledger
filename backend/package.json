@@ -46,6 +46,7 @@
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",
     "helmet": "^8.2.0",
+    "korean-lunar-calendar": "^0.4.0",
     "multer": "^2.1.1",
     "nodemailer": "^9.0.0",
     "openai": "^6.39.0",

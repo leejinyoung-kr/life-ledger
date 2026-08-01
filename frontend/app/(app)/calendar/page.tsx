@@ -25,7 +25,7 @@ import { useConfirm } from '@/components/ConfirmModal';
 import { api } from '@/lib/api';
 import {
   EV_TYPE_LABEL, EV_TYPE_OPTIONS, EV_LEGEND, VIRT_SOURCE_META, ddLabel,
-  RECUR_FREQ_LABEL, RECUR_FREQ_OPTIONS,
+  RECUR_FREQ_LABEL, RECUR_FREQ_OPTIONS, LUNAR_RECUR_FREQ_OPTIONS,
   type CalEvent, type UpcomingEvent, type EvType, type RecurFreq,
 } from '@/lib/calendar';
 
@@ -42,6 +42,11 @@ const DOT_BG: Record<EvType, string> = {
 // 2자리 0 패딩
 const pad = (n: number) => String(n).padStart(2, '0');
 const isoOf = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
+
+// 연도 선택 옵션 (현재 연도 기준 -10 ~ +10)
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: 21 }, (_, i) => CURRENT_YEAR - 10 + i);
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i);
 
 interface Cell { key: string; day: number; dim: boolean; iso?: string; }
 
@@ -105,6 +110,14 @@ export default function CalendarPage() {
     });
   }
 
+  // 연/월 직접 선택
+  function handleSelectYear(year: number) {
+    setView((v) => (v ? { ...v, year } : v));
+  }
+  function handleSelectMonth(month: number) {
+    setView((v) => (v ? { ...v, month } : v));
+  }
+
   // 일정 삭제 (가상 이벤트면 원본 테이블에서도 삭제)
   async function handleRemoveEvent(ev: CalEvent) {
     const label = ev.virtual && ev.sourceType ? `${VIRT_SOURCE_META[ev.sourceType].label} 항목` : '일정';
@@ -151,11 +164,26 @@ export default function CalendarPage() {
 
       <div className="grid grid-cols-1 min-[900px]:grid-cols-[1fr_300px] gap-5 items-start">
         <div>
-          {/* 월 이동 툴바 */}
-          <div className="flex items-center justify-between mb-3.5">
-            <div className="flex items-center gap-2">
+          {/* 월 이동 + 연/월 직접 선택 툴바 */}
+          <div className="flex items-center justify-between mb-3.5 flex-wrap gap-2">
+            <div className="flex items-center gap-1.5">
               <button type="button" className={navBtn} onClick={() => handleMoveMonth(-1)} aria-label="이전 달">‹</button>
-              <span className="[font-family:var(--font-display)] font-bold text-[1.1rem]">{view ? `${view.year}년 ${view.month + 1}월` : ''}</span>
+              <select
+                className="input w-auto! py-1! text-[0.84rem] font-semibold"
+                aria-label="연도 선택"
+                value={view?.year ?? ''}
+                onChange={(e) => handleSelectYear(Number(e.target.value))}
+              >
+                {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}년</option>)}
+              </select>
+              <select
+                className="input w-auto! py-1! text-[0.84rem] font-semibold"
+                aria-label="월 선택"
+                value={view?.month ?? ''}
+                onChange={(e) => handleSelectMonth(Number(e.target.value))}
+              >
+                {MONTH_OPTIONS.map((m) => <option key={m} value={m}>{m + 1}월</option>)}
+              </select>
               <button type="button" className={navBtn} onClick={() => handleMoveMonth(1)} aria-label="다음 달">›</button>
             </div>
             <Button variant="ghost" size="sm" onClick={handleGoToday}>오늘</Button>
@@ -182,7 +210,7 @@ export default function CalendarPage() {
                         className={`text-[0.65rem] px-1.25 py-px rounded-sm whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer hover:opacity-75 transition-opacity ${EV_BG[ev.type]} ${ev.virtual ? 'opacity-75 border border-current border-dashed' : ''}`}
                         onClick={(e) => { e.stopPropagation(); setDetailEvent(ev); }}
                       >
-                        {ev.virtual ? '◈ ' : ''}{ev.title}
+                        {ev.virtual ? '◈ ' : ''}{ev.isLunar ? '🌙 ' : ''}{ev.title}
                       </span>
                     ))}
                   </div>
@@ -271,6 +299,11 @@ function EventDetailModal({ event, onClose, onDelete }: { event: CalEvent | null
           <span className={`text-[0.75rem] px-2 py-0.5 rounded-sm ${EV_BG[event.type]}`}>{EV_TYPE_LABEL[event.type]}</span>
           {sourceMeta && <span className="text-[0.72rem] px-2 py-0.5 rounded-sm bg-surface border border-border-subtle text-muted">◈ {sourceMeta.label} 연동</span>}
           <span className="text-[0.84rem] text-secondary">{Number(m)}월 {d}일</span>
+          {event.isLunar && (
+            <span className="text-[0.72rem] px-2 py-0.5 rounded-sm bg-surface border border-border-subtle text-muted">
+              🌙 음력 {event.lunarMonth}월 {event.lunarDay}일{event.lunarLeap ? '(윤달)' : ''}
+            </span>
+          )}
           {event.recurFreq && event.recurFreq !== 'none' && (
             <span className="text-[0.72rem] px-2 py-0.5 rounded-sm bg-surface border border-border-subtle text-muted">
               🔁 {RECUR_FREQ_LABEL[event.recurFreq]}{event.recurUntil ? ` · ${event.recurUntil}까지` : ''}
@@ -302,7 +335,7 @@ function DayListModal({ day, onClose, onSelect }: { day: { day: number; events: 
             onClick={() => onSelect(ev)}
           >
             <span className={`w-2 h-2 rounded-full shrink-0 ${DOT_BG[ev.type]}`} />
-            <span className="flex-1 min-w-0 text-[0.875rem] font-medium text-primary truncate">{ev.virtual ? '◈ ' : ''}{ev.title}</span>
+            <span className="flex-1 min-w-0 text-[0.875rem] font-medium text-primary truncate">{ev.virtual ? '◈ ' : ''}{ev.isLunar ? '🌙 ' : ''}{ev.title}</span>
             <span className="text-[0.72rem] text-muted shrink-0">{EV_TYPE_LABEL[ev.type]}</span>
           </button>
         ))}
@@ -317,6 +350,8 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
   const [date, setDate] = useState('');
   const [type, setType] = useState<EvType>('pay');
   const [memo, setMemo] = useState('');
+  const [isLunar, setIsLunar] = useState(false);
+  const [lunarLeap, setLunarLeap] = useState(false);
   const [recurFreq, setRecurFreq] = useState<RecurFreq>('none');
   const [recurUntil, setRecurUntil] = useState('');
   const [saving, setSaving] = useState(false);
@@ -325,9 +360,15 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
   useEffect(() => {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    reset(); setTitle(''); setType('pay'); setMemo(''); setRecurFreq('none'); setRecurUntil('');
+    reset(); setTitle(''); setType('pay'); setMemo(''); setIsLunar(false); setLunarLeap(false); setRecurFreq('none'); setRecurUntil('');
     setDate(state.date ?? new Date().toISOString().slice(0, 10));
   }, [state.open, state.date, reset]);
+
+  // 음력 체크 시 반복 옵션을 매년으로 제한(음력 매주/매월 반복은 지원하지 않음)
+  function handleLunarToggle(checked: boolean) {
+    setIsLunar(checked);
+    if (checked && recurFreq !== 'none' && recurFreq !== 'yearly') setRecurFreq('yearly');
+  }
 
   function validate() {
     const err: Record<string, string> = {};
@@ -343,6 +384,8 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
     try {
       await api.post('/calendar', {
         title: title.trim(), date, type, memo: memo || undefined,
+        isLunar: isLunar || undefined,
+        lunarLeap: isLunar && lunarLeap ? true : undefined,
         recurFreq: recurFreq !== 'none' ? recurFreq : undefined,
         recurUntil: recurFreq !== 'none' && recurUntil ? recurUntil : undefined,
       });
@@ -370,10 +413,22 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
           </select>
         </Field>
       </div>
+      <div className="flex items-center gap-4 -mt-1">
+        <label className="flex items-center gap-1.5 text-[0.84rem] text-secondary cursor-pointer">
+          <input type="checkbox" checked={isLunar} onChange={(e) => handleLunarToggle(e.target.checked)} />
+          🌙 음력 날짜 (위 날짜의 월/일을 음력으로 입력)
+        </label>
+        {isLunar && (
+          <label className="flex items-center gap-1.5 text-[0.84rem] text-secondary cursor-pointer">
+            <input type="checkbox" checked={lunarLeap} onChange={(e) => setLunarLeap(e.target.checked)} />
+            윤달
+          </label>
+        )}
+      </div>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="반복">
           <select className="input" aria-label="반복" value={recurFreq} onChange={(e) => setRecurFreq(e.target.value as RecurFreq)}>
-            {RECUR_FREQ_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {(isLunar ? LUNAR_RECUR_FREQ_OPTIONS : RECUR_FREQ_OPTIONS).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
         {recurFreq !== 'none' && (

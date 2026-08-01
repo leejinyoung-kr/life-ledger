@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, CalendarEvent, CalRecurFreq } from '@prisma/client';
+import KoreanLunarCalendar from 'korean-lunar-calendar';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -39,15 +40,74 @@ function addPeriod(
   );
 }
 
-// 반복 일정이 [range.gte, range.lt) 안에서 발생하는 날짜들 (반복 없으면 원본 날짜 1건)
-function occurrencesInRange(
+// 음력(lunarMonth/lunarDay) → 특정 lunarYear 기준 양력 날짜. 변환 불가(윤달 없는 해 등)면 null
+function lunarToSolar(
+  lunarYear: number,
+  lunarMonth: number,
+  lunarDay: number,
+  leap: boolean,
+): Date | null {
+  const cal = new KoreanLunarCalendar();
+  if (!cal.setLunarDate(lunarYear, lunarMonth, lunarDay, leap)) return null;
+  const s = cal.getSolarCalendar();
+  return new Date(Date.UTC(s.year, s.month - 1, s.day));
+}
+
+// 매년 음력 반복이 [range.gte, range.lt) 안에서 발생하는 날짜들 — 연도별로 음력→양력 재변환(고정 산술 불가, 매년 날짜가 달라짐)
+function lunarYearlyOccurrencesInRange(
+  lunarMonth: number,
+  lunarDay: number,
+  leap: boolean,
   base: Date,
-  freq: CalRecurFreq,
   until: Date | null,
   range: { gte: Date; lt: Date },
 ): Date[] {
+  const dates: Date[] = [];
+  // 연말/연초 드리프트 대비 앞뒤 1년씩 여유를 두고 순회
+  for (let y = range.gte.getUTCFullYear() - 1; y <= range.lt.getUTCFullYear() + 1; y++) {
+    const occ = lunarToSolar(y, lunarMonth, lunarDay, leap);
+    if (!occ || occ < base || (until && occ > until)) continue;
+    if (occ >= range.gte && occ < range.lt) dates.push(occ);
+  }
+  return dates;
+}
+
+// 매년 음력 반복의 from(포함) 이후 가장 가까운 발생일 (없으면 null)
+function lunarYearlyNextOccurrenceOnOrAfter(
+  lunarMonth: number,
+  lunarDay: number,
+  leap: boolean,
+  base: Date,
+  until: Date | null,
+  from: Date,
+): Date | null {
+  for (let y = from.getUTCFullYear() - 1; y <= from.getUTCFullYear() + 50; y++) {
+    const occ = lunarToSolar(y, lunarMonth, lunarDay, leap);
+    if (!occ || occ < base) continue;
+    if (until && occ > until) return null;
+    if (occ >= from) return occ;
+  }
+  return null;
+}
+
+// 반복 일정이 [range.gte, range.lt) 안에서 발생하는 날짜들 (반복 없으면 원본 날짜 1건)
+function occurrencesInRange(
+  event: CalendarEvent,
+  range: { gte: Date; lt: Date },
+): Date[] {
+  const { date: base, recur_freq: freq, recur_until: until } = event;
   if (freq === 'none')
     return base >= range.gte && base < range.lt ? [base] : [];
+  if (event.is_lunar && freq === 'yearly' && event.lunar_month && event.lunar_day) {
+    return lunarYearlyOccurrencesInRange(
+      event.lunar_month,
+      event.lunar_day,
+      event.lunar_leap,
+      base,
+      until,
+      range,
+    );
+  }
   const dates: Date[] = [];
   for (let n = 0; n < 1000; n++) {
     const occ = addPeriod(base, freq, n);
@@ -58,13 +118,19 @@ function occurrencesInRange(
 }
 
 // 반복 일정의 from(포함) 이후 가장 가까운 발생일 (없으면 null)
-function nextOccurrenceOnOrAfter(
-  base: Date,
-  freq: CalRecurFreq,
-  until: Date | null,
-  from: Date,
-): Date | null {
+function nextOccurrenceOnOrAfter(event: CalendarEvent, from: Date): Date | null {
+  const { date: base, recur_freq: freq, recur_until: until } = event;
   if (freq === 'none') return base >= from ? base : null;
+  if (event.is_lunar && freq === 'yearly' && event.lunar_month && event.lunar_day) {
+    return lunarYearlyNextOccurrenceOnOrAfter(
+      event.lunar_month,
+      event.lunar_day,
+      event.lunar_leap,
+      base,
+      until,
+      from,
+    );
+  }
   for (let n = 0; n < 1000; n++) {
     const occ = addPeriod(base, freq, n);
     if (until && occ > until) return null;
@@ -107,6 +173,10 @@ export interface CalEventDto {
   sourceType?: VirtSource;
   recurFreq?: CalRecurFreq;
   recurUntil?: string | null;
+  isLunar?: boolean;
+  lunarMonth?: number | null;
+  lunarDay?: number | null;
+  lunarLeap?: boolean;
 }
 
 @Injectable()
@@ -124,6 +194,10 @@ export class CalendarService {
       virtual: false,
       recurFreq: e.recur_freq,
       recurUntil: e.recur_until ? toDateStr(e.recur_until) : null,
+      isLunar: e.is_lunar,
+      lunarMonth: e.lunar_month,
+      lunarDay: e.lunar_day,
+      lunarLeap: e.lunar_leap,
     };
   }
 
@@ -230,12 +304,7 @@ export class CalendarService {
       ? rows.flatMap((r) =>
           r.recur_freq === 'none'
             ? [this.toDto(r)]
-            : occurrencesInRange(
-                r.date,
-                r.recur_freq,
-                r.recur_until,
-                range,
-              ).map((d) => this.toDto(r, d)),
+            : occurrencesInRange(r, range).map((d) => this.toDto(r, d)),
         )
       : rows.map((r) => this.toDto(r));
 
@@ -277,14 +346,7 @@ export class CalendarService {
     const upcomingRows = rows
       .map((r) => {
         const occ =
-          r.recur_freq === 'none'
-            ? r.date
-            : nextOccurrenceOnOrAfter(
-                r.date,
-                r.recur_freq,
-                r.recur_until,
-                today,
-              );
+          r.recur_freq === 'none' ? r.date : nextOccurrenceOnOrAfter(r, today);
         return occ ? this.toDto(r, occ) : null;
       })
       .filter((d): d is CalEventDto => d !== null);
@@ -294,15 +356,37 @@ export class CalendarService {
       .slice(0, limit);
   }
 
+  // 입력 날짜 → is_lunar면 해당 월/일을 음력으로 해석해 그 해의 양력 날짜로 환산
+  private resolveEventDate(
+    date: string,
+    isLunar: boolean,
+    lunarLeap: boolean,
+  ): { date: Date; lunarMonth: number | null; lunarDay: number | null } {
+    const input = new Date(date);
+    if (!isLunar) return { date: input, lunarMonth: null, lunarDay: null };
+    const lunarMonth = input.getUTCMonth() + 1;
+    const lunarDay = input.getUTCDate();
+    const solar = lunarToSolar(input.getUTCFullYear(), lunarMonth, lunarDay, lunarLeap);
+    if (!solar) throw new BadRequestException('유효하지 않은 음력 날짜입니다.');
+    return { date: solar, lunarMonth, lunarDay };
+  }
+
   // 일정 추가 (수동 등록만)
   async create(userId: number, dto: CreateEventDto) {
+    const isLunar = dto.isLunar ?? false;
+    const lunarLeap = dto.lunarLeap ?? false;
+    const { date, lunarMonth, lunarDay } = this.resolveEventDate(dto.date, isLunar, lunarLeap);
     const created = await this.prisma.calendarEvent.create({
       data: {
         user_id: userId,
-        date: new Date(dto.date),
+        date,
         type: dto.type,
         title: dto.title,
         memo: dto.memo,
+        is_lunar: isLunar,
+        lunar_month: lunarMonth,
+        lunar_day: lunarDay,
+        lunar_leap: isLunar ? lunarLeap : false,
         recur_freq: dto.recurFreq ?? 'none',
         recur_until: dto.recurUntil ? new Date(dto.recurUntil) : null,
       },
@@ -321,14 +405,25 @@ export class CalendarService {
 
   // 일정 수정 (수동 등록 이벤트만)
   async update(userId: number, id: number, dto: UpdateEventDto) {
-    await this.findOwned(userId, id);
+    const existing = await this.findOwned(userId, id);
+    const isLunar = dto.isLunar ?? existing.is_lunar;
+    const lunarLeap = dto.lunarLeap ?? existing.lunar_leap;
+    // 날짜/음력여부/윤달여부 중 하나라도 바뀌면 양력 날짜를 다시 계산
+    const dateChanged = dto.date !== undefined || dto.isLunar !== undefined || dto.lunarLeap !== undefined;
+    const resolved = dateChanged
+      ? this.resolveEventDate(dto.date ?? toDateStr(existing.date), isLunar, lunarLeap)
+      : null;
     const updated = await this.prisma.calendarEvent.update({
       where: { id },
       data: {
-        date: dto.date ? new Date(dto.date) : undefined,
+        date: resolved?.date,
         type: dto.type,
         title: dto.title,
         memo: dto.memo,
+        is_lunar: dto.isLunar,
+        lunar_month: resolved ? resolved.lunarMonth : undefined,
+        lunar_day: resolved ? resolved.lunarDay : undefined,
+        lunar_leap: dto.isLunar !== undefined || dto.lunarLeap !== undefined ? lunarLeap : undefined,
         recur_freq: dto.recurFreq,
         recur_until:
           dto.recurUntil !== undefined

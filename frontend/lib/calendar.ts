@@ -17,6 +17,10 @@ export interface CalEvent {
   sourceType?: VirtSource; // 연동 원본 테이블
   recurFreq?: RecurFreq;
   recurUntil?: string | null;
+  isLunar?: boolean;
+  lunarMonth?: number | null;
+  lunarDay?: number | null;
+  lunarLeap?: boolean;
 }
 
 export const RECUR_FREQ_LABEL: Record<RecurFreq, string> = {
@@ -30,6 +34,12 @@ export const RECUR_FREQ_OPTIONS: { value: RecurFreq; label: string }[] = [
   { value: 'none', label: '반복 없음' },
   { value: 'weekly', label: '매주' },
   { value: 'monthly', label: '매월' },
+  { value: 'yearly', label: '매년' },
+];
+
+// 음력 일정은 "매년" 반복만 의미가 있음(음력 매주/매월 반복은 지원하지 않음)
+export const LUNAR_RECUR_FREQ_OPTIONS: { value: RecurFreq; label: string }[] = [
+  { value: 'none', label: '반복 없음' },
   { value: 'yearly', label: '매년' },
 ];
 
