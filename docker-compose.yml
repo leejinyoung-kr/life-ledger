@@ -1,3 +1,4 @@
+# 홈서버 클론 경로: ~/nexus-family/doc-nexus (2026-08-02 폴더 재구성, deploy-home-server.yml 참고)
 name: nexus-doc
 
 services:

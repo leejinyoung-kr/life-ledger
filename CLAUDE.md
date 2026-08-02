@@ -190,7 +190,7 @@ cd backend && npx prisma generate
 
 ```bash
 # 홈서버 SSH 접속 후
-cd ~/doc-nexus
+cd ~/nexus-family/doc-nexus
 docker compose exec backend npx prisma migrate deploy
 ```
 
