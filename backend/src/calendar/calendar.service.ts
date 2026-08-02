@@ -54,6 +54,16 @@ function lunarToSolar(
   return new Date(Date.UTC(s.year, s.month - 1, s.day));
 }
 
+// 양력 날짜 → 음력 {month, day, intercalation(윤달 여부)}. 지원 범위(1000~2050) 밖이면 null
+function solarToLunar(
+  date: Date,
+): { month: number; day: number; intercalation: boolean } | null {
+  const cal = new KoreanLunarCalendar();
+  if (!cal.setSolarDate(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())) return null;
+  const l = cal.getLunarCalendar();
+  return { month: l.month, day: l.day, intercalation: !!l.intercalation };
+}
+
 // 매년 음력 반복이 [range.gte, range.lt) 안에서 발생하는 날짜들 — 연도별로 음력→양력 재변환(고정 산술 불가, 매년 날짜가 달라짐)
 function lunarYearlyOccurrencesInRange(
   lunarMonth: number,
@@ -399,45 +409,25 @@ export class CalendarService {
       .slice(0, limit);
   }
 
-  // 입력 날짜 → is_lunar면 해당 월/일을 음력으로 해석해 그 해의 양력 날짜로 환산
+  // 입력 날짜(양력, 날짜 선택기로 고른 실제 날짜) → is_lunar면 그 날짜에 해당하는 음력 월/일/윤달여부를 계산해 함께 저장
+  // (반대로 "음력 월/일을 입력값으로 해석"하지 않는다 — 음력 30일처럼 존재하지 않는 날을 사용자가 고를 수 있어 매번 실패했음)
   private resolveEventDate(
     date: string,
     isLunar: boolean,
-    lunarLeap: boolean,
-  ): { date: Date; lunarMonth: number | null; lunarDay: number | null } {
-    const input = new Date(date);
-    if (!isLunar) return { date: input, lunarMonth: null, lunarDay: null };
-    const lunarMonth = input.getUTCMonth() + 1;
-    const lunarDay = input.getUTCDate();
-    const lunarYear = input.getUTCFullYear();
-    const solar = lunarToSolar(lunarYear, lunarMonth, lunarDay, lunarLeap);
-    if (!solar) {
-      throw new BadRequestException(this.lunarDateErrorMessage(lunarYear, lunarMonth, lunarDay, lunarLeap));
+  ): { date: Date; lunarMonth: number | null; lunarDay: number | null; lunarLeap: boolean } {
+    const solar = new Date(date);
+    if (!isLunar) return { date: solar, lunarMonth: null, lunarDay: null, lunarLeap: false };
+    const lunar = solarToLunar(solar);
+    if (!lunar) {
+      throw new BadRequestException('지원하지 않는 날짜입니다 (음력 변환 가능 범위: 1000~2050년).');
     }
-    return { date: solar, lunarMonth, lunarDay };
-  }
-
-  // 음력 날짜 변환 실패 원인을 추정해 사용자에게 구체적으로 안내 (예: 그 달은 29일까지만 있음 / 윤달 없음)
-  private lunarDateErrorMessage(
-    year: number,
-    month: number,
-    day: number,
-    leap: boolean,
-  ): string {
-    if (leap && lunarToSolar(year, month, 1, false)) {
-      return `음력 ${year}년 ${month}월에는 윤달이 없습니다. 윤달 체크를 해제해주세요.`;
-    }
-    if (day > 29 && lunarToSolar(year, month, 29, leap)) {
-      return `음력 ${year}년 ${month}월은 29일까지만 있습니다. 날짜를 다시 확인해주세요.`;
-    }
-    return '유효하지 않은 음력 날짜입니다. 날짜를 다시 확인해주세요.';
+    return { date: solar, lunarMonth: lunar.month, lunarDay: lunar.day, lunarLeap: lunar.intercalation };
   }
 
   // 일정 추가 (수동 등록만)
   async create(userId: number, dto: CreateEventDto) {
     const isLunar = dto.isLunar ?? false;
-    const lunarLeap = dto.lunarLeap ?? false;
-    const { date, lunarMonth, lunarDay } = this.resolveEventDate(dto.date, isLunar, lunarLeap);
+    const { date, lunarMonth, lunarDay, lunarLeap } = this.resolveEventDate(dto.date, isLunar);
     const created = await this.prisma.calendarEvent.create({
       data: {
         user_id: userId,
@@ -448,7 +438,7 @@ export class CalendarService {
         is_lunar: isLunar,
         lunar_month: lunarMonth,
         lunar_day: lunarDay,
-        lunar_leap: isLunar ? lunarLeap : false,
+        lunar_leap: lunarLeap,
         recur_freq: dto.recurFreq ?? 'none',
         recur_until: dto.recurUntil ? new Date(dto.recurUntil) : null,
       },
@@ -469,11 +459,10 @@ export class CalendarService {
   async update(userId: number, id: number, dto: UpdateEventDto) {
     const existing = await this.findOwned(userId, id);
     const isLunar = dto.isLunar ?? existing.is_lunar;
-    const lunarLeap = dto.lunarLeap ?? existing.lunar_leap;
-    // 날짜/음력여부/윤달여부 중 하나라도 바뀌면 양력 날짜를 다시 계산
-    const dateChanged = dto.date !== undefined || dto.isLunar !== undefined || dto.lunarLeap !== undefined;
+    // 날짜/음력여부 중 하나라도 바뀌면 음력 월/일/윤달여부를 다시 계산
+    const dateChanged = dto.date !== undefined || dto.isLunar !== undefined;
     const resolved = dateChanged
-      ? this.resolveEventDate(dto.date ?? toDateStr(existing.date), isLunar, lunarLeap)
+      ? this.resolveEventDate(dto.date ?? toDateStr(existing.date), isLunar)
       : null;
     const updated = await this.prisma.calendarEvent.update({
       where: { id },
@@ -485,7 +474,7 @@ export class CalendarService {
         is_lunar: dto.isLunar,
         lunar_month: resolved ? resolved.lunarMonth : undefined,
         lunar_day: resolved ? resolved.lunarDay : undefined,
-        lunar_leap: dto.isLunar !== undefined || dto.lunarLeap !== undefined ? lunarLeap : undefined,
+        lunar_leap: resolved ? resolved.lunarLeap : undefined,
         recur_freq: dto.recurFreq,
         recur_until:
           dto.recurUntil !== undefined

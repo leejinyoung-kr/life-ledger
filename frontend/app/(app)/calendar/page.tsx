@@ -381,7 +381,6 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
   const [type, setType] = useState<EvType>('pay');
   const [memo, setMemo] = useState('');
   const [isLunar, setIsLunar] = useState(false);
-  const [lunarLeap, setLunarLeap] = useState(false);
   const [recurFreq, setRecurFreq] = useState<RecurFreq>('none');
   const [recurUntil, setRecurUntil] = useState('');
   const [saving, setSaving] = useState(false);
@@ -390,14 +389,14 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
   useEffect(() => {
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    reset(); setTitle(''); setType('pay'); setMemo(''); setIsLunar(false); setLunarLeap(false); setRecurFreq('none'); setRecurUntil('');
+    reset(); setTitle(''); setType('pay'); setMemo(''); setIsLunar(false); setRecurFreq('none'); setRecurUntil('');
     setDate(state.date ?? new Date().toISOString().slice(0, 10));
   }, [state.open, state.date, reset]);
 
-  // 음력 체크 시 반복 옵션을 매년으로 제한(음력 매주/매월 반복은 지원하지 않음)
+  // 음력 체크 시 반복 옵션을 매년으로 제한(음력 매주/매월 반복은 지원하지 않음) — 음력 체크의 주 목적이 매년 반복(생일 등)이므로 기본값도 매년으로
   function handleLunarToggle(checked: boolean) {
     setIsLunar(checked);
-    if (checked && recurFreq !== 'none' && recurFreq !== 'yearly') setRecurFreq('yearly');
+    if (checked) setRecurFreq('yearly');
   }
 
   function validate() {
@@ -415,7 +414,6 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
       await api.post('/calendar', {
         title: title.trim(), date, type, memo: memo || undefined,
         isLunar: isLunar || undefined,
-        lunarLeap: isLunar && lunarLeap ? true : undefined,
         recurFreq: recurFreq !== 'none' ? recurFreq : undefined,
         recurUntil: recurFreq !== 'none' && recurUntil ? recurUntil : undefined,
       });
@@ -443,20 +441,14 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
           </select>
         </Field>
       </div>
-      <div className="flex items-center gap-4 -mt-1 max-md:flex-col max-md:items-start max-md:gap-1.5">
+      <div className="-mt-1">
         <label className="flex items-center gap-1.5 text-[0.84rem] text-secondary cursor-pointer">
           <input type="checkbox" checked={isLunar} onChange={(e) => handleLunarToggle(e.target.checked)} />
-          🌙 음력 날짜
+          🌙 음력 날짜로 반복
         </label>
-        {isLunar && (
-          <label className="flex items-center gap-1.5 text-[0.84rem] text-secondary cursor-pointer">
-            <input type="checkbox" checked={lunarLeap} onChange={(e) => setLunarLeap(e.target.checked)} />
-            윤달
-          </label>
-        )}
       </div>
       {isLunar && (
-        <p className="text-[0.72rem] text-muted -mt-1">위 날짜의 월/일을 음력으로 입력합니다.</p>
+        <p className="text-[0.72rem] text-muted -mt-1">위 날짜(양력)에 해당하는 음력 날짜를 기준으로 매년 반복합니다.</p>
       )}
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="반복">
