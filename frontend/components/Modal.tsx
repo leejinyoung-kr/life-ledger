@@ -26,7 +26,9 @@ export default function Modal({ open, title, onClose, children, footer, header, 
   // onClose 는 부모에서 매 렌더마다 새로 생성되는 인라인 함수일 수 있어 ref 로 최신값만 참조
   // (deps 에 그대로 넣으면 입력창 타이핑마다 effect 가 재실행되어 포커스가 되돌아감)
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   // 포커스 가능한 요소 목록 조회 (disabled·숨김 제외)
   function focusables(dialog: HTMLDivElement | null) {
