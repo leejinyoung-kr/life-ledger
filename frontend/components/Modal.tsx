@@ -23,27 +23,43 @@ interface ModalProps {
 
 export default function Modal({ open, title, onClose, children, footer, header, className }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  // onClose 는 부모에서 매 렌더마다 새로 생성되는 인라인 함수일 수 있어 ref 로 최신값만 참조
+  // (deps 에 그대로 넣으면 입력창 타이핑마다 effect 가 재실행되어 포커스가 되돌아감)
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
-  // 열려 있을 때 Esc 로 닫기 + Tab 포커스 트랩(모달 밖으로 포커스 이탈 방지)
+  // 포커스 가능한 요소 목록 조회 (disabled·숨김 제외)
+  function focusables(dialog: HTMLDivElement | null) {
+    return Array.from(
+      dialog?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    ).filter((el) => el.offsetParent !== null);
+  }
+
+  // 열릴 때 1회만 첫 포커스 가능한 요소로 이동 + 닫힐 때 트리거 요소로 포커스 복귀
+  useEffect(() => {
+    if (!open) return;
+    const prevFocused = document.activeElement as HTMLElement | null;
+    focusables(dialogRef.current)[0]?.focus();
+
+    return () => {
+      prevFocused?.focus?.();
+    };
+  }, [open]);
+
+  // Esc 로 닫기 + Tab 포커스 트랩(모달 밖으로 포커스 이탈 방지)
   useEffect(() => {
     if (!open) return;
     const dialog = dialogRef.current;
 
-    // 포커스 가능한 요소 목록 조회 (disabled·숨김 제외)
-    const focusables = () =>
-      Array.from(
-        dialog?.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ) ?? [],
-      ).filter((el) => el.offsetParent !== null);
-
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
-      const items = focusables();
+      const items = focusables(dialog);
       if (items.length === 0) {
         e.preventDefault();
         return;
@@ -62,16 +78,8 @@ export default function Modal({ open, title, onClose, children, footer, header, 
     }
 
     document.addEventListener('keydown', onKey);
-    // 열릴 때 트리거 요소를 기억했다가 닫힐 때 포커스 복귀
-    const prevFocused = document.activeElement as HTMLElement | null;
-    // 첫 포커스 가능한 요소로 초기 포커스 이동
-    focusables()[0]?.focus();
-
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      prevFocused?.focus?.();
-    };
-  }, [open, onClose]);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
 
   return (
     // 오버레이 클릭으로 닫히지 않음 — 폼 입력 중 실수 방지
