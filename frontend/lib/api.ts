@@ -141,6 +141,56 @@ export async function apiUpload<T>(
   return res.json() as Promise<T>;
 }
 
+// 진행률 콜백이 필요한 업로드는 fetch가 진행률을 못 줘서 XMLHttpRequest로 구현.
+// 인증/401 재시도 로직은 apiUpload와 동일하게 유지.
+export function apiUploadProgress<T>(
+  path: string,
+  file: File,
+  onProgress: (percent: number) => void,
+  field = 'file',
+  retried = false,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const token = getToken();
+    const form = new FormData();
+    form.append(field, file);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}${path}`);
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+
+    xhr.onload = async () => {
+      if (xhr.status === 401) {
+        if (!retried && (await tryRefresh())) {
+          resolve(apiUploadProgress<T>(path, file, onProgress, field, true));
+          return;
+        }
+        toLogin();
+        reject(new Error('인증이 필요합니다.'));
+        return;
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress(100);
+        resolve(xhr.status === 204 ? (undefined as T) : (JSON.parse(xhr.responseText) as T));
+        return;
+      }
+      const message = (() => {
+        try {
+          return (JSON.parse(xhr.responseText) as { message?: string }).message;
+        } catch {
+          return undefined;
+        }
+      })();
+      reject(new Error(message ?? `요청 실패 (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new Error('네트워크 오류가 발생했습니다.'));
+    xhr.send(form);
+  });
+}
+
 // 인증을 붙여 바이너리(blob)를 받아 파일 다운로드를 트리거한다.
 export async function apiDownload(path: string, filename: string, retried = false): Promise<void> {
   const token = getToken();

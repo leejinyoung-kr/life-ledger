@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { notify } from '@/lib/toast';
-import { api, apiUpload } from '@/lib/api';
+import { api, apiUploadProgress } from '@/lib/api';
 import { useApiQuery, useInvalidate } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { clickable } from '@/lib/a11y';
@@ -85,6 +85,7 @@ export default function FilesPage() {
   const [folderName, setFolderName] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadQueue, setUploadQueue] = useState<{ name: string; percent: number }[]>([]);
   const [viewer, setViewer] = useState<FileItem | null>(null);
   const [search, setSearch] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,13 +118,18 @@ export default function FilesPage() {
   // 파일 업로드
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList);
     setUploading(true);
+    setUploadQueue(files.map((f) => ({ name: f.name, percent: 0 })));
     try {
       const uploadParams = new URLSearchParams();
       if (currentFolderId !== undefined) uploadParams.set('folderId', String(currentFolderId));
       const uploadQs = uploadParams.toString();
-      for (const f of Array.from(fileList)) {
-        await apiUpload(`/files/upload${uploadQs ? `?${uploadQs}` : ''}`, f);
+      for (let i = 0; i < files.length; i++) {
+        const idx = i;
+        await apiUploadProgress(`/files/upload${uploadQs ? `?${uploadQs}` : ''}`, files[idx], (percent) => {
+          setUploadQueue((q) => q.map((item, j) => (j === idx ? { ...item, percent } : item)));
+        });
       }
       notify.success('업로드 완료');
       reload();
@@ -131,6 +137,7 @@ export default function FilesPage() {
       notify.error('업로드에 실패했습니다.');
     } finally {
       setUploading(false);
+      setUploadQueue([]);
     }
   }
 
@@ -248,6 +255,23 @@ export default function FilesPage() {
           <div className="text-[0.78rem] text-muted mt-1">이미지 · 동영상 · 오디오 · 문서(PDF/Word/Excel/PPT/TXT) · 최대 50MB/파일</div>
         </div>
       </div>
+
+      {/* 업로드 진행률 */}
+      {uploadQueue.length > 0 && (
+        <div className="flex flex-col gap-2 mb-5">
+          {uploadQueue.map((item, i) => (
+            <div key={`${item.name}-${i}`}>
+              <div className="flex justify-between text-[0.78rem] text-secondary mb-1">
+                <span className="truncate">{item.name}</span>
+                <span className="text-muted shrink-0 ml-2">{item.percent}%</span>
+              </div>
+              <div className="h-1.5 bg-elevated rounded-[3px] overflow-hidden">
+                <div className="h-full rounded-[3px] bg-accent transition-[width]" style={{ width: `${item.percent}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 브레드크럼 */}
       <div className="flex items-center gap-1.5 text-[0.82rem] text-muted mb-4 flex-wrap">
