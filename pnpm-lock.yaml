@@ -36,8 +36,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@leejinyoun/core-storage':
-        specifier: ^0.1.0
-        version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
+        specifier: ^0.1.1
+        version: 0.1.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -1492,8 +1492,8 @@ packages:
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
-  '@leejinyoun/core-storage@0.1.0':
-    resolution: {integrity: sha512-+zuJ9I4++TF/qQTnPBlsIFzoqotIsR6TAA237/rfln5HTaIfVqHq9lPiYkRbrG7MpIv8H0nCywYtmMr8wuV8lQ==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-storage/0.1.0/858be406d8dc427dff70b302df723cff829fb1cb}
+  '@leejinyoun/core-storage@0.1.1':
+    resolution: {integrity: sha512-vw76M3c4klPOIAOpmhISU+p+kn3B1A5pFphbyXN/IAQ+lMjw+bYE54Sirm0zSIlA1QMA3dOV3QFCtjxWhIGZwA==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-storage/0.1.1/4ee1a8ccee0da70e12aa074ad2649aaa6956d8d3}
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
@@ -8338,7 +8338,7 @@ snapshots:
     dependencies:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
 
-  '@leejinyoun/core-storage@0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
+  '@leejinyoun/core-storage@0.1.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
     dependencies:
       '@aws-sdk/client-s3': 3.1063.0
       '@aws-sdk/s3-request-presigner': 3.1063.0
