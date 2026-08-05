@@ -39,6 +39,11 @@ export class CreateEnvVarDto {
   @MaxLength(50)
   group?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  location?: string;
+
   @IsString()
   @MinLength(1)
   @MaxLength(150)
@@ -62,6 +67,11 @@ export class UpdateEnvVarDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(150)
+  location?: string;
+
+  @IsOptional()
+  @IsString()
   @MinLength(1)
   @MaxLength(150)
   key?: string;
@@ -80,6 +90,11 @@ export class UpdateEnvVarDto {
 export class BulkEnvDto {
   @IsIn(ENV_KINDS)
   env: EnvKindDto;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  location?: string;
 
   @IsString()
   text: string;

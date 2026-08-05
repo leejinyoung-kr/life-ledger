@@ -248,9 +248,10 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /env-projects | 프로젝트 추가 |
 | PUT | /env-projects/:id | 프로젝트 수정 |
 | DELETE | /env-projects/:id | 프로젝트 삭제 (하위 변수 포함 soft delete) |
-| GET | /env-projects/:id/vars?env= | 환경별 변수 목록 (값 마스킹) |
+| GET | /env-projects/:id/vars?env=&location= | 환경별 변수 목록 (값 마스킹, location 지정 시 해당 위치만) |
+| GET | /env-projects/:id/locations | 프로젝트에서 이미 쓰인 위치 목록 (자동완성용) |
 | GET | /env-projects/:id/diff?base=&target= | 두 환경 비교 (누락·값 불일치) |
-| GET | /env-projects/:id/export?env= | 환경 변수 원문 내보내기 (.env 복사/다운로드용) |
+| GET | /env-projects/:id/export?env=&location= | 환경 변수 원문 내보내기 (.env 복사/다운로드용, location 지정 시 해당 위치만) |
 | POST | /env-projects/:id/vars | 변수 추가 (선택 환경마다 생성, 값 AES 암호화) |
 | POST | /env-projects/:id/bulk | .env 텍스트 일괄 파싱 저장 |
 | GET | /env-vars/:id/reveal | 변수 값 원문 복호화 (감사 로그 기록) |

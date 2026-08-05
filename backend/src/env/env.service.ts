@@ -112,40 +112,54 @@ export class EnvService {
       id: v.id,
       env: v.env,
       group: v.group,
+      location: v.location,
       key: v.key,
       valueMasked: '•'.repeat(Math.min(plain.length, 20)),
       memo: v.memo,
     };
   }
 
-  // 특정 프로젝트·환경의 변수 목록 (그룹·생성순)
-  async findVars(userId: number, projectId: number, env: EnvKindDto) {
+  // 특정 프로젝트·환경의 변수 목록 (location 지정 시 해당 위치만, 그룹·생성순)
+  async findVars(userId: number, projectId: number, env: EnvKindDto, location?: string) {
     await this.findOwnedProject(userId, projectId);
     const rows = await this.prisma.envVar.findMany({
-      where: { user_id: userId, project_id: projectId, env, deleted_at: null },
+      where: { user_id: userId, project_id: projectId, env, location: location || undefined, deleted_at: null },
       orderBy: { created_at: 'desc' },
     });
     return rows.map((r) => this.varDto(r));
   }
 
-  // 특정 프로젝트·환경 변수를 원문 포함으로 내보내기 (.env 복사/다운로드용)
+  // 프로젝트에서 이미 쓰인 위치 목록 (변수 추가 모달 자동완성용)
+  async findLocations(userId: number, projectId: number) {
+    await this.findOwnedProject(userId, projectId);
+    const rows = await this.prisma.envVar.findMany({
+      where: { user_id: userId, project_id: projectId, deleted_at: null, location: { not: null } },
+      distinct: ['location'],
+      select: { location: true },
+      orderBy: { location: 'asc' },
+    });
+    return rows.map((r) => r.location).filter((l): l is string => !!l);
+  }
+
+  // 특정 프로젝트·환경 변수를 원문 포함으로 내보내기 (.env 복사/다운로드용, location 지정 시 해당 위치만)
   // 전체 평문 덤프이므로 reveal 과 동일하게 감사 로그에 기록
-  async exportVars(userId: number, projectId: number, env: EnvKindDto, client?: ClientInfo) {
+  async exportVars(userId: number, projectId: number, env: EnvKindDto, client?: ClientInfo, location?: string) {
     const project = await this.findOwnedProject(userId, projectId);
     await this.accessLog.log(
       userId,
       'env_reveal',
-      { type: 'env', id: projectId, name: `export:${project.name}:${env}` },
+      { type: 'env', id: projectId, name: `export:${project.name}:${env}${location ? `:${location}` : ''}` },
       client,
     );
     const rows = await this.prisma.envVar.findMany({
-      where: { user_id: userId, project_id: projectId, env, deleted_at: null },
+      where: { user_id: userId, project_id: projectId, env, location: location || undefined, deleted_at: null },
       orderBy: { created_at: 'desc' },
     });
     return rows.map((r) => ({
       key: r.key,
       value: this.crypto.decrypt(r.value_enc),
       group: r.group,
+      location: r.location,
     }));
   }
 
@@ -175,6 +189,7 @@ export class EnvService {
         project_id: projectId,
         env,
         group: dto.group || null,
+        location: dto.location || null,
         key: dto.key.trim(),
         value_enc: valueEnc,
         memo: dto.memo || null,
@@ -192,6 +207,7 @@ export class EnvService {
       where: { id },
       data: {
         group: dto.group === undefined ? undefined : dto.group || null,
+        location: dto.location === undefined ? undefined : dto.location || null,
         key: dto.key?.trim(),
         value_enc: dto.value === undefined ? undefined : this.crypto.encrypt(dto.value),
         memo: dto.memo === undefined ? undefined : dto.memo || null,
@@ -323,6 +339,7 @@ export class EnvService {
       project_id: projectId,
       env: dto.env,
       group: null,
+      location: dto.location || null,
       key: p.key,
       value_enc: this.crypto.encrypt(p.value),
       memo: null,

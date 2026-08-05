@@ -18,6 +18,7 @@ export interface EnvVar {
   id: number;
   env: EnvKind;
   group: string | null;
+  location: string | null;
   key: string;
   valueMasked: string;
   memo: string | null;
@@ -27,6 +28,7 @@ export interface ExportVar {
   key: string;
   value: string;
   group: string | null;
+  location: string | null;
 }
 
 // 변수 값 변경 이력 1건 (값은 마스킹, 롤백으로만 반영)

@@ -22,7 +22,8 @@ export const qk = {
   env: {
     all: ['env'] as const,
     projects: () => ['env', 'projects'] as const,
-    vars: (projectId: number, env: string) => ['env', 'vars', projectId, env] as const,
+    vars: (projectId: number, env: string, location?: string) => ['env', 'vars', projectId, env, location ?? null] as const,
+    locations: (projectId: number) => ['env', 'locations', projectId] as const,
     history: (varId: number) => ['env', 'history', varId] as const,
     diff: (projectId: number, base: string, target: string) => ['env', 'diff', projectId, base, target] as const,
   },

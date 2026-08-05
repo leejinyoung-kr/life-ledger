@@ -107,7 +107,7 @@ doc-nexus/
 | IdentityCard | user_id, type, name, number_enc(암호문), file_id(사본), issue/expire_date | 구현 완료 |
 | Credential | user_id, name, category, username, password_enc, totp_enc, backup_codes_enc, password_changed_at | 구현 완료 |
 | EnvProject | user_id, name, description | 구현 완료 |
-| EnvVar | user_id, project_id, env, group, key, value_enc(암호문) | 구현 완료 |
+| EnvVar | user_id, project_id, env, group, location(env 파일 위치), key, value_enc(암호문) | 구현 완료 |
 | EnvVarHistory | env_var_id, user_id, value_enc(이전값 암호문) | 구현 완료 |
 | StorageFolder | user_id, parent_id(무한중첩), name | 구현 완료 |
 | StorageFile | user_id, folder_id, object_key(B2), name, size, mime_type, hash(SHA-256) | 구현 완료 |

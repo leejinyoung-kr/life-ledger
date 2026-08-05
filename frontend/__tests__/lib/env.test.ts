@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { groupVars, toEnvText, type EnvVar } from '../../lib/env';
 
 const v = (id: number, key: string, group: string | null): EnvVar => ({
-  id, env: 'dev', group, key, valueMasked: '••', memo: null,
+  id, env: 'dev', group, location: null, key, valueMasked: '••', memo: null,
 });
 
 describe('groupVars', () => {
@@ -21,9 +21,9 @@ describe('groupVars', () => {
 describe('toEnvText', () => {
   it('그룹 주석 포함 .env 직렬화', () => {
     const text = toEnvText('proj', 'dev', [
-      { key: 'A', value: '1', group: 'DB' },
-      { key: 'B', value: '2', group: 'DB' },
-      { key: 'C', value: '3', group: null },
+      { key: 'A', value: '1', group: 'DB', location: null },
+      { key: 'B', value: '2', group: 'DB', location: null },
+      { key: 'C', value: '3', group: null, location: null },
     ]);
     expect(text).toBe('# proj - dev\n\n# DB\nA=1\nB=2\nC=3\n');
   });

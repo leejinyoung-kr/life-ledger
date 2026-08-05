@@ -761,6 +761,7 @@ model EnvVar {
   project_id Int /// env_project.id FK
   env        EnvKind
   group      String?   @db.VarChar(50)
+  location   String?   @db.VarChar(150) /// env 파일 위치 (예: backend/.env, frontend/.env.local)
   key        String    @db.VarChar(150)
   value_enc  String    @db.Text /// 값(암호문)
   memo       String?   @db.VarChar(300)

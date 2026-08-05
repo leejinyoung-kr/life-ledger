@@ -62,14 +62,21 @@ export class EnvController {
     return this.service.removeProject(user.id, id);
   }
 
-  // 프로젝트·환경별 변수 목록
+  // 프로젝트·환경별 변수 목록 (location 지정 시 해당 위치만)
   @Get('env-projects/:id/vars')
   findVars(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) id: number,
     @Query('env') env: EnvKindDto,
+    @Query('location') location?: string,
   ) {
-    return this.service.findVars(user.id, id, env);
+    return this.service.findVars(user.id, id, env, location);
+  }
+
+  // 프로젝트에서 이미 쓰인 위치 목록 (변수 추가 모달 자동완성용)
+  @Get('env-projects/:id/locations')
+  findLocations(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.service.findLocations(user.id, id);
   }
 
   // 두 환경 변수 비교(diff). 평문 값을 양쪽 모두 반환하므로 reveal 과 동일하게 마스터 잠금·rate-limit 적용
@@ -95,8 +102,9 @@ export class EnvController {
     @Param('id', ParseIntPipe) id: number,
     @Query('env') env: EnvKindDto,
     @Client() client: ClientInfo,
+    @Query('location') location?: string,
   ) {
-    return this.service.exportVars(user.id, id, env, client);
+    return this.service.exportVars(user.id, id, env, client, location);
   }
 
   // 변수 추가 (선택 환경마다 생성)

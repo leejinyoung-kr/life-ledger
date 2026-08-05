@@ -34,6 +34,8 @@ export default function EnvsPage() {
   const [env, setEnv] = useState<EnvKind>('dev');
   const [revealed, setRevealed] = useState<Record<number, string>>({});
   const [paste, setPaste] = useState('');
+  const [pasteLocation, setPasteLocation] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
   const [projectModal, setProjectModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing: EnvProject | null }>({ open: false, mode: 'add', editing: null });
   const [varModal, setVarModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing: EnvVar | null }>({ open: false, mode: 'add', editing: null });
   const [varSearch, setVarSearch] = useState('');
@@ -55,17 +57,25 @@ export default function EnvsPage() {
     setSelectedId((prev) => (prev && projects.some((p) => p.id === prev) ? prev : projects[0].id));
   }, [projects]);
 
-  // 선택 프로젝트·환경의 변수 (selectedId 있을 때만 조회)
+  // 선택 프로젝트·환경의 변수 (selectedId 있을 때만 조회, 위치 필터 적용 시 해당 위치만)
   const varsQuery = useApiQuery<EnvVar[]>(
-    qk.env.vars(selectedId ?? 0, env),
-    `/env-projects/${selectedId}/vars?env=${env}`,
+    qk.env.vars(selectedId ?? 0, env, locationFilter),
+    `/env-projects/${selectedId}/vars?env=${env}${locationFilter ? `&location=${encodeURIComponent(locationFilter)}` : ''}`,
     { enabled: !!selectedId },
   );
   const vars = useMemo(() => varsQuery.data ?? [], [varsQuery.data]);
 
-  // 프로젝트/환경 전환 시 표시값·검색 초기화
+  // 선택 프로젝트에서 이미 쓰인 위치 목록 (필터·자동완성용)
+  const locationsQuery = useApiQuery<string[]>(
+    qk.env.locations(selectedId ?? 0),
+    `/env-projects/${selectedId}/locations`,
+    { enabled: !!selectedId },
+  );
+  const locations = useMemo(() => locationsQuery.data ?? [], [locationsQuery.data]);
+
+  // 프로젝트/환경 전환 시 표시값·검색·위치필터 초기화
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { setRevealed({}); setVarSearch(''); }, [selectedId, env]);
+  useEffect(() => { setRevealed({}); setVarSearch(''); setLocationFilter(''); }, [selectedId, env]);
 
   const error = (projectsQuery.error ?? varsQuery.error)?.message ?? null;
   const project = projects.find((p) => p.id === selectedId) ?? null;
@@ -102,11 +112,11 @@ export default function EnvsPage() {
     }
   }
 
-  // 현재 환경 변수를 원문 포함으로 받아 .env 텍스트 생성
+  // 현재 환경(+위치 필터) 변수를 원문 포함으로 받아 .env 텍스트 생성
   async function fetchEnvText(): Promise<string | null> {
     if (!project) return null;
     try {
-      const exported = await api.get<ExportVar[]>(`/env-projects/${project.id}/export?env=${env}`);
+      const exported = await api.get<ExportVar[]>(`/env-projects/${project.id}/export?env=${env}${locationFilter ? `&location=${encodeURIComponent(locationFilter)}` : ''}`);
       return toEnvText(project.name, env, exported);
     } catch {
       notify.error('내보내기에 실패했습니다.');
@@ -126,20 +136,21 @@ export default function EnvsPage() {
     const blob = new Blob([text], { type: 'text/plain' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `.${env}`;
+    a.download = locationFilter ? locationFilter.split('/').pop() || `.${env}` : `.${env}`;
     a.click();
     URL.revokeObjectURL(a.href);
     notify.success('.env 파일을 다운로드했습니다.');
   }
 
-  // 붙여넣은 .env 텍스트를 일괄 저장 (백엔드 파싱)
+  // 붙여넣은 .env 텍스트를 일괄 저장 (백엔드 파싱, 지정한 위치로 태깅)
   async function handleParsePaste() {
     if (!project || !paste.trim()) return;
     try {
-      const { count } = await api.post<{ count: number }>(`/env-projects/${project.id}/bulk`, { env, text: paste });
+      const { count } = await api.post<{ count: number }>(`/env-projects/${project.id}/bulk`, { env, location: pasteLocation || undefined, text: paste });
       if (count === 0) { notify.error('저장할 KEY=VALUE 행이 없습니다.'); return; }
       notify.success(`변수 ${count}개를 저장했습니다.`);
       setPaste('');
+      setPasteLocation('');
       invalidate(qk.env.all);
     } catch {
       notify.saveFailed();
@@ -185,7 +196,10 @@ export default function EnvsPage() {
       await api.del(`/env-projects/${p.id}`);
       notify.deleted('프로젝트');
       setSelectedId(null);
-      invalidate(qk.env.all);
+      // 삭제된 프로젝트의 vars 쿼리를 함께 무효화(qk.env.all)하면 선택 해제 리렌더 전에
+      // 아직 활성 상태인 이전 vars 쿼리가 삭제된 id로 refetch되어 404 에러가 표시되므로
+      // 프로젝트 목록만 무효화한다.
+      invalidate(qk.env.projects());
     } catch {
       notify.deleteFailed();
     }
@@ -232,6 +246,11 @@ export default function EnvsPage() {
       </div>
 
       <ErrorBanner message={error} className="mb-4" />
+
+      {/* 파일 위치 자동완성 (변수 모달·붙여넣기 위치 입력 공용) */}
+      <datalist id="env-locations">
+        {locations.map((l) => <option key={l} value={l} />)}
+      </datalist>
 
       <div className="grid grid-cols-[280px_1fr] gap-5 items-start max-md:grid-cols-1">
         {/* 프로젝트 목록 */}
@@ -296,12 +315,16 @@ export default function EnvsPage() {
                 <div className="hidden max-md:block absolute top-0 right-0 bottom-0 w-6 bg-linear-to-l from-surface to-transparent pointer-events-none" />
               </div>
 
-              {/* 변수 검색 */}
-              <div className="px-4 py-2.5 border-b border-border bg-surface">
-                <div className="relative max-w-72">
+              {/* 변수 검색 + 위치 필터 */}
+              <div className="px-4 py-2.5 border-b border-border bg-surface flex items-center gap-2.5 flex-wrap">
+                <div className="relative max-w-72 flex-1 min-w-40">
                   <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
                   <input className="input pl-icon" type="text" placeholder="KEY 검색..." value={varSearch} onChange={(e) => setVarSearch(e.target.value)} aria-label="변수 검색" />
                 </div>
+                <select className="input w-auto max-w-52" aria-label="위치 필터" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
+                  <option value="">모든 위치</option>
+                  {locations.map((l) => <option key={l} value={l}>{l}</option>)}
+                </select>
               </div>
 
               {/* env-table: 그룹행 구조라 공통 globals 유지 — 모바일은 가로 스크롤로 레이아웃 깨짐 방지 */}
@@ -354,6 +377,18 @@ export default function EnvsPage() {
             <div className="border-2 border-dashed border-border rounded-[var(--radius-lg)] p-5 flex flex-col gap-3">
               <div className="text-[0.82rem] font-semibold text-secondary flex items-center gap-1.5">
                 <IconCode width={14} height={14} />.env 파일 내용 붙여넣기 ({env} 환경에 일괄 저장)
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[0.78rem] text-muted shrink-0">파일 위치</span>
+                <input
+                  className="input w-auto max-w-64"
+                  list="env-locations"
+                  type="text"
+                  placeholder="예: backend/.env (선택)"
+                  value={pasteLocation}
+                  onChange={(e) => setPasteLocation(e.target.value)}
+                  aria-label="붙여넣기 대상 위치"
+                />
               </div>
               <textarea
                 className="w-full min-h-[120px] bg-surface border border-border rounded-[var(--radius)] px-3.5 py-3 [font-family:var(--font-mono)] text-[0.82rem] text-primary resize-y outline-none leading-[1.7] transition-[border-color,box-shadow] focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-dim)] placeholder:text-muted"
@@ -440,7 +475,10 @@ function EnvGroupRows({
         return (
           <tr key={item.id}>
             <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(item.id)} onChange={() => onSelect(item.id)} aria-label="선택" /></td>
-            <td><span className="env-key">{item.key}</span></td>
+            <td>
+              <span className="env-key">{item.key}</span>
+              {item.location && <span className="ml-1.5 text-[0.68rem] text-muted [font-family:var(--font-mono)]">{item.location}</span>}
+            </td>
             <td>
               <div className="env-value-wrap">
                 <span className={`env-value${shown ? '' : ' masked'}`}>{display}</span>
@@ -520,6 +558,7 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
   const isEdit = state.mode === 'edit';
   const editing = state.editing;
   const [group, setGroup] = useState('');
+  const [location, setLocation] = useState('');
   const [key, setKey] = useState('');
   const [value, setValue] = useState('');
   const [memo, setMemo] = useState('');
@@ -532,6 +571,7 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
     reset();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setGroup(editing?.group ?? '');
+    setLocation(editing?.location ?? '');
     setKey(editing?.key ?? '');
     setValue('');
     setMemo(editing?.memo ?? '');
@@ -555,13 +595,14 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
       if (isEdit && editing) {
         await api.put(`/env-vars/${editing.id}`, {
           group: group || '',
+          location: location || '',
           key: key.trim(),
           ...(value.trim() ? { value } : {}),
           memo: memo || '',
         });
       } else {
         await api.post(`/env-projects/${projectId}/vars`, {
-          envs, group: group || undefined, key: key.trim(), value, memo: memo || undefined,
+          envs, group: group || undefined, location: location || undefined, key: key.trim(), value, memo: memo || undefined,
         });
       }
       notify.upserted(isEdit ? 'edit' : 'add', '변수');
@@ -580,6 +621,9 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
           <option value="">없음</option>
           {ENV_GROUPS.map((g) => <option key={g}>{g}</option>)}
         </select>
+      </Field>
+      <Field label="파일 위치 (선택)">
+        <input type="text" className="input" list="env-locations" placeholder="예: backend/.env" value={location} onChange={(e) => setLocation(e.target.value)} />
       </Field>
       <Field label="KEY" required error={errors.key}>
         <input type="text" className={`input input-mono${errors.key ? ' is-invalid' : ''}`} placeholder="예: DATABASE_URL" value={key} onChange={(e) => { setKey(e.target.value); clearError('key'); }} />
