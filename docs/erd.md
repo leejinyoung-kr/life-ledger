@@ -94,7 +94,7 @@ LoginSession   1 ─── N RefreshToken(session_id)
 - `IdentityCard` — `type`(passport/idcard/license/cert/etc), `number_enc`, `file_id`(StorageFile FK, 사본 이미지), `issue/expire_date`
 - `Credential` — `category`, `username`, `password_enc`, `totp_enc?`, `backup_codes_enc?`(JSON 배열 암호문), `password_changed_at`(90일 회전 알림용)
 - `EnvProject` — `name`, `description`
-- `EnvVar` — `env`(dev/staging/prod), `group`, `location`(env 파일 위치, 예: backend/.env), `key`, `value_enc`
+- `EnvVar` — `env`(dev/prod), `group`, `location`(env 파일 위치, 예: backend/.env), `key`, `value_enc`
 - `EnvVarHistory` — `value_enc` 변경 시 이전값 1건 적재(변수당 20건 유지) → diff/롤백
 
 ### 파일 보관함 — StorageFolder / StorageFile

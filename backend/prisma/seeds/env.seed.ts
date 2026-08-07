@@ -1,5 +1,5 @@
 /**
- * ENV 보관함 더미 — 여러 프로젝트 + dev/staging/prod 변수(AES) + 값 변경 이력(롤백 데모).
+ * ENV 보관함 더미 — 여러 프로젝트 + dev/prod 변수(AES) + 값 변경 이력(롤백 데모).
  * CREDENTIAL_SECRET 미설정 시 건너뜀(암호화 불가).
  */
 import type { EnvKind } from '@prisma/client';
@@ -24,9 +24,6 @@ const PROJECTS: ProjectSeed[] = [
       { env: 'dev', group: 'auth', key: 'JWT_SECRET', value: 'dev-jwt-secret-0001' },
       { env: 'dev', group: 'auth', key: 'CREDENTIAL_SECRET', value: 'dev-credential-secret-aaaa' },
       { env: 'dev', group: 'api', key: 'OPENAI_API_KEY', value: 'sk-proj-dev-xxxx' },
-      { env: 'staging', group: 'database', key: 'DATABASE_URL', value: 'mysql://app:stg@stg-db:3306/docnexus' },
-      { env: 'staging', group: 'auth', key: 'JWT_SECRET', value: 'stg-jwt-secret-7777' },
-      { env: 'staging', group: 'storage', key: 'B2_BUCKET_NAME', value: 'docnexus-stg' },
       { env: 'prod', group: 'database', key: 'DATABASE_URL', value: 'mysql://app:prod@prod-db:3306/docnexus' },
       { env: 'prod', group: 'auth', key: 'JWT_SECRET', value: 'prod-jwt-secret-9999' },
       { env: 'prod', group: 'auth', key: 'CREDENTIAL_SECRET', value: 'prod-credential-secret-zzzz' },

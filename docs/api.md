@@ -261,7 +261,7 @@ Base URL: `http://localhost:8000/api/v1`
 | DELETE | /env-vars/bulk | 선택 일괄 삭제 |
 | DELETE | /env-vars/:id | 변수 삭제 (soft delete) |
 
-> `env`: dev / staging / prod
+> `env`: dev / prod
 
 ## 데이터 내보내기
 

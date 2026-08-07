@@ -3,7 +3,7 @@
  * 백엔드 응답 DTO(/env-projects, /env-vars)와 1:1 대응한다. 값 원문은 reveal/export API 로만 받는다.
  */
 
-export type EnvKind = 'dev' | 'staging' | 'prod';
+export type EnvKind = 'dev' | 'prod';
 
 export interface EnvProject {
   id: number;
@@ -49,13 +49,12 @@ export interface EnvDiff {
 
 export const ENV_TABS: { key: EnvKind; label: string }[] = [
   { key: 'dev', label: 'development' },
-  { key: 'staging', label: 'staging' },
   { key: 'prod', label: 'production' },
 ];
 
 // 환경 탭 점 색
 export const ENV_DOT: Record<EnvKind, string> = {
-  dev: 'bg-accent', staging: 'bg-warning', prod: 'bg-danger',
+  dev: 'bg-accent', prod: 'bg-danger',
 };
 
 export const ENV_GROUPS = ['Database', 'Auth', 'Storage', 'API Keys', 'App'];

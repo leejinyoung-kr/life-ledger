@@ -30,7 +30,7 @@ export class EnvService {
       name: p.name,
       description: p.description,
       counts,
-      totalVars: counts.dev + counts.staging + counts.prod,
+      totalVars: counts.dev + counts.prod,
       updatedAt: p.updated_at.toISOString(),
     };
   }
@@ -47,7 +47,7 @@ export class EnvService {
       _count: { _all: true },
     });
     return projects.map((p) => {
-      const counts: Record<EnvKind, number> = { dev: 0, staging: 0, prod: 0 };
+      const counts: Record<EnvKind, number> = { dev: 0, prod: 0 };
       for (const g of grouped) {
         if (g.project_id === p.id) counts[g.env] = g._count._all;
       }
@@ -73,7 +73,7 @@ export class EnvService {
         description: dto.description || null,
       },
     });
-    return this.projectDto(created, { dev: 0, staging: 0, prod: 0 });
+    return this.projectDto(created, { dev: 0, prod: 0 });
   }
 
   // 프로젝트 수정

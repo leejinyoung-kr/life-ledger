@@ -684,10 +684,9 @@ model Credential {
   @@map("credential")
 }
 
-/// ENV 환경 종류: dev(development) | staging | prod(production)
+/// ENV 환경 종류: dev(development) | prod(production)
 enum EnvKind {
   dev
-  staging
   prod
 
   @@map("env_kind")

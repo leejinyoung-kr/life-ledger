@@ -2,7 +2,7 @@
 
 /**
  * ENV 보관함 페이지.
- * 프로젝트별 환경변수를 dev/staging/prod 환경 탭으로 나눠 암호화 관리한다.
+ * 프로젝트별 환경변수를 dev/prod 환경 탭으로 나눠 암호화 관리한다.
  * 값 마스킹·복사·.env 다운로드·붙여넣기 파싱을 지원하며, 데이터는 백엔드(/env-projects, /env-vars)와 연동한다.
  * 값 원문은 reveal/export API 로만 받는다. 스타일: Tailwind. env-table 은 공통 globals 유지.
  */

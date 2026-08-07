@@ -9,7 +9,7 @@ import {
   MinLength,
 } from 'class-validator';
 
-export const ENV_KINDS = ['dev', 'staging', 'prod'] as const;
+export const ENV_KINDS = ['dev', 'prod'] as const;
 export type EnvKindDto = (typeof ENV_KINDS)[number];
 
 // ENV 프로젝트 생성 — 이름 필수, 설명 선택
