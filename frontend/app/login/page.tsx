@@ -74,6 +74,16 @@ export default async function LoginPage({
           Google 계정으로 계속하기
         </a>
 
+        {/* 로컬 개발 전용 원클릭 로그인 — production 빌드에서는 렌더하지 않음(백엔드도 별도로 차단) */}
+        {process.env.NODE_ENV !== 'production' && (
+          <a
+            href={`${backendUrl}/api/v1/auth/dev-login`}
+            className="w-full flex items-center justify-center gap-2.5 p-3 bg-background border border-dashed border-border rounded-[var(--radius)] text-secondary text-[0.8rem] font-medium cursor-pointer transition-all no-underline mb-3.5 hover:border-accent hover:text-primary"
+          >
+            🛠️ 로컬 개발 로그인 (dev-login)
+          </a>
+        )}
+
         {/* 구분선 */}
         <div className="flex items-center gap-3 my-3.5 text-[0.7rem] text-muted">
           <span className="flex-1 h-px bg-border" />

@@ -16,6 +16,7 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /auth/email/verify | 이메일 인증코드 검증 → JWT 발급 (`@Public`) |
 | POST | /auth/refresh | refresh 쿠키로 새 access 발급 (`@Public`) |
 | POST | /auth/logout | refresh 쿠키 제거 (`@Public`) |
+| GET | /auth/dev-login | 로컬 개발용 원클릭 로그인, 고정 유저(`dev@local`)로 즉시 JWT 발급 (`@Public`, `NODE_ENV=production`에서는 404) |
 
 > 토큰: **Access(15분)** 는 `?token=` 으로 전달 → localStorage → `Authorization: Bearer`.
 > **Refresh(7일)** 는 httpOnly 쿠키(`refresh_token`)로만 저장. access 만료(401) 시 프론트가 `/auth/refresh` 1회 호출해 갱신·재요청.

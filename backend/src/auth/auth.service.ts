@@ -108,6 +108,17 @@ export class AuthService {
     return SESSION_EXPIRY_MAP[settings?.session_expiry ?? ''] ?? DEFAULT_SESSION_EXPIRY;
   }
 
+  // 로컬 개발용 자동 로그인 — 고정 유저를 upsert 후 토큰 발급. NODE_ENV 가드는 컨트롤러에서 처리
+  async devLogin(client?: LoginClient): Promise<{ access: string; refresh: string; refreshTtlMs: number }> {
+    const email = 'dev@local';
+    const user = await this.prisma.user.upsert({
+      where: { email },
+      update: {},
+      create: { email, name: 'Dev User' },
+    });
+    return this.issueTokens(user, client);
+  }
+
   // Google 로그인 시 user upsert 후 access/refresh 토큰 발급. 클라이언트 정보가 있으면 세션 기록·신규 기기 감지
   async login(googleUser: GoogleUser, client?: LoginClient): Promise<{ access: string; refresh: string; refreshTtlMs: number }> {
     const user = await this.prisma.user.upsert({

@@ -108,6 +108,23 @@ export class AuthController {
     res.redirect(`${frontendUrl}/auth/callback?token=${access}`);
   }
 
+  // 로컬 개발용 원클릭 로그인 — 고정 유저로 즉시 세션 발급. production에서는 완전히 비활성화(fail-closed)
+  @Public()
+  @Get('dev-login')
+  async devLogin(@Req() req: Request, @Res() res: Response) {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(404).send('Not Found');
+    }
+    const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
+    const { access, refresh, refreshTtlMs } = await this.authService.devLogin({
+      ip: clientIp(req),
+      userAgent: req.headers['user-agent'],
+    });
+    res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions(refreshTtlMs));
+    res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions(refreshTtlMs));
+    res.redirect(`${frontendUrl}/auth/callback?token=${access}`);
+  }
+
   // 이메일 코드 발송 — 구글 로그인 불가 환경용 대체 인증. 분당 5회 제한(스팸/열거 차단)
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
