@@ -11,6 +11,18 @@ import { ExchangeDirection, ExchangeInvestmentAccountDto } from './dto/exchange-
 
 type HoldingsAgg = { count: number; principal: number; currentValue: number };
 
+// Date → 'YYYY-MM-DD'
+function toDateStr(d: Date | null): string | null {
+  return d ? d.toISOString().slice(0, 10) : null;
+}
+
+// 만기일 자동 계산 — 가입일 + 3년(ISA 기본 가입 기간)
+function defaultMaturity(startDate: string): Date {
+  const d = new Date(startDate);
+  d.setUTCFullYear(d.getUTCFullYear() + 3);
+  return d;
+}
+
 @Injectable()
 export class InvestmentAccountService {
   constructor(
@@ -37,6 +49,8 @@ export class InvestmentAccountService {
       cashBalance: a.cash_balance.toNumber(),
       cashBalanceUsd: a.cash_balance_usd.toNumber(),
       accountNumber: this.maskAccountNumber(a.account_number_enc),
+      startDate: toDateStr(a.start_date),
+      maturityDate: toDateStr(a.maturity_date),
       memo: a.memo,
       holdingsCount: agg?.count ?? 0,
       totalPrincipal: agg?.principal ?? 0,
@@ -92,7 +106,7 @@ export class InvestmentAccountService {
     };
   }
 
-  // 계좌 추가 — 계좌번호는 AES-256-GCM 암호화 후 저장(동일 계좌명 다중 보유 구분용)
+  // 계좌 추가 — 계좌번호는 AES-256-GCM 암호화 후 저장(동일 계좌명 다중 보유 구분용). 만기일 미입력 시 가입일+3년(ISA 기본 가입 기간)으로 자동 계산
   async create(userId: number, dto: CreateInvestmentAccountDto) {
     const created = await this.prisma.investmentAccount.create({
       data: {
@@ -101,6 +115,12 @@ export class InvestmentAccountService {
         cash_balance: new Prisma.Decimal(dto.cashBalance ?? 0),
         cash_balance_usd: new Prisma.Decimal(dto.cashBalanceUsd ?? 0),
         account_number_enc: this.crypto.encrypt(dto.accountNumber),
+        start_date: dto.startDate ? new Date(dto.startDate) : null,
+        maturity_date: dto.maturityDate
+          ? new Date(dto.maturityDate)
+          : dto.startDate
+            ? defaultMaturity(dto.startDate)
+            : null,
         memo: dto.memo,
       },
     });
@@ -126,6 +146,8 @@ export class InvestmentAccountService {
         cash_balance: dto.cashBalance !== undefined ? new Prisma.Decimal(dto.cashBalance) : undefined,
         cash_balance_usd: dto.cashBalanceUsd !== undefined ? new Prisma.Decimal(dto.cashBalanceUsd) : undefined,
         account_number_enc: dto.accountNumber !== undefined ? this.crypto.encryptNullable(dto.accountNumber) : undefined,
+        start_date: dto.startDate ? new Date(dto.startDate) : undefined,
+        maturity_date: dto.maturityDate ? new Date(dto.maturityDate) : undefined,
         memo: dto.memo,
       },
     });

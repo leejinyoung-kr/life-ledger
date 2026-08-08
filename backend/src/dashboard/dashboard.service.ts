@@ -105,18 +105,20 @@ export class DashboardService {
     until.setUTCDate(until.getUTCDate() + withinDays);
     const range = { gte: today, lte: until };
 
-    const [ids, savings, subs] = await Promise.all([
+    const [ids, savings, isaAccounts, subs] = await Promise.all([
       this.prisma.identityCard.findMany({ where: { user_id: userId, deleted_at: null, expire_date: range }, select: { name: true, expire_date: true } }),
       this.prisma.saving.findMany({ where: { user_id: userId, deleted_at: null, maturity_date: range }, select: { name: true, maturity_date: true } }),
+      this.prisma.investmentAccount.findMany({ where: { user_id: userId, deleted_at: null, maturity_date: range }, select: { name: true, maturity_date: true } }),
       this.prisma.subscription.findMany({ where: { user_id: userId, deleted_at: null, next_payment_date: range }, select: { name: true, next_payment_date: true, status: true } }),
     ]);
 
     const DAY = 86400000;
     const dday = (d: Date) => Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - today.getTime()) / DAY);
-    type Item = { kind: 'identity' | 'saving' | 'subscription'; title: string; date: string; dday: number };
+    type Item = { kind: 'identity' | 'saving' | 'investment' | 'subscription'; title: string; date: string; dday: number };
     const items: Item[] = [
       ...ids.map((i) => ({ kind: 'identity' as const, title: `${i.name} 만료`, date: i.expire_date!.toISOString().slice(0, 10), dday: dday(i.expire_date!) })),
       ...savings.map((s) => ({ kind: 'saving' as const, title: `${s.name} 만기`, date: s.maturity_date!.toISOString().slice(0, 10), dday: dday(s.maturity_date!) })),
+      ...isaAccounts.map((a) => ({ kind: 'investment' as const, title: `${a.name} 만기`, date: a.maturity_date!.toISOString().slice(0, 10), dday: dday(a.maturity_date!) })),
       ...subs.map((s) => ({ kind: 'subscription' as const, title: `${s.name} ${s.status === 'trial' ? '체험 종료' : '결제'}`, date: s.next_payment_date.toISOString().slice(0, 10), dday: dday(s.next_payment_date) })),
     ];
     return items.sort((a, b) => a.dday - b.dday);

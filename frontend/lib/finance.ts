@@ -154,6 +154,8 @@ export interface InvestmentAccount {
   cashBalance: number;
   cashBalanceUsd: number; // 달러 예수금 — 환전(원화↔달러)으로만 증감
   accountNumber: string | null; // 마스킹된 형태로만 응답(예: 110••••7890)
+  startDate: string | null; // 가입일 — ISA 등 만기 기산일
+  maturityDate: string | null; // 만기일(예: ISA 3년) — 미입력 시 만기 알림 대상 아님
   memo: string | null;
   holdingsCount: number;
   totalPrincipal: number;

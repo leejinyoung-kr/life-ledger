@@ -66,6 +66,17 @@ export class NotificationCronService {
         });
       }
 
+      // 2-1) ISA 등 투자 계좌 만기 D-30
+      const isaAccounts = await this.prisma.investmentAccount.findMany({
+        where: { user_id: userId, deleted_at: null, maturity_date: { gte: today, lte: addDays(today, 30) } },
+      });
+      for (const a of isaAccounts) {
+        n += await this.emit(userId, {
+          group: 'ledger', tone: 'warning',
+          title: `${a.name} 만기 임박`, description: '투자 계좌 만기가 30일 이내입니다.', source: '투자',
+        });
+      }
+
       // 3) 구독 결제 D-3 / 무료체험 종료 D-3
       const subs = await this.prisma.subscription.findMany({
         where: { user_id: userId, deleted_at: null, next_payment_date: { gte: today, lte: addDays(today, 3) } },

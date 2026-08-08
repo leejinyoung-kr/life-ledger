@@ -17,7 +17,7 @@ import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { qk } from '@/lib/queryKeys';
 import {
-  INVEST_TYPE_LABEL, won, usd, recurringRuleSummary, WEEKDAY_LABEL,
+  INVEST_TYPE_LABEL, won, usd, dotDate, daysUntil, recurringRuleSummary, WEEKDAY_LABEL,
   type Category, type Investment, type InvestmentAccount, type InvestmentSummary, type InvestmentType,
   type RecurringCycle, type WeekendAdjust, type RecurringSchedule,
 } from '@/lib/finance';
@@ -214,7 +214,11 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
         {accounts.length === 0 && <div className="text-[0.78rem] text-muted">투자 계좌가 없습니다. 계좌를 먼저 추가하세요.</div>}
-        {accounts.map((a) => (
+        {accounts.map((a) => {
+          const dleft = daysUntil(a.maturityDate);
+          const near = dleft !== null && dleft >= 0 && dleft <= 30;
+          const matured = dleft !== null && dleft < 0;
+          return (
           <div key={a.id} className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background">
             <div className="flex justify-between items-baseline gap-2">
               <span className="font-semibold text-[0.95rem]">{a.name}</span>
@@ -225,6 +229,11 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
               <div className="text-[0.72rem] text-muted mt-0.5">달러 예수금 · ${a.cashBalanceUsd.toLocaleString('en-US')}</div>
             )}
             {a.accountNumber && <div className="text-[0.72rem] text-muted mt-0.5 font-mono">{a.accountNumber}</div>}
+            {a.maturityDate && (
+              <div className={`text-[0.72rem] mt-0.5 ${near || matured ? 'savings-meta-value warning' : 'text-muted'}`}>
+                만기 {dotDate(a.maturityDate)}{near && ` ⚠️ D-${dleft}`}{matured && ' 만기됨'}
+              </div>
+            )}
             {a.memo && <div className="text-[0.72rem] text-muted mt-0.5">{a.memo}</div>}
             <div className="flex gap-2 mt-2.5">
               <Button variant="ghost" size="sm" className="flex-1" onClick={() => setExchangeModal({ open: true, account: a })}>환전</Button>
@@ -232,7 +241,8 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
               <Button variant="danger" size="sm" className="flex-1" onClick={() => handleRemoveAccount(a.id)}>삭제</Button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex items-center justify-between mb-2">
@@ -722,6 +732,8 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
   const [cashBalance, setCashBalance] = useState('');
   const [cashBalanceUsd, setCashBalanceUsd] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [maturityDate, setMaturityDate] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
@@ -734,6 +746,8 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
     setCashBalance(e ? String(e.cashBalance) : '');
     setCashBalanceUsd(e ? String(e.cashBalanceUsd) : '');
     setAccountNumber('');
+    setStartDate(e?.startDate ?? '');
+    setMaturityDate(e?.maturityDate ?? '');
     setMemo(e?.memo ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
   }, [state.open, e]);
@@ -753,7 +767,9 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
     try {
       const payload = {
         name, cashBalance: Number(cashBalance || 0), cashBalanceUsd: Number(cashBalanceUsd || 0),
-        accountNumber: accountNumber || undefined, memo: memo || undefined,
+        accountNumber: accountNumber || undefined,
+        startDate: startDate || undefined, maturityDate: maturityDate || undefined,
+        memo: memo || undefined,
       };
       if (state.mode === 'edit' && e) await api.put(`/investment-accounts/${e.id}`, payload);
       else await api.post('/investment-accounts', payload);
@@ -778,6 +794,11 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
       <Field label={isEdit ? '계좌번호 (변경 시에만 입력)' : '계좌번호'} required={!isEdit} error={errors.accountNumber}>
         <input type="text" className={`input${errors.accountNumber ? ' is-invalid' : ''}`} placeholder={isEdit ? '비워두면 기존 번호 유지' : '동일 계좌명 다중 보유 시 구분용'} value={accountNumber} onChange={(ev) => { setAccountNumber(ev.target.value); clearError('accountNumber'); }} />
       </Field>
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <Field label="가입일 (선택, ISA 등)"><input type="date" className="input" aria-label="가입일" value={startDate} onChange={(ev) => setStartDate(ev.target.value)} /></Field>
+        <Field label="만기일 (선택)"><input type="date" className="input" aria-label="만기일" value={maturityDate} onChange={(ev) => setMaturityDate(ev.target.value)} /></Field>
+      </div>
+      {!isEdit && <div className="text-[0.78rem] text-muted -mt-1">만기일을 비워두면 ISA 기본 가입 기간(가입일 + 3년)으로 자동 계산됩니다.</div>}
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
     </Modal>
   );

@@ -1,4 +1,5 @@
 import {
+  IsDateString,
   IsNumber,
   IsOptional,
   IsString,
@@ -24,6 +25,16 @@ export class CreateInvestmentAccountDto {
   @IsString()
   @MaxLength(100)
   accountNumber: string;
+
+  // 가입일 — ISA 등 만기 기산일, 선택값
+  @IsOptional()
+  @IsDateString()
+  startDate?: string;
+
+  // 만기일 — 미입력 시 startDate + 3년으로 자동 계산(ISA 기본 가입 기간), startDate도 없으면 null 유지
+  @IsOptional()
+  @IsDateString()
+  maturityDate?: string;
 
   @IsOptional()
   @IsString()

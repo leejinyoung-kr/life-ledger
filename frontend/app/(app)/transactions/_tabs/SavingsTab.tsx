@@ -58,7 +58,13 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
   const reload = () => invalidate(qk.savings.all);
 
   async function handleRemove(id: number) {
-    if (!await confirm('이 예적금을 삭제할까요?', 'danger')) return;
+    const row = rows.find((r) => r.id === id);
+    const dleft = daysUntil(row?.maturityDate ?? null);
+    const matured = dleft !== null && dleft < 0;
+    const message = matured
+      ? '만기가 지난 예적금입니다. 삭제하면 목록에서 사라지며 잔액은 자동으로 이관되지 않습니다. 필요하면 먼저 가계부에 입금 내역을 기록하세요. 삭제할까요?'
+      : '이 예적금을 삭제할까요?';
+    if (!await confirm(message, 'danger')) return;
     try {
       await api.del(`/savings/${id}`);
       notify.deleted('예적금');
@@ -160,6 +166,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
               {paged.map((c, i) => {
                 const dleft = daysUntil(c.maturityDate);
                 const near = dleft !== null && dleft >= 0 && dleft <= 30;
+                const matured = dleft !== null && dleft < 0;
                 const maturityAmt = calcMaturityAmount(c);
                 return (
                   <tr key={c.id}>
@@ -173,11 +180,12 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                     <td className="td-right"><span className="savings-meta-value accent">{c.interestRate}%</span></td>
                     <td className="td-mono td-right">{maturityAmt !== null ? won(maturityAmt) : '-'}</td>
                     <td className="td-center td-muted">{dotDate(c.startDate)}</td>
-                    <td className={`td-center ${near ? 'savings-meta-value warning' : 'td-muted'}`}>
+                    <td className={`td-center ${near || matured ? 'savings-meta-value warning' : 'td-muted'}`}>
                       {c.maturityDate ? (
                         <span className="flex flex-col items-center leading-tight">
                           <span>{dotDate(c.maturityDate)}</span>
                           {near && <span className="text-xs mt-0.5">⚠️ D-{dleft}</span>}
+                          {matured && <span className="text-xs mt-0.5">만기됨</span>}
                         </span>
                       ) : '-'}
                     </td>
@@ -194,6 +202,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
           {paged.map((c) => {
             const dleft = daysUntil(c.maturityDate);
             const near = dleft !== null && dleft >= 0 && dleft <= 30;
+            const matured = dleft !== null && dleft < 0;
             const maturityAmt = calcMaturityAmount(c);
             return (
               <div className={TXCARD} key={c.id}>
@@ -214,7 +223,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                     { label: '금리', value: <span className="savings-meta-value accent">{c.interestRate}%</span> },
                     { label: '월납입', value: c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-' },
                     { label: '가입일', value: dotDate(c.startDate) },
-                    { label: '만기일', value: <span className={near ? 'savings-meta-value warning' : undefined}>{c.maturityDate ? `${dotDate(c.maturityDate)}${near ? ` ⚠️ D-${dleft}` : ''}` : '-'}</span> },
+                    { label: '만기일', value: <span className={near || matured ? 'savings-meta-value warning' : undefined}>{c.maturityDate ? `${dotDate(c.maturityDate)}${near ? ` ⚠️ D-${dleft}` : matured ? ' 만기됨' : ''}` : '-'}</span> },
                     ...(c.memo ? [{ label: '메모', value: c.memo }] : []),
                   ].map(({ label, value }) => (
                     <div key={label} className="flex gap-2">

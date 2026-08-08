@@ -151,6 +151,8 @@ model InvestmentAccount {
   cash_balance       Decimal   @default(0) @db.Decimal(15, 2) /// 원화 예수금(미투자 대기 현금) — 자산이동으로 충전, 매수/매도로 보유 종목과 전환
   cash_balance_usd   Decimal   @default(0) @db.Decimal(15, 2) /// 달러 예수금 — 환전(원화↔달러)으로만 증감, 해외주식 매수 재원
   account_number_enc String?   @db.VarChar(255) /// 계좌번호(암호문, AES-256-GCM) — 동일 계좌명(예: 일반위탁) 다중 보유 시 구분용
+  start_date         DateTime? @db.Date /// 가입일 — ISA 등 만기 기산일, 미입력 가능
+  maturity_date      DateTime? @db.Date /// 만기일(예: ISA 3년) — 미입력 시 만기 알림 대상에서 제외
   memo               String?   @db.VarChar(300)
   deleted_at         DateTime?
   created_at         DateTime  @default(now())
