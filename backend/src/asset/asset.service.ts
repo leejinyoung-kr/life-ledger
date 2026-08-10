@@ -65,11 +65,39 @@ export class AssetService {
   // 요약 — 총자산/총부채/순자산 + 전월 대비 증감 + 도넛 구성 + 유형별 집계
   // 예적금 → Saving.balance, 투자 → Investment.current_value, 현금 → 수입-지출, 부동산/부채 → Asset 테이블
   async summary(userId: number) {
-    // 예적금 합계
-    const savings = await this.prisma.saving.findMany({
-      where: { user_id: userId, deleted_at: null },
-      select: { balance: true, interest_rate: true },
-    });
+    // 서로 의존성 없는 조회는 한 번에 병렬 실행 (TiDB Cloud 왕복 지연 누적 방지)
+    const [savings, investments, investmentAccounts, incAgg, expAgg, assetRows, prevSnap] =
+      await Promise.all([
+        this.prisma.saving.findMany({
+          where: { user_id: userId, deleted_at: null },
+          select: { balance: true, interest_rate: true },
+        }),
+        this.prisma.investment.findMany({
+          where: { user_id: userId, deleted_at: null },
+          select: { current_value: true },
+        }),
+        this.prisma.investmentAccount.findMany({
+          where: { user_id: userId, deleted_at: null },
+          select: { cash_balance: true, cash_balance_usd: true },
+        }),
+        this.prisma.transaction.aggregate({
+          where: { user_id: userId, deleted_at: null, type: 'income' },
+          _sum: { amount: true },
+        }),
+        this.prisma.transaction.aggregate({
+          where: { user_id: userId, deleted_at: null, type: 'expense' },
+          _sum: { amount: true },
+        }),
+        this.prisma.asset.findMany({
+          where: { user_id: userId, deleted_at: null, type: { in: ['realestate', 'debt'] } },
+          select: { type: true, amount: true, interest_rate: true },
+        }),
+        this.prisma.netWorthSnapshot.findFirst({
+          where: { user_id: userId, month: { lt: new Date().toISOString().slice(0, 7) } },
+          orderBy: { month: 'desc' },
+        }),
+      ]);
+
     const savingsTotal = savings.reduce((s, r) => s + r.balance.toNumber(), 0);
     const savingsAvgRate = savings.length
       ? Math.round(
@@ -77,17 +105,7 @@ export class AssetService {
         ) / 100
       : null;
 
-    // 투자 평가금액(종목) + 예수금(계좌 — 미투자 대기 현금도 자산이므로 합산, 달러 예수금은 환율 적용해 원화로 환산) 합계
-    const [investments, investmentAccounts] = await Promise.all([
-      this.prisma.investment.findMany({
-        where: { user_id: userId, deleted_at: null },
-        select: { current_value: true },
-      }),
-      this.prisma.investmentAccount.findMany({
-        where: { user_id: userId, deleted_at: null },
-        select: { cash_balance: true, cash_balance_usd: true },
-      }),
-    ]);
+    // 달러 예수금은 환율 적용해 원화로 환산 (미투자 대기 현금도 자산이므로 합산)
     const usdTotal = investmentAccounts.reduce((s, r) => s + r.cash_balance_usd.toNumber(), 0);
     const usdToKrw = usdTotal
       ? await this.priceLookup.getExchangeRate('USD', 'KRW').catch((e: unknown) => {
@@ -101,24 +119,10 @@ export class AssetService {
       Math.round(usdTotal * usdToKrw);
 
     // 현금 = 수입 합계 - 지출 합계
-    const [incAgg, expAgg] = await Promise.all([
-      this.prisma.transaction.aggregate({
-        where: { user_id: userId, deleted_at: null, type: 'income' },
-        _sum: { amount: true },
-      }),
-      this.prisma.transaction.aggregate({
-        where: { user_id: userId, deleted_at: null, type: 'expense' },
-        _sum: { amount: true },
-      }),
-    ]);
     const cashTotal =
       (incAgg._sum.amount?.toNumber() ?? 0) - (expAgg._sum.amount?.toNumber() ?? 0);
 
     // 부동산 + 부채 — Asset 테이블에서만 관리
-    const assetRows = await this.prisma.asset.findMany({
-      where: { user_id: userId, deleted_at: null, type: { in: ['realestate', 'debt'] } },
-      select: { type: true, amount: true, interest_rate: true },
-    });
     const realestateRows = assetRows.filter((r) => r.type === 'realestate');
     const debtRows = assetRows.filter((r) => r.type === 'debt');
     const realestateTotal = realestateRows.reduce((s, r) => s + r.amount.toNumber(), 0);
@@ -151,11 +155,6 @@ export class AssetService {
     ].filter((b) => b.amount > 0 || b.count > 0);
 
     // 전월 대비 증감
-    const nowMonth = new Date().toISOString().slice(0, 7);
-    const prevSnap = await this.prisma.netWorthSnapshot.findFirst({
-      where: { user_id: userId, month: { lt: nowMonth } },
-      orderBy: { month: 'desc' },
-    });
     let changeAmount = 0;
     let changeRate = 0;
     if (prevSnap) {

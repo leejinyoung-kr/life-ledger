@@ -95,6 +95,7 @@ model Transaction {
 
   @@index([user_id, date])
   @@index([recurring_schedule_id])
+  @@index([user_id, type, deleted_at])
   @@map("transaction")
 }
 

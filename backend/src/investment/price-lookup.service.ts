@@ -16,9 +16,12 @@ const YAHOO_FINANCE_CHART_API =
   'https://query1.finance.yahoo.com/v8/finance/chart';
 const FRANKFURTER_EXCHANGE_RATE_API = 'https://api.frankfurter.app/latest';
 
+const EXCHANGE_RATE_CACHE_TTL_MS = 10 * 60 * 1000; // 환율은 10분 캐시 (요청마다 외부 API 호출 방지)
+
 // 국내/해외 종목 시세조회 — 둘 다 키 발급 없이 쓸 수 있는 비공식 API 사용
 @Injectable()
 export class PriceLookupService {
+  private readonly exchangeRateCache = new Map<string, { rate: number; expiresAt: number }>();
   // 종목 type 기준으로 국내(네이버)/해외(야후) 조회처를 분기
   async lookup(
     type: InvestmentType,
@@ -80,6 +83,10 @@ export class PriceLookupService {
   }
 
   private async exchangeRate(from: string, to: string): Promise<number> {
+    const cacheKey = `${from}_${to}`;
+    const cached = this.exchangeRateCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.rate;
+
     const res = await fetch(
       `${FRANKFURTER_EXCHANGE_RATE_API}?from=${from}&to=${to}`,
     );
@@ -88,6 +95,8 @@ export class PriceLookupService {
     const rate = Number(json?.rates?.[to]);
     if (!Number.isFinite(rate))
       throw new BadRequestException('환율 조회에 실패했습니다.');
+
+    this.exchangeRateCache.set(cacheKey, { rate, expiresAt: Date.now() + EXCHANGE_RATE_CACHE_TTL_MS });
     return rate;
   }
 }
