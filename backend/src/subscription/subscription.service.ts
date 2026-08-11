@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, Subscription, SubscriptionCycle } from '@prisma/client';
+import { Prisma, Subscription, SubscriptionCurrency, SubscriptionCycle } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PriceLookupService } from '../investment/price-lookup.service';
 import { parsePage } from '@leejinyoun/core-common';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { QuerySubscriptionDto } from './dto/query-subscription.dto';
@@ -11,16 +12,20 @@ function toDateStr(d: Date | null): string | null {
   return d ? d.toISOString().slice(0, 10) : null;
 }
 
-// 주기별 청구액을 월 기준으로 환산 (연→/12, 주→*52/12)
-function toMonthly(amount: number, cycle: SubscriptionCycle): number {
-  if (cycle === 'yearly') return amount / 12;
-  if (cycle === 'weekly') return (amount * 52) / 12;
-  return amount;
+// 주기별 청구액을 월 기준으로 환산 (연→/12, 주→*52/12). USD면 rate로 원화 환산 후 계산
+function toMonthly(amount: number, cycle: SubscriptionCycle, currency: SubscriptionCurrency, usdToKrwRate: number): number {
+  const krwAmount = currency === 'USD' ? amount * usdToKrwRate : amount;
+  if (cycle === 'yearly') return krwAmount / 12;
+  if (cycle === 'weekly') return (krwAmount * 52) / 12;
+  return krwAmount;
 }
 
 @Injectable()
 export class SubscriptionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private priceLookup: PriceLookupService,
+  ) {}
 
   // 엔티티 → 응답 DTO (Decimal→number, Date→문자열)
   private toDto(s: Subscription) {
@@ -29,6 +34,7 @@ export class SubscriptionService {
       name: s.name,
       category: s.category,
       amount: s.amount.toNumber(),
+      currency: s.currency,
       cycle: s.cycle,
       status: s.status,
       nextPaymentDate: toDateStr(s.next_payment_date),
@@ -71,8 +77,13 @@ export class SubscriptionService {
 
     // 일시정지(paused)는 비용·카운트에서 제외 (활성 + 체험만 집계)
     const billing = rows.filter((r) => r.status !== 'paused');
+
+    // USD 구독이 하나라도 있을 때만 환율 조회 (행마다 호출하지 않고 1회만 재사용)
+    const hasUsd = billing.some((r) => r.currency === 'USD');
+    const usdToKrwRate = hasUsd ? await this.priceLookup.getExchangeRate('USD', 'KRW') : 1;
+
     const monthlyTotal = Math.round(
-      billing.reduce((sum, r) => sum + toMonthly(r.amount.toNumber(), r.cycle), 0),
+      billing.reduce((sum, r) => sum + toMonthly(r.amount.toNumber(), r.cycle, r.currency, usdToKrwRate), 0),
     );
 
     // 다음 결제 임박 — 오늘 이후 가장 가까운 결제일
@@ -114,6 +125,7 @@ export class SubscriptionService {
         name: dto.name,
         category: dto.category,
         amount: new Prisma.Decimal(dto.amount),
+        currency: dto.currency ?? 'KRW',
         cycle: dto.cycle,
         status: dto.status ?? 'active',
         next_payment_date: new Date(dto.nextPaymentDate),
@@ -143,6 +155,7 @@ export class SubscriptionService {
         name: dto.name,
         category: dto.category,
         amount: dto.amount !== undefined ? new Prisma.Decimal(dto.amount) : undefined,
+        currency: dto.currency,
         cycle: dto.cycle,
         status: dto.status,
         next_payment_date: dto.nextPaymentDate ? new Date(dto.nextPaymentDate) : undefined,
