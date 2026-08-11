@@ -1,4 +1,4 @@
-import { SubscriptionCycle, SubscriptionStatus } from '@prisma/client';
+import { SubscriptionCurrency, SubscriptionCycle, SubscriptionStatus } from '@prisma/client';
 import {
   IsDateString,
   IsEnum,
@@ -21,6 +21,11 @@ export class CreateSubscriptionDto {
   // 결제금액(원). 주기당 청구 금액(연 구독이면 연 금액)
   @IsNumber()
   amount: number;
+
+  // 통화 (KRW/USD). 미지정 시 서비스 레이어에서 KRW로 처리
+  @IsOptional()
+  @IsEnum(SubscriptionCurrency)
+  currency?: SubscriptionCurrency;
 
   @IsEnum(SubscriptionCycle)
   cycle: SubscriptionCycle;
