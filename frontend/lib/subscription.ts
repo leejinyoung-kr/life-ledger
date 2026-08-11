@@ -13,6 +13,7 @@ export interface Subscription {
   name: string;
   category: string; // 코드
   amount: number;
+  currency: 'KRW' | 'USD';
   cycle: SubscriptionCycle;
   status: SubscriptionStatus;
   nextPaymentDate: string; // YYYY-MM-DD
@@ -87,3 +88,8 @@ export const STATUS_BADGE: Record<SubscriptionStatus, string> = {
 };
 
 export const SUB_PAY_METHODS = ['신한카드', '카카오페이', '쿠페이', '해외결제', '계좌이체'];
+
+export const SUB_CURRENCY_LABEL: Record<'KRW' | 'USD', string> = {
+  KRW: '원화',
+  USD: '달러',
+};
