@@ -24,10 +24,10 @@ import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { IconRepeat, IconAlertTriangle, IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
-import { won, dotDate, daysUntil } from '@/lib/finance';
+import { won, usd, dotDate, daysUntil } from '@/lib/finance';
 import {
   SUB_CATEGORY_LABEL, SUB_CATEGORY_EMOJI, SUB_CATEGORY_OPTIONS,
-  CYCLE_LABEL, STATUS_LABEL, SUB_PAY_METHODS,
+  CYCLE_LABEL, STATUS_LABEL, SUB_PAY_METHODS, SUB_CURRENCY_LABEL,
   type Subscription, type SubscriptionSummary,
   type SubscriptionCycle, type SubscriptionStatus,
 } from '@/lib/subscription';
@@ -152,7 +152,7 @@ export default function SubscriptionsPage() {
                 <Badge tone={STATUS_TONE[sub.status]}>{STATUS_LABEL[sub.status]}</Badge>
               </div>
               <div className="[font-family:var(--font-display)] text-[1.4rem] font-bold text-primary tracking-[-0.03em]">
-                {won(sub.amount)}<span className="text-[0.75rem] text-muted ml-1 font-normal [font-family:var(--font-body)]">/{CYCLE_LABEL[sub.cycle]}</span>
+                {sub.currency === 'USD' ? usd(sub.amount) : won(sub.amount)}<span className="text-[0.75rem] text-muted ml-1 font-normal [font-family:var(--font-body)]">/{CYCLE_LABEL[sub.cycle]}</span>
               </div>
               <div className="flex flex-col gap-1.5 my-3 text-[0.78rem]">
                 <div className="flex justify-between">
@@ -188,6 +188,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
   const [name, setName] = useState('');
   const [category, setCategory] = useState('ott');
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState<'KRW' | 'USD'>('KRW');
   const [cycle, setCycle] = useState<SubscriptionCycle>('monthly');
   const [nextPaymentDate, setNextPaymentDate] = useState('');
   const [status, setStatus] = useState<SubscriptionStatus>('active');
@@ -204,6 +205,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
     setName(e?.name ?? '');
     setCategory(e?.category ?? 'ott');
     setAmount(e ? String(e.amount) : '');
+    setCurrency(e?.currency ?? 'KRW');
     setCycle(e?.cycle ?? 'monthly');
     setNextPaymentDate(e?.nextPaymentDate ?? new Date().toISOString().slice(0, 10));
     setStatus(e?.status ?? 'active');
@@ -226,7 +228,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
     setSaving(true);
     try {
       const payload = {
-        name, category, amount: Number(amount), cycle, status,
+        name, category, amount: Number(amount), currency, cycle, status,
         nextPaymentDate, payMethod,
         lastUsedAt: lastUsedAt || undefined, memo: memo || undefined,
       };
@@ -257,25 +259,30 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
         </select>
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-        <Field label="금액 (원)" required error={errors.amount}>
+        <Field label="금액" required error={errors.amount}>
           <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
         </Field>
+        <Field label="통화" required>
+          <select className="input" aria-label="통화" value={currency} onChange={(ev) => setCurrency(ev.target.value as 'KRW' | 'USD')}>
+            {(Object.keys(SUB_CURRENCY_LABEL) as ('KRW' | 'USD')[]).map((c) => <option key={c} value={c}>{SUB_CURRENCY_LABEL[c]}</option>)}
+          </select>
+        </Field>
+      </div>
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="결제 주기" required>
           <select className="input" aria-label="결제 주기" value={cycle} onChange={(ev) => setCycle(ev.target.value as SubscriptionCycle)}>
             <option value="monthly">매월</option><option value="yearly">매년</option><option value="weekly">매주</option>
           </select>
         </Field>
-      </div>
-      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="다음 결제일" required error={errors.nextPaymentDate}>
           <input type="date" className={`input${errors.nextPaymentDate ? ' is-invalid' : ''}`} aria-label="다음 결제일" value={nextPaymentDate} onChange={(ev) => { setNextPaymentDate(ev.target.value); clearError('nextPaymentDate'); }} />
         </Field>
-        <Field label="상태">
-          <select className="input" aria-label="상태" value={status} onChange={(ev) => setStatus(ev.target.value as SubscriptionStatus)}>
-            <option value="active">활성</option><option value="trial">체험</option><option value="paused">일시정지</option>
-          </select>
-        </Field>
       </div>
+      <Field label="상태">
+        <select className="input" aria-label="상태" value={status} onChange={(ev) => setStatus(ev.target.value as SubscriptionStatus)}>
+          <option value="active">활성</option><option value="trial">체험</option><option value="paused">일시정지</option>
+        </select>
+      </Field>
       <Field label="결제수단" required>
         <select className="input" aria-label="결제수단" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
           {SUB_PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
