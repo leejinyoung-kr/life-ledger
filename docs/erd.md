@@ -77,7 +77,7 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ### 자산 — Subscription / Asset / NetWorthSnapshot
 
-- `Subscription` — `cycle`(monthly/yearly/weekly), `status`(active/trial/paused), `next_payment_date`, `last_used_at`
+- `Subscription` — `currency`(KRW/USD), `cycle`(monthly/yearly/weekly), `status`(active/trial/paused), `next_payment_date`, `last_used_at` — USD 구독은 요약 통계 계산 시 `PriceLookupService`(frankfurter.app)로 조회한 환율로 원화 환산
 - `Asset` — `type`(cash/savings/investment/realestate/debt/etc), `amount`, `interest_rate?` — debt 는 순자산에서 차감
 - `NetWorthSnapshot` — `month`(YYYY-MM), `total_assets`, `total_debt` (`@@unique([user_id, month])`)
 
