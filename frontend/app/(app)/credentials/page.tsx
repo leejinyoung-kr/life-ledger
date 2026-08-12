@@ -43,6 +43,8 @@ const ICON_BTN = 'w-7 h-7 rounded-[5px] flex items-center justify-center text-mu
 const FILTER_CATEGORIES = ['전체 카테고리', ...CRED_CATEGORIES];
 
 export default function CredentialsPage() {
+  const [pendingQuery, setPendingQuery] = useState('');
+  const [pendingCategory, setPendingCategory] = useState('전체 카테고리');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('전체 카테고리');
   const [detail, setDetail] = useState<Credential | null>(null);
@@ -50,6 +52,13 @@ export default function CredentialsPage() {
   const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
+
+  // 검색 버튼(또는 Enter) 클릭 시에만 실제 필터에 반영
+  function handleSearch() {
+    setQuery(pendingQuery);
+    setCategory(pendingCategory);
+    setPage(1);
+  }
 
   // 계정 목록 (React Query 캐시) — 검색/카테고리/페이지를 서버로 전송
   const listQs = useMemo(() => {
@@ -183,13 +192,16 @@ export default function CredentialsPage() {
       <div className="md:bg-surface md:border md:border-border md:rounded-(--radius) md:px-4 md:py-3 mb-2">
         <div className="flex gap-2 flex-col md:flex-row">
           <div className="md:w-40 md:shrink-0">
-            <select className="input" value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }} aria-label="카테고리 필터">
+            <select className="input" value={pendingCategory} onChange={(e) => setPendingCategory(e.target.value)} aria-label="카테고리 필터">
               {FILTER_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
-          <div className="relative flex-1 min-w-0">
-            <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-            <input className="input pl-icon w-full" type="text" placeholder="서비스명, URL, 아이디 검색..." value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()} aria-label="계정 검색" />
+          <div className="flex gap-2 flex-1">
+            <div className="relative flex-1 min-w-0">
+              <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
+              <input className="input pl-icon w-full" type="text" placeholder="서비스명, URL, 아이디 검색..." value={pendingQuery} onChange={(e) => setPendingQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} aria-label="계정 검색" />
+            </div>
+            <Button onClick={handleSearch}>검색</Button>
           </div>
         </div>
       </div>

@@ -36,9 +36,11 @@ export default function EnvsPage() {
   const [paste, setPaste] = useState('');
   const [pasteLocation, setPasteLocation] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
+  const [pendingLocationFilter, setPendingLocationFilter] = useState('');
   const [projectModal, setProjectModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing: EnvProject | null }>({ open: false, mode: 'add', editing: null });
   const [varModal, setVarModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing: EnvVar | null }>({ open: false, mode: 'add', editing: null });
   const [varSearch, setVarSearch] = useState('');
+  const [pendingVarSearch, setPendingVarSearch] = useState('');
   const [diffOpen, setDiffOpen] = useState(false);
   const [diffTarget, setDiffTarget] = useState<EnvKind>('prod');
   const [diff, setDiff] = useState<EnvDiff | null>(null);
@@ -75,7 +77,7 @@ export default function EnvsPage() {
 
   // 프로젝트/환경 전환 시 표시값·검색·위치필터 초기화
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { setRevealed({}); setVarSearch(''); setLocationFilter(''); }, [selectedId, env]);
+  useEffect(() => { setRevealed({}); setVarSearch(''); setPendingVarSearch(''); setLocationFilter(''); setPendingLocationFilter(''); }, [selectedId, env]);
 
   const error = (projectsQuery.error ?? varsQuery.error)?.message ?? null;
   const project = projects.find((p) => p.id === selectedId) ?? null;
@@ -231,6 +233,12 @@ export default function EnvsPage() {
     }
   }
 
+  // 검색 버튼(또는 Enter) 클릭 시에만 실제 필터에 반영
+  function handleVarSearch() {
+    setVarSearch(pendingVarSearch);
+    setLocationFilter(pendingLocationFilter);
+  }
+
   const filteredVars = varSearch.trim() ? vars.filter((v) => v.key.toLowerCase().includes(varSearch.toLowerCase())) : vars;
   const { selected: selectedVars, toggle: toggleVar, toggleAll: toggleAllVars, clear: clearVars, allChecked: allVarsChecked } = useRowSelection(filteredVars.map((v) => v.id));
   const grouped = groupVars(filteredVars);
@@ -319,12 +327,13 @@ export default function EnvsPage() {
               <div className="px-4 py-2.5 border-b border-border bg-surface flex items-center gap-2.5 flex-wrap">
                 <div className="relative max-w-72 flex-1 min-w-40">
                   <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-                  <input className="input pl-icon" type="text" placeholder="KEY 검색..." value={varSearch} onChange={(e) => setVarSearch(e.target.value)} aria-label="변수 검색" />
+                  <input className="input pl-icon" type="text" placeholder="KEY 검색..." value={pendingVarSearch} onChange={(e) => setPendingVarSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleVarSearch()} aria-label="변수 검색" />
                 </div>
-                <select className="input w-auto max-w-52" aria-label="위치 필터" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
+                <select className="input w-auto max-w-52" aria-label="위치 필터" value={pendingLocationFilter} onChange={(e) => setPendingLocationFilter(e.target.value)}>
                   <option value="">모든 위치</option>
                   {locations.map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
+                <Button onClick={handleVarSearch}>검색</Button>
               </div>
 
               {/* env-table: 그룹행 구조라 공통 globals 유지 — 모바일은 가로 스크롤로 레이아웃 깨짐 방지 */}

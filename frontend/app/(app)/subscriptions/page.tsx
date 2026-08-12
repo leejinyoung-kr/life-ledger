@@ -40,12 +40,19 @@ const STATUS_TONE: Record<SubscriptionStatus, 'success' | 'warning' | 'neutral'>
 export default function SubscriptionsPage() {
   // 구독 추가/수정 모달 상태 (편집 대상 포함)
   const [modal, setModal] = useState<{ open: boolean; mode: 'add' | 'edit'; editing?: Subscription }>({ open: false, mode: 'add' });
+  const [pendingSearch, setPendingSearch] = useState('');
   const [search, setSearch] = useState('');
   const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
   // mutation 후 구독 관련 쿼리 무효화
   const bump = () => invalidate(qk.subscriptions.all);
+
+  // 검색 버튼(또는 Enter) 클릭 시에만 실제 필터에 반영
+  function handleSearch() {
+    setSearch(pendingSearch);
+    setPage(1);
+  }
 
   // 목록/요약 (React Query 캐시). 목록은 서버 페이징/검색
   const listQs = useMemo(() => {
@@ -125,9 +132,12 @@ export default function SubscriptionsPage() {
 
       {/* 검색 필터 — PC: 카드 박스, 모바일: 스타일 없음 */}
       <div className="md:bg-surface md:border md:border-border md:rounded-(--radius) md:px-4 md:py-3 mb-2">
-        <div className="relative">
-          <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-          <input className="input pl-icon w-full" type="text" placeholder="서비스명, 카테고리 검색..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} aria-label="구독 검색" />
+        <div className="flex gap-2">
+          <div className="relative flex-1 min-w-0">
+            <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
+            <input className="input pl-icon w-full" type="text" placeholder="서비스명, 카테고리 검색..." value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} aria-label="구독 검색" />
+          </div>
+          <Button onClick={handleSearch}>검색</Button>
         </div>
       </div>
       {/* 총건 + 페이지 크기 */}

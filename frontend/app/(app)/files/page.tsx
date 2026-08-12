@@ -87,10 +87,16 @@ export default function FilesPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<{ name: string; percent: number }[]>([]);
   const [viewer, setViewer] = useState<FileItem | null>(null);
+  const [pendingSearch, setPendingSearch] = useState('');
   const [search, setSearch] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
+
+  // 검색 버튼(또는 Enter) 클릭 시에만 실제 필터에 반영
+  function handleSearch() {
+    setSearch(pendingSearch);
+  }
 
   // 현재 폴더 목록 (React Query — folderId 별 캐시)
   const listQs = useMemo(() => {
@@ -107,12 +113,14 @@ export default function FilesPage() {
   function handleEnterFolder(id: number) {
     setCurrentFolderId(id);
     setSearch('');
+    setPendingSearch('');
   }
 
   // 브레드크럼 클릭 — 루트 또는 상위 폴더로 이동
   function handleNavigateTo(id?: number) {
     setCurrentFolderId(id);
     setSearch('');
+    setPendingSearch('');
   }
 
   // 파일 업로드
@@ -295,8 +303,9 @@ export default function FilesPage() {
       <div className="flex items-center gap-2.5 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-          <input className="input pl-icon" type="text" placeholder="파일/폴더명 검색..." value={search} onChange={(e) => setSearch(e.target.value)} aria-label="파일 검색" />
+          <input className="input pl-icon" type="text" placeholder="파일/폴더명 검색..." value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} aria-label="파일 검색" />
         </div>
+        <Button onClick={handleSearch}>검색</Button>
         <span className="text-muted ml-auto text-[0.82rem]">
           폴더 {filteredFolders.length} · 파일 {filteredFiles.length}
         </span>
