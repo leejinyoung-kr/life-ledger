@@ -75,7 +75,7 @@
 | 매일 09:00 | security-snapshot-cron.service.ts | 사용자별 보안 점수 일별 스냅샷 적재 |
 | 매일 09:00 | recurring-cron.service.ts (`run`) | 반복거래(국내, `transaction.service.ts`의 `materializeRecurring`)는 매일 실행. 반복매수(국내, `investment.service.ts`의 `materializeRecurringBuys`) + 국내 투자 종목 현재가 갱신(`refreshCurrentValues`)은 실제 증권시장이 열리는 평일(KST 기준, `isWeekdayKST()`)에만 실행하고 주말엔 건너뜀. 전체 사용자를 순회하며, 사용자별 실패는 로그만 남기고 계속 진행. 반복거래/반복매수는 서로 독립적으로 처리 건수를 집계해 완료 로그도 따로 남기며, 처리한 항목이 0건이고 실패도 없으면 그 로그는 남기지 않는다. 반복매수는 종목별로 외부 시세조회 API(네이버/야후)를 호출하므로 3종목씩 묶어 묶음 사이 3초 대기(현재가 갱신은 5종목씩 2초 대기) |
 | 매일 23:00 | recurring-cron.service.ts (`runForeign`) | 반복매수(해외 — foreign_stock/foreign_etf) 회차 일괄 생성 + 해외 투자 종목 현재가 갱신. 미국 장이 열린 직후 실시간 가격으로 매수하도록 국내 배치와 시간을 분리. 평일(KST 기준)에만 실행하고 주말엔 로그 없이 조용히 건너뜀. 처리한 반복매수가 0건이고 실패도 없으면 완료 로그를 남기지 않는다 |
-| 매월 1일 01:00 | net-worth-snapshot-cron.service.ts | 사용자별 전월(YYYY-MM) 순자산(총자산/총부채) 스냅샷 저장. 같은 달 재실행 시 upsert로 덮어씀 |
+| 매주 월요일 01:00 | net-worth-snapshot-cron.service.ts | 사용자별 전월(YYYY-MM) 순자산(총자산/총부채)·현금 총액(`cash_total`) 스냅샷 저장. `cash_total`은 자산 요약 API(`/assets/summary`)가 전체 거래를 매번 재집계하지 않고 스냅샷값 + 이후 거래 델타로 계산하는 기준점. 실행 때마다 직전 달을 통째로 재계산해 upsert로 덮어쓰므로, 마감된 달의 거래를 뒤늦게 수정해도 최대 일주일 안에 자동 반영됨 |
 | 매월 1일 09:00 | ai-report-cron.service.ts | 설정에서 `notifMonthly`를 켠 사용자의 전월(`last_month`) AI 리포트 자동 생성. OpenAI 키 미설정/분석 내역 없음 등은 사용자별로 조용히 스킵 후 다음 달 재시도 |
 
 > 각 크론의 실패/완료는 `SystemLogService`를 통해 `/system-logs`(`/logs` 화면)에도 기록된다.

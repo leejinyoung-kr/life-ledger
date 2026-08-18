@@ -96,7 +96,7 @@ doc-nexus/
 | Investment | user_id, type, principal, current_value, purchase_date | 구현 완료 |
 | Subscription | user_id, name, amount, cycle, status, next_payment_date | 구현 완료 |
 | Asset | user_id, name, type(cash/savings/investment/realestate/debt/etc), amount | 구현 완료 |
-| NetWorthSnapshot | user_id, month, total_assets, total_debt | 구현 완료 |
+| NetWorthSnapshot | user_id, month, total_assets, total_debt, cash_total(현금 스냅샷 캐시) | 구현 완료 |
 | UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, categories/widgets(JSON), menu_order | 구현 완료 |
 | Notification | user_id, group, tone, title, description, source, read_at | 구현 완료 |
 | CalendarEvent | user_id, date, type(pay/due/exp/task), title, is_lunar/lunar_month/lunar_day/lunar_leap, recur_freq, recur_until | 구현 완료 |

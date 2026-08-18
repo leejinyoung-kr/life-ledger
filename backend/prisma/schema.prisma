@@ -95,7 +95,7 @@ model Transaction {
 
   @@index([user_id, date])
   @@index([recurring_schedule_id])
-  @@index([user_id, type, deleted_at])
+  @@index([user_id, type, deleted_at, date, amount]) // 자산 종합(cashTotal) 델타 집계가 date 구간으로 좁혀 스캔되며, amount까지 포함해 PK 재조회 없이 인덱스만으로 합산(커버링 인덱스)
   @@map("transaction")
 }
 
@@ -328,6 +328,7 @@ model NetWorthSnapshot {
   month        String   @db.VarChar(7) /// YYYY-MM
   total_assets Decimal  @db.Decimal(15, 2)
   total_debt   Decimal  @db.Decimal(15, 2)
+  cash_total   Decimal? @db.Decimal(15, 2) /// 그 달 말 기준 누적 현금 총액 캐시(자산 요약 API의 델타 계산 기준점, 과거 행은 null 허용)
   created_at   DateTime @default(now())
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
