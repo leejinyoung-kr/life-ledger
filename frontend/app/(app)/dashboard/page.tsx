@@ -10,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { IconWon, IconLock, IconCube, IconUpload, IconRepeat, IconPie } from '@/components/icons';
-import { won, signedWon, type TransactionType } from '@/lib/finance';
+import { won, usd, signedWon, type TransactionType } from '@/lib/finance';
 import { type AiReport, formatReportDate } from '@/lib/aiReport';
 
 type EvType = 'pay' | 'due' | 'exp' | 'task';
@@ -24,7 +24,7 @@ interface Forecast {
   totalMonthly: number;
   subscriptions: { count: number; monthly: number };
   recurring: { count: number; monthly: number };
-  items: { name: string; kind: 'subscription' | 'recurring'; cycle: string; amount: number; monthly: number }[];
+  items: { name: string; kind: 'subscription' | 'recurring'; cycle: string; amount: number; currency: 'KRW' | 'USD'; monthly: number }[];
 }
 
 type DeadlineKind = 'identity' | 'saving' | 'investment' | 'subscription' | 'task';
@@ -198,7 +198,7 @@ export default function DashboardPage() {
                     key={i}
                     dot={it.kind === 'subscription' ? 'warning' : 'muted'}
                     text={<strong>{it.name}</strong>}
-                    time={`${it.kind === 'subscription' ? '구독' : '반복'} · ${it.cycle === 'yearly' ? '연' : it.cycle === 'weekly' ? '주' : '월'} ${won(it.amount)} → 월 ${won(it.monthly)}`}
+                    time={`${it.kind === 'subscription' ? '구독' : '반복'} · ${it.cycle === 'yearly' ? '연' : it.cycle === 'weekly' ? '주' : '월'} ${it.currency === 'USD' ? usd(it.amount) : won(it.amount)} → 월 ${won(it.monthly)}`}
                   />
                 ))}
                 <p className="text-[0.72rem] text-muted mt-2">연·주 단위 항목은 월 단위로 환산한 추정치입니다.</p>

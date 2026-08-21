@@ -255,7 +255,7 @@ export class CalendarService {
           deleted_at: null,
           ...(dateFilter ? { next_payment_date: dateFilter } : {}),
         },
-        select: { id: true, name: true, amount: true, next_payment_date: true },
+        select: { id: true, name: true, amount: true, currency: true, next_payment_date: true },
       }),
       this.prisma.saving.findMany({
         where: {
@@ -290,7 +290,10 @@ export class CalendarService {
         id: VIRT_OFFSET.subscription + s.id,
         date: toDateStr(s.next_payment_date),
         type: 'pay',
-        title: `${s.name} · ${Number(s.amount).toLocaleString('ko-KR')}원`,
+        title:
+          s.currency === 'USD'
+            ? `${s.name} · $${Number(s.amount).toFixed(2)}`
+            : `${s.name} · ${Number(s.amount).toLocaleString('ko-KR')}원`,
         memo: null,
         virtual: true,
         sourceType: 'subscription',

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AssetService } from '../asset/asset.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { PriceLookupService } from '../investment/price-lookup.service';
 
 // 주기별 금액을 월 단위로 환산 (yearly/12, weekly*52/12, daily는 평일만(연 261일)*261/12, monthly 그대로)
 function toMonthly(amount: number, cycle: string): number {
@@ -15,6 +16,7 @@ export class DashboardService {
   constructor(
     private prisma: PrismaService,
     private assetService: AssetService,
+    private priceLookup: PriceLookupService,
   ) {}
 
   // 대시보드 요약 — 이번 달 수입/지출·순자산·활성구독 + 최근거래·다가오는일정
@@ -72,17 +74,22 @@ export class DashboardService {
       }),
     ]);
 
-    // 구독: 주기 환산
+    // USD 구독이 하나라도 있을 때만 환율 조회 (구독 요약과 동일한 방식 — 행마다 호출하지 않고 1회만 재사용)
+    const hasUsd = subs.some((s) => s.currency === 'USD');
+    const usdToKrwRate = hasUsd ? await this.priceLookup.getExchangeRate('USD', 'KRW') : 1;
+
+    // 구독: USD면 원화 환산 후 주기 환산 (표시용 amount/currency는 원래 통화 유지)
     const subItems = subs.map((s) => {
       const amount = s.amount.toNumber();
-      return { name: s.name, kind: 'subscription' as const, cycle: s.cycle, amount, monthly: toMonthly(amount, s.cycle) };
+      const krwAmount = s.currency === 'USD' ? amount * usdToKrwRate : amount;
+      return { name: s.name, kind: 'subscription' as const, cycle: s.cycle, amount, currency: s.currency, monthly: toMonthly(krwAmount, s.cycle) };
     });
 
-    // 자동이체 설정된 반복 지출 — 월 환산
+    // 자동이체 설정된 반복 지출 — 월 환산 (원화만 지원)
     const recItems = recurring.map((r) => {
       const amount = r.amount?.toNumber() ?? 0;
       const cycle = (r.rule as { cycle?: string } | null)?.cycle ?? 'monthly';
-      return { name: r.title ?? '', kind: 'recurring' as const, cycle, amount, monthly: toMonthly(amount, cycle) };
+      return { name: r.title ?? '', kind: 'recurring' as const, cycle, amount, currency: 'KRW' as const, monthly: toMonthly(amount, cycle) };
     });
 
     const subMonthly = subItems.reduce((s, i) => s + i.monthly, 0);
