@@ -3,7 +3,6 @@
 import AppShell from '@/components/AppShell';
 import ErrorBanner from '@/components/ErrorBanner';
 import StatCard from '@/components/StatCard';
-import Badge from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
@@ -11,7 +10,7 @@ import { won } from '@/lib/finance';
 import {
   ASSET_TYPE_LABEL, ASSET_TYPE_COLOR, BY_TYPE_CARD,
   wonM, millionsLabel,
-  type Asset, type NetWorthSummary, type TrendPoint, type AllocationItem,
+  type NetWorthSummary, type TrendPoint, type AllocationItem,
 } from '@/lib/networth';
 
 // 도넛 conic-gradient 문자열 생성 (누적 percent 기준)
@@ -30,11 +29,9 @@ export default function NetworthPage() {
   // 순자산 데이터 (React Query 캐시)
   const summaryQuery = useApiQuery<NetWorthSummary>(qk.assets.networth(), '/assets/summary');
   const trendQuery = useApiQuery<TrendPoint[]>(['assets', 'trend'], '/assets/trend');
-  const debtsQuery = useApiQuery<Asset[]>(['assets', 'debts'], '/assets?type=debt&take=5');
   const summary = summaryQuery.data ?? null;
   const trend = trendQuery.data ?? [];
-  const debts = debtsQuery.data ?? [];
-  const error = (summaryQuery.error ?? trendQuery.error ?? debtsQuery.error)?.message ?? null;
+  const error = (summaryQuery.error ?? trendQuery.error)?.message ?? null;
 
   const maxTrend = Math.max(1, ...trend.map((t) => t.netWorth));
   const up = (summary?.changeAmount ?? 0) >= 0;
@@ -54,8 +51,7 @@ export default function NetworthPage() {
     <AppShell activePath="/networth" topbarLabel="자산 종합">
       <div className="mb-7">
         <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">자산 종합</h1>
-        <p className="text-sm text-secondary mt-1.5">순자산 = 자산 − 부채. 현금·예적금·투자·부동산을 합산해 추적합니다.</p>
-        <p className="text-[0.78rem] text-muted mt-1">자산·부채 항목은 자산 관리에서 추가·수정할 수 있습니다.</p>
+        <p className="text-sm text-secondary mt-1.5">현금·예적금·투자를 합산해 순자산을 추적합니다.</p>
       </div>
 
       <ErrorBanner message={error} />
@@ -93,7 +89,7 @@ export default function NetworthPage() {
           </div>
 
           {/* 자산 유형별 통계 */}
-          <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 min-[1100px]:grid-cols-3 gap-4 mb-8">
             {cards.map((c) => (
               <StatCard key={c.type} icon={c.icon} tone={c.tone} value={c.value} label={c.label} change={c.change} changeDir="neutral" />
             ))}
@@ -101,8 +97,8 @@ export default function NetworthPage() {
         </>
       )}
 
-      {/* 추이 막대 + 부채 테이블 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+      {/* 추이 막대 */}
+      <div className="mb-6">
         <Card>
           <CardHeader><CardTitle>순자산 추이 (6개월)</CardTitle></CardHeader>
           <CardBody>
@@ -115,49 +111,6 @@ export default function NetworthPage() {
                 >
                   <span>{millionsLabel(t.netWorth)}</span>
                   <small>{t.label}</small>
-                </div>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>부채</CardTitle>
-            <Badge tone="danger">{summary ? wonM(summary.totalDebt) : '-'}</Badge>
-          </CardHeader>
-          <CardBody flush>
-            <div className="table-wrap max-md:hidden">
-              <table>
-                <thead>
-                  <tr>
-                    <th>항목</th><th className="td-right">잔액</th><th className="td-right">금리</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {debts.length === 0 && (
-                    <tr><td colSpan={3} className="td-center td-muted">부채가 없습니다.</td></tr>
-                  )}
-                  {debts.map((d) => (
-                    <tr key={d.id}>
-                      <td className="td-name">{d.name}</td>
-                      <td className="td-mono td-right">{won(d.amount)}</td>
-                      <td className="td-right">{d.interestRate !== null ? `${d.interestRate}%` : '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="hidden max-md:flex flex-col gap-2.5 p-3">
-              {debts.length === 0 && <div className="text-center text-muted py-7">부채가 없습니다.</div>}
-              {debts.map((d) => (
-                <div className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background" key={d.id}>
-                  <div className="flex justify-between items-baseline gap-2.5">
-                    <span className="font-semibold text-[0.95rem] break-all">{d.name}</span>
-                    <span className="font-bold text-base whitespace-nowrap [font-family:var(--font-mono)]">{won(d.amount)}</span>
-                  </div>
-                  <div className="mt-2 text-[0.78rem] text-secondary">금리 {d.interestRate !== null ? `${d.interestRate}%` : '-'}</div>
                 </div>
               ))}
             </div>

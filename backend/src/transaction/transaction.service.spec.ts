@@ -2,13 +2,12 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { TransactionService } from './transaction.service';
 
-// 거래 내역 — 자산이동(transfer)의 대상 잔액 자동 반영/역반영, 방향(direction) 옵션,
+// 거래 내역 — 자산이동(transfer)의 대상 잔액 자동 반영/역반영,
 // 수정 시 차액 재반영, 삭제 시 역반영 회귀 테스트.
 describe('TransactionService (자산이동 연동)', () => {
   let txs: any[];
   let savings: any[];
   let investmentAccounts: any[];
-  let assets: any[];
   let seq: number;
   let prisma: any;
 
@@ -33,10 +32,6 @@ describe('TransactionService (자산이동 연동)', () => {
     txs = [];
     savings = [{ id: 1, user_id: 1, deleted_at: null, balance: dec(10000) }];
     investmentAccounts = [{ id: 1, user_id: 1, deleted_at: null, cash_balance: dec(10000) }];
-    assets = [
-      { id: 1, user_id: 1, deleted_at: null, type: 'cash', amount: dec(10000) },
-      { id: 2, user_id: 1, deleted_at: null, type: 'debt', amount: dec(10000) },
-    ];
     seq = 1;
 
     prisma = {
@@ -75,16 +70,6 @@ describe('TransactionService (자산이동 연동)', () => {
           return { count: matched.length };
         }),
       },
-      asset: {
-        findFirst: jest.fn(async ({ where }: any) =>
-          assets.find((a) => a.id === where.id && a.user_id === where.user_id && a.deleted_at == null) ?? null,
-        ),
-        update: jest.fn(async ({ where, data }: any) => {
-          const row = assets.find((a) => a.id === where.id);
-          applyData(row, data);
-          return row;
-        }),
-      },
       category: { findMany: jest.fn(async () => []) },
       $transaction: jest.fn(async (arg: any) => (Array.isArray(arg) ? Promise.all(arg) : arg(prisma))),
     };
@@ -103,26 +88,6 @@ describe('TransactionService (자산이동 연동)', () => {
     it('investment 대상이면 계좌 예수금 증가', async () => {
       await svc().create(1, baseDto({ targetType: 'investment', targetId: 1 }) as any);
       expect(investmentAccounts[0].cash_balance.toNumber()).toBe(15000);
-    });
-
-    it('asset 대상 + 부채(debt) 타입은 기본 감소', async () => {
-      await svc().create(1, baseDto({ targetType: 'asset', targetId: 2 }) as any);
-      expect(assets[1].amount.toNumber()).toBe(5000);
-    });
-
-    it('asset 대상 + 일반 자산은 기본 증가', async () => {
-      await svc().create(1, baseDto({ targetType: 'asset', targetId: 1 }) as any);
-      expect(assets[0].amount.toNumber()).toBe(15000);
-    });
-
-    it('asset 대상에 direction=decrease 명시하면 부채가 아니어도 감소', async () => {
-      await svc().create(1, baseDto({ targetType: 'asset', targetId: 1, targetDirection: 'decrease' }) as any);
-      expect(assets[0].amount.toNumber()).toBe(5000);
-    });
-
-    it('asset 대상에 direction=increase 명시하면 부채여도 증가', async () => {
-      await svc().create(1, baseDto({ targetType: 'asset', targetId: 2, targetDirection: 'increase' }) as any);
-      expect(assets[1].amount.toNumber()).toBe(15000);
     });
 
     it('존재하지 않는 이동 대상이면 BadRequest (필수 반영)', async () => {

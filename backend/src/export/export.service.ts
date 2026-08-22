@@ -42,7 +42,7 @@ export class ExportService {
     await this.accessLog.log(userId, 'data_export', { type: 'account', id: userId, name: 'export:backup' }, client);
     const where = { where: { user_id: userId, deleted_at: null } };
     const [
-      transactions, savings, investments, subscriptions, assets,
+      transactions, savings, investments, subscriptions,
       calendarEvents, notifications, securityRisks,
       categories, identityCards, credentials, envProjects, envVars,
       settings,
@@ -51,7 +51,6 @@ export class ExportService {
       this.prisma.saving.findMany(where),
       this.prisma.investment.findMany(where),
       this.prisma.subscription.findMany(where),
-      this.prisma.asset.findMany(where),
       this.prisma.calendarEvent.findMany(where),
       this.prisma.notification.findMany({ where: { user_id: userId } }),
       this.prisma.securityRisk.findMany({ where: { user_id: userId } }),
@@ -68,7 +67,7 @@ export class ExportService {
 
     // 도메인별 JSON
     const data: Record<string, unknown> = {
-      transactions, savings, investments, subscriptions, assets,
+      transactions, savings, investments, subscriptions,
       calendarEvents, notifications, securityRisks,
       categories, identityCards, credentials, envProjects, envVars,
       settings,

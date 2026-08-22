@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import {
-  Prisma, Transaction, TransactionType, TransferTarget, TransferDirection,
+  Prisma, Transaction, TransactionType, TransferTarget,
 } from '@prisma/client';
 import * as ExcelJS from 'exceljs';
 import type { Writable } from 'stream';
@@ -96,12 +96,10 @@ export class TransactionService {
       recurringScheduleId: t.recurring_schedule_id ?? null,
       targetType: t.target_type ?? null,
       targetId: t.target_id ?? null,
-      targetDirection: t.target_direction ?? null,
     };
   }
 
   // 자산이동(transfer) 거래 1건이 대상 잔액에 미치는 효과를 적용. signedAmount가 양수면 누적, 음수면 역반영(수정/삭제 시 사용)
-  // asset 대상은 direction으로 증가/감소를 명시할 수 있음(예: 할부 구매=증가, 상환=감소) — 미지정 시 기존 동작(부채=감소, 그 외=증가)
   // required=false(역반영 전용)면 대상이 이미 삭제돼 없어도 조용히 건너뜀 — 연동 항목 삭제 후에도 거래 자체는 수정/삭제 가능해야 함
   private async applyTransferEffect(
     tx: Prisma.TransactionClient,
@@ -109,7 +107,6 @@ export class TransactionService {
     targetType: TransferTarget,
     targetId: number,
     signedAmount: Prisma.Decimal,
-    direction: TransferDirection | null = null,
     required = true,
   ): Promise<void> {
     if (signedAmount.isZero()) return;
@@ -119,22 +116,13 @@ export class TransactionService {
         data: { balance: { increment: signedAmount } },
       });
       if (!count && required) throw new BadRequestException('이동 대상 예적금을 찾을 수 없습니다.');
-    } else if (targetType === 'investment') {
+    } else {
       // target_id는 InvestmentAccount.id — 계좌 예수금에 누적(계좌 내 종목들이 공유)
       const { count } = await tx.investmentAccount.updateMany({
         where: { id: targetId, user_id: userId, deleted_at: null },
         data: { cash_balance: { increment: signedAmount } },
       });
       if (!count && required) throw new BadRequestException('이동 대상 투자 계좌를 찾을 수 없습니다.');
-    } else {
-      const asset = await tx.asset.findFirst({ where: { id: targetId, user_id: userId, deleted_at: null } });
-      if (!asset) {
-        if (required) throw new BadRequestException('이동 대상 자산을 찾을 수 없습니다.');
-        return;
-      }
-      const decreasing = direction ? direction === 'decrease' : asset.type === 'debt';
-      const signed = decreasing ? signedAmount.negated() : signedAmount;
-      await tx.asset.update({ where: { id: targetId }, data: { amount: { increment: signed } } });
     }
   }
 
@@ -146,11 +134,11 @@ export class TransactionService {
     patch: Prisma.TransactionUpdateInput,
   ): Promise<Transaction> {
     if (row.target_type && row.target_id) {
-      await this.applyTransferEffect(tx, userId, row.target_type, row.target_id, row.amount.negated(), row.target_direction, false);
+      await this.applyTransferEffect(tx, userId, row.target_type, row.target_id, row.amount.negated(), false);
     }
     const updated = await tx.transaction.update({ where: { id: row.id }, data: patch });
     if (updated.target_type && updated.target_id) {
-      await this.applyTransferEffect(tx, userId, updated.target_type, updated.target_id, updated.amount, updated.target_direction);
+      await this.applyTransferEffect(tx, userId, updated.target_type, updated.target_id, updated.amount);
     }
     return updated;
   }
@@ -188,7 +176,7 @@ export class TransactionService {
           user_id: userId, type: s.tx_type!, date: occ, title: s.title!, category: s.category!,
           amount: s.amount!, pay_method: s.pay_method ?? '', memo: s.memo,
           recurring_schedule_id: s.id, recurring_period: period,
-          target_type: s.target_type, target_id: s.target_id, target_direction: s.target_direction,
+          target_type: s.target_type, target_id: s.target_id,
         });
       }
       if (toCreate.length) {
@@ -196,7 +184,7 @@ export class TransactionService {
           await tx.transaction.createMany({ data: toCreate });
           // 자산이동 자동이체 설정이면 새로 생성된 회차분만큼 대상 잔액에 일괄 누적 (회차당 금액은 설정과 동일)
           if (s.target_type && s.target_id) {
-            await this.applyTransferEffect(tx, userId, s.target_type, s.target_id, s.amount!.mul(toCreate.length), s.target_direction);
+            await this.applyTransferEffect(tx, userId, s.target_type, s.target_id, s.amount!.mul(toCreate.length));
           }
           await tx.recurringSchedule.update({
             where: { id: s.id },
@@ -351,11 +339,10 @@ export class TransactionService {
           memo: dto.memo,
           target_type: hasTarget ? dto.targetType : null,
           target_id: hasTarget ? dto.targetId : null,
-          target_direction: hasTarget ? dto.targetDirection ?? null : null,
         },
       });
       if (hasTarget) {
-        await this.applyTransferEffect(tx, userId, dto.targetType!, dto.targetId!, row.amount, dto.targetDirection ?? null);
+        await this.applyTransferEffect(tx, userId, dto.targetType!, dto.targetId!, row.amount);
       }
       return row;
     });
@@ -547,7 +534,6 @@ export class TransactionService {
       memo: dto.memo,
       target_type: dto.targetType !== undefined ? dto.targetType : undefined,
       target_id: dto.targetId !== undefined ? dto.targetId : undefined,
-      target_direction: dto.targetDirection !== undefined ? dto.targetDirection : undefined,
     };
 
     return this.prisma.$transaction(async (tx) => {
@@ -561,7 +547,7 @@ export class TransactionService {
     const target = await this.findOwned(userId, id);
     await this.prisma.$transaction(async (tx) => {
       if (target.target_type && target.target_id) {
-        await this.applyTransferEffect(tx, userId, target.target_type, target.target_id, target.amount.negated(), target.target_direction, false);
+        await this.applyTransferEffect(tx, userId, target.target_type, target.target_id, target.amount.negated(), false);
       }
       await tx.transaction.update({ where: { id }, data: { deleted_at: new Date() } });
     });
@@ -577,7 +563,7 @@ export class TransactionService {
     await this.prisma.$transaction(async (tx) => {
       for (const row of rows) {
         if (row.target_type && row.target_id) {
-          await this.applyTransferEffect(tx, userId, row.target_type, row.target_id, row.amount.negated(), row.target_direction, false);
+          await this.applyTransferEffect(tx, userId, row.target_type, row.target_id, row.amount.negated(), false);
         }
         await tx.transaction.update({ where: { id: row.id }, data: { deleted_at: new Date() } });
       }

@@ -41,9 +41,9 @@ const LEVEL_STYLE: Record<LogLevel, string> = {
 };
 
 const LEVEL_LABEL: Record<LogLevel, string> = {
-  info: 'INFO',
-  warn: 'WARN',
-  error: 'ERROR',
+  info: '정보',
+  warn: '경고',
+  error: '오류',
 };
 
 function monthsAgo(n: number): string {

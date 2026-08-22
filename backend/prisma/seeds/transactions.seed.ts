@@ -26,10 +26,9 @@ type TxSeed = {
 function fixedRows(): TxSeed[] {
   return [
     { type: 'income',   date: '2026-01-25', title: '월급',          category: 'income_salary',          amount: 3200000, payMethod: '계좌이체', memo: '월 급여',       recurring: true, weekendAdjust: 'before' },
-    // 자산이동 — 예적금/투자/부채로 자동 누적되는 거래(target). 시드 시 이름으로 해당 행을 조회해 연동
+    // 자산이동 — 예적금/투자로 자동 누적되는 거래(target). 시드 시 이름으로 해당 행을 조회해 연동
     { type: 'transfer', date: '2026-01-30', title: '청약저축 납입',  category: 'transfer_move',          amount:  200000, payMethod: '계좌이체', memo: '잔액에서 자동 누적', recurring: true, weekendAdjust: 'none', target: { type: 'saving', name: '청약저축' } },
     { type: 'transfer', date: '2026-01-20', title: 'ISA 예수금 적립', category: 'transfer_move',        amount:  200000, payMethod: '계좌이체', memo: '계좌 예수금으로 자동 누적', recurring: true, weekendAdjust: 'none', target: { type: 'investment', name: 'ISA' } },
-    { type: 'transfer', date: '2026-01-25', title: '신용카드 할부 상환', category: 'transfer_move',      amount:  340000, payMethod: '계좌이체', memo: '부채 금액에서 자동 차감', recurring: true, weekendAdjust: 'none', target: { type: 'asset', name: '신용카드 할부' } },
     { type: 'expense',  date: '2026-01-29', title: '넷플릭스',       category: 'insurance_subscription', amount:   17000, payMethod: '신한카드', memo: '월정액',        recurring: true, weekendAdjust: 'none' },
     { type: 'expense',  date: '2026-01-15', title: '휴대폰 요금',    category: 'insurance_telecom',      amount:   55000, payMethod: '신한카드', memo: 'SKT 5G',        recurring: true, weekendAdjust: 'none' },
     { type: 'expense',  date: '2026-01-05', title: '실손보험료',     category: 'insurance_premium',      amount:   42000, payMethod: '계좌이체', memo: '월 보험료',     recurring: true, weekendAdjust: 'none' },
@@ -134,19 +133,18 @@ const VARIABLE: TxSeed[] = [
 ];
 
 // 한 사용자에게 수입/지출 더미를 채운다 (기존 행 제거 후 재삽입 → idempotent)
-// 자산이동(target) 거래는 예적금/투자/자산 더미가 먼저 시드되어 있어야 이름으로 연동된다 (seed.ts 실행 순서 참고)
+// 자산이동(target) 거래는 예적금/투자 더미가 먼저 시드되어 있어야 이름으로 연동된다 (seed.ts 실행 순서 참고)
 export const seedTransactions: SeedFn = async (prisma, userId) => {
   await prisma.transaction.deleteMany({ where: { user_id: userId } });
 
   // target_type='investment'는 종목(Investment)이 아닌 투자 계좌(InvestmentAccount)를 가리킴(예수금은 계좌 단위)
-  const [savings, investmentAccounts, assets] = await Promise.all([
+  const [savings, investmentAccounts] = await Promise.all([
     prisma.saving.findMany({ where: { user_id: userId }, select: { id: true, name: true } }),
     prisma.investmentAccount.findMany({ where: { user_id: userId }, select: { id: true, name: true } }),
-    prisma.asset.findMany({ where: { user_id: userId }, select: { id: true, name: true } }),
   ]);
   function targetIdOf(target?: { type: TransferTarget; name: string }): number | null {
     if (!target) return null;
-    const list = target.type === 'saving' ? savings : target.type === 'investment' ? investmentAccounts : assets;
+    const list = target.type === 'saving' ? savings : investmentAccounts;
     return list.find((r) => r.name === target.name)?.id ?? null;
   }
 

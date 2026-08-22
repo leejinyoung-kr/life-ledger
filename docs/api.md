@@ -90,7 +90,7 @@ Base URL: `http://localhost:8000/api/v1`
 | PATCH | /recurring-schedules/:id/toggle | 활성/일시정지 토글 |
 | DELETE | /recurring-schedules/:id | 자동이체 설정 삭제 (soft delete — 이미 생성된 거래/매수 내역은 유지) |
 
-> `kind=transaction`: `txType`·`title`·`category`·`amount`·`payMethod`·`memo`·`targetType`·`targetId`·`targetDirection` 사용. 생성된 회차는 `Transaction.recurring_schedule_id`로 연결되며, `recurring_period`로 중복 생성을 막는다(idempotent).
+> `kind=transaction`: `txType`·`title`·`category`·`amount`·`payMethod`·`memo`·`targetType`·`targetId` 사용. 생성된 회차는 `Transaction.recurring_schedule_id`로 연결되며, `recurring_period`로 중복 생성을 막는다(idempotent).
 > `kind=investment`: `investmentId`(대상 종목, symbol 필수)·`buyAmount` 또는 `buyQuantity`(상호배타) 사용. 크론이 해당 종목 행을 직접 누적 갱신한다(신규 거래 행을 만들지 않음).
 > 공통: `rule`(cycle/day/month/weekendAdjust) · `startDate`(최초 실행 기준일) · `active`(false면 새 회차를 생성하지 않음). 응답에는 `nextRunDate`(다음 실행 예정일)가 함께 내려온다.
 
@@ -108,12 +108,8 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /assets | 자산 목록 |
-| GET | /assets/summary | 총 자산/부채/순자산 요약 |
+| GET | /assets/summary | 순자산 요약 (현금+예적금+투자 집계) |
 | GET | /assets/trend | 순자산 추이 (NetWorthSnapshot) |
-| POST | /assets | 자산 추가 |
-| PUT | /assets/:id | 자산 수정 |
-| DELETE | /assets/:id | 자산 삭제 (soft delete) |
 
 ## 알림
 
@@ -169,19 +165,7 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /settings | 사용자 설정 조회 |
 | PUT | /settings | 사용자 설정 수정 |
 
-## 휴지통
-
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| GET | /trash | 삭제된 항목 목록 (`daysLeft` D-day 포함) |
-| POST | /trash/restore | 단건 복원 |
-| POST | /trash/bulk-restore | 선택 일괄 복원 |
-| POST | /trash/restore-all | 전체 복원 |
-| POST | /trash/purge | 단건 영구 삭제 |
-| POST | /trash/bulk-purge | 선택 일괄 영구 삭제 |
-| POST | /trash/empty | 휴지통 비우기 |
-
-> 30일 경과 자동 영구삭제 크론(매일 3시).
+> soft delete된 항목(가계부/예적금/투자/구독/캘린더/계정/신원/ENV)은 30일 경과 시 자동 영구삭제 크론(매일 3시)이 정리한다. 별도 복원 UI는 없다.
 
 ## 카테고리 관리
 
@@ -323,4 +307,4 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /system-logs?level=&category=&from=&to=&q=&page=&limit= | 크론/투자갱신 등 백그라운드 작업 실행 로그 목록 (레벨·카테고리·기간·메시지 검색 + 페이지네이션) |
 
 > `level`: info / warn / error · `category`: recurring_buy / recurring_tx / cron / asset / file / security / ai
-> 조회 전용(읽기 API만 존재) — 기록은 `SystemLogService.info/warn/error`를 각 서비스·크론이 직접 호출해 적재하며 실패해도 호출부 로직에 영향 없음(fire-and-forget). 90일 경과 항목은 휴지통 크론(매일 03:00)이 함께 정리.
+> 조회 전용(읽기 API만 존재) — 기록은 `SystemLogService.info/warn/error`를 각 서비스·크론이 직접 호출해 적재하며 실패해도 호출부 로직에 영향 없음(fire-and-forget). 90일 경과 항목은 소프트삭제 자동정리 크론(매일 03:00)이 함께 정리.

@@ -332,7 +332,6 @@ export class AuthService {
       this.prisma.saving.deleteMany(w),
       this.prisma.investment.deleteMany(w),
       this.prisma.subscription.deleteMany(w),
-      this.prisma.asset.deleteMany(w),
       this.prisma.netWorthSnapshot.deleteMany(w),
       this.prisma.userSettings.deleteMany(w),
       this.prisma.notification.deleteMany(w),

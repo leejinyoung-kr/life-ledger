@@ -17,10 +17,9 @@ import { seedTransactions } from './seeds/transactions.seed';
 import { seedSavings } from './seeds/savings.seed';
 import { seedInvestments } from './seeds/investments.seed';
 import { seedSubscriptions } from './seeds/subscriptions.seed';
-import { seedAssets } from './seeds/assets.seed';
+import { seedNetWorthSnapshots } from './seeds/net-worth-snapshot.seed';
 import { seedSettings } from './seeds/settings.seed';
 import { seedNotifications } from './seeds/notifications.seed';
-import { seedTrash } from './seeds/trash.seed';
 import { seedSecurity } from './seeds/security.seed';
 import { seedCategories } from './seeds/categories.seed';
 import { seedCredentials } from './seeds/credentials.seed';
@@ -32,11 +31,11 @@ const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
 
 // 등록된 도메인 시드 (실행 순서 = 배열 순서). 도메인 늘면 여기에 추가.
-// 예적금/투자/자산종합은 수입/지출보다 먼저 — 자산이동(transfer) 거래가 대상(target) 행을 이름으로 조회해 연동하므로 순서 필요
+// 예적금/투자는 수입/지출보다 먼저 — 자산이동(transfer) 거래가 대상(target) 행을 이름으로 조회해 연동하므로 순서 필요
 const SEEDS: { name: string; run: SeedFn }[] = [
   { name: '예적금', run: seedSavings },
   { name: '투자', run: seedInvestments },
-  { name: '자산종합', run: seedAssets },
+  { name: '순자산 스냅샷', run: seedNetWorthSnapshots },
   { name: '수입/지출', run: seedTransactions },
   { name: '구독', run: seedSubscriptions },
   { name: '설정', run: seedSettings },
@@ -46,8 +45,6 @@ const SEEDS: { name: string; run: SeedFn }[] = [
   { name: '신원지갑', run: seedIdentity },
   { name: '보안센터', run: seedSecurity },
   { name: '카테고리', run: seedCategories },
-  // 휴지통: 도메인 시드(전체 wipe) 이후 삭제 더미를 심어야 하므로 반드시 마지막
-  { name: '휴지통', run: seedTrash },
   { name: '시스템 로그', run: seedSystemLogs },
 ];
 

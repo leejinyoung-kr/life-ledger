@@ -21,13 +21,12 @@ import { downloadTransactionTemplate } from '@/lib/excel';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import {
-  TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, TRANSFER_DIRECTION_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
+  TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
   won, signedWon, dotDate,
   type Category, type Transaction, type TransactionSummary, type TrendBucket,
-  type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget, type TransferDirection,
+  type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget,
   type Saving, type InvestmentAccount, type RecurringSchedule,
 } from '@/lib/finance';
-import type { Asset } from '@/lib/networth';
 import {
   TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
   AMT_COLOR, RowActions, CardActions, toDay, monthsAgo, useAddTrigger,
@@ -105,8 +104,8 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
   const trend = trendQuery.data ?? [];
   const recurring = recurringQuery.data ?? [];
   const error = (rowsQuery.error ?? summaryQuery.error)?.message ?? null;
-  // 자산이동 거래가 예적금/투자/자산 잔액을 바꿀 수 있어 해당 탭도 함께 무효화
-  const reload = () => invalidate(qk.transactions.all, qk.savings.all, qk.investments.all, qk.investmentAccounts.all, qk.assets.all);
+  // 자산이동 거래가 예적금/투자 잔액을 바꿀 수 있어 해당 탭도 함께 무효화
+  const reload = () => invalidate(qk.transactions.all, qk.savings.all, qk.investments.all, qk.investmentAccounts.all);
   const reloadRecurring = () => invalidate(qk.recurringSchedules.all);
 
   async function handleToggleRecurring(id: number) {
@@ -465,7 +464,6 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
   const [memo, setMemo] = useState('');
   const [targetType, setTargetType] = useState<TransferTarget | ''>('');
   const [targetId, setTargetId] = useState<number | ''>('');
-  const [targetDirection, setTargetDirection] = useState<TransferDirection>('decrease');
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
 
@@ -474,14 +472,11 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
   const savingsQuery = useApiQuery<Saving[]>(qk.savings.list('transfer-target'), '/savings', { enabled: targetPickerOpen && targetType === 'saving' });
   // 투자는 종목(Investment)이 아니라 예수금을 보유한 투자 계좌(InvestmentAccount)가 자산이동 대상
   const investmentAccountsQuery = useApiQuery<InvestmentAccount[]>(qk.investmentAccounts.list('transfer-target'), '/investment-accounts', { enabled: targetPickerOpen && targetType === 'investment' });
-  const assetsQuery = useApiQuery<Asset[]>(qk.assets.list('transfer-target'), '/assets', { enabled: targetPickerOpen && targetType === 'asset' });
   const targetItems: { id: number; label: string }[] = targetType === 'saving'
     ? (savingsQuery.data ?? []).map((s) => ({ id: s.id, label: `${s.bank} · ${s.name}` }))
     : targetType === 'investment'
       ? (investmentAccountsQuery.data ?? []).map((a) => ({ id: a.id, label: a.name }))
-      : targetType === 'asset'
-        ? (assetsQuery.data ?? []).map((a) => ({ id: a.id, label: a.name }))
-        : [];
+      : [];
 
   useEffect(() => {
     if (!state.open) return;
@@ -504,7 +499,6 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
     setMemo(e?.memo ?? pf?.memo ?? '');
     setTargetType(e?.targetType ?? '');
     setTargetId(e?.targetId ?? '');
-    setTargetDirection(e?.targetDirection ?? 'decrease');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
   }, [state.open, e]);
 
@@ -528,11 +522,10 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
     if (t !== 'transfer') { setTargetType(''); setTargetId(''); }
   }
 
-  // 이동 대상 종류 변경 시 항목 선택·방향 초기화 (목록이 바뀌므로)
+  // 이동 대상 종류 변경 시 항목 선택 초기화 (목록이 바뀌므로)
   function handleChangeTargetType(tt: TransferTarget | '') {
     setTargetType(tt);
     setTargetId('');
-    setTargetDirection('decrease');
   }
 
   // 대분류 변경 시 그 대분류의 첫 소분류로 설정
@@ -555,7 +548,6 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
         memo: memo || undefined,
         targetType: type === 'transfer' && targetType && targetId !== '' ? targetType : undefined,
         targetId: type === 'transfer' && targetType && targetId !== '' ? targetId : undefined,
-        targetDirection: type === 'transfer' && targetType === 'asset' && targetId !== '' ? targetDirection : undefined,
       };
       if (state.mode === 'edit' && e) await api.put(`/transactions/${e.id}`, payload);
       else await api.post('/transactions', payload);
@@ -614,15 +606,6 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
           </Field>
         </div>
       )}
-      {type === 'transfer' && targetType === 'asset' && targetId !== '' && (
-        <Field label="대상 변화 방향">
-          <select className="input" value={targetDirection} onChange={(ev) => setTargetDirection(ev.target.value as TransferDirection)}>
-            {(Object.entries(TRANSFER_DIRECTION_LABEL) as [TransferDirection, string][]).map(([v, label]) => (
-              <option key={v} value={v}>{label}</option>
-            ))}
-          </select>
-        </Field>
-      )}
       {type === 'expense' && (
         <Field label="결제수단" required>
           <select className="input" aria-label="결제수단" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
@@ -669,21 +652,17 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
   const [weekendAdjust, setWeekendAdjust] = useState<WeekendAdjust>('none');
   const [targetType, setTargetType] = useState<TransferTarget | ''>('');
   const [targetId, setTargetId] = useState<number | ''>('');
-  const [targetDirection, setTargetDirection] = useState<TransferDirection>('decrease');
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
 
   const targetPickerOpen = state.open && type === 'transfer';
   const savingsQuery = useApiQuery<Saving[]>(qk.savings.list('transfer-target'), '/savings', { enabled: targetPickerOpen && targetType === 'saving' });
   const investmentAccountsQuery = useApiQuery<InvestmentAccount[]>(qk.investmentAccounts.list('transfer-target'), '/investment-accounts', { enabled: targetPickerOpen && targetType === 'investment' });
-  const assetsQuery = useApiQuery<Asset[]>(qk.assets.list('transfer-target'), '/assets', { enabled: targetPickerOpen && targetType === 'asset' });
   const targetItems: { id: number; label: string }[] = targetType === 'saving'
     ? (savingsQuery.data ?? []).map((s) => ({ id: s.id, label: `${s.bank} · ${s.name}` }))
     : targetType === 'investment'
       ? (investmentAccountsQuery.data ?? []).map((a) => ({ id: a.id, label: a.name }))
-      : targetType === 'asset'
-        ? (assetsQuery.data ?? []).map((a) => ({ id: a.id, label: a.name }))
-        : [];
+      : [];
 
   useEffect(() => {
     if (!state.open) return;
@@ -709,7 +688,6 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
     setWeekendAdjust(r?.rule?.weekendAdjust ?? 'none');
     setTargetType(r?.targetType ?? '');
     setTargetId(r?.targetId ?? '');
-    setTargetDirection(r?.targetDirection ?? 'decrease');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
   }, [state.open, r]);
 
@@ -734,7 +712,6 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
   function handleChangeTargetType(tt: TransferTarget | '') {
     setTargetType(tt);
     setTargetId('');
-    setTargetDirection('decrease');
   }
 
   function handleChangeParent(pc: string) {
@@ -762,7 +739,6 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
         memo: memo || undefined,
         targetType: type === 'transfer' && targetType && targetId !== '' ? targetType : undefined,
         targetId: type === 'transfer' && targetType && targetId !== '' ? targetId : undefined,
-        targetDirection: type === 'transfer' && targetType === 'asset' && targetId !== '' ? targetDirection : undefined,
       };
       if (r) await api.put(`/recurring-schedules/${r.id}`, payload);
       else await api.post('/recurring-schedules', payload);
@@ -817,15 +793,6 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
             </select>
           </Field>
         </div>
-      )}
-      {type === 'transfer' && targetType === 'asset' && targetId !== '' && (
-        <Field label="대상 변화 방향">
-          <select className="input" value={targetDirection} onChange={(ev) => setTargetDirection(ev.target.value as TransferDirection)}>
-            {(Object.entries(TRANSFER_DIRECTION_LABEL) as [TransferDirection, string][]).map(([v, label]) => (
-              <option key={v} value={v}>{label}</option>
-            ))}
-          </select>
-        </Field>
       )}
       {type === 'expense' && (
         <Field label="결제수단" required>

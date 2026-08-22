@@ -18,7 +18,6 @@ import { SavingModule } from './saving/saving.module';
 import { SecurityModule } from './security/security.module';
 import { SettingsModule } from './settings/settings.module';
 import { SubscriptionModule } from './subscription/subscription.module';
-import { TrashModule } from './trash/trash.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { SearchModule } from './search/search.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -58,7 +57,6 @@ import { AllExceptionsFilter } from '@leejinyoun/core-common';
     SettingsModule,
     NotificationModule,
     CalendarModule,
-    TrashModule,
     SecurityModule,
     CategoryModule,
     SearchModule,

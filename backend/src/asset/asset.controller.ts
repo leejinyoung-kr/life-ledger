@@ -1,23 +1,9 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  ParseIntPipe,
-  Post,
-  Put,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { AssetType } from '@prisma/client';
 import { CurrentUser } from '@leejinyoun/core-auth';
 import { JwtAuthGuard } from '@leejinyoun/core-auth';
 import type { AuthUser } from '../auth/auth-user';
 import { AssetService } from './asset.service';
-import { CreateAssetDto } from './dto/create-asset.dto';
-import { UpdateAssetDto } from './dto/update-asset.dto';
 
 @ApiTags('자산 종합')
 @ApiBearerAuth()
@@ -26,7 +12,7 @@ import { UpdateAssetDto } from './dto/update-asset.dto';
 export class AssetController {
   constructor(private readonly service: AssetService) {}
 
-  // 요약 (총자산/총부채/순자산 + 증감 + 구성 + 유형별)
+  // 요약 (총자산/순자산 + 증감 + 구성 + 유형별)
   @Get('summary')
   summary(@CurrentUser() user: AuthUser) {
     return this.service.summary(user.id);
@@ -36,40 +22,5 @@ export class AssetController {
   @Get('trend')
   trend(@CurrentUser() user: AuthUser) {
     return this.service.trend(user.id);
-  }
-
-  // 자산/부채 목록 (type 쿼리로 필터 — 없으면 realestate+debt 반환)
-  // page 지정 시 서버 페이징(Paginated + 합계), 없으면 전체 배열(순자산/대시보드 호환)
-  @Get()
-  findAll(
-    @CurrentUser() user: AuthUser,
-    @Query('type') type?: AssetType,
-    @Query('take') take?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.service.findAll(user.id, type, take ? Number(take) : undefined, page, limit);
-  }
-
-  // 자산/부채 추가
-  @Post()
-  create(@CurrentUser() user: AuthUser, @Body() dto: CreateAssetDto) {
-    return this.service.create(user.id, dto);
-  }
-
-  // 자산/부채 수정
-  @Put(':id')
-  update(
-    @CurrentUser() user: AuthUser,
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateAssetDto,
-  ) {
-    return this.service.update(user.id, id, dto);
-  }
-
-  // 자산/부채 삭제
-  @Delete(':id')
-  remove(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
-    return this.service.remove(user.id, id);
   }
 }

@@ -5,24 +5,20 @@ import { useSearchParams } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import Button from '@/components/ui/Button';
 import {
-  IconWon, IconBank, IconTrendUp, IconHome, IconCreditCard,
+  IconWon, IconBank, IconTrendUp,
 } from '@/components/icons';
 import { useApiQuery } from '@/lib/query';
 import type { Category } from '@/lib/finance';
 import LedgerTab from './_tabs/LedgerTab';
 import SavingsTab from './_tabs/SavingsTab';
 import InvestTab from './_tabs/InvestTab';
-import RealEstateTab from './_tabs/RealEstateTab';
-import DebtTab from './_tabs/DebtTab';
 
-type TabId = 'ledger' | 'savings' | 'invest' | 'realestate' | 'debt';
+type TabId = 'ledger' | 'savings' | 'invest';
 
 const ADD_LABELS: Record<TabId, string> = {
   ledger: '항목 추가',
   savings: '예적금 추가',
   invest: '투자 항목 추가',
-  realestate: '부동산 추가',
-  debt: '부채 추가',
 };
 
 function Tab({ active, onClick, icon, children }: { active: boolean; onClick: () => void; icon: ReactNode; children: ReactNode }) {
@@ -42,7 +38,7 @@ function TransactionsPageInner() {
   const initialTab = (searchParams.get('tab') as TabId) ?? 'ledger';
   const [tab, setTab] = useState<TabId>(initialTab);
   const [addTrigger, setAddTrigger] = useState<Record<TabId, number>>({
-    ledger: 0, savings: 0, invest: 0, realestate: 0, debt: 0,
+    ledger: 0, savings: 0, invest: 0,
   });
   // 탭별 카테고리 (React Query 캐시 — 활성만 사용)
   const txCatQuery = useApiQuery<Category[]>(['categories', 'transaction'], '/categories?domain=transaction');
@@ -70,7 +66,7 @@ function TransactionsPageInner() {
             <span className="md:hidden">추가</span>
           </Button>
         </div>
-        <p className="text-sm text-secondary mt-1.5 break-keep">수입/지출, 예적금, 투자, 부동산, 부채를 한 곳에서 관리하세요.</p>
+        <p className="text-sm text-secondary mt-1.5 break-keep">수입/지출, 예적금, 투자를 한 곳에서 관리하세요.</p>
       </div>
 
       <div className="flex items-center gap-2 border-b border-border mb-6">
@@ -78,16 +74,12 @@ function TransactionsPageInner() {
           <Tab active={tab === 'ledger'} onClick={() => setTab('ledger')} icon={<IconWon />}>수입 / 지출</Tab>
           <Tab active={tab === 'savings'} onClick={() => setTab('savings')} icon={<IconBank />}>예적금</Tab>
           <Tab active={tab === 'invest'} onClick={() => setTab('invest')} icon={<IconTrendUp />}>투자</Tab>
-          <Tab active={tab === 'realestate'} onClick={() => setTab('realestate')} icon={<IconHome />}>부동산</Tab>
-          <Tab active={tab === 'debt'} onClick={() => setTab('debt')} icon={<IconCreditCard />}>부채</Tab>
         </div>
       </div>
 
       {tab === 'ledger' && <LedgerTab categories={txCats} bankCats={bankCats} payMethodCats={payMethodCats} addTrigger={addTrigger.ledger} />}
       {tab === 'savings' && <SavingsTab savingCats={savingCats} bankCats={bankCats} addTrigger={addTrigger.savings} />}
       {tab === 'invest' && <InvestTab investCats={investCats} addTrigger={addTrigger.invest} />}
-      {tab === 'realestate' && <RealEstateTab addTrigger={addTrigger.realestate} />}
-      {tab === 'debt' && <DebtTab addTrigger={addTrigger.debt} />}
     </AppShell>
   );
 }

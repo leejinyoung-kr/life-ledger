@@ -10,7 +10,7 @@
 
 - 자격증명 관리 (계정·신원 번호·ENV 값 AES-256-GCM 암호화 저장) — **구현 완료**
 - 파일 보관함 (Backblaze B2 — 폴더·업로드·presigned·MIME/매직바이트 검증·SHA-256 중복제거) — **구현 완료**
-- 자산 현황 (금융 자산 요약·월별 추이·현금흐름 예측) — 구현 완료
+- 자산 현황 (현금·예적금·투자 순자산 요약·월별 추이·현금흐름 예측) — 구현 완료
 - 캘린더 (일정 + 구독결제·예적금만기·투자계좌만기(ISA 등)·신원만료 가상 이벤트 연동) / 구독 — 구현 완료
 - 보안 코어 (마스터 잠금·접근 감사 로그·보안점수 추이·비번 회전·2FA 백업코드·강도 통계) — 구현 완료
 - 외부 연동 (HIBP 유출 비밀번호 검사) — 구현 완료
@@ -33,7 +33,7 @@ doc-nexus/
 │       ├── saving/        # 예적금
 │       ├── investment/    # 투자
 │       ├── subscription/  # 구독 서비스
-│       ├── asset/         # 자산 (순자산)
+│       ├── asset/         # 순자산 요약/추이 (현금+예적금+투자 집계, 전용 테이블 없음)
 │       ├── notification/  # 알림
 │       ├── calendar/      # 캘린더 (실제 일정(양력/음력) + 구독/예적금/투자계좌만기/신원/공휴일 가상 이벤트 연동)
 │       ├── holiday/       # 공휴일·대체공휴일 (공공데이터포털 특일 정보 API 연동 + 연 단위 캐싱)
@@ -41,7 +41,6 @@ doc-nexus/
 │       ├── access-log/    # 보관함 접근 감사 로그 (전역)
 │       ├── settings/      # 사용자 설정
 │       ├── category/      # 카테고리 관리
-│       ├── trash/         # 휴지통
 │       ├── search/        # 통합 검색 (거래·계정·신원·ENV)
 │       ├── dashboard/     # 대시보드 요약 + 현금흐름 예측 + 통합 D-day
 │       ├── identity/      # 신원 지갑 (번호 AES 암호화 + 사본 이미지 fileId)
@@ -50,7 +49,7 @@ doc-nexus/
 │       ├── file/          # 파일 보관함 (Backblaze B2)
 │       ├── export/        # 데이터 내보내기 (계정 JSON·전체 ZIP)
 │       ├── import/        # 데이터 가져오기 (계정 JSON 복원)
-│       ├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수 스냅샷·순자산 스냅샷·DB 백업·투자 현재가 갱신)
+│       ├── maintenance/   # 스케줄 크론 (알림·보안점수 스냅샷·순자산 스냅샷·DB 백업·투자 현재가 갱신·소프트삭제 항목 자동정리)
 │       ├── ai/            # AI 리포트 (사용자별 OpenAI 키)
 │       ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
 │       ├── push/          # 웹 푸시 구독/발송 (VAPID)
@@ -95,8 +94,7 @@ doc-nexus/
 | Saving | user_id, type, interest_rate, balance, maturity_date | 구현 완료 |
 | Investment | user_id, type, principal, current_value, purchase_date | 구현 완료 |
 | Subscription | user_id, name, amount, cycle, status, next_payment_date | 구현 완료 |
-| Asset | user_id, name, type(cash/savings/investment/realestate/debt/etc), amount | 구현 완료 |
-| NetWorthSnapshot | user_id, month, total_assets, total_debt, cash_total(현금 스냅샷 캐시) | 구현 완료 |
+| NetWorthSnapshot | user_id, month, total_assets, total_debt(부동산/부채 기능 제거 이후 항상 0), cash_total(현금 스냅샷 캐시) | 구현 완료 |
 | UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, categories/widgets(JSON), menu_order | 구현 완료 |
 | Notification | user_id, group, tone, title, description, source, read_at | 구현 완료 |
 | CalendarEvent | user_id, date, type(pay/due/exp/task), title, is_lunar/lunar_month/lunar_day/lunar_leap, recur_freq, recur_until | 구현 완료 |
@@ -119,7 +117,7 @@ doc-nexus/
 | EmailLoginCode | email, code_hash(SHA-256), expires_at, consumed_at, attempts (이메일 인증코드 로그인, 화이트리스트 대조) | 구현 완료 |
 | SystemLog | user_id(nullable, FK 아님), level(info/warn/error), category, message, metadata(JSON) — 크론·투자갱신 등 백그라운드 작업 로그, 90일 경과 시 자동 삭제 | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 31개 테이블
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 30개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---
@@ -137,7 +135,6 @@ doc-nexus/
 | Frontend — 알림 | 구현 완료 |
 | Frontend — 보안 | 구현 완료 |
 | Frontend — 설정 | 구현 완료 |
-| Frontend — 휴지통 | 구현 완료 |
 | Frontend — 자격증명 / ENV / 신원지갑 | 구현 완료 (백엔드 연동) |
 | Frontend — 파일 보관함 | 구현 완료 (B2 연동) |
 | Frontend — AI 리포트 | 구현 완료 (백엔드 연동) |
@@ -145,7 +142,7 @@ doc-nexus/
 | Frontend — React Query 전환 | 전 페이지·공통 컴포넌트 완료 |
 | Backend — Google OAuth + JWT (전역 가드 + Rate-limit) | 구현 완료 |
 | Backend — 가계부/구독/자산/캘린더 | 구현 완료 |
-| Backend — 알림/보안/설정/휴지통/통합검색/대시보드 | 구현 완료 |
+| Backend — 알림/보안/설정/통합검색/대시보드 | 구현 완료 |
 | Backend — 보관함 (신원/계정/ENV, AES 암호화) | 구현 완료 |
 | Backend — 마스터 잠금·접근로그·보안점수추이·유출검사·강도통계 | 구현 완료 |
 | Backend — 파일 보관함 (Backblaze B2) | 구현 완료 |
@@ -153,7 +150,7 @@ doc-nexus/
 | Backend — 현금흐름 예측·통합 D-day | 구현 완료 |
 | Backend — AI 리포트 (OpenAI, 사용자별 키) | 구현 완료 |
 | Backend — 시스템 로그 / 순자산 월간 스냅샷 / 투자 현재가 자동 갱신 | 구현 완료 |
-| DB | 31개 테이블 구현 완료 |
+| DB | 30개 테이블 구현 완료 |
 
 ---
 

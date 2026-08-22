@@ -32,11 +32,12 @@ export class NetWorthSnapshotCronService {
       try {
         const summary = await this.assetService.summary(u.id);
         // cash_total은 summary()의 델타 계산 기준점이 되므로 전체 재집계로 정확히 저장 — 지난달치 뒤늦은 수정도 여기서 자연 치유됨
+        // total_debt: 부채(자산관리) 기능 제거 이후로는 항상 0 — 과거 스냅샷의 기록값은 그대로 유지
         const cashTotal = await this.assetService.cashTotalForSnapshot(u.id, month);
         await this.prisma.netWorthSnapshot.upsert({
           where: { user_id_month: { user_id: u.id, month } },
-          create: { user_id: u.id, month, total_assets: summary.totalAssets, total_debt: summary.totalDebt, cash_total: cashTotal },
-          update: { total_assets: summary.totalAssets, total_debt: summary.totalDebt, cash_total: cashTotal },
+          create: { user_id: u.id, month, total_assets: summary.totalAssets, total_debt: 0, cash_total: cashTotal },
+          update: { total_assets: summary.totalAssets, total_debt: 0, cash_total: cashTotal },
         });
         ok++;
       } catch (e) {

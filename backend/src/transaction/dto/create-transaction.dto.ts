@@ -1,7 +1,6 @@
 import {
   TransactionType,
   TransferTarget,
-  TransferDirection,
 } from '@prisma/client';
 import {
   IsDateString,
@@ -50,13 +49,8 @@ export class CreateTransactionDto {
   @IsEnum(TransferTarget)
   targetType?: TransferTarget;
 
-  // 자산이동 누적 대상 id (Saving/Investment/Asset.id, target_type 기준)
+  // 자산이동 누적 대상 id (Saving/InvestmentAccount.id, target_type 기준)
   @ValidateIf((o: CreateTransactionDto) => o.targetType !== undefined)
   @IsInt()
   targetId?: number;
-
-  // 대상 잔액 변화 방향 — asset 대상 전용(예: 할부 구매=increase, 상환=decrease). 미지정 시 자산 유형 기반 기존 동작
-  @IsOptional()
-  @IsEnum(TransferDirection)
-  targetDirection?: TransferDirection;
 }

@@ -42,10 +42,9 @@ export const qk = {
   investments: { all: ['investments'] as const, list: (params?: unknown) => ['investments', 'list', params ?? null] as const },
   recurringSchedules: { all: ['recurring-schedules'] as const, list: (kind?: 'transaction' | 'investment') => ['recurring-schedules', 'list', kind ?? null] as const },
   subscriptions: { all: ['subscriptions'] as const, list: (params?: unknown) => ['subscriptions', 'list', params ?? null] as const },
-  assets: { all: ['assets'] as const, list: (params?: unknown) => ['assets', 'list', params ?? null] as const, networth: () => ['assets', 'networth'] as const },
+  assets: { all: ['assets'] as const, networth: () => ['assets', 'networth'] as const },
   calendar: { all: ['calendar'] as const, list: (month?: string) => ['calendar', month ?? null] as const },
   notifications: { all: ['notifications'] as const, list: (params?: unknown) => ['notifications', 'list', params ?? null] as const, unread: () => ['notifications', 'unread'] as const },
-  trash: { all: ['trash'] as const, list: (params?: unknown) => ['trash', 'list', params ?? null] as const },
   files: { all: ['files'] as const, list: (folderId?: number) => ['files', folderId ?? 'root'] as const },
   security: {
     all: ['security'] as const,

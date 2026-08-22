@@ -57,8 +57,6 @@ const CATEGORIES: CatSeed[] = [
   { domain: 'asset', code: 'cash',        label: '현금성' },
   { domain: 'asset', code: 'savings',     label: '예적금' },
   { domain: 'asset', code: 'investment',  label: '투자' },
-  { domain: 'asset', code: 'realestate',  label: '부동산' },
-  { domain: 'asset', code: 'debt',        label: '부채' },
   { domain: 'asset', code: 'etc',         label: '기타' },
 
   // ── 투자 ────────────────────────────────

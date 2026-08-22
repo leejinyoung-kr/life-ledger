@@ -89,14 +89,13 @@ src/
 ├── investment-account/ # 투자 계좌 (예수금 — 종목 여러 개가 공유)
 ├── investment/    # 투자 (반복매수 + 현재가 자동 갱신)
 ├── subscription/  # 구독 서비스
-├── asset/         # 자산 (순자산)
+├── asset/         # 순자산 요약/추이 (현금+예적금+투자 집계, 전용 테이블 없음)
 ├── notification/  # 알림
 ├── calendar/      # 캘린더
 ├── security/      # 보안센터 + 마스터 잠금(Vault) + 유출검사·강도통계
 ├── access-log/    # 보관함 접근 감사 로그 (전역)
 ├── settings/      # 사용자 설정
 ├── category/      # 카테고리 관리
-├── trash/         # 휴지통
 ├── search/        # 통합 검색
 ├── dashboard/     # 대시보드 요약 + 현금흐름 예측 + D-day
 ├── identity/      # 신원 지갑 (AES + 사본 fileId)
@@ -105,7 +104,7 @@ src/
 ├── file/          # 파일 보관함 (Backblaze B2)
 ├── export/        # 데이터 내보내기 (JSON/ZIP)
 ├── import/        # 데이터 가져오기 (계정 JSON 복원)
-├── maintenance/   # 스케줄 크론 (알림·휴지통·보안점수·순자산 스냅샷·투자 현재가 갱신)
+├── maintenance/   # 스케줄 크론 (알림·보안점수·순자산 스냅샷·투자 현재가 갱신·소프트삭제 항목 자동정리)
 ├── ai/            # AI 리포트 / 자연어 거래 파싱 (사용자별 OpenAI 키)
 ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
 ├── push/          # 웹 푸시 구독/발송 (VAPID)

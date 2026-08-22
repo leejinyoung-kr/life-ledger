@@ -35,7 +35,6 @@ frontend/
 │   │   ├── notifications/ # 알림
 │   │   ├── security/      # 보안
 │   │   ├── settings/      # 설정
-│   │   ├── trash/         # 휴지통
 │   │   ├── credentials/   # 계정 보관함 (백엔드 연동 — AES 암호화)
 │   │   ├── envs/          # ENV 보관함 (백엔드 연동 — AES 암호화)
 │   │   ├── id-wallet/     # 신원 지갑 (백엔드 연동 — AES 암호화)

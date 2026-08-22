@@ -20,7 +20,6 @@ model User {
   investmentAccounts InvestmentAccount[]
   investments        Investment[]
   subscriptions      Subscription[]
-  assets             Asset[]
   nwSnapshots        NetWorthSnapshot[]
   settings           UserSettings?
   notifications      Notification[]
@@ -53,21 +52,12 @@ enum TransactionType {
   @@map("transaction_type")
 }
 
-/// 자산이동(transfer) 누적 대상: saving(예적금) | investment(투자 예수금) | asset(부동산·부채)
+/// 자산이동(transfer) 누적 대상: saving(예적금) | investment(투자 예수금)
 enum TransferTarget {
   saving
   investment
-  asset
 
   @@map("transfer_target")
-}
-
-/// 자산이동 대상 잔액 변화 방향: increase(증가) | decrease(감소). asset 대상 전용, 미지정 시 기존 동작
-enum TransferDirection {
-  increase
-  decrease
-
-  @@map("transfer_direction")
 }
 
 /// 수입/지출 내역 (가계부 - 수입/지출 탭)
@@ -85,7 +75,6 @@ model Transaction {
   recurring_period      String?            @db.VarChar(10) /// 반복 회차 식별 (YYYY-MM / YYYY / YYYY-MM-DD, recurring_schedule_id 있을 때만 사용)
   target_type           TransferTarget? /// 이동 대상 종류(transfer 전용) — 지정 시 대상 잔액에 자동 반영
   target_id             Int? /// 대상 테이블 id (target_type 기준, FK 아님)
-  target_direction      TransferDirection? /// 잔액 변화 방향(asset 전용)
   deleted_at            DateTime?
   created_at            DateTime           @default(now())
   updated_at            DateTime           @updatedAt
@@ -221,7 +210,6 @@ model RecurringSchedule {
   memo             String?            @db.VarChar(300) /// kind=transaction 전용
   target_type      TransferTarget? /// kind=transaction 전용 — 이동 대상 종류(transfer)
   target_id        Int? /// kind=transaction 전용 — 대상 테이블 id
-  target_direction TransferDirection? /// kind=transaction 전용 — 잔액 변화 방향(asset 전용)
 
   investment_id Int? /// investment.id FK — kind=investment 전용, 반복매수 대상 종목
   buy_amount    Decimal? @db.Decimal(15, 2) /// kind=investment 전용 — 회차당 매수금액(국내: 원, 해외: 달러)
@@ -288,37 +276,6 @@ model Subscription {
 
   @@index([user_id])
   @@map("subscription")
-}
-
-/// 자산 유형: cash(현금성) | savings(예적금) | investment(투자) | realestate(부동산) | debt(부채) | etc(기타)
-enum AssetType {
-  cash
-  savings
-  investment
-  realestate
-  debt
-  etc
-
-  @@map("asset_type")
-}
-
-/// 자산/부채 (자산 종합 페이지) — debt 는 부채로 순자산에서 차감
-model Asset {
-  id            Int       @id @default(autoincrement())
-  user_id       Int /// user.id FK
-  type          AssetType
-  name          String    @db.VarChar(100)
-  amount        Decimal   @db.Decimal(15, 2)
-  interest_rate Decimal?  @db.Decimal(5, 2)
-  memo          String?   @db.VarChar(300)
-  deleted_at    DateTime?
-  created_at    DateTime  @default(now())
-  updated_at    DateTime  @updatedAt
-
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id])
-  @@map("asset")
 }
 
 /// 순자산 월별 스냅샷 (자산 종합 - 추이 차트용)

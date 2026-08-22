@@ -4,16 +4,7 @@
  */
 
 // ── 타입 ────────────────────────────────────────────────────────
-export type AssetType = 'cash' | 'savings' | 'investment' | 'realestate' | 'debt' | 'etc';
-
-export interface Asset {
-  id: number;
-  type: AssetType;
-  name: string;
-  amount: number;
-  interestRate: number | null;
-  memo: string | null;
-}
+export type AssetType = 'cash' | 'savings' | 'investment';
 
 export interface AllocationItem {
   type: AssetType;
@@ -30,7 +21,6 @@ export interface ByTypeItem {
 
 export interface NetWorthSummary {
   totalAssets: number;
-  totalDebt: number;
   netWorth: number;
   changeAmount: number;
   changeRate: number;
@@ -50,19 +40,13 @@ export const ASSET_TYPE_LABEL: Record<AssetType, string> = {
   cash: '현금',
   savings: '예적금',
   investment: '투자',
-  realestate: '부동산',
-  debt: '부채',
-  etc: '기타',
 };
 
 // 도넛/범례 색상 (CSS 변수)
 export const ASSET_TYPE_COLOR: Record<AssetType, string> = {
   investment: 'var(--accent)',
-  realestate: 'var(--blue)',
   savings: 'var(--amber)',
   cash: 'var(--text-muted)',
-  etc: 'var(--success)',
-  debt: 'var(--danger)',
 };
 
 // 유형별 통계 카드 메타 (아이콘/톤/라벨)
@@ -70,18 +54,7 @@ export const BY_TYPE_CARD: Record<string, { icon: string; tone: 'green' | 'red' 
   cash: { icon: '💵', tone: 'green', label: '현금성 자산' },
   savings: { icon: '🏦', tone: 'blue', label: '예적금' },
   investment: { icon: '📈', tone: 'amber', label: '투자' },
-  realestate: { icon: '🏠', tone: 'red', label: '부동산' },
 };
-
-// 자산 추가 폼 유형 옵션
-export const ASSET_TYPE_OPTIONS: { value: AssetType; label: string }[] = [
-  { value: 'cash', label: '현금성 자산' },
-  { value: 'savings', label: '예적금' },
-  { value: 'investment', label: '투자' },
-  { value: 'realestate', label: '부동산' },
-  { value: 'debt', label: '부채' },
-  { value: 'etc', label: '기타' },
-];
 
 // ── 포맷 유틸 ────────────────────────────────────────────────────
 // 백만 단위 압축 표기 (₩142.8M)

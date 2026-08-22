@@ -1,9 +1,9 @@
 # DocNexus — ERD
 
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
-> 마이그레이션: `20260713000000_init`(전 도메인 통합) + `20260715104820_add_recurring_schedule` · `20260715105206_drop_legacy_recurring_columns` · `20260731121236_remove_note_task_calendar` · `20260801140000_restore_calendar_remove_goal` · `20260801225151_add_calendar_lunar` · `20260801233607_add_holiday_and_show_holidays`
+> 마이그레이션: `20260713000000_init`(전 도메인 통합) + `20260715104820_add_recurring_schedule` · `20260715105206_drop_legacy_recurring_columns` · `20260731121236_remove_note_task_calendar` · `20260801140000_restore_calendar_remove_goal` · `20260801225151_add_calendar_lunar` · `20260801233607_add_holiday_and_show_holidays` · `20260822225654_remove_trash_and_asset_realestate_debt`(휴지통 기능 삭제 + Asset 테이블/부동산·부채 제거)
 
-## 테이블 목록 (31)
+## 테이블 목록 (30)
 
 | 테이블 | 설명 |
 | --- | --- |
@@ -14,7 +14,6 @@
 | InvestmentAccount | 투자 계좌 (예수금 보유 — 종목 여러 개가 공유) |
 | Investment | 투자 종목 (소속 계좌의 예수금을 매수/매도로 전환) |
 | Subscription | 구독 서비스 |
-| Asset | 자산/부채 항목 |
 | NetWorthSnapshot | 순자산 월별 스냅샷 |
 | UserSettings | 사용자 설정 (1:1) |
 | Notification | 알림 |
@@ -42,7 +41,7 @@
 ## 주요 관계
 
 ```text
-User 1 ─── N (Transaction, Saving, InvestmentAccount, Investment, Subscription, Asset, NetWorthSnapshot,
+User 1 ─── N (Transaction, Saving, InvestmentAccount, Investment, Subscription, NetWorthSnapshot,
               Notification, CalendarEvent,
               SecurityRisk, LoginSession, Category, IdentityCard, Credential,
               EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport, RefreshToken)
@@ -69,17 +68,16 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ### 가계부 — Transaction / Saving / InvestmentAccount / Investment
 
-- `Transaction` — `type`(income/expense/transfer), `category`(소분류 code 저장 — 대분류는 Category.parent_code 로 파생), `amount`, `pay_method`, `recurring_schedule_id`(RecurringSchedule FK — 자동이체 설정으로 생성된 회차인 경우)·`recurring_period`(회차 식별), `target_type`(saving/investment/asset)·`target_id` — transfer 거래가 가리키는 누적 대상(FK 아님, 지정 시 대상 잔액에 자동 반영. `investment` 대상은 `InvestmentAccount.id`를 가리킴), `target_direction`(increase/decrease — asset 대상 전용, 미지정 시 부채=감소·그 외=증가), soft delete
+- `Transaction` — `type`(income/expense/transfer), `category`(소분류 code 저장 — 대분류는 Category.parent_code 로 파생), `amount`, `pay_method`, `recurring_schedule_id`(RecurringSchedule FK — 자동이체 설정으로 생성된 회차인 경우)·`recurring_period`(회차 식별), `target_type`(saving/investment)·`target_id` — transfer 거래가 가리키는 누적 대상(FK 아님, 지정 시 대상 잔액에 자동 반영. `investment` 대상은 `InvestmentAccount.id`를 가리킴), soft delete
 - `RecurringSchedule` — 자동이체(자동 생성) 설정. `kind`(transaction/investment), `rule`(JSON: cycle/day/month/weekendAdjust), `start_date`, `last_period`(중복 생성 방지), `active`(일시정지). `kind=transaction`이면 거래 생성에 필요한 `tx_type`·`title`·`category`·`amount`·`pay_method`·`memo`·`target_*` 필드 사용, `kind=investment`이면 `investment_id`(대상 종목 FK)·`buy_amount`·`buy_quantity` 사용. 등록/수정 폼과 별개로, 크론(`RecurringCronService`)이 이 규칙에 따라 거래/투자 데이터를 순수 생성만 한다
 - `Saving` — `type`(savings/deposit/subscription/etc), `interest_rate`, `monthly_amount`, `maturity_date`, `balance`
 - `InvestmentAccount` — `name`(계좌명, 예: ISA·일반위탁), `cash_balance`(예수금 — 자산이동으로 충전, 매수/매도로 보유 종목과 전환. 계좌 내 종목들이 공유), `account_number_enc`(계좌번호, AES-256-GCM 암호화 — 동일 계좌명 다중 보유 시 구분용, 응답 시 마스킹), `start_date`·`maturity_date`(ISA 등 만기 — 둘 다 선택값, 생성 시 만기일 미입력하면 가입일+3년으로 자동 계산)
 - `Investment` — `account_id`(InvestmentAccount FK), `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `principal_usd`(해외종목 달러 원금 — 국내종목은 null), `current_value`, `purchase_date`
 
-### 자산 — Subscription / Asset / NetWorthSnapshot
+### 자산 — Subscription / NetWorthSnapshot
 
 - `Subscription` — `currency`(KRW/USD), `cycle`(monthly/yearly/weekly), `status`(active/trial/paused), `next_payment_date`, `last_used_at` — USD 구독은 요약 통계 계산 시 `PriceLookupService`(frankfurter.app)로 조회한 환율로 원화 환산
-- `Asset` — `type`(cash/savings/investment/realestate/debt/etc), `amount`, `interest_rate?` — debt 는 순자산에서 차감
-- `NetWorthSnapshot` — `month`(YYYY-MM), `total_assets`, `total_debt`, `cash_total?`(그 달 말 기준 누적 현금 총액 캐시 — 자산 요약 API의 델타 계산 기준점, 과거 행은 null 허용) (`@@unique([user_id, month])`)
+- `NetWorthSnapshot` — `month`(YYYY-MM), `total_assets`(현금+예적금+투자 집계), `total_debt`(부동산/부채 기능 제거 이후로는 항상 0 — 과거 스냅샷의 기록값은 유지), `cash_total?`(그 달 말 기준 누적 현금 총액 캐시 — 자산 요약 API의 델타 계산 기준점, 과거 행은 null 허용) (`@@unique([user_id, month])`)
 
 ### 설정 — UserSettings (1:1)
 

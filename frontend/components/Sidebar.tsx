@@ -12,7 +12,7 @@ import { normalizeMenuOrder, type Settings } from '@/lib/settings';
 import {
   IconLogo, IconGrid, IconChart, IconWon, IconRepeat, IconPie, IconFolder,
   IconLock, IconCode, IconIdCard, IconDoc, IconCalendar,
-  IconCube, IconSettings, IconShield, IconBell, IconTrash,
+  IconCube, IconSettings, IconShield, IconBell,
   IconCaret, IconLogout, IconBars, IconImage, IconClock,
 } from './icons';
 
@@ -82,7 +82,6 @@ const NAV_GROUPS: NavGroup[] = [
       { label: '알림', href: '/notifications', icon: <IconBell /> },
       { label: '시스템 로그', href: '/logs', icon: <IconClock /> },
       { label: '코드 관리', href: '/codes', icon: <IconBars /> },
-      { label: '휴지통', href: '/trash', icon: <IconTrash /> },
       { label: '설정', href: '/settings', icon: <IconSettings /> },
     ],
   },
@@ -115,7 +114,7 @@ export default function Sidebar({ activePath = '/dashboard', open = false, onLog
   const email = me?.email || '';
 
   return (
-    <aside className={`w-[var(--sidebar-w)] min-h-screen bg-background border-r border-border flex flex-col fixed top-0 left-0 z-[100] transition-transform max-md:-translate-x-full ${open ? 'max-md:translate-x-0 max-md:shadow-[var(--shadow-lg)]' : ''}`}>
+    <aside className={`w-[var(--sidebar-w)] h-screen bg-background border-r border-border flex flex-col fixed top-0 left-0 z-[100] transition-transform max-md:-translate-x-full ${open ? 'max-md:translate-x-0 max-md:shadow-[var(--shadow-lg)]' : ''}`}>
       {/* 로고 */}
       <div className="h-[60px] flex items-center px-5 gap-2.5 border-b border-border [font-family:var(--font-display)] font-extrabold text-[1.1rem] tracking-[-0.03em] text-primary">
         <IconLogo width={22} height={22} />
@@ -140,16 +139,22 @@ export default function Sidebar({ activePath = '/dashboard', open = false, onLog
 
       {/* 하단 사용자 정보 + 로그아웃 — 모바일에선 BottomNav(z-[100], 동일 영역)에 가려지지 않도록 위로 띄움 */}
       <div className="p-3 border-t border-border max-md:mb-[calc(60px+env(safe-area-inset-bottom))]">
-        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius)] cursor-pointer transition-colors hover:bg-surface">
+        <button
+          type="button"
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius)] cursor-pointer transition-colors hover:bg-danger-dim text-left"
+          onClick={onLogout}
+          aria-label="로그아웃"
+          title="로그아웃"
+        >
           <div className="w-8 h-8 rounded-full bg-accent-dim border-[1.5px] border-accent flex items-center justify-center [font-family:var(--font-display)] text-[0.75rem] font-bold text-accent shrink-0">{name.charAt(0)}</div>
           <div className="overflow-hidden flex-1">
             <div className="text-[0.82rem] font-semibold text-primary">{name}</div>
             <div className="text-[0.72rem] text-muted whitespace-nowrap overflow-hidden text-ellipsis">{email}</div>
           </div>
-          <button type="button" className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--radius)] text-muted shrink-0 transition-colors hover:bg-danger-dim hover:text-danger [&_svg]:w-4 [&_svg]:h-4" onClick={onLogout} aria-label="로그아웃" title="로그아웃">
+          <span className="w-[30px] h-[30px] flex items-center justify-center rounded-[var(--radius)] text-muted shrink-0 [&_svg]:w-4 [&_svg]:h-4">
             <IconLogout />
-          </button>
-        </div>
+          </span>
+        </button>
       </div>
     </aside>
   );

@@ -30,9 +30,8 @@ interface LegacyTransactionTemplate {
   memo: string | null;
   recurring_rule: unknown;
   recurring_period: string | null;
-  target_type: 'saving' | 'investment' | 'asset' | null;
+  target_type: 'saving' | 'investment' | null;
   target_id: number | null;
-  target_direction: 'increase' | 'decrease' | null;
 }
 
 interface LegacyChild {
@@ -54,7 +53,7 @@ interface LegacyRecurringInvestment {
 async function migrateTransactionTemplates(): Promise<number> {
   const templates = await prisma.$queryRaw<LegacyTransactionTemplate[]>`
     SELECT id, user_id, type, date, title, category, amount, pay_method, memo,
-           recurring_rule, recurring_period, target_type, target_id, target_direction
+           recurring_rule, recurring_period, target_type, target_id
     FROM \`transaction\`
     WHERE is_recurring = 1 AND recurring_schedule_id IS NULL
   `;
@@ -91,7 +90,6 @@ async function migrateTransactionTemplates(): Promise<number> {
         memo: t.memo,
         target_type: t.target_type,
         target_id: t.target_id,
-        target_direction: t.target_direction,
       },
     });
 

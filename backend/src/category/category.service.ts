@@ -44,8 +44,6 @@ const SEED: Record<CategoryDomain, { code: string; label: string; parent?: strin
     { code: 'cash', label: '현금성' },
     { code: 'savings', label: '예적금' },
     { code: 'investment', label: '투자' },
-    { code: 'realestate', label: '부동산' },
-    { code: 'debt', label: '부채' },
     { code: 'etc', label: '기타' },
   ],
   investment: [

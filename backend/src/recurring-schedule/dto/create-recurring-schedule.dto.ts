@@ -1,7 +1,6 @@
 import {
   RecurringKind,
   TransactionType,
-  TransferDirection,
   TransferTarget,
 } from '@prisma/client';
 import {
@@ -71,10 +70,6 @@ export class CreateRecurringScheduleDto {
   @ValidateIf((o: CreateRecurringScheduleDto) => o.targetType !== undefined)
   @IsInt()
   targetId?: number;
-
-  @IsOptional()
-  @IsEnum(TransferDirection)
-  targetDirection?: TransferDirection;
 
   // ── kind=investment 전용 ──
   @ValidateIf((o: CreateRecurringScheduleDto) => o.kind === 'investment')
