@@ -514,7 +514,9 @@ export class CalendarService {
   }
 
   // 일정 삭제 — 실제 이벤트: soft delete / 가상 이벤트: 원본 테이블 soft delete
-  async remove(userId: number, id: number) {
+  // 반복 일정에서 occurrenceDate(클릭한 회차의 날짜)를 지정하면, 그 날짜 이후 발생만 중단하고
+  // 이전 발생들은 유지한다(recur_until을 해당 회차 하루 전으로 설정). 첫 회차를 지정하면 전체 삭제와 동일.
+  async remove(userId: number, id: number, occurrenceDate?: string) {
     const virt = decodeVirtId(id);
     if (virt) {
       if (virt.sourceType === 'holiday') {
@@ -523,7 +525,20 @@ export class CalendarService {
       await this.removeVirtual(userId, virt.sourceType, virt.sourceId);
       return { id };
     }
-    await this.findOwned(userId, id);
+    const existing = await this.findOwned(userId, id);
+
+    if (occurrenceDate && existing.recur_freq !== 'none') {
+      const occ = new Date(occurrenceDate);
+      if (occ.getTime() > existing.date.getTime()) {
+        const until = new Date(occ.getTime() - 24 * 60 * 60 * 1000);
+        await this.prisma.calendarEvent.update({
+          where: { id },
+          data: { recur_until: until },
+        });
+        return { id };
+      }
+    }
+
     await this.prisma.calendarEvent.update({
       where: { id },
       data: { deleted_at: new Date() },

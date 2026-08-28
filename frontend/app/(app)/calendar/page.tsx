@@ -125,14 +125,16 @@ export default function CalendarPage() {
   // 일정 삭제 (가상 이벤트면 원본 테이블에서도 삭제)
   async function handleRemoveEvent(ev: CalEvent) {
     const label = ev.virtual && ev.sourceType ? `${VIRT_SOURCE_META[ev.sourceType].label} 항목` : '일정';
+    const isRecurring = !ev.virtual && !!ev.recurFreq && ev.recurFreq !== 'none';
     const msg = ev.virtual
       ? `이 ${withEulReul(label)} 삭제할까요? 해당 페이지에서도 삭제됩니다.`
-      : ev.recurFreq && ev.recurFreq !== 'none'
-        ? '이 반복 일정을 삭제할까요? 모든 반복 일정이 함께 삭제됩니다.'
+      : isRecurring
+        ? '이 일정을 삭제할까요? 이 회차부터 이후 반복이 모두 중단되고, 이전 회차는 유지됩니다.'
         : '이 일정을 삭제할까요?';
     if (!await confirm(msg, 'danger')) return;
     try {
-      await api.del(`/calendar/${ev.id}`);
+      const query = isRecurring ? `?occurrenceDate=${ev.date}` : '';
+      await api.del(`/calendar/${ev.id}${query}`);
       notify.deleted(label);
       setDetailEvent(null);
       reload();

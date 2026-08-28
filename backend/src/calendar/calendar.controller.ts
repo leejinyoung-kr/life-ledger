@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '@leejinyoun/core-auth';
 import type { AuthUser } from '../auth/auth-user';
 import { CalendarService } from './calendar.service';
 import { CreateEventDto } from './dto/create-event.dto';
+import { DeleteEventDto } from './dto/delete-event.dto';
 import { QueryEventDto } from './dto/query-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 
@@ -54,9 +55,13 @@ export class CalendarController {
     return this.service.update(user.id, id, dto);
   }
 
-  // 일정 삭제
+  // 일정 삭제 (반복 일정은 query.occurrenceDate 이후 발생만 중단, 이전 발생은 유지)
   @Delete(':id')
-  remove(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
-    return this.service.remove(user.id, id);
+  remove(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: DeleteEventDto,
+  ) {
+    return this.service.remove(user.id, id, query.occurrenceDate);
   }
 }

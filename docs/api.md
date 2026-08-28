@@ -133,7 +133,7 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /calendar/upcoming | 다가오는 이벤트 |
 | POST | /calendar | 이벤트 생성 (양력/음력, 음력은 매년 반복만 지원) |
 | PUT | /calendar/:id | 이벤트 수정 |
-| DELETE | /calendar/:id | 이벤트 삭제 (soft delete, 가상 이벤트는 원본 테이블 soft delete — 단 투자계좌만기는 계좌 자체가 아니라 `maturity_date`만 초기화, 공휴일은 삭제 불가) |
+| DELETE | /calendar/:id?occurrenceDate=YYYY-MM-DD | 이벤트 삭제 (soft delete, 가상 이벤트는 원본 테이블 soft delete — 단 투자계좌만기는 계좌 자체가 아니라 `maturity_date`만 초기화, 공휴일은 삭제 불가). 반복 이벤트에서 `occurrenceDate`(클릭한 회차 날짜) 지정 시 그 회차부터 이후 반복만 중단(`recur_until` 조정)하고 이전 회차는 유지 — 첫 회차 지정 시 전체 삭제와 동일 |
 
 > 공휴일 표시: `UserSettings.show_holidays` 켜져 있을 때만 응답에 포함. 공공데이터포털 특일 정보 API를 연도 단위로 캐싱(`HOLIDAY_API_KEY` 미설정 시 비활성).
 
