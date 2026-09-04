@@ -4,8 +4,8 @@ name: nexus-shared
 services:
   db:
     image: mariadb:11
-    # doc-nexus 전용이 아니라 Nexus 패밀리(doc-nexus/work-nexus 등)가 데이터베이스명만
-    # 다르게(docnexus/worknexus) 공유하는 서버라 이름을 프로젝트 중립적으로 고정.
+    # doc-nexus 전용으로 이름 짓지 않고, 향후 Nexus 패밀리 프로젝트가 추가되면
+    # 데이터베이스명만 다르게 공유할 수 있도록 컨테이너명을 프로젝트 중립적으로 고정.
     container_name: nexus-db
     restart: unless-stopped
     environment:

@@ -179,8 +179,8 @@ cd backend && npx prisma generate
 ## 운영 배포 (홈서버)
 
 `.github/workflows/deploy-home-server.yml`이 `docker compose build` → `prisma migrate deploy`
-(1회성 컨테이너) → `docker compose up -d` 순서로 자동 실행한다 — work-nexus와 동일한 방식으로
-2026-08-01에 전환(원래는 배포와 마이그레이션 시점을 의도적으로 분리했었으나, 수동 적용을
+(1회성 컨테이너) → `docker compose up -d` 순서로 자동 실행한다 (2026-08-01 전환 —
+원래는 배포와 마이그레이션 시점을 의도적으로 분리했었으나, 수동 적용을
 누락하기 쉬워 자동화로 되돌림). 별도 수동 조치 불필요.
 
 수동으로 다시 적용해야 할 때만 아래처럼 직접 실행한다.
