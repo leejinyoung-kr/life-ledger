@@ -333,7 +333,7 @@ export default function FilesPage() {
                     </div>
                     <button
                       type="button"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 w-6 h-6 flex items-center justify-center rounded text-muted hover:text-danger hover:bg-surface transition-all"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 w-6 h-6 flex items-center justify-center rounded text-muted hover:text-danger hover:bg-surface transition-all"
                       onClick={(e) => { e.stopPropagation(); handleDeleteFolder(f); }}
                       aria-label="폴더 삭제"
                     >

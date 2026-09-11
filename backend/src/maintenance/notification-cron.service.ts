@@ -55,38 +55,43 @@ export class NotificationCronService {
 
     // 만기/결제 임박 알림(예적금·구독) — settings.notif_maturity 켜진 경우만
     if (settings?.notif_maturity ?? true) {
-      // 2) 예적금 만기 D-30
+      // 2) 예적금 만기 D-30 / D-14 / D-7 / D-1 (매일 반복되지 않도록 정확히 해당 일자에만 발생)
+      const maturityReminderDays = [30, 14, 7, 1];
       const savings = await this.prisma.saving.findMany({
-        where: { user_id: userId, deleted_at: null, maturity_date: { gte: today, lte: addDays(today, 30) } },
+        where: { user_id: userId, deleted_at: null, maturity_date: { in: maturityReminderDays.map((d) => addDays(today, d)) } },
       });
       for (const s of savings) {
+        const daysLeft = maturityReminderDays.find((d) => addDays(today, d).getTime() === new Date(s.maturity_date!).getTime()) ?? 0;
         n += await this.emit(userId, {
           group: 'ledger', tone: 'warning',
-          title: `${s.name} 만기 임박`, description: '예적금 만기가 30일 이내입니다.', source: '예적금',
+          title: `${s.name} 만기 임박`, description: `예적금 만기가 ${daysLeft}일 남았습니다.`, source: '예적금',
         });
       }
 
-      // 2-1) ISA 등 투자 계좌 만기 D-30
+      // 2-1) ISA 등 투자 계좌 만기 D-30 / D-14 / D-7 / D-1
       const isaAccounts = await this.prisma.investmentAccount.findMany({
-        where: { user_id: userId, deleted_at: null, maturity_date: { gte: today, lte: addDays(today, 30) } },
+        where: { user_id: userId, deleted_at: null, maturity_date: { in: maturityReminderDays.map((d) => addDays(today, d)) } },
       });
       for (const a of isaAccounts) {
+        const daysLeft = maturityReminderDays.find((d) => addDays(today, d).getTime() === new Date(a.maturity_date!).getTime()) ?? 0;
         n += await this.emit(userId, {
           group: 'ledger', tone: 'warning',
-          title: `${a.name} 만기 임박`, description: '투자 계좌 만기가 30일 이내입니다.', source: '투자',
+          title: `${a.name} 만기 임박`, description: `투자 계좌 만기가 ${daysLeft}일 남았습니다.`, source: '투자',
         });
       }
 
-      // 3) 구독 결제 D-3 / 무료체험 종료 D-3
+      // 3) 구독 결제 D-1 / D-3 / D-7, 무료체험 종료 D-1 / D-3 / D-7 (매일 반복되지 않도록 정확히 해당 일자에만 발생)
+      const reminderDays = [1, 3, 7];
       const subs = await this.prisma.subscription.findMany({
-        where: { user_id: userId, deleted_at: null, next_payment_date: { gte: today, lte: addDays(today, 3) } },
+        where: { user_id: userId, deleted_at: null, next_payment_date: { in: reminderDays.map((d) => addDays(today, d)) } },
       });
       for (const s of subs) {
         const trial = s.status === 'trial';
+        const daysLeft = reminderDays.find((d) => addDays(today, d).getTime() === new Date(s.next_payment_date).getTime()) ?? 0;
         n += await this.emit(userId, {
           group: 'ledger', tone: trial ? 'warning' : 'info',
           title: trial ? `${s.name} 무료체험 종료 임박` : `${s.name} 결제 예정`,
-          description: trial ? '무료체험이 3일 내 종료되어 과금됩니다.' : '구독 결제일이 3일 이내입니다.',
+          description: trial ? `무료체험이 ${daysLeft}일 후 종료되어 과금됩니다.` : `구독 결제일이 ${daysLeft}일 남았습니다.`,
           source: '구독',
         });
       }
@@ -94,29 +99,37 @@ export class NotificationCronService {
 
     // 만료/마감 임박 알림(신원·할일) — settings.notif_deadline 켜진 경우만
     if (settings?.notif_deadline ?? true) {
-      // 4) 신원 문서 만료 D-60
+      // 4) 신원 문서 만료 D-60 / D-30 / D-14 / D-7 / D-1 (매일 반복되지 않도록 정확히 해당 일자에만 발생)
+      const expireReminderDays = [60, 30, 14, 7, 1];
       const ids = await this.prisma.identityCard.findMany({
-        where: { user_id: userId, deleted_at: null, expire_date: { gte: today, lte: addDays(today, 60) } },
+        where: { user_id: userId, deleted_at: null, expire_date: { in: expireReminderDays.map((d) => addDays(today, d)) } },
       });
       for (const i of ids) {
+        const daysLeft = expireReminderDays.find((d) => addDays(today, d).getTime() === new Date(i.expire_date!).getTime()) ?? 0;
         n += await this.emit(userId, {
           group: 'system', tone: 'warning',
-          title: `${i.name} 문서 만료 임박`, description: '신원 문서 유효기간이 60일 이내입니다.', source: '신원 지갑',
+          title: `${i.name} 문서 만료 임박`, description: `신원 문서 유효기간이 ${daysLeft}일 남았습니다.`, source: '신원 지갑',
         });
       }
     }
 
-    // 6) 비밀번호 회전 — 마지막 변경 90일 경과 계정
+    // 6) 비밀번호 회전 — 마지막 변경 90일 경과 시 알림, 이후 30일 간격으로 재알림 (매일 반복 방지)
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
     const rotateBefore = addDays(today, -90);
     const stale = await this.prisma.credential.findMany({
       where: { user_id: userId, deleted_at: null, password_changed_at: { lt: rotateBefore } },
-      select: { name: true },
+      select: { name: true, password_changed_at: true },
     });
     for (const c of stale) {
-      n += await this.emit(userId, {
-        group: 'system', tone: 'warning',
-        title: `'${c.name}' 비밀번호 교체 권장`, description: '비밀번호를 변경한 지 90일이 지났습니다.', source: '계정 보관함',
-      });
+      const changedAt = c.password_changed_at!;
+      const changedDay = new Date(Date.UTC(changedAt.getUTCFullYear(), changedAt.getUTCMonth(), changedAt.getUTCDate()));
+      const daysStale = Math.round((today.getTime() - changedDay.getTime()) / MS_PER_DAY);
+      if (daysStale === 90 || (daysStale > 90 && (daysStale - 90) % 30 === 0)) {
+        n += await this.emit(userId, {
+          group: 'system', tone: 'warning',
+          title: `'${c.name}' 비밀번호 교체 권장`, description: `비밀번호를 변경한 지 ${daysStale}일이 지났습니다.`, source: '계정 보관함',
+        });
+      }
     }
 
     return n;

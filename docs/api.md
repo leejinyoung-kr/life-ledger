@@ -122,7 +122,7 @@ Base URL: `http://localhost:8000/api/v1`
 | DELETE | /notifications/bulk | 선택 일괄 삭제 |
 | DELETE | /notifications | 전체 삭제 |
 
-> 알림 자동생성 크론(매일 9시): 예적금만기·구독결제/체험·신원만료·비번회전(90일). `notif_maturity`·`notif_deadline` 설정으로 게이팅.
+> 알림 자동생성 크론(매일 9시): 예적금·투자계좌 만기(D-30/14/7/1)·구독결제/체험종료(D-7/3/1)·신원만료(D-60/30/14/7/1)·비번회전(90일 경과 후 30일 간격 재알림). `notif_maturity`·`notif_deadline` 설정으로 게이팅.
 > 캘린더 자체는 별도 알림 크론이 없다 — 대시보드 "다가오는 일정" 위젯으로 노출.
 
 ## 캘린더
