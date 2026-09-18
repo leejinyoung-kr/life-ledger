@@ -13,7 +13,7 @@ allowBuilds:
   unrs-resolver: true
 
 minimumReleaseAgeExclude:
-  - '@leejinyoun/core-auth@0.0.1 || 0.1.0'
+  - '@leejinyoun/core-auth@0.0.1 || 0.1.0 || 0.2.0'
   - '@leejinyoun/core-common@0.0.1 || 0.1.0'
   - '@leejinyoun/core-logging@0.0.1 || 0.1.0'
   - '@leejinyoun/core-notification@0.0.1 || 0.1.0'
