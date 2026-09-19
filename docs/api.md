@@ -269,7 +269,7 @@ Base URL: `http://localhost:8000/api/v1`
 | --- | --- | --- |
 | GET | /files?folderId= | 폴더 내용 (브레드크럼·하위폴더·파일·사용량) |
 | POST | /files/upload?folderId= | 업로드 (multipart `file`, MIME 화이트리스트 + SHA-256 중복제거) |
-| GET | /files/:id/url?disposition= | presigned URL 발급 (5분, inline=미리보기) |
+| GET | /files/:id/url?disposition= | presigned URL 발급 (5분, inline=미리보기). 응답 파일명은 `filename*=UTF-8''…` + ASCII 대체 이름(NFC) — 프론트의 `a.download` 는 다른 origin 이라 무시됨 |
 | PATCH | /files/:id/move | 파일 폴더 이동 |
 | DELETE | /files/:id | 파일 삭제 (공유 오브젝트 보호) |
 | POST | /files/folders | 폴더 생성 |

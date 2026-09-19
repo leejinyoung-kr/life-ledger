@@ -162,6 +162,24 @@ describe('FileService', () => {
     });
   });
 
+  describe('getDownloadUrl — 파일명 헤더', () => {
+    it('한글 파일명은 filename*(UTF-8) + ASCII 대체 이름 — 비표준 %XX filename 을 쓰지 않는다', async () => {
+      prisma.storageFile.findFirst.mockResolvedValue({
+        id: 1,
+        object_key: 'users/1/x.pdf',
+        name: '보고서.pdf',
+        mime_type: 'application/pdf',
+      });
+
+      await svc().getDownloadUrl(1, 1);
+
+      const cmd = (getSignedUrl as jest.Mock).mock.calls[0][1];
+      expect(cmd.input.ResponseContentDisposition).toBe(
+        `attachment; filename="___.pdf"; filename*=UTF-8''%EB%B3%B4%EA%B3%A0%EC%84%9C.pdf`,
+      );
+    });
+  });
+
   describe('removeFolder — 재귀삭제 단일 트랜잭션', () => {
     it('하위 폴더 전체 id를 한 트랜잭션의 in 조건으로 일괄 soft delete', async () => {
       prisma.storageFolder.findFirst.mockResolvedValue({ id: 1, user_id: 1, deleted_at: null });
