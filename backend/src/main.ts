@@ -10,8 +10,11 @@ import helmet from 'helmet';
 import { describeEnv } from '@leejinyoun/core-config';
 import { AppModule } from './app.module';
 import { requestLogger } from '@leejinyoun/core-logging';
+import { configureOutboundNetwork } from './config/network';
 
 async function bootstrap() {
+  // 외부 연결(B2 등) 주소당 대기 시간 — 기본 250ms 로는 홈서버→B2 연결이 끊겨 업로드가 실패한다
+  configureOutboundNetwork();
   // 유효 설정을 부팅 로그에 남긴다 — 시크릿·URL 비밀번호는 가리고, 꺼진 기능은 (미설정)으로 드러난다
   new Logger('Config').log(`유효 설정:\n${describeEnv(env)}`);
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
