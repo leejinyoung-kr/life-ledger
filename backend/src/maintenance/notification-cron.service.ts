@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Job } from '@leejinyoun/core-jobs';
 import { NotiGroup, NotiTone } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { PushService } from '../push/push.service';
+import { NotificationService } from '../notification/notification.service';
 
 // 오늘(UTC 자정) + days 후 Date
 function addDays(base: Date, days: number): Date {
@@ -15,7 +15,7 @@ function addDays(base: Date, days: number): Date {
 export class NotificationCronService {
   constructor(
     private prisma: PrismaService,
-    private push: PushService,
+    private notification: NotificationService,
   ) {}
 
   // 매일 오전 9시 — 전 사용자 대상 임박/초과 알림 생성
@@ -37,9 +37,9 @@ export class NotificationCronService {
       select: { id: true },
     });
     if (dup) return 0;
-    await this.prisma.notification.create({ data: { user_id: userId, ...n } });
-    // 앱 내 알림 생성과 동시에 웹 푸시 발송 (VAPID 비활성 시 no-op). 민감정보 없이 제목/설명만
-    await this.push.sendToUser(userId, { title: n.title, body: n.description, url: '/notifications' });
+    // 알림 저장과 같은 트랜잭션에 웹 푸시를 적재한다 — 저장이 롤백되면 푸시도 나가지 않는다.
+    // 발송은 아웃박스가 맡는다(실패 시 재시도, VAPID 비활성이면 적재하지 않음). 민감정보 없이 제목/설명만
+    await this.notification.createWithPush(userId, n);
     return 1;
   }
 

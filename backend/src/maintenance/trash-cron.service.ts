@@ -8,7 +8,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export class TrashCronService {
   constructor(private prisma: PrismaService) {}
 
-  // 매일 새벽 3시 — soft-delete 후 30일 경과 항목 영구 삭제 + 시스템 로그·작업 실행 기록 90일 경과분 정리.
+  // 매일 새벽 3시 — soft-delete 후 30일 경과 항목 영구 삭제 + 시스템 로그·작업 실행 기록·끝난 알림 발송 90일 경과분 정리.
   // 테이블 하나가 실패해도 나머지는 계속 지우고, 끝에 실패를 모아 던져 실행 기록에 실패로 남긴다
   @Job({ name: 'trash-purge', cron: '0 3 * * *', leaseMs: 10 * 60_000 })
   async purgeExpired(): Promise<string> {
@@ -60,8 +60,17 @@ export class TrashCronService {
     } catch (e) {
       failures.push(`job_run: ${(e as Error).message}`);
     }
+    // 끝난 알림 발송분 — 대기·발송 중인 행은 아직 나갈 것이라 남긴다
+    let outbox = 0;
+    try {
+      outbox = (await this.prisma.outboxMessage.deleteMany({
+        where: { created_at: { lt: logCutoff }, status: { in: ['sent', 'failed'] } },
+      })).count;
+    } catch (e) {
+      failures.push(`outbox_message: ${(e as Error).message}`);
+    }
 
-    const summary = `휴지통 ${trash}건(30일 경과)·시스템 로그 ${logs}건·실행 기록 ${runs}건(90일 경과) 삭제`;
+    const summary = `휴지통 ${trash}건(30일 경과)·시스템 로그 ${logs}건·실행 기록 ${runs}건·알림 발송 ${outbox}건(90일 경과) 삭제`;
     if (failures.length) throw new Error(`${summary} — 실패 ${failures.length}곳: ${failures.join(' / ')}`);
     return summary;
   }

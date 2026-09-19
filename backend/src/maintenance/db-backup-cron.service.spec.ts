@@ -29,10 +29,12 @@ function fakeDump(exitCode: number, stdout: string, stderr = '') {
     stdout: new PassThrough(),
     stderr: new PassThrough(),
   });
+  // close 는 stdout 을 다 읽은 뒤에 낸다 — 서비스가 리스너를 붙이기 전에 close 가 먼저 나면
+  // 종료 코드를 놓쳐 테스트가 간헐적으로 실패한다(실제 자식 프로세스도 이 순서로 끝난다)
+  child.stdout.on('end', () => setImmediate(() => child.emit('close', exitCode)));
   setImmediate(() => {
     child.stderr.end(stderr);
     child.stdout.end(stdout);
-    setImmediate(() => child.emit('close', exitCode));
   });
   return child;
 }

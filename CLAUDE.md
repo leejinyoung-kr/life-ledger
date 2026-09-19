@@ -52,7 +52,7 @@ doc-nexus/
 │       ├── maintenance/   # 예약 작업 @Job(core-jobs) (알림·보안점수 스냅샷·순자산 스냅샷·DB 백업·투자 현재가 갱신·소프트삭제 항목 자동정리) + 실행 기록 저장소(job_run)
 │       ├── ai/            # AI 리포트 (사용자별 OpenAI 키)
 │       ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
-│       ├── push/          # 웹 푸시 구독/발송 (VAPID)
+│       ├── push/          # 웹 푸시 구독/발송 (VAPID) + 발송 아웃박스 저장소·채널(outbox_message)
 │       ├── convert/       # 이미지↔PDF 변환
 │       ├── system-log/    # 시스템 로그 (크론·투자 갱신 등 백그라운드 작업 실행 기록, 90일 경과 시 자동 삭제)
 │       ├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
@@ -87,6 +87,8 @@ doc-nexus/
 > 환경변수: 백엔드는 `process.env` 를 직접 읽지 않고 `backend/src/config/env.ts` 의 `env` 만 읽는다(`@leejinyoun/core-config` 의 `defineEnv` — import 하는 순간 `.env` 로드 + 검증, 틀린 키를 전부 출력하고 부팅 중단). 키를 추가·삭제하면 `env.ts` 와 `backend/.env.example` 을 같이 고친다 — `src/config/env.spec.ts` 가 두 목록 일치·`process.env` 직접 사용 금지를 테스트로 강제한다(도커 빌드 테스트 단계라 배포에서도 막힘). 배포 워크플로는 컨테이너 교체 전에 새 이미지로 `node dist/config/check-env.js` 를 돌려, 서버 `.env` 가 새 스키마에 안 맞으면 기존 컨테이너를 유지한 채 멈춘다. SMTP(HOST·USER·PASS)·VAPID(공개·비공개 키)는 일부만 설정하면 부팅 실패.
 >
 > 예약 작업: `@nestjs/schedule` 의 `@Cron` 대신 `@leejinyoun/core-jobs` 의 `@Job({ name, cron, leaseMs })` 을 쓴다(`maintenance/`). 작업 코드는 결과 요약 문자열을 돌려주고, 실패는 삼키지 말고 던진다 — 실행 기록(`job_run`)·겹침 방지·lease 만료 마감·실패 시 시스템 로그는 core-jobs 와 `maintenance/job-run.store.ts` 가 맡는다. 운영에서 "며칠째 안 돈 작업"은 `job_run` 에서 작업별 마지막 `succeeded` 시각으로 본다.
+>
+> 알림 + 푸시: 알림을 만들면서 푸시를 보내려면 `NotificationService.createWithPush()` 를 쓴다 — 알림 행 저장과 푸시 적재(`outbox_message`)가 한 트랜잭션이라, 저장이 롤백되면 푸시도 나가지 않는다. 푸시를 직접 보내지 않는다(발송·재시도·실패 기록은 아웃박스가 맡는다. 멱등키는 `noti:<알림 id>`). 즉시 결과를 봐야 하는 것(설정 화면의 테스트 푸시, 로그인 인증코드 메일)만 예외로 바로 보낸다.
 
 ---
 
@@ -123,8 +125,9 @@ doc-nexus/
 | EmailLoginCode | email, code_hash(SHA-256), expires_at, consumed_at, attempts (이메일 인증코드 로그인, 화이트리스트 대조) | 구현 완료 |
 | SystemLog | user_id(nullable, FK 아님), level(info/warn/error), category, message, metadata(JSON) — 크론·투자갱신 등 백그라운드 작업 로그, 90일 경과 시 자동 삭제 | 구현 완료 |
 | JobRun | job, triggered_by(schedule/manual), status(running/succeeded/failed), started_at, lease_until, finished_at, summary, error, running_key(유니크 — 동시 실행 방지) — 예약 작업 실행 기록(core-jobs), 90일 경과 시 자동 삭제 | 구현 완료 |
+| OutboxMessage | channel, payload(JSON), idempotency_key(유니크 — `noti:<알림 id>`), status(pending/sending/sent/failed), attempts, max_attempts, available_at, claimed_until, last_error, sent_at — 알림 발송 아웃박스(core-notification). 알림 행과 **같은 트랜잭션**에 적재되므로 롤백되면 발송도 없다. 끝난 행(sent/failed)은 90일 경과 시 자동 삭제 | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 31개 테이블
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 32개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---
@@ -157,7 +160,7 @@ doc-nexus/
 | Backend — 현금흐름 예측·통합 D-day | 구현 완료 |
 | Backend — AI 리포트 (OpenAI, 사용자별 키) | 구현 완료 |
 | Backend — 시스템 로그 / 순자산 월간 스냅샷 / 투자 현재가 자동 갱신 | 구현 완료 |
-| DB | 31개 테이블 구현 완료 |
+| DB | 32개 테이블 구현 완료 |
 
 ---
 

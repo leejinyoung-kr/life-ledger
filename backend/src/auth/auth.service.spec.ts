@@ -8,9 +8,9 @@ import { AuthService } from './auth.service';
 describe('AuthService', () => {
   let prisma: any;
   let jwt: any;
-  let push: any;
+  let notification: any;
   let mail: any;
-  const svc = () => new AuthService(jwt, prisma, push, mail);
+  const svc = () => new AuthService(jwt, prisma, notification, mail);
 
   beforeEach(() => {
     jwt = {
@@ -38,7 +38,7 @@ describe('AuthService', () => {
       notification: { create: jest.fn() },
       $transaction: jest.fn((ops: any[]) => Promise.all(ops)),
     };
-    push = { sendToUser: jest.fn() };
+    notification = { createWithPush: jest.fn().mockResolvedValue({ id: 1 }) };
   });
 
   describe('refresh', () => {
@@ -142,8 +142,7 @@ describe('AuthService', () => {
       prisma.loginSession.findFirst.mockResolvedValue(null);
       await svc().login(gUser, { ip: '1.2.3.4', userAgent: 'Mozilla Chrome Windows' });
       expect(prisma.loginSession.create).toHaveBeenCalled();
-      expect(prisma.notification.create).not.toHaveBeenCalled();
-      expect(push.sendToUser).not.toHaveBeenCalled();
+      expect(notification.createWithPush).not.toHaveBeenCalled();
     });
 
     it('기존 세션 있던 사용자의 새 기기 로그인 → 알림 + 푸시', async () => {
@@ -151,8 +150,12 @@ describe('AuthService', () => {
       prisma.loginSession.count.mockResolvedValue(2);
       prisma.loginSession.findFirst.mockResolvedValue(null);
       await svc().login(gUser, { ip: '1.2.3.4', userAgent: 'iPhone Safari' });
-      expect(prisma.notification.create).toHaveBeenCalled();
-      expect(push.sendToUser).toHaveBeenCalled();
+      // 알림 저장과 푸시 적재는 한 트랜잭션에서 함께 처리된다
+      expect(notification.createWithPush).toHaveBeenCalledWith(
+        user.id,
+        expect.objectContaining({ title: '새 기기에서 로그인' }),
+        expect.objectContaining({ url: '/security' }),
+      );
     });
 
     it('access 는 iss/aud 를 넣어 기본 시크릿으로, refresh 는 refresh 전용 시크릿으로 서명', async () => {

@@ -2,14 +2,14 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthModule as CoreAuthModule } from '@leejinyoun/core-auth';
 import { env } from '../config/env';
-import { PushModule } from '../push/push.module';
+import { NotificationModule } from '../notification/notification.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JWT_AUDIENCE, JWT_ISSUER } from './jwt.constants';
 
 @Module({
   imports: [
-    PushModule,
+    NotificationModule,
     CoreAuthModule.forRoot({
       jwtSecret: env.JWT_SECRET,
       issuer: JWT_ISSUER,

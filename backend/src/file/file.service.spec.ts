@@ -58,8 +58,7 @@ describe('FileService', () => {
     };
   });
 
-  const notification = { create: jest.fn().mockResolvedValue({ title: 't', description: 'd' }) };
-  const push = { sendToUser: jest.fn() };
+  const notification = { createWithPush: jest.fn().mockResolvedValue({ title: 't', description: 'd' }) };
   const sysLog = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
   // @aws-sdk/client-s3, @aws-sdk/s3-request-presigner 가 모킹되어 있어
   // StorageService 내부의 S3 호출도 함께 가짜로 대체된다.
@@ -70,7 +69,7 @@ describe('FileService', () => {
     accessKeyId: 'key',
     secretAccessKey: 'secret',
   });
-  const svc = () => new FileService(prisma, notification as any, push as any, sysLog as any, storage);
+  const svc = () => new FileService(prisma, notification as any, sysLog as any, storage);
 
   describe('업로드 — MIME 매직바이트 검증', () => {
     it('declared mime 과 실제 시그니처가 다르면 거부', async () => {

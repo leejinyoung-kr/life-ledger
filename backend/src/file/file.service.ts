@@ -3,7 +3,6 @@ import { StorageService } from '@leejinyoun/core-storage';
 import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
-import { PushService } from '../push/push.service';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
 import { SystemLogService } from '../system-log/system-log.service';
 
@@ -12,7 +11,6 @@ export class FileService {
   constructor(
     private prisma: PrismaService,
     private notification: NotificationService,
-    private push: PushService,
     private sysLog: SystemLogService,
     private storage: StorageService,
   ) {}
@@ -141,11 +139,14 @@ export class FileService {
         select: { notif_upload: true },
       });
       if (!settings?.notif_upload) return;
-      const n = await this.notification.create(userId, {
-        group: 'system', tone: 'info',
-        title: `${fileName} 업로드 완료`, description: '파일 보관함에 업로드가 완료됐습니다.', source: '파일 보관함',
-      });
-      await this.push.sendToUser(userId, { title: n.title, body: n.description, url: '/files' });
+      await this.notification.createWithPush(
+        userId,
+        {
+          group: 'system', tone: 'info',
+          title: `${fileName} 업로드 완료`, description: '파일 보관함에 업로드가 완료됐습니다.', source: '파일 보관함',
+        },
+        { url: '/files' },
+      );
     } catch {
       // 알림/푸시 실패는 업로드 성공 자체에 영향 없음
     }

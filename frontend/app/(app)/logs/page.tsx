@@ -12,7 +12,7 @@ import { qk } from '@/lib/queryKeys';
 import { usePagination } from '@/lib/usePagination';
 
 type LogLevel = 'info' | 'warn' | 'error';
-type LogCategory = 'recurring_buy' | 'recurring_tx' | 'cron' | 'asset' | 'file' | 'security' | 'ai';
+type LogCategory = 'recurring_buy' | 'recurring_tx' | 'cron' | 'asset' | 'file' | 'security' | 'ai' | 'notification';
 
 interface SystemLog {
   id: number;
@@ -32,6 +32,7 @@ const CATEGORY_LABEL: Record<LogCategory, string> = {
   file: '파일',
   security: '보안',
   ai: 'AI',
+  notification: '알림',
 };
 
 const LEVEL_STYLE: Record<LogLevel, string> = {

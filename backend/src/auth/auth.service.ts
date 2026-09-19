@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
 import { env } from '../config/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { PushService } from '../push/push.service.js';
+import { NotificationService } from '../notification/notification.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { JWT_ALGORITHMS, JWT_AUDIENCE, JWT_ISSUER } from './jwt.constants.js';
 
@@ -62,7 +62,7 @@ export class AuthService {
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
-    private push: PushService,
+    private notification: NotificationService,
     private mail: MailService,
   ) {}
 
@@ -259,24 +259,20 @@ export class AuthService {
       data: { user_id: userId, device, device_type: type, location, is_current: true, status: 'active' },
     });
 
-    // 기존 세션이 있던 사용자에게만 새 기기 알림 (최초 로그인은 제외)
+    // 기존 세션이 있던 사용자에게만 새 기기 알림 (최초 로그인은 제외).
+    // 새 기기 로그인은 보안 이벤트 → 웹 푸시도 함께 적재한다(알림 저장과 같은 트랜잭션, 발송은 아웃박스)
     if (priorCount > 0) {
-      await this.prisma.notification.create({
-        data: {
-          user_id: userId,
+      await this.notification.createWithPush(
+        userId,
+        {
           group: 'system',
           tone: 'warning',
           title: '새 기기에서 로그인',
           description: `${device} (${location}) 에서 로그인되었습니다. 본인이 아니라면 보안 센터에서 세션을 로그아웃하세요.`,
           source: '보안',
         },
-      });
-      // 새 기기 로그인은 보안 이벤트 → 웹 푸시도 발송 (VAPID 비활성 시 no-op)
-      await this.push.sendToUser(userId, {
-        title: '새 기기에서 로그인',
-        body: `${device} (${location}) 에서 로그인되었습니다.`,
-        url: '/security',
-      });
+        { url: '/security', body: `${device} (${location}) 에서 로그인되었습니다.` },
+      );
     }
 
     return created.id;

@@ -36,8 +36,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@leejinyoun/core-notification':
-        specifier: ^0.1.0
-        version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
+        specifier: ^0.2.1
+        version: 0.2.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@leejinyoun/core-security':
         specifier: ^0.2.0
         version: 0.2.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
@@ -1491,8 +1491,8 @@ packages:
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
-  '@leejinyoun/core-notification@0.1.0':
-    resolution: {integrity: sha512-qN60yC/0x0gyRYa5sh1EWB5z3pdKFFO4HTbDAT96Vnv8BE4A9TGHWcgc4RoahcxBAcCtESYP6Bkl4Y19o5KCdw==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-notification/0.1.0/0f88d2a593506411b5e77b15288a4620c260d6b2}
+  '@leejinyoun/core-notification@0.2.1':
+    resolution: {integrity: sha512-s0MmCNfj23mosUuimXFMhn3mgJ6YuTG/4kTtyqSYpGKPrptkoGFUa1WzOsYy/yui6D0ZtUn2kj0MGTPrpT6xtA==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-notification/0.2.1/e0cfa95aab0c70fe61df455b9e18a2c46738dc23}
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
@@ -8323,7 +8323,7 @@ snapshots:
     dependencies:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
 
-  '@leejinyoun/core-notification@0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
+  '@leejinyoun/core-notification@0.2.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
     dependencies:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       nodemailer: 9.0.0

@@ -1,16 +1,42 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Notification, NotiGroup, NotiTone, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PushService } from '../push/push.service';
 import { parsePage } from '@leejinyoun/core-common';
 import { QueryNotificationDto } from './dto/query-notification.dto';
 
 @Injectable()
 export class NotificationService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private push: PushService,
+  ) {}
 
   // 다른 모듈(파일 업로드 등 이벤트성 알림)에서 즉시 1건 생성할 때 사용
   async create(userId: number, n: { group: NotiGroup; tone: NotiTone; title: string; description: string; source: string }): Promise<Notification> {
     return this.prisma.notification.create({ data: { user_id: userId, ...n } });
+  }
+
+  // 알림 1건 생성 + 같은 트랜잭션에 웹푸시 적재 — 알림 저장이 롤백되면 푸시도 나가지 않는다.
+  // 푸시 발송은 아웃박스가 맡는다(실패하면 재시도, 최종 실패는 /logs 에 남음)
+  async createWithPush(
+    userId: number,
+    n: { group: NotiGroup; tone: NotiTone; title: string; description: string; source: string },
+    push: { url?: string; body?: string } = {},
+  ): Promise<Notification> {
+    const created = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.notification.create({ data: { user_id: userId, ...n } });
+      await this.push.enqueue(tx, row.id, {
+        userId,
+        title: row.title,
+        body: push.body ?? row.description,
+        url: push.url ?? '/notifications',
+      });
+      return row;
+    });
+    // 커밋된 뒤에 깨운다 — 다음 주기를 기다리지 않고 바로 나간다
+    this.push.flush();
+    return created;
   }
 
   // 엔티티 → 응답 DTO (read_at → read 불리언, 시각은 ISO 문자열)

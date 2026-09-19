@@ -1,19 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { WebPushService } from '@leejinyoun/core-notification';
+import { OutboxService, WebPushService } from '@leejinyoun/core-notification';
 import { PrismaService } from '../prisma/prisma.service';
+import { WebPushChannel } from './webpush.channel';
+import type { PushMessage } from './webpush.channel';
 
-// 푸시 페이로드 — 민감정보 금지(제목/요약만). 상세는 앱을 열어 확인하게 한다.
-export interface PushPayload {
-  title: string;
-  body: string;
-  url?: string; // 클릭 시 이동 경로 (기본 /notifications)
-}
+export type { PushDelivery, PushMessage, PushPayload } from './webpush.channel';
 
 @Injectable()
 export class PushService {
   constructor(
     private prisma: PrismaService,
     private webPush: WebPushService,
+    private outbox: OutboxService,
+    private channel: WebPushChannel,
   ) {}
 
   // 프론트가 구독 전 공개키를 받아간다. 비활성이면 enabled=false 만 반환
@@ -54,12 +53,13 @@ export class PushService {
     return { ok: true };
   }
 
-  // 테스트 발송 — 본인 모든 기기로 더미 푸시. 진단용 상태(서버활성/구독수)도 반환
+  // 테스트 발송 — 본인 모든 기기로 더미 푸시. 결과를 화면에서 바로 봐야 하므로 아웃박스를 거치지 않고 바로 보낸다.
+  // 진단용 상태(서버활성/구독수)도 반환
   async sendTest(userId: number): Promise<{ enabled: boolean; subscriptions: number }> {
     const subscriptions = await this.prisma.pushSubscription.count({ where: { user_id: userId } });
     const { enabled } = this.webPush.getPublicKey();
     if (enabled && subscriptions > 0) {
-      await this.sendToUser(userId, {
+      await this.channel.deliver(userId, {
         title: '테스트 푸시',
         body: '푸시 알림이 정상 작동합니다.',
         url: '/settings',
@@ -68,24 +68,20 @@ export class PushService {
     return { enabled, subscriptions };
   }
 
-  // 한 사용자의 모든 기기로 푸시 발송 — 비활성이면 즉시 반환(no-op). 만료(404/410) 구독은 정리
-  async sendToUser(userId: number, payload: PushPayload): Promise<void> {
-    const { enabled } = this.webPush.getPublicKey();
-    if (!enabled) return;
+  // 알림 행과 같은 트랜잭션에 푸시를 적재한다 — 커밋돼야 나간다(롤백되면 푸시도 사라진다).
+  // 멱등키는 알림 id — 같은 알림으로 두 번 보내지 않는다
+  async enqueue(tx: unknown, notificationId: number, message: PushMessage): Promise<void> {
+    // 푸시가 꺼진 환경(VAPID 키 없음)에서는 보낼 곳이 없으므로 쌓지 않는다. 앱 내 알림은 그대로 남는다
+    if (!this.webPush.getPublicKey().enabled) return;
+    await this.outbox.enqueue(tx, {
+      channel: 'webpush',
+      payload: message,
+      idempotencyKey: `noti:${notificationId}`,
+    });
+  }
 
-    const subs = await this.prisma.pushSubscription.findMany({ where: { user_id: userId } });
-    if (!subs.length) return;
-
-    await Promise.all(
-      subs.map(async (s) => {
-        const result = await this.webPush.sendToSubscription(
-          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          payload,
-        );
-        if (result.expired) {
-          await this.prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
-        }
-      }),
-    );
+  // 커밋 직후 호출 — 다음 주기(10초)를 기다리지 않고 바로 보낸다. 기다리지 않는다
+  flush(): void {
+    this.outbox.flush();
   }
 }

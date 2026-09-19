@@ -1,4 +1,4 @@
-# DocNexus — Architecture
+| push | /push (웹 푸시 구독/발송 — VAPID + 발송 아웃박스: 커밋된 것만 발송·재시도·원본 에러 보존) | 구현 완료 || notification | /notifications (알림 인박스. 알림 생성 시 웹푸시를 같은 트랜잭션에 아웃박스로 적재) | 구현 완료 |# DocNexus — Architecture
 
 ## Overview
 
@@ -12,7 +12,7 @@
 | 상태관리 | TanStack Query (React Query) — lib/query·queryKeys | 전 페이지 전환 완료 |
 | Backend | NestJS 11, TypeScript | 31개 모듈 구현 완료 |
 | ORM | Prisma | 구현 완료 |
-| DB | MariaDB 11 | 31개 테이블 구현 완료 |
+| DB | MariaDB 11 | 32개 테이블 구현 완료 |
 | Auth | Google OAuth 2.0 + JWT (전역 가드 + 새 기기 감지) | 구현 완료 |
 | Rate-limit | @nestjs/throttler | 구현 완료 |
 | 암호화 | AES-256-GCM(`CRYPTO_KEYS` 키링 + 필드·사용자 AAD, 부팅 시 자동 재암호화) / 마스터잠금 scrypt | 구현 완료 |
@@ -41,7 +41,7 @@
 | subscription | /subscriptions | 구현 완료 |
 | asset | /assets (순자산 요약/추이 — 현금+예적금+투자 집계, 전용 테이블 없음) | 구현 완료 |
 | calendar | /calendar (실제 일정 + 구독결제·예적금만기·신원만료 가상 이벤트) | 구현 완료 |
-| notification | /notifications | 구현 완료 |
+| notification | /notifications (알림 인박스. 알림 생성과 웹푸시 적재를 한 트랜잭션으로 묶는다 — `createWithPush`) | 구현 완료 |
 | security | /security (보안센터 + 마스터잠금 Vault + 유출검사·강도통계) | 구현 완료 |
 | access-log | (전역, /security/access-logs로 노출) | 구현 완료 |
 | settings | /settings | 구현 완료 |
@@ -57,7 +57,7 @@
 | maintenance | (크론 — 알림·보안점수 스냅샷·순자산 스냅샷·DB 백업·AI 리포트 자동생성·투자 현재가 갱신·소프트삭제 항목 자동정리) | 구현 완료 |
 | ai | /ai (AI 리포트, 사용자별 OpenAI 키) | 구현 완료 |
 | mail | (SMTP 메일 발송 — 이메일 코드 로그인 등, 미설정 시 no-op) | 구현 완료 |
-| push | /push (웹 푸시 구독/발송 — VAPID) | 구현 완료 |
+| push | /push (웹 푸시 구독/발송 — VAPID + 발송 아웃박스: 커밋된 것만 발송·멱등키·재시도·원본 에러 보존) | 구현 완료 |
 | convert | /convert (이미지↔PDF 변환) | 구현 완료 |
 | system-log | /system-logs (백그라운드 작업 실행 로그 — 크론·투자 현재가 갱신 등, 조회 전용) | 구현 완료 |
 | health | /health (헬스체크) | 구현 완료 |

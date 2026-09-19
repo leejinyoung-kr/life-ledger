@@ -16,7 +16,7 @@ minimumReleaseAgeExclude:
   - '@leejinyoun/core-auth@0.0.1 || 0.1.0 || 0.2.0'
   - '@leejinyoun/core-common@0.0.1 || 0.1.0'
   - '@leejinyoun/core-logging@0.0.1 || 0.1.0'
-  - '@leejinyoun/core-notification@0.0.1 || 0.1.0'
+  - '@leejinyoun/core-notification@0.0.1 || 0.1.0 || 0.2.0 || 0.2.1'
   - '@leejinyoun/core-security@0.0.1 || 0.1.0 || 0.2.0'
   - '@leejinyoun/core-storage@0.0.1 || 0.1.0 || 0.1.1 || 0.2.0'
   - '@leejinyoun/core-config@0.1.0 || 0.1.1'

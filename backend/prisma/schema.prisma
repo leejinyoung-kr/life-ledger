@@ -62,22 +62,22 @@ enum TransferTarget {
 
 /// 수입/지출 내역 (가계부 - 수입/지출 탭)
 model Transaction {
-  id                    Int                @id @default(autoincrement())
+  id                    Int             @id @default(autoincrement())
   user_id               Int /// user.id FK
   type                  TransactionType
-  date                  DateTime           @db.Date
-  title                 String             @db.VarChar(200)
-  category              String             @db.VarChar(50)
-  amount                Decimal            @db.Decimal(15, 2)
-  pay_method            String             @db.VarChar(50)
-  memo                  String?            @db.VarChar(300)
+  date                  DateTime        @db.Date
+  title                 String          @db.VarChar(200)
+  category              String          @db.VarChar(50)
+  amount                Decimal         @db.Decimal(15, 2)
+  pay_method            String          @db.VarChar(50)
+  memo                  String?         @db.VarChar(300)
   recurring_schedule_id Int? /// recurring_schedule.id FK (자동이체 설정으로 생성된 회차인 경우)
-  recurring_period      String?            @db.VarChar(10) /// 반복 회차 식별 (YYYY-MM / YYYY / YYYY-MM-DD, recurring_schedule_id 있을 때만 사용)
+  recurring_period      String?         @db.VarChar(10) /// 반복 회차 식별 (YYYY-MM / YYYY / YYYY-MM-DD, recurring_schedule_id 있을 때만 사용)
   target_type           TransferTarget? /// 이동 대상 종류(transfer 전용) — 지정 시 대상 잔액에 자동 반영
   target_id             Int? /// 대상 테이블 id (target_type 기준, FK 아님)
   deleted_at            DateTime?
-  created_at            DateTime           @default(now())
-  updated_at            DateTime           @updatedAt
+  created_at            DateTime        @default(now())
+  updated_at            DateTime        @updatedAt
 
   user     User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
   schedule RecurringSchedule? @relation(fields: [recurring_schedule_id], references: [id], onDelete: SetNull)
@@ -202,14 +202,14 @@ model RecurringSchedule {
   last_period String?       @db.VarChar(10) /// 마지막 처리 회차(중복 생성 방지)
   active      Boolean       @default(true) /// 일시정지 여부
 
-  tx_type          TransactionType? /// kind=transaction 전용
-  title            String?            @db.VarChar(200) /// kind=transaction 전용
-  category         String?            @db.VarChar(50) /// kind=transaction 전용
-  amount           Decimal?           @db.Decimal(15, 2) /// kind=transaction 전용
-  pay_method       String?            @db.VarChar(50) /// kind=transaction 전용
-  memo             String?            @db.VarChar(300) /// kind=transaction 전용
-  target_type      TransferTarget? /// kind=transaction 전용 — 이동 대상 종류(transfer)
-  target_id        Int? /// kind=transaction 전용 — 대상 테이블 id
+  tx_type     TransactionType? /// kind=transaction 전용
+  title       String?          @db.VarChar(200) /// kind=transaction 전용
+  category    String?          @db.VarChar(50) /// kind=transaction 전용
+  amount      Decimal?         @db.Decimal(15, 2) /// kind=transaction 전용
+  pay_method  String?          @db.VarChar(50) /// kind=transaction 전용
+  memo        String?          @db.VarChar(300) /// kind=transaction 전용
+  target_type TransferTarget? /// kind=transaction 전용 — 이동 대상 종류(transfer)
+  target_id   Int? /// kind=transaction 전용 — 대상 테이블 id
 
   investment_id Int? /// investment.id FK — kind=investment 전용, 반복매수 대상 종목
   buy_amount    Decimal? @db.Decimal(15, 2) /// kind=investment 전용 — 회차당 매수금액(국내: 원, 해외: 달러)
@@ -424,8 +424,8 @@ model CalendarEvent {
   title       String       @db.VarChar(200)
   memo        String?      @db.VarChar(300)
   is_lunar    Boolean      @default(false) /// 음력 날짜 여부 (true면 lunar_month/lunar_day가 기준)
-  lunar_month Int?         /// 음력 월 (is_lunar=true일 때만 사용)
-  lunar_day   Int?         /// 음력 일
+  lunar_month Int? /// 음력 월 (is_lunar=true일 때만 사용)
+  lunar_day   Int? /// 음력 일
   lunar_leap  Boolean      @default(false) /// 윤달 여부
   recur_freq  CalRecurFreq @default(none)
   recur_until DateTime?    @db.Date /// 반복 종료일 (null = 무기한)
@@ -880,4 +880,32 @@ model PushSubscription {
 
   @@index([user_id])
   @@map("push_subscription")
+}
+
+model OutboxMessage {
+  id              Int          @id @default(autoincrement())
+  channel         String       @db.VarChar(30) /// 발송 수단 (webpush 등)
+  payload         String       @db.Text /// 발송에 필요한 값 (JSON) — 발송 시점에 DB를 다시 읽지 않는다
+  idempotency_key String       @unique @db.VarChar(200) /// 도메인 식별자 기반 중복 방지 키 (noti:<id>)
+  status          OutboxStatus @default(pending) /// pending → sending → sent | failed
+  attempts        Int          @default(0) /// 지금까지 실패한 횟수
+  max_attempts    Int /// 이 횟수를 넘기면 failed 로 마감
+  available_at    DateTime /// 이 시각 전에는 발송하지 않는다 (재시도 대기·야간 보류)
+  claimed_until   DateTime? /// 발송 선점 유효시각 — 지나면 다른 프로세스가 가져간다
+  last_error      String?      @db.Text /// 마지막 실패의 원본 에러 — 마감 사유로 덮어쓰지 않는다
+  sent_at         DateTime? /// 발송 완료 시각
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  @@index([status, available_at])
+  @@map("outbox_message")
+}
+
+enum OutboxStatus {
+  pending
+  sending
+  sent
+  failed
+
+  @@map("outbox_status")
 }

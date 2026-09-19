@@ -38,6 +38,7 @@
 | EmailLoginCode | 이메일 인증코드 로그인 (code_hash, expires_at, attempts) |
 | SystemLog | 시스템 로그 (크론·투자 현재가 갱신 등 백그라운드 작업 실행 기록, 90일 경과 시 자동 삭제) |
 | JobRun | 예약 작업 실행 기록 (작업별 시작·종료·상태·요약·원본 에러·lease, 90일 경과 시 자동 삭제) |
+| OutboxMessage | 알림 발송 아웃박스 (알림 행과 같은 트랜잭션에 적재 → 커밋된 것만 발송, 멱등키·재시도·원본 에러, 끝난 행은 90일 경과 시 자동 삭제) |
 
 ## 주요 관계
 
@@ -140,6 +141,18 @@ LoginSession   1 ─── N RefreshToken(session_id)
 - 실패하면 시스템 로그에도 `예약 작업 실패: <작업>` 한 줄(category `cron`)
 - 90일 경과 행(실행 중 제외)은 `trash-cron.service.ts`가 매일 정리
 - 저장소 구현: `backend/src/maintenance/job-run.store.ts`
+
+### 알림 발송 아웃박스 — OutboxMessage
+
+- `@leejinyoun/core-notification` 의 아웃박스. 알림(`Notification`) 행을 만드는 **같은 트랜잭션**에 발송 대상을 적재한다 → 알림 저장이 롤백되면 푸시도 나가지 않는다
+- `idempotency_key`(유니크): `noti:<알림 id>` — 시간창이 아니라 도메인 식별자로 중복 발송을 막는다. 크론이 두 번 돌아도 한 번만 나간다
+- `status`: `pending` → (선점) `sending` → `sent` | `failed`. `claimed_until` 은 선점 유효시각 — 발송 중 프로세스가 죽으면 지난 뒤 회수해 다시 보낸다(보장은 at-least-once)
+- 실패하면 `attempts` 를 올리고 `available_at` 을 백오프(30초·2분·8분·32분) 뒤로 미뤄 `pending` 으로 되돌린다. `max_attempts`(기본 5) 를 넘기면 `failed` — 이때도 `last_error` 의 **원본 에러를 마감 사유로 덮어쓰지 않는다**
+- 최종 실패는 시스템 로그에도 `알림 발송 실패: <채널>` 한 줄(category `notification`)
+- 채널은 현재 `webpush` 하나(`backend/src/push/webpush.channel.ts`). 로그인 인증코드 메일은 사용자가 결과를 즉시 봐야 해서 아웃박스를 거치지 않는다
+- VAPID 키가 없으면(푸시 비활성) 적재하지 않는다 — 앱 내 알림은 그대로 남는다
+- 끝난 행(sent/failed)은 90일 경과 시 `trash-cron.service.ts`가 정리
+- 저장소 구현: `backend/src/push/outbox.store.ts`
 
 ## 타임스탬프
 
