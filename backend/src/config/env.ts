@@ -6,6 +6,7 @@ const PLACEHOLDERS = new Set([
   'your_refresh_jwt_secret_change_this',
   'your_vault_jwt_secret_change_this',
   'change_this_to_a_long_random_secret',
+  'change_this_to_openssl_rand_hex_32_output',
 ]);
 
 // 서명·암호화 키 — 32자 이상 + 예시 기본값 거부
@@ -17,6 +18,19 @@ const secret = () =>
       (v) => !PLACEHOLDERS.has(v),
       '예시 기본값 그대로임 — 고유 랜덤값으로 교체 필요',
     );
+
+// 암호화 키 한 쌍 "<키ID>:<시크릿>" — 키ID 는 암호문 머리에 기록된다(영문 소문자·숫자, 예: k2609)
+const cryptoKey = z
+  .string()
+  .regex(
+    /^[a-z0-9]{1,16}:/,
+    '<키ID>:<시크릿> 형식이어야 함 (키ID 는 영문 소문자·숫자 16자 이내)',
+  )
+  .transform((pair) => {
+    const at = pair.indexOf(':');
+    return { id: pair.slice(0, at), secret: pair.slice(at + 1) };
+  })
+  .pipe(z.object({ id: z.string(), secret: secret() }));
 
 // 서버가 읽는 환경변수 전체 목록. 코드는 process.env 대신 여기서 export 한 env 만 읽는다(env.spec.ts 가 강제).
 // 키를 추가·삭제하면 .env.example 도 같이 고친다(역시 env.spec.ts 가 강제).
@@ -38,8 +52,11 @@ export const envShape = {
   JWT_SECRET: secret(),
   JWT_REFRESH_SECRET: secret(),
   JWT_VAULT_SECRET: secret(),
-  // AES-256-GCM 키 — 계정 비밀번호·신원 번호·ENV 값 암호화
-  CREDENTIAL_SECRET: secret(),
+  // 보관함 암호화 키 목록(AES-256-GCM) — 계정 비밀번호·신원 번호·ENV 값 등. 첫 번째 키로 암호화, 나머지는 복호화만.
+  // 교체: 새 키를 맨 앞에 추가 → 배포(부팅 시 자동 재암호화) → 이전 키 제거 → 배포
+  CRYPTO_KEYS: csv(cryptoKey),
+  // 이전 포맷(v1) 암호문 복호화 전용 — 재암호화가 끝나면 비운다(남은 v1 이 있으면 배포 전 점검·부팅이 막는다)
+  CREDENTIAL_SECRET: secret().optional(),
 
   GOOGLE_CLIENT_ID: z.string(),
   GOOGLE_CLIENT_SECRET: z.string(),

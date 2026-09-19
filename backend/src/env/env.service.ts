@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { EnvProject, EnvVar, EnvKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '@leejinyoun/core-security';
+import { cipherContext } from '../crypto/crypto-fields';
 import { AccessLogService } from '../access-log/access-log.service';
 import type { ClientInfo } from '@leejinyoun/core-logging';
 import {
@@ -107,7 +108,7 @@ export class EnvService {
 
   // 변수 → 목록 DTO. 값은 길이만큼 마스킹(원문은 reveal 로만)
   private varDto(v: EnvVar) {
-    const plain = this.crypto.decrypt(v.value_enc);
+    const plain = this.crypto.decrypt(v.value_enc, cipherContext('envVar.value_enc', v.user_id));
     return {
       id: v.id,
       env: v.env,
@@ -157,7 +158,7 @@ export class EnvService {
     });
     return rows.map((r) => ({
       key: r.key,
-      value: this.crypto.decrypt(r.value_enc),
+      value: this.crypto.decrypt(r.value_enc, cipherContext('envVar.value_enc', r.user_id)),
       group: r.group,
       location: r.location,
     }));
@@ -176,13 +177,13 @@ export class EnvService {
   async revealVar(userId: number, id: number, client?: ClientInfo) {
     const row = await this.findOwnedVar(userId, id);
     await this.accessLog.log(userId, 'env_reveal', { type: 'env', id, name: row.key }, client);
-    return { value: this.crypto.decrypt(row.value_enc) };
+    return { value: this.crypto.decrypt(row.value_enc, cipherContext('envVar.value_enc', row.user_id)) };
   }
 
   // 변수 추가 — 선택된 환경마다 행 생성 (값 암호화)
   async createVar(userId: number, projectId: number, dto: CreateEnvVarDto) {
     await this.findOwnedProject(userId, projectId);
-    const valueEnc = this.crypto.encrypt(dto.value);
+    const valueEnc = this.crypto.encrypt(dto.value, cipherContext('envVar.value_enc', userId));
     await this.prisma.envVar.createMany({
       data: dto.envs.map((env) => ({
         user_id: userId,
@@ -201,7 +202,8 @@ export class EnvService {
   // 변수 수정 (value 가 오면 재암호화). 값이 실제로 바뀌면 이전 암호문을 이력에 보관(롤백용)
   async updateVar(userId: number, id: number, dto: UpdateEnvVarDto) {
     const current = await this.findOwnedVar(userId, id);
-    const valueChanged = dto.value !== undefined && dto.value !== this.crypto.decrypt(current.value_enc);
+    const valueChanged =
+      dto.value !== undefined && dto.value !== this.crypto.decrypt(current.value_enc, cipherContext('envVar.value_enc', current.user_id));
     if (valueChanged) await this.pushHistory(userId, id, current.value_enc);
     const updated = await this.prisma.envVar.update({
       where: { id },
@@ -209,7 +211,7 @@ export class EnvService {
         group: dto.group === undefined ? undefined : dto.group || null,
         location: dto.location === undefined ? undefined : dto.location || null,
         key: dto.key?.trim(),
-        value_enc: dto.value === undefined ? undefined : this.crypto.encrypt(dto.value),
+        value_enc: dto.value === undefined ? undefined : this.crypto.encrypt(dto.value, cipherContext('envVar.value_enc', userId)),
         memo: dto.memo === undefined ? undefined : dto.memo || null,
       },
     });
@@ -241,7 +243,7 @@ export class EnvService {
     });
     return rows.map((h) => ({
       id: h.id,
-      valueMasked: '•'.repeat(Math.min(this.crypto.decrypt(h.value_enc).length, 20)),
+      valueMasked: '•'.repeat(Math.min(this.crypto.decrypt(h.value_enc, cipherContext('envVar.value_enc', h.user_id)).length, 20)),
       changedAt: h.created_at.toISOString(),
     }));
   }
@@ -281,7 +283,7 @@ export class EnvService {
       const rows = await this.prisma.envVar.findMany({
         where: { user_id: userId, project_id: projectId, env, deleted_at: null },
       });
-      return new Map(rows.map((r) => [r.key, this.crypto.decrypt(r.value_enc)]));
+      return new Map(rows.map((r) => [r.key, this.crypto.decrypt(r.value_enc, cipherContext('envVar.value_enc', r.user_id))]));
     };
     const [b, t] = await Promise.all([load(base), load(target)]);
 
@@ -341,7 +343,7 @@ export class EnvService {
       group: null,
       location: dto.location || null,
       key: p.key,
-      value_enc: this.crypto.encrypt(p.value),
+      value_enc: this.crypto.encrypt(p.value, cipherContext('envVar.value_enc', userId)),
       memo: null,
     }));
     await this.prisma.envVar.createMany({ data });

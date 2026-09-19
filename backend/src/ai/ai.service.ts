@@ -6,6 +6,7 @@ import {
 import { AiReport } from '@prisma/client';
 import OpenAI from 'openai';
 import { CryptoService } from '@leejinyoun/core-security';
+import { cipherContext } from '../crypto/crypto-fields';
 import { PrismaService } from '../prisma/prisma.service';
 import { SystemLogService } from '../system-log/system-log.service';
 import type { ReportPeriod } from './dto/generate-report.dto';
@@ -47,7 +48,7 @@ export class AiService {
   ) {}
 
   // 사용자 설정의 OpenAI API 키로 클라이언트 구성. 미설정 시 503
-  // 키는 AES-256-GCM 암호문('v1:')으로 저장 — 호출 직전 복호화. 구버전 평문 행은 그대로 사용(하위호환)
+  // 키는 AES-256-GCM 암호문으로 저장 — 호출 직전 복호화(구버전 평문 행은 부팅 시 재암호화가 암호문으로 바꿔 둔다)
   private async getClient(
     userId: number,
   ): Promise<{ openai: OpenAI; model: string }> {
@@ -59,9 +60,10 @@ export class AiService {
         'OpenAI API 키가 설정되지 않았습니다. 설정 페이지에서 등록해주세요.',
       );
     }
-    const apiKey = settings.openai_api_key.startsWith('v1:')
-      ? this.crypto.decrypt(settings.openai_api_key)
-      : settings.openai_api_key;
+    const apiKey = this.crypto.decrypt(
+      settings.openai_api_key,
+      cipherContext('userSettings.openai_api_key', settings.user_id),
+    );
     return { openai: new OpenAI({ apiKey }), model: settings.openai_model };
   }
 

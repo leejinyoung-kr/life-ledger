@@ -3,6 +3,7 @@ import { InvestmentAccount, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { parsePage } from '@leejinyoun/core-common';
 import { CryptoService } from '@leejinyoun/core-security';
+import { cipherContext } from '../crypto/crypto-fields';
 import { PriceLookupService } from '../investment/price-lookup.service';
 import { CreateInvestmentAccountDto } from './dto/create-investment-account.dto';
 import { QueryInvestmentAccountDto } from './dto/query-investment-account.dto';
@@ -32,9 +33,10 @@ export class InvestmentAccountService {
   ) {}
 
   // 계좌번호 복호화 후 앞 3자리/뒤 4자리만 노출(중간 마스킹) — 목록 응답에 평문 노출 방지
-  private maskAccountNumber(enc: string | null): string | null {
+  private maskAccountNumber(a: InvestmentAccount): string | null {
+    const enc = a.account_number_enc;
     if (!enc) return null;
-    const plain = this.crypto.decrypt(enc);
+    const plain = this.crypto.decrypt(enc, cipherContext('investmentAccount.account_number_enc', a.user_id));
     if (plain.length <= 7) return plain;
     const head = plain.slice(0, 3);
     const tail = plain.slice(-4);
@@ -48,7 +50,7 @@ export class InvestmentAccountService {
       name: a.name,
       cashBalance: a.cash_balance.toNumber(),
       cashBalanceUsd: a.cash_balance_usd.toNumber(),
-      accountNumber: this.maskAccountNumber(a.account_number_enc),
+      accountNumber: this.maskAccountNumber(a),
       startDate: toDateStr(a.start_date),
       maturityDate: toDateStr(a.maturity_date),
       memo: a.memo,
@@ -114,7 +116,10 @@ export class InvestmentAccountService {
         name: dto.name,
         cash_balance: new Prisma.Decimal(dto.cashBalance ?? 0),
         cash_balance_usd: new Prisma.Decimal(dto.cashBalanceUsd ?? 0),
-        account_number_enc: this.crypto.encrypt(dto.accountNumber),
+        account_number_enc: this.crypto.encrypt(
+          dto.accountNumber,
+          cipherContext('investmentAccount.account_number_enc', userId),
+        ),
         start_date: dto.startDate ? new Date(dto.startDate) : null,
         maturity_date: dto.maturityDate
           ? new Date(dto.maturityDate)
@@ -145,7 +150,13 @@ export class InvestmentAccountService {
         name: dto.name,
         cash_balance: dto.cashBalance !== undefined ? new Prisma.Decimal(dto.cashBalance) : undefined,
         cash_balance_usd: dto.cashBalanceUsd !== undefined ? new Prisma.Decimal(dto.cashBalanceUsd) : undefined,
-        account_number_enc: dto.accountNumber !== undefined ? this.crypto.encryptNullable(dto.accountNumber) : undefined,
+        account_number_enc:
+          dto.accountNumber !== undefined
+            ? this.crypto.encryptNullable(
+                dto.accountNumber,
+                cipherContext('investmentAccount.account_number_enc', userId),
+              )
+            : undefined,
         start_date: dto.startDate ? new Date(dto.startDate) : undefined,
         maturity_date: dto.maturityDate ? new Date(dto.maturityDate) : undefined,
         memo: dto.memo,

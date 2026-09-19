@@ -34,7 +34,9 @@ pnpm test        # 테스트
 | --- | --- | --- |
 | 필수 | `FRONTEND_URL`, `DATABASE_URL`, `GOOGLE_*`, `B2_*` | 비면 부팅 실패 |
 | 필수 | `ALLOWED_EMAILS` | 콤마 구분, 1개 이상. 목록 밖 계정은 로그인 거부 |
-| 필수 | `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_VAULT_SECRET`, `CREDENTIAL_SECRET` | 32자 이상, 예시값 금지, JWT 3개는 서로 달라야 함 (`openssl rand -hex 32`). `CREDENTIAL_SECRET` 은 한 번 정하면 변경 금지(기존 암호문 복호화 불가) |
+| 필수 | `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_VAULT_SECRET` | 32자 이상, 예시값 금지, 서로 달라야 함 (`openssl rand -hex 32`) |
+| 필수 | `CRYPTO_KEYS` | 보관함 암호화 키 목록 `<키ID>:<시크릿>` 콤마 구분. 첫 번째로 암호화, 나머지는 복호화만. 키ID 영문 소문자·숫자, 시크릿 32자 이상 (`echo "k$(date +%y%m):$(openssl rand -hex 32)"`). 잃으면 보관함 복구 불가 — 서버 밖에도 보관 |
+| 선택 | `CREDENTIAL_SECRET` | 이전 포맷(v1) 암호문 읽기 전용. 재암호화가 끝나면 비운다 |
 | 선택 | `SMTP_HOST`·`SMTP_USER`·`SMTP_PASS` | 셋 다 비우면 메일 비활성. 일부만 있으면 부팅 실패 |
 | 선택 | `VAPID_PUBLIC_KEY`·`VAPID_PRIVATE_KEY` | 둘 다 비우면 푸시 비활성. 하나만 있으면 부팅 실패 |
 | 선택 | `PORT`(8000), `CORS_ORIGINS`(localhost:3000), `TRUST_PROXY`, `BACKUP_DIR`, `HOLIDAY_API_KEY`, `SMTP_PORT`, `SMTP_FROM`, `VAPID_SUBJECT` | 괄호는 기본값 |
@@ -43,8 +45,20 @@ pnpm test        # 테스트
 
 ```bash
 # 배포 전 점검과 같은 검증만 실행 (빌드 후)
-node dist/config/check-env.js
+node dist/config/check-env.js      # 환경변수 + 암호화 키 설정 (DB 안 봄)
+node dist/crypto/crypto-check.js   # DB 의 암호문을 지금 키 설정으로 전부 복호화해 본다 (읽기만, 값은 출력 안 함)
 ```
+
+### 보관함 암호화 키 교체
+
+암호문은 `v2:<키ID>:<iv>:<tag>:<cipher>` 이고, `필드:사용자id` 문맥(AAD)에 묶여 있다(`src/crypto/crypto-fields.ts`).
+부팅할 때 현재 키가 아닌 암호문(이전 키·v1·평문 레거시)을 찾아 현재 키로 다시 암호화한다(listen 전, `updated_at` 은 그대로).
+
+1. 새 키를 `CRYPTO_KEYS` 맨 앞에 추가 — `k2612:<새 시크릿>,k2609:<이전 시크릿>` → 배포(또는 재시작). 부팅 로그 `[Crypto] 재암호화 N/N건 → k2612`
+2. `crypto-check` 결과에 이전 키 건수가 0 인지 확인(배포 로그에도 남는다)
+3. 이전 키를 빼고 배포. 이전 키로 된 암호문이 남아 있으면 배포 전 점검과 부팅이 멈추고 남은 위치(`table.column#id`)를 알려 준다
+
+> DB 백업(매일, 30일 보관)에는 그 시점의 암호문이 들어 있다. 뺀 키의 값은 30일 동안 서버 밖에 보관해 두어야 그 기간의 백업을 복원할 수 있다(복원 후 키를 다시 넣고 부팅하면 재암호화된다).
 
 ## 모듈 구조
 
@@ -78,7 +92,8 @@ src/
 ├── convert/       # 이미지↔PDF 변환
 ├── system-log/    # 시스템 로그 (크론·투자 갱신 등 백그라운드 작업 실행 기록)
 ├── health/        # 헬스체크
-├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
+├── crypto/        # 암호화 컬럼 목록·문맥(AAD)·키 설정, 부팅 시 점검·재암호화, 배포 전 점검(crypto-check)
+├── common/        # vault 유틸·ClientInfo 등 공용 (CryptoService 는 @leejinyoun/core-security)
 └── prisma/        # PrismaService / PrismaModule
 ```
 

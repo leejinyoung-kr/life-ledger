@@ -1,13 +1,34 @@
 import { BadRequestException } from '@nestjs/common';
+import { CryptoService } from '@leejinyoun/core-security';
 import { ImportService } from './import.service';
+import { cryptoOptions } from '../crypto/crypto-options';
+import { cipherContext, exportContext } from '../crypto/crypto-fields';
+import type { AuthUser } from '../auth/auth-user';
+import { v1Encrypt } from '../../test/v1-cipher';
 
-// 계정 백업 JSON 복원 — 암호문 형식 검증/필수필드 스킵 로직 회귀 테스트.
-// 복원은 평문화 없이 암호문(v1:...) 보존이 핵심이므로 손상/평문 차단을 집중 검증.
+const LEGACY = 'legacy-credential-secret-0123456789abcdef';
+
+// 계정 백업 JSON 복원 — 백업 암호문을 풀어 복원하는 사용자의 저장 문맥으로 다시 암호화하는지,
+// 풀리지 않는 행(다른 계정·없는 키·손상)을 넣지 않고 오류로 돌려주는지 검증한다
 describe('ImportService (계정 복원)', () => {
+  const crypto = new CryptoService(cryptoOptions());
+  const me: AuthUser = {
+    id: 1,
+    email: 'tester@example.com',
+    name: 't',
+    picture: '',
+  };
+  const PW = 'credential.password_enc' as const;
+  const TOTP = 'credential.totp_enc' as const;
+  // 계정 JSON 백업(export.credentialsJson)이 담는 암호문 — 이메일 문맥
+  const backup = (
+    plain: string,
+    email = me.email,
+    field: typeof PW | typeof TOTP = PW,
+  ) => crypto.encrypt(plain, exportContext(field, email));
+
   let created: any[];
-
   let existingRows: any[];
-
   const prisma: any = {
     credential: {
       // 멱등성 dedup 용 — 기존 계정 (name|username) 조회
@@ -18,9 +39,14 @@ describe('ImportService (계정 복원)', () => {
       }),
     },
   };
-  const svc = () => new ImportService(prisma);
+  const svc = (c: CryptoService = crypto) => new ImportService(prisma, c);
   const buf = (obj: any) => Buffer.from(JSON.stringify(obj), 'utf8');
-  const CIPHER = 'v1:abc123:def456:0a1b2c';
+  // 저장된 암호문을 복원한 사용자의 문맥으로 푼다
+  const stored = (
+    enc: string,
+    userId = me.id,
+    field: typeof PW | typeof TOTP = PW,
+  ) => crypto.decrypt(enc, cipherContext(field, userId));
 
   beforeEach(() => {
     created = [];
@@ -30,72 +56,170 @@ describe('ImportService (계정 복원)', () => {
 
   it('깨진 JSON 거부', async () => {
     await expect(
-      svc().restoreCredentials(1, Buffer.from('{not json', 'utf8')),
+      svc().restoreCredentials(me, Buffer.from('{not json', 'utf8')),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('빈 배열/credentials 누락 거부', async () => {
-    await expect(svc().restoreCredentials(1, buf({ credentials: [] }))).rejects.toThrow(BadRequestException);
-    await expect(svc().restoreCredentials(1, buf({}))).rejects.toThrow(BadRequestException);
+    await expect(
+      svc().restoreCredentials(me, buf({ credentials: [] })),
+    ).rejects.toThrow(BadRequestException);
+    await expect(svc().restoreCredentials(me, buf({}))).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
-  it('유효 암호문 1건 복원 + 기본 카테고리 적용', async () => {
+  it('계정 JSON 백업 복원 — 저장 문맥(사용자 id)으로 다시 암호화 + 기본 카테고리', async () => {
     const res = await svc().restoreCredentials(
-      1,
-      buf({ credentials: [{ name: 'GitHub', username: 'me', password_enc: CIPHER }] }),
+      me,
+      buf({
+        credentials: [
+          {
+            name: 'GitHub',
+            username: 'me',
+            password_enc: backup('pw!'),
+            totp_enc: backup('JBSW', me.email, TOTP),
+          },
+        ],
+      }),
     );
-    expect(res.imported).toBe(1);
+    expect(res).toEqual({ imported: 1, skipped: 0, errors: [] });
     expect(created[0]).toMatchObject({
       user_id: 1,
       name: 'GitHub',
-      password_enc: CIPHER,
       category: '기타',
     });
+    expect(stored(created[0].password_enc)).toBe('pw!');
+    expect(stored(created[0].totp_enc, me.id, TOTP)).toBe('JBSW');
+  });
+
+  it('DB 를 다시 만들어 사용자 id 가 바뀌어도 같은 계정(이메일)이면 복원된다', async () => {
+    const reborn: AuthUser = { ...me, id: 7, email: 'Tester@Example.com' };
+    const res = await svc().restoreCredentials(
+      reborn,
+      buf([{ name: 'A', username: 'u', password_enc: backup('pw') }]),
+    );
+    expect(res.imported).toBe(1);
+    expect(stored(created[0].password_enc, 7)).toBe('pw');
+  });
+
+  it('다른 계정의 백업은 복원되지 않는다 — 넣지 않고 오류로 돌려준다', async () => {
+    const res = await svc().restoreCredentials(
+      me,
+      buf([
+        {
+          name: 'Other',
+          username: 'u',
+          password_enc: backup('pw', 'someone@else.com'),
+        },
+      ]),
+    );
+    expect(res).toMatchObject({ imported: 0, skipped: 1 });
+    expect(res.errors[0]).toContain('복호화 실패');
+    expect(prisma.credential.createMany).not.toHaveBeenCalled();
+  });
+
+  it('ZIP 백업의 원본 행(저장 문맥)도 같은 사용자면 복원된다', async () => {
+    const raw = crypto.encrypt('zip-pw', cipherContext(PW, me.id));
+    const res = await svc().restoreCredentials(
+      me,
+      buf([{ name: 'Z', username: 'u', password_enc: raw }]),
+    );
+    expect(res.imported).toBe(1);
+    expect(stored(created[0].password_enc)).toBe('zip-pw');
+  });
+
+  it('v1(이전 포맷) 백업은 CREDENTIAL_SECRET 이 있을 때만 복원되고, 현재 키로 다시 암호화된다', async () => {
+    const withLegacy = new CryptoService({
+      ...cryptoOptions(),
+      legacySecret: LEGACY,
+    });
+    const file = buf([
+      { name: 'Old', username: 'u', password_enc: v1Encrypt('old-pw', LEGACY) },
+    ]);
+
+    const ok = await svc(withLegacy).restoreCredentials(me, file);
+    expect(ok.imported).toBe(1);
+    expect(created[0].password_enc).toMatch(/^v2:test:/);
+    expect(stored(created[0].password_enc)).toBe('old-pw');
+
+    created = [];
+    const no = await svc().restoreCredentials(me, file);
+    expect(no).toMatchObject({ imported: 0, skipped: 1 });
+    expect(no.errors[0]).toContain('복호화 실패');
   });
 
   it('name/username/password_enc 누락 시 skip (createMany 미호출)', async () => {
-    const res = await svc().restoreCredentials(1, buf([
-      { username: 'me', password_enc: CIPHER }, // name 없음
-      { name: 'X', password_enc: CIPHER }, // username 없음
-      { name: 'Y', username: 'u' }, // enc 없음
-    ]));
+    const res = await svc().restoreCredentials(
+      me,
+      buf([
+        { username: 'me', password_enc: backup('x') }, // name 없음
+        { name: 'X', password_enc: backup('x') }, // username 없음
+        { name: 'Y', username: 'u' }, // enc 없음
+      ]),
+    );
     expect(res.imported).toBe(0);
     expect(res.skipped).toBe(3);
     expect(prisma.credential.createMany).not.toHaveBeenCalled();
   });
 
   it('평문/손상 암호문은 error 기록 + skip', async () => {
-    const res = await svc().restoreCredentials(1, buf([
-      { name: 'Plain', username: 'u', password_enc: 'plaintext-pw' },
-    ]));
+    const res = await svc().restoreCredentials(
+      me,
+      buf([{ name: 'Plain', username: 'u', password_enc: 'plaintext-pw' }]),
+    );
     expect(res.imported).toBe(0);
     expect(res.skipped).toBe(1);
     expect(res.errors).toHaveLength(1);
     expect(res.errors[0]).toContain('Plain');
   });
 
-  it('totp_enc 는 v1: 형식만 보존, 아니면 null', async () => {
-    await svc().restoreCredentials(1, buf([
-      { name: 'A', username: 'u', password_enc: CIPHER, totp_enc: 'v1:x:y:z' },
-      { name: 'B', username: 'u', password_enc: CIPHER, totp_enc: 'garbage' },
-    ]));
-    expect(created[0].totp_enc).toBe('v1:x:y:z');
-    expect(created[1].totp_enc).toBeNull();
+  it('2FA 암호문이 깨졌으면 행 전체를 오류로 — 조용히 2FA 없이 복원하지 않는다', async () => {
+    const res = await svc().restoreCredentials(
+      me,
+      buf([
+        {
+          name: 'A',
+          username: 'u',
+          password_enc: backup('pw'),
+          totp_enc: 'garbage',
+        },
+        {
+          name: 'B',
+          username: 'u',
+          password_enc: backup('pw'),
+          totp_enc: backup('T', 'someone@else.com', TOTP),
+        },
+        {
+          name: 'C',
+          username: 'u',
+          password_enc: backup('pw'),
+          totp_enc: null,
+        },
+      ]),
+    );
+    expect(res).toMatchObject({ imported: 1, skipped: 2 });
+    expect(res.errors).toHaveLength(2);
+    expect(created[0]).toMatchObject({ name: 'C', totp_enc: null });
   });
 
   it('래퍼 없는 배열 자체도 허용', async () => {
-    const res = await svc().restoreCredentials(1, buf([
-      { name: 'A', username: 'u', password_enc: CIPHER },
-    ]));
+    const res = await svc().restoreCredentials(
+      me,
+      buf([{ name: 'A', username: 'u', password_enc: backup('x') }]),
+    );
     expect(res.imported).toBe(1);
   });
 
   it('기존 계정과 (name|username) 중복이면 skip (멱등성)', async () => {
     existingRows = [{ name: 'GitHub', username: 'me' }];
-    const res = await svc().restoreCredentials(1, buf([
-      { name: 'GitHub', username: 'me', password_enc: CIPHER }, // 이미 존재 → skip
-      { name: 'GitHub', username: 'other', password_enc: CIPHER }, // 신규 → 삽입
-    ]));
+    const res = await svc().restoreCredentials(
+      me,
+      buf([
+        { name: 'GitHub', username: 'me', password_enc: backup('x') }, // 이미 존재 → skip
+        { name: 'GitHub', username: 'other', password_enc: backup('x') }, // 신규 → 삽입
+      ]),
+    );
     expect(res.imported).toBe(1);
     expect(res.skipped).toBe(1);
     expect(created).toHaveLength(1);
@@ -103,10 +227,13 @@ describe('ImportService (계정 복원)', () => {
   });
 
   it('같은 파일 내 중복도 한 번만 삽입', async () => {
-    const res = await svc().restoreCredentials(1, buf([
-      { name: 'Dup', username: 'u', password_enc: CIPHER },
-      { name: 'Dup', username: 'u', password_enc: CIPHER },
-    ]));
+    const res = await svc().restoreCredentials(
+      me,
+      buf([
+        { name: 'Dup', username: 'u', password_enc: backup('x') },
+        { name: 'Dup', username: 'u', password_enc: backup('x') },
+      ]),
+    );
     expect(res.imported).toBe(1);
     expect(res.skipped).toBe(1);
   });

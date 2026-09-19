@@ -4,7 +4,7 @@
  * 국내/해외 주식·ETF·가상자산 섞고 손익(원금<>평가) 다양하게 구성.
  */
 import type { InvestmentType } from '@prisma/client';
-import { canEncrypt, d, enc, type SeedFn } from './helpers';
+import { d, enc, type SeedFn } from './helpers';
 
 type AccountSeed = { name: string; cashBalance: number; accountNumber: string };
 
@@ -51,9 +51,6 @@ export const seedInvestments: SeedFn = async (prisma, userId) => {
   await prisma.investment.deleteMany({ where: { user_id: userId } });
   await prisma.investmentAccount.deleteMany({ where: { user_id: userId } });
 
-  const encryptAccounts = canEncrypt();
-  if (!encryptAccounts) console.warn('  ⚠️ CREDENTIAL_SECRET 미설정 — 투자 계좌번호 더미는 건너뜀(계좌·종목은 계속 생성)');
-
   const accountId = new Map<string, number>();
   for (const a of ACCOUNTS) {
     const created = await prisma.investmentAccount.create({
@@ -61,7 +58,7 @@ export const seedInvestments: SeedFn = async (prisma, userId) => {
         user_id: userId,
         name: a.name,
         cash_balance: a.cashBalance,
-        account_number_enc: encryptAccounts ? enc(a.accountNumber) : null,
+        account_number_enc: enc(a.accountNumber, 'investmentAccount.account_number_enc', userId),
       },
     });
     accountId.set(a.name, created.id);

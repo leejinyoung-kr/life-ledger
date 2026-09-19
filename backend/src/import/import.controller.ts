@@ -29,6 +29,6 @@ export class ImportController {
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
   restoreCredentials(@CurrentUser() user: AuthUser, @UploadedFile() file?: Express.Multer.File) {
     if (!file) throw new BadRequestException('업로드할 파일이 없습니다.');
-    return this.service.restoreCredentials(user.id, file.buffer);
+    return this.service.restoreCredentials(user, file.buffer);
   }
 }

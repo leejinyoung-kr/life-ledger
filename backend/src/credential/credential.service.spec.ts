@@ -2,19 +2,15 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { CredentialService } from './credential.service';
 import { CryptoService } from '@leejinyoun/core-security';
+import { cryptoOptions } from '../crypto/crypto-options';
+import { cipherContext } from '../crypto/crypto-fields';
 
 // 계정 보관함 — 비번/TOTP 암호화 저장·복호화·백업코드·엑셀 입출력 회귀 테스트.
-// CryptoService 는 실제 사용(라운드트립 검증), Prisma/AccessLog 는 인메모리 가짜.
+// CryptoService 는 실제 사용(라운드트립 검증, test/setup-env.ts 의 CRYPTO_KEYS), Prisma/AccessLog 는 인메모리 가짜.
 describe('CredentialService', () => {
-  const ORIGINAL = process.env.CREDENTIAL_SECRET;
-  let crypto: CryptoService;
-  beforeAll(() => {
-    process.env.CREDENTIAL_SECRET = 'unit-test-secret';
-    crypto = new CryptoService({ secret: process.env.CREDENTIAL_SECRET });
-  });
-  afterAll(() => {
-    process.env.CREDENTIAL_SECRET = ORIGINAL;
-  });
+  const crypto = new CryptoService(cryptoOptions());
+  // 사용자 1 의 비밀번호 문맥
+  const PW = cipherContext('credential.password_enc', 1);
 
   let store: any[];
   let seq: number;
@@ -57,8 +53,8 @@ describe('CredentialService', () => {
     const res = await svc().create(1, { name: 'GitHub', category: 'dev', username: 'me', password: 'p@ss' } as any);
     expect(res).not.toHaveProperty('password');
     expect(res.has2fa).toBe(false);
-    expect(store[0].password_enc).toMatch(/^v1:/);
-    expect(crypto.decrypt(store[0].password_enc)).toBe('p@ss');
+    expect(store[0].password_enc).toMatch(/^v2:test:/);
+    expect(crypto.decrypt(store[0].password_enc, PW)).toBe('p@ss');
     expect(store[0].password_changed_at).toBeInstanceOf(Date);
   });
 
@@ -102,7 +98,7 @@ describe('CredentialService', () => {
     const before = store[0].password_changed_at.getTime();
     await new Promise((r) => setTimeout(r, 5));
     await svc().update(1, 1, { password: 'new' } as any);
-    expect(crypto.decrypt(store[0].password_enc)).toBe('new');
+    expect(crypto.decrypt(store[0].password_enc, PW)).toBe('new');
     expect(store[0].password_changed_at.getTime()).toBeGreaterThanOrEqual(before);
   });
 
@@ -114,7 +110,7 @@ describe('CredentialService', () => {
     const res = await svc().importExcel(1, buf);
     expect(res.imported).toBe(1);
     expect(res.failed).toBe(1);
-    expect(crypto.decrypt(store[0].password_enc)).toBe('p1');
+    expect(crypto.decrypt(store[0].password_enc, PW)).toBe('p1');
   });
 
   it('export → import 라운드트립: 평문 비번 보존', async () => {
@@ -123,7 +119,7 @@ describe('CredentialService', () => {
     store.length = 0;
     const res = await svc().importExcel(1, out);
     expect(res.imported).toBe(1);
-    expect(crypto.decrypt(store[0].password_enc)).toBe('roundtrip!');
+    expect(crypto.decrypt(store[0].password_enc, PW)).toBe('roundtrip!');
   });
 });
 

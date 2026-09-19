@@ -5,6 +5,7 @@ import * as ExcelJS from 'exceljs';
 import { authenticator } from 'otplib';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '@leejinyoun/core-security';
+import { cipherContext } from '../crypto/crypto-fields';
 import { AccessLogService } from '../access-log/access-log.service';
 import { parsePage } from '@leejinyoun/core-common';
 import type { ClientInfo } from '@leejinyoun/core-logging';
@@ -103,8 +104,8 @@ export class CredentialService {
         url: dto.url || null,
         category: dto.category,
         username: dto.username.trim(),
-        password_enc: this.crypto.encrypt(dto.password),
-        totp_enc: this.crypto.encryptNullable(dto.totp),
+        password_enc: this.crypto.encrypt(dto.password, cipherContext('credential.password_enc', userId)),
+        totp_enc: this.crypto.encryptNullable(dto.totp, cipherContext('credential.totp_enc', userId)),
         password_changed_at: new Date(),
         memo: dto.memo || null,
       },
@@ -126,8 +127,8 @@ export class CredentialService {
     const row = await this.findOwned(userId, id);
     await this.accessLog.log(userId, 'cred_reveal', { type: 'credential', id, name: row.name }, client);
     return {
-      password: this.crypto.decrypt(row.password_enc),
-      totp: row.totp_enc ? this.crypto.decrypt(row.totp_enc) : null,
+      password: this.crypto.decrypt(row.password_enc, cipherContext('credential.password_enc', row.user_id)),
+      totp: row.totp_enc ? this.crypto.decrypt(row.totp_enc, cipherContext('credential.totp_enc', row.user_id)) : null,
     };
   }
 
@@ -136,7 +137,7 @@ export class CredentialService {
     const row = await this.findOwned(userId, id);
     if (!row.totp_enc) throw new BadRequestException('2FA 시크릿이 없습니다.');
     await this.accessLog.log(userId, 'cred_totp', { type: 'credential', id, name: row.name }, client);
-    let secret = this.crypto.decrypt(row.totp_enc).trim();
+    let secret = this.crypto.decrypt(row.totp_enc, cipherContext('credential.totp_enc', row.user_id)).trim();
     if (secret.startsWith('otpauth://')) {
       const m = /[?&]secret=([^&]+)/i.exec(secret);
       if (m) secret = decodeURIComponent(m[1]);
@@ -163,9 +164,9 @@ export class CredentialService {
         url: dto.url === undefined ? undefined : dto.url || null,
         category: dto.category,
         username: dto.username?.trim(),
-        password_enc: dto.password ? this.crypto.encrypt(dto.password) : undefined,
+        password_enc: dto.password ? this.crypto.encrypt(dto.password, cipherContext('credential.password_enc', userId)) : undefined,
         password_changed_at: dto.password ? new Date() : undefined,
-        totp_enc: dto.totp === undefined ? undefined : this.crypto.encryptNullable(dto.totp),
+        totp_enc: dto.totp === undefined ? undefined : this.crypto.encryptNullable(dto.totp, cipherContext('credential.totp_enc', userId)),
         memo: dto.memo === undefined ? undefined : dto.memo || null,
       },
     });
@@ -180,7 +181,7 @@ export class CredentialService {
     );
     await this.prisma.credential.update({
       where: { id },
-      data: { backup_codes_enc: this.crypto.encrypt(JSON.stringify(codes)) },
+      data: { backup_codes_enc: this.crypto.encrypt(JSON.stringify(codes), cipherContext('credential.backup_codes_enc', userId)) },
     });
     await this.accessLog.log(userId, 'backup_codes_generate', { type: 'credential', id, name: row.name }, client);
     return { name: row.name, codes };
@@ -191,7 +192,7 @@ export class CredentialService {
     const row = await this.findOwned(userId, id);
     if (!row.backup_codes_enc) return { codes: [] as string[] };
     await this.accessLog.log(userId, 'cred_backup', { type: 'credential', id, name: row.name }, client);
-    return { codes: JSON.parse(this.crypto.decrypt(row.backup_codes_enc)) as string[] };
+    return { codes: JSON.parse(this.crypto.decrypt(row.backup_codes_enc, cipherContext('credential.backup_codes_enc', row.user_id))) as string[] };
   }
 
   // 2FA 백업코드 삭제
@@ -230,8 +231,8 @@ export class CredentialService {
         url: c.url ?? '',
         category: c.category,
         username: c.username,
-        password: this.crypto.decrypt(c.password_enc),
-        totp: c.totp_enc ? this.crypto.decrypt(c.totp_enc) : '',
+        password: this.crypto.decrypt(c.password_enc, cipherContext('credential.password_enc', c.user_id)),
+        totp: c.totp_enc ? this.crypto.decrypt(c.totp_enc, cipherContext('credential.totp_enc', c.user_id)) : '',
         memo: c.memo ?? '',
       });
     }
@@ -285,8 +286,8 @@ export class CredentialService {
         url: cell(row, 'URL') || null,
         category,
         username,
-        password_enc: this.crypto.encrypt(password),
-        totp_enc: totp ? this.crypto.encrypt(totp) : null,
+        password_enc: this.crypto.encrypt(password, cipherContext('credential.password_enc', userId)),
+        totp_enc: totp ? this.crypto.encrypt(totp, cipherContext('credential.totp_enc', userId)) : null,
         password_changed_at: new Date(),
         memo: cell(row, '메모') || null,
       });

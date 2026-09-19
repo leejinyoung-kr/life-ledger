@@ -24,7 +24,7 @@ export class ExportController {
     @Res() res: Response,
     @Client() client: ClientInfo,
   ): Promise<void> {
-    const data = await this.service.credentialsJson(user.id, client);
+    const data = await this.service.credentialsJson(user, client);
     const filename = encodeURIComponent('계정백업.json');
     res.set({
       'Content-Type': 'application/json; charset=utf-8',

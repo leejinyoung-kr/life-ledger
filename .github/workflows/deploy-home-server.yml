@@ -8,6 +8,9 @@ on:
       - 'backend/**'
       - 'docker-compose.yml'
       - '.github/workflows/deploy-home-server.yml'
+  # 코드 변경 없이 서버 .env 만 바꿨을 때(암호화 키 교체 등) 같은 점검을 거쳐 다시 배포한다.
+  # 수동 실행은 before 가 없어 diff 가 비므로 backend·frontend 를 둘 다 빌드한다
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -43,7 +46,7 @@ jobs:
             echo "changed files: $CHANGED"
             echo "building services:$SERVICES"
             docker compose build $SERVICES
-            # 새 이미지로 환경변수(backend/.env + compose environment)만 먼저 검증한다.
+            # 새 이미지로 환경변수(backend/.env + compose environment)와 암호화 키 설정만 먼저 검증한다(DB 안 봄).
             # 새 코드가 요구하는 키가 서버 .env 에 없으면 여기서 틀린 키 목록과 함께 실패하고,
             # 아래 up -d 까지 가지 않으므로 기존 컨테이너가 그대로 서비스를 계속한다.
             docker compose run --rm --no-deps backend node dist/config/check-env.js
@@ -52,7 +55,21 @@ jobs:
             # nexus-db로 정상 접속되고, 실행 후 자동 종료(--rm)되어 실제 서비스에는 영향 없다.
             # backend를 안 빌드한 경우에도 스키마 확인 차원에서 매번 실행 (변경 없으면 즉시 끝남).
             docker compose run --rm backend npx prisma migrate deploy
+            # 새 이미지의 키 설정(CRYPTO_KEYS·CREDENTIAL_SECRET)으로 DB 의 암호문을 전부 복호화해 본다(읽기만).
+            # 이전 키를 너무 일찍 뺐거나 시크릿을 잘못 넣었으면 여기서 멈춰 기존 컨테이너가 계속 서비스한다.
+            # 재암호화는 하지 않는다 — 기존 컨테이너가 새 포맷을 못 읽을 수 있어서, 새 컨테이너가 부팅하며 한다
+            docker compose run --rm backend node dist/crypto/crypto-check.js
             docker compose up -d
+            # 새 backend 가 healthy 가 될 때까지(부팅 시 재암호화는 listen 전에 끝난다) 기다린 뒤,
+            # 암호문 상태를 다시 점검해 배포 로그에 남긴다 — 키별 건수로 재암호화 결과가 보인다
+            for i in $(seq 1 36); do
+              STATUS=$(docker inspect -f '{{.State.Health.Status}}' "$(docker compose ps -q backend)")
+              [ "$STATUS" = healthy ] && break
+              sleep 5
+            done
+            echo "backend health: $STATUS"
+            [ "$STATUS" = healthy ] || { docker compose logs --tail 80 backend; exit 1; }
+            docker compose run --rm backend node dist/crypto/crypto-check.js
             docker compose ps
           ) 200>/tmp/nexus-deploy.lock
         env:

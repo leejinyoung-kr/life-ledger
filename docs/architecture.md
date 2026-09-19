@@ -15,7 +15,7 @@
 | DB | MariaDB 11 | 30개 테이블 구현 완료 |
 | Auth | Google OAuth 2.0 + JWT (전역 가드 + 새 기기 감지) | 구현 완료 |
 | Rate-limit | @nestjs/throttler | 구현 완료 |
-| 암호화 | AES-256-GCM(`CREDENTIAL_SECRET`) / 마스터잠금 scrypt | 구현 완료 |
+| 암호화 | AES-256-GCM(`CRYPTO_KEYS` 키링 + 필드·사용자 AAD, 부팅 시 자동 재암호화) / 마스터잠금 scrypt | 구현 완료 |
 | Storage | Backblaze B2 (@aws-sdk/client-s3, presigned) | 구현 완료 |
 | 유출검사 | HIBP(k-anonymity) | 구현 완료 |
 | AI | OpenAI API (사용자별 키·모델, AI 리포트) | 구현 완료 |

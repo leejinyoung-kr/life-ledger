@@ -255,13 +255,13 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /export/credentials | 계정 JSON 백업 (비번/TOTP 암호문 보존) |
 | GET | /export/backup | 전체 데이터 ZIP (도메인별 JSON) |
 
-> 암호화 컬럼은 암호문(`v1:...`)으로 내보내며, 동일한 `CREDENTIAL_SECRET` 환경에서만 복호화 가능하다.
+> 암호화 컬럼은 평문으로 풀지 않고 암호문(`v2:<키ID>:...`)으로 내보낸다. 계정 JSON 백업은 사용자 id 대신 **계정 이메일 문맥**으로 다시 감싸, DB 를 다시 만들어 id 가 바뀌어도 같은 계정이면 복원된다(다른 계정으로는 복원 불가). 어느 쪽이든 이 서버에 해당 키가 남아 있는 동안만 복호화된다.
 
 ## 데이터 가져오기
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| POST | /import/credentials | 계정 JSON 백업 복원 (multipart `file`, 암호문 v1 형식 검증·보존, 추가 방식) |
+| POST | /import/credentials | 계정 JSON 백업 복원 (multipart `file`, 추가 방식). 암호문을 풀어 이 사용자의 문맥·현재 키로 다시 암호화해 넣는다. 풀리지 않는 행(다른 계정의 백업·서버에 없는 키·손상, 2FA 손상 포함)은 넣지 않고 `errors` 로 돌려준다 |
 
 ## 파일 보관함 (Backblaze B2)
 

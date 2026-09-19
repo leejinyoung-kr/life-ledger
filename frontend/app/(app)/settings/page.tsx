@@ -97,7 +97,7 @@ export default function SettingsPage() {
   const [vaultTimeout, setVaultTimeout] = useState(5);
   const [vaultSaving, setVaultSaving] = useState(false);
 
-  // 계정 보관함 JSON 백업 복원 (export 역방향) — 동일 CREDENTIAL_SECRET 전제
+  // 계정 보관함 JSON 백업 복원 (export 역방향) — 같은 계정 + 백업에 쓰인 암호화 키가 서버에 남아 있어야 복원된다
   async function handleImportCredentials(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -601,7 +601,7 @@ export default function SettingsPage() {
                 <Row label="가계부 데이터" desc="전체 거래 내역을 엑셀(.xlsx)로 다운로드">
                   <Button variant="ghost" onClick={() => exportData('/transactions/export', '가계부.xlsx')}>엑셀 다운로드</Button>
                 </Row>
-                <Row label="계정 보관함" desc="암호화된 JSON 형태로 백업 (동일 키 필요)">
+                <Row label="계정 보관함" desc="암호화된 JSON 형태로 백업 (같은 계정으로만 복원)">
                   <Button variant="ghost" onClick={() => exportData('/export/credentials', '계정백업.json')}>JSON 백업</Button>
                 </Row>
                 <Row label="전체 백업" desc="모든 데이터·메모를 ZIP으로 다운로드">
@@ -610,7 +610,7 @@ export default function SettingsPage() {
               </Group>
 
               <Group title="데이터 가져오기">
-                <Row label="계정 보관함 복원" desc="JSON 백업을 현재 보관함에 추가 (동일 키 필요 · 덮어쓰지 않음)">
+                <Row label="계정 보관함 복원" desc="JSON 백업을 현재 보관함에 추가 (같은 계정의 백업만 · 덮어쓰지 않음)">
                   <label className="excel-btn upload">
                     JSON 복원
                     <input type="file" accept=".json,application/json" hidden onChange={handleImportCredentials} />

@@ -27,8 +27,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@leejinyoun/core-config':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.1.1
+        version: 0.1.1
       '@leejinyoun/core-logging':
         specifier: ^0.1.0
         version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
@@ -36,8 +36,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@leejinyoun/core-security':
-        specifier: ^0.1.0
-        version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
+        specifier: ^0.2.0
+        version: 0.2.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@leejinyoun/core-storage':
         specifier: ^0.1.1
         version: 0.1.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
@@ -1477,8 +1477,8 @@ packages:
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
-  '@leejinyoun/core-config@0.1.0':
-    resolution: {integrity: sha512-zRJMDInGW1LNshR+HEuMbDcWRqTD+p15mnqPtiqr/2POaYGoCTJ/6qTSCuO25OLjhqVA3on4WxWR+B1fUD1V2Q==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-config/0.1.0/dea3615f31f48410bf48af4650ba2fc0c6d10ea4}
+  '@leejinyoun/core-config@0.1.1':
+    resolution: {integrity: sha512-oix5zb4Dj0XM5tzk8qLteAT2SssARXJrID7O+1Zch74DpwJwXRVhZHT+WltwVkqMUz1DbwMWAaucSdGtTuWQUA==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-config/0.1.1/ea831187c0c17b3870687e1bc13863acb36c12c8}
 
   '@leejinyoun/core-logging@0.1.0':
     resolution: {integrity: sha512-p5rNKEZ0QX4BPwhJfiIAK6ThiQU9KttoaRvYJz6k88EWAT3uEmUZMaAxRe/6YLeWUnJvwdHwepD9Fw77dSENNQ==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-logging/0.1.0/dd37a406053e096b31256528e3f2d6536c54518f}
@@ -1490,8 +1490,8 @@ packages:
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
-  '@leejinyoun/core-security@0.1.0':
-    resolution: {integrity: sha512-7lrpjUgbbnvn6pHTiHxXT80XOuTwbXXRYE0uTT3VSskFXL+AtWPwb11SEXsC/17k7cPUwyGwS3GNgPdej/JmvQ==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-security/0.1.0/ab309a5b2d470d0c7994c4f1cda0be84e33b1422}
+  '@leejinyoun/core-security@0.2.0':
+    resolution: {integrity: sha512-etsHvkuitH5OIQ4Lq7IQAu4aYW/yLcLHfEGKBAOSDb4EqqxOb4SM6WuDHmF7jJRxhC1PuKLcl/smyO7w1Anc2A==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-security/0.2.0/a971d2372cd14a5b8f6265f1fa0206c9522f70a1}
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
@@ -7024,9 +7024,6 @@ packages:
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
 
-  zod@4.4.3:
-    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
-
   zod@4.6.5:
     resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
 
@@ -8311,7 +8308,7 @@ snapshots:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       class-validator: 0.15.1
 
-  '@leejinyoun/core-config@0.1.0':
+  '@leejinyoun/core-config@0.1.1':
     dependencies:
       dotenv: 17.4.2
       zod: 4.6.5
@@ -8328,7 +8325,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@leejinyoun/core-security@0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
+  '@leejinyoun/core-security@0.2.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
     dependencies:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
 
@@ -10865,8 +10862,8 @@ snapshots:
       '@babel/parser': 7.29.7
       eslint: 9.39.4(jiti@2.7.0)
       hermes-parser: 0.25.1
-      zod: 4.4.3
-      zod-validation-error: 4.0.2(zod@4.4.3)
+      zod: 4.6.5
+      zod-validation-error: 4.0.2(zod@4.6.5)
     transitivePeerDependencies:
       - supports-color
 
@@ -14567,11 +14564,9 @@ snapshots:
       compress-commons: 4.1.2
       readable-stream: 3.6.2
 
-  zod-validation-error@4.0.2(zod@4.4.3):
+  zod-validation-error@4.0.2(zod@4.6.5):
     dependencies:
-      zod: 4.4.3
-
-  zod@4.4.3: {}
+      zod: 4.6.5
 
   zod@4.6.5: {}
 

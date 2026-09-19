@@ -1,19 +1,15 @@
 import { NotFoundException } from '@nestjs/common';
 import { EnvService } from './env.service';
 import { CryptoService } from '@leejinyoun/core-security';
+import { cryptoOptions } from '../crypto/crypto-options';
+import { cipherContext } from '../crypto/crypto-fields';
 
 // ENV 보관함 — reveal/export/diff 감사 로그 기록, 값 마스킹, 이력/롤백 회귀 테스트.
-// CryptoService 는 실제 사용(라운드트립 검증), Prisma/AccessLog 는 인메모리 가짜.
+// CryptoService 는 실제 사용(라운드트립 검증, test/setup-env.ts 의 CRYPTO_KEYS), Prisma/AccessLog 는 인메모리 가짜.
 describe('EnvService', () => {
-  const ORIGINAL = process.env.CREDENTIAL_SECRET;
-  let crypto: CryptoService;
-  beforeAll(() => {
-    process.env.CREDENTIAL_SECRET = 'unit-test-secret';
-    crypto = new CryptoService({ secret: process.env.CREDENTIAL_SECRET });
-  });
-  afterAll(() => {
-    process.env.CREDENTIAL_SECRET = ORIGINAL;
-  });
+  const crypto = new CryptoService(cryptoOptions());
+  // 사용자 1 의 ENV 값 문맥 — 변수와 이력이 같은 문맥을 쓴다(이력·롤백이 암호문을 그대로 옮기므로)
+  const VAL = cipherContext('envVar.value_enc', 1);
 
   let projects: any[];
   let vars: any[];
@@ -86,7 +82,7 @@ describe('EnvService', () => {
       env: 'dev',
       group: null,
       key: 'KEY',
-      value_enc: crypto.encrypt('secret-value'),
+      value_enc: crypto.encrypt('secret-value', VAL),
       memo: null,
       deleted_at: null,
       ...overrides,
@@ -116,8 +112,8 @@ describe('EnvService', () => {
 
   describe('exportVars', () => {
     it('환경의 모든 변수를 평문으로 반환하고 env_reveal 감사 로그(export:)를 남긴다', async () => {
-      addVar({ key: 'A', value_enc: crypto.encrypt('a-val') });
-      addVar({ key: 'B', value_enc: crypto.encrypt('b-val') });
+      addVar({ key: 'A', value_enc: crypto.encrypt('a-val', VAL) });
+      addVar({ key: 'B', value_enc: crypto.encrypt('b-val', VAL) });
 
       const result = await svc().exportVars(1, 1, 'dev' as any);
 
@@ -138,7 +134,7 @@ describe('EnvService', () => {
 
   describe('findVars (목록)', () => {
     it('값은 마스킹된 형태로만 노출한다', async () => {
-      addVar({ value_enc: crypto.encrypt('secret-value') });
+      addVar({ value_enc: crypto.encrypt('secret-value', VAL) });
       const [row] = await svc().findVars(1, 1, 'dev' as any);
       expect(row.valueMasked).toBe('•'.repeat(12));
       expect(row).not.toHaveProperty('value');
@@ -148,13 +144,13 @@ describe('EnvService', () => {
 
   describe('diff', () => {
     it('한쪽에만 있는 키와 값이 다른 키를 분류하고, 평문 값은 노출하지 않는다', async () => {
-      addVar({ env: 'dev', key: 'ONLY_DEV', value_enc: crypto.encrypt('x') });
-      addVar({ env: 'dev', key: 'SAME', value_enc: crypto.encrypt('same') });
-      addVar({ env: 'dev', key: 'DIFF', value_enc: crypto.encrypt('dev-val') });
+      addVar({ env: 'dev', key: 'ONLY_DEV', value_enc: crypto.encrypt('x', VAL) });
+      addVar({ env: 'dev', key: 'SAME', value_enc: crypto.encrypt('same', VAL) });
+      addVar({ env: 'dev', key: 'DIFF', value_enc: crypto.encrypt('dev-val', VAL) });
 
-      addVar({ env: 'prod', key: 'ONLY_PROD', value_enc: crypto.encrypt('y') });
-      addVar({ env: 'prod', key: 'SAME', value_enc: crypto.encrypt('same') });
-      addVar({ env: 'prod', key: 'DIFF', value_enc: crypto.encrypt('prod-val') });
+      addVar({ env: 'prod', key: 'ONLY_PROD', value_enc: crypto.encrypt('y', VAL) });
+      addVar({ env: 'prod', key: 'SAME', value_enc: crypto.encrypt('same', VAL) });
+      addVar({ env: 'prod', key: 'DIFF', value_enc: crypto.encrypt('prod-val', VAL) });
 
       const result = await svc().diff(1, 1, 'dev' as any, 'prod' as any);
 
@@ -167,8 +163,8 @@ describe('EnvService', () => {
     });
 
     it('차이가 없으면 identical: true 이고 env_reveal 감사 로그(diff:)를 남긴다', async () => {
-      addVar({ env: 'dev', key: 'SAME', value_enc: crypto.encrypt('same') });
-      addVar({ env: 'prod', key: 'SAME', value_enc: crypto.encrypt('same') });
+      addVar({ env: 'dev', key: 'SAME', value_enc: crypto.encrypt('same', VAL) });
+      addVar({ env: 'prod', key: 'SAME', value_enc: crypto.encrypt('same', VAL) });
 
       const result = await svc().diff(1, 1, 'dev' as any, 'prod' as any);
 
@@ -184,22 +180,22 @@ describe('EnvService', () => {
 
   describe('updateVar / 이력 / 롤백', () => {
     it('값이 바뀌면 이전 값을 이력에 보관한다', async () => {
-      const row = addVar({ value_enc: crypto.encrypt('old-value') });
+      const row = addVar({ value_enc: crypto.encrypt('old-value', VAL) });
       await svc().updateVar(1, row.id, { value: 'new-value' } as any);
 
       expect(history).toHaveLength(1);
-      expect(crypto.decrypt(history[0].value_enc)).toBe('old-value');
-      expect(crypto.decrypt(row.value_enc)).toBe('new-value');
+      expect(crypto.decrypt(history[0].value_enc, VAL)).toBe('old-value');
+      expect(crypto.decrypt(row.value_enc, VAL)).toBe('new-value');
     });
 
     it('값이 그대로면 이력을 추가하지 않는다', async () => {
-      const row = addVar({ value_enc: crypto.encrypt('same-value') });
+      const row = addVar({ value_enc: crypto.encrypt('same-value', VAL) });
       await svc().updateVar(1, row.id, { value: 'same-value', memo: 'm' } as any);
       expect(history).toHaveLength(0);
     });
 
     it('이력은 마스킹된 형태로만 노출한다', async () => {
-      const row = addVar({ value_enc: crypto.encrypt('old-value') });
+      const row = addVar({ value_enc: crypto.encrypt('old-value', VAL) });
       await svc().updateVar(1, row.id, { value: 'new-value' } as any);
 
       const [h] = await svc().varHistory(1, row.id);
@@ -208,16 +204,16 @@ describe('EnvService', () => {
     });
 
     it('rollbackVar 는 현재 값을 이력에 보관한 뒤 이전 값으로 되돌린다', async () => {
-      const row = addVar({ value_enc: crypto.encrypt('v1') });
+      const row = addVar({ value_enc: crypto.encrypt('v1', VAL) });
       await svc().updateVar(1, row.id, { value: 'v2' } as any); // history: v1
       const histId = history[0].id;
 
       const result = await svc().rollbackVar(1, row.id, histId);
 
       expect(result.valueMasked).toBe('•'.repeat(2)); // 'v1'.length === 2
-      expect(crypto.decrypt(row.value_enc)).toBe('v1');
+      expect(crypto.decrypt(row.value_enc, VAL)).toBe('v1');
       // 롤백 직전 값(v2)이 새 이력으로 보관됨
-      expect(history.some((h) => crypto.decrypt(h.value_enc) === 'v2')).toBe(true);
+      expect(history.some((h) => crypto.decrypt(h.value_enc, VAL) === 'v2')).toBe(true);
     });
 
     it('존재하지 않는 이력으로 롤백하면 NotFoundException', async () => {
@@ -226,7 +222,7 @@ describe('EnvService', () => {
     });
 
     it('이력은 변수당 최근 20건만 유지한다', async () => {
-      const row = addVar({ value_enc: crypto.encrypt('v0') });
+      const row = addVar({ value_enc: crypto.encrypt('v0', VAL) });
       for (let i = 1; i <= 25; i++) {
         await svc().updateVar(1, row.id, { value: `v${i}` } as any);
       }

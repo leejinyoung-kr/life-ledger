@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, UserSettings } from '@prisma/client';
 import type { AuthUser } from '../auth/auth-user';
 import { CryptoService } from '@leejinyoun/core-security';
+import { cipherContext } from '../crypto/crypto-fields';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { DEFAULT_CATEGORIES, DEFAULT_WIDGETS } from './settings.defaults';
@@ -18,12 +19,11 @@ export class SettingsService {
     private crypto: CryptoService,
   ) {}
 
-  // 저장된 OpenAI 키 복호화 — 신규는 'v1:' 암호문, 구버전 평문 행은 그대로 반환(하위호환)
-  // CREDENTIAL_SECRET 변경/데이터 손상으로 복호화 실패 시에도 /settings 조회 전체가 죽지 않도록 null 반환
-  private revealOpenAiKey(stored: string): string | null {
-    if (!stored.startsWith('v1:')) return stored;
+  // 저장된 OpenAI 키 복호화 (구버전 평문 행은 부팅 시 재암호화가 암호문으로 바꿔 둔다)
+  // 키 설정 오류·데이터 손상으로 복호화에 실패해도 /settings 조회 전체가 죽지 않도록 null 반환
+  private revealOpenAiKey(s: UserSettings, stored: string): string | null {
     try {
-      return this.crypto.decrypt(stored);
+      return this.crypto.decrypt(stored, cipherContext('userSettings.openai_api_key', s.user_id));
     } catch {
       return null;
     }
@@ -43,8 +43,8 @@ export class SettingsService {
   }
 
   // 복호화된 키를 마스킹 — 복호화 실패(키 손상/시크릿 변경) 시 마스킹 텍스트로 대체
-  private maskedOpenAiKey(stored: string): string {
-    const revealed = this.revealOpenAiKey(stored);
+  private maskedOpenAiKey(s: UserSettings, stored: string): string {
+    const revealed = this.revealOpenAiKey(s, stored);
     return revealed ? maskKey(revealed) : '복호화 실패';
   }
 
@@ -61,7 +61,7 @@ export class SettingsService {
       sessionExpiry: s.session_expiry,
       pwAutoHide: s.pw_auto_hide,
       openaiApiKeySet: !!s.openai_api_key,
-      openaiApiKeyMasked: s.openai_api_key ? this.maskedOpenAiKey(s.openai_api_key) : null,
+      openaiApiKeyMasked: s.openai_api_key ? this.maskedOpenAiKey(s, s.openai_api_key) : null,
       openaiModel: s.openai_model,
       categories: s.categories,
       widgets: s.widgets,
@@ -94,7 +94,12 @@ export class SettingsService {
       menu_order: dto.menuOrder as Prisma.InputJsonValue,
     };
     // 새 키가 입력됐을 때만 교체 (빈 문자열/미전송 시 기존 유지). AES-256-GCM 으로 암호화 저장
-    if (dto.openaiApiKey) data.openai_api_key = this.crypto.encrypt(dto.openaiApiKey);
+    if (dto.openaiApiKey) {
+      data.openai_api_key = this.crypto.encrypt(
+        dto.openaiApiKey,
+        cipherContext('userSettings.openai_api_key', user.id),
+      );
+    }
 
     const updated = await this.prisma.userSettings.update({
       where: { user_id: user.id },

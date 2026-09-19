@@ -4,19 +4,15 @@ import { InvestmentAccountService } from './investment-account.service';
 import { CryptoService } from '@leejinyoun/core-security';
 import { PriceLookupService } from '../investment/price-lookup.service';
 import { ExchangeDirection } from './dto/exchange-investment-account.dto';
+import { cryptoOptions } from '../crypto/crypto-options';
+import { cipherContext } from '../crypto/crypto-fields';
 
 // 투자 계좌 — 계좌번호 마스킹/암호화, 보유종목 집계, 보유종목 있으면 삭제 차단 회귀 테스트.
-// CryptoService 는 실제 사용(라운드트립 검증), Prisma 는 인메모리 가짜.
+// CryptoService 는 실제 사용(라운드트립 검증, test/setup-env.ts 의 CRYPTO_KEYS), Prisma 는 인메모리 가짜.
 describe('InvestmentAccountService', () => {
-  const ORIGINAL = process.env.CREDENTIAL_SECRET;
-  let crypto: CryptoService;
-  beforeAll(() => {
-    process.env.CREDENTIAL_SECRET = 'unit-test-secret';
-    crypto = new CryptoService({ secret: process.env.CREDENTIAL_SECRET });
-  });
-  afterAll(() => {
-    process.env.CREDENTIAL_SECRET = ORIGINAL;
-  });
+  const crypto = new CryptoService(cryptoOptions());
+  // 사용자 1 의 계좌번호 문맥
+  const ACCT = cipherContext('investmentAccount.account_number_enc', 1);
 
   let accounts: any[];
   let investments: any[];
@@ -81,8 +77,8 @@ describe('InvestmentAccountService', () => {
   it('create: 계좌번호 암호화 저장, cashBalance 미입력 시 0', async () => {
     const res = await svc().create(1, { name: '토스증권', accountNumber: '110-1234567890' } as any);
     expect(res.cashBalance).toBe(0);
-    expect(accounts[0].account_number_enc).toMatch(/^v1:/);
-    expect(crypto.decrypt(accounts[0].account_number_enc)).toBe('110-1234567890');
+    expect(accounts[0].account_number_enc).toMatch(/^v2:test:/);
+    expect(crypto.decrypt(accounts[0].account_number_enc, ACCT)).toBe('110-1234567890');
   });
 
   it('findAll: 계좌번호 중간 마스킹(앞3/뒤4 노출)', async () => {

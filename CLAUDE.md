@@ -74,13 +74,13 @@ doc-nexus/
 | DB | MariaDB (docker-compose, 포트 3307) |
 | 인증 | Google OAuth 2.0 + JWT (전역 가드) |
 | Rate-limit | `@nestjs/throttler` (reveal/totp/복호화·vault unlock 엄격 제한) |
-| 암호화 | AES-256-GCM (`CREDENTIAL_SECRET` 키, 보관함 민감필드) / 마스터 잠금은 scrypt 해시 |
+| 암호화 | AES-256-GCM (`CRYPTO_KEYS` 키링 + 필드·사용자 문맥(AAD), 보관함 민감필드) / 마스터 잠금은 scrypt 해시 |
 | 스토리지 | Backblaze B2 (`@aws-sdk/client-s3`, presigned) |
 | 유출검사 | HaveIBeenPwned Pwned Passwords (k-anonymity) |
 | AI | OpenAI API (사용자별 키·모델, 설정에서 입력) |
 | 패키지 매니저 | pnpm (모노레포) |
 
-> 보관함 동작 전제: `backend/.env` 에 `CREDENTIAL_SECRET`(긴 랜덤값) 필수. 한 번 정하면 변경 금지(기존 암호문 복호화 불가).
+> 보관함 암호화: `backend/.env` 의 `CRYPTO_KEYS`(`<키ID>:<32자 이상 시크릿>` 콤마 구분, 첫 번째가 현재 키) 필수. 이 값을 잃으면 보관함 데이터 복구 불가 — 서버 밖에도 보관. 암호문은 `v2:<키ID>:...` 이고 `cipherContext(필드, 사용자 id)`(`src/crypto/crypto-fields.ts`)를 AAD 로 묶어, 다른 필드·다른 사용자 행으로 옮기면 풀리지 않는다. **키 교체**: 새 키를 맨 앞에 추가 → 배포(부팅 시 현재 키가 아닌 암호문 자동 재암호화) → 이전 키 제거 → 배포. `CREDENTIAL_SECRET` 은 이전 포맷(v1) 읽기 전용이라 재암호화가 끝나면 비운다. 이전 키로 된 암호문이 남았는데 키를 빼면 배포 전 점검(`node dist/crypto/crypto-check.js`, 전체 복호화)과 부팅이 막는다. 암호문 컬럼을 추가하면 `ENCRYPTED_COLUMNS` 에도 추가 — `crypto-fields.spec.ts` 가 schema.prisma 와 대조해 강제. 재암호화는 raw SQL(compare-and-swap)이라 `updated_at` 을 건드리지 않는다.
 >
 > 인증 전제: `JWT_SECRET`(access)·`JWT_REFRESH_SECRET`(refresh 쿠키)·`JWT_VAULT_SECRET`(보관함 잠금해제 토큰)은 **서로 다른** 32자 이상 랜덤값이어야 한다 — 누락·중복·예시값이면 부팅 실패. access 토큰은 `iss`/`aud` = `doc-nexus` 로 발급·검증한다(`auth/jwt.constants.ts`). refresh 시크릿을 바꾸면 전 기기 재로그인, vault 시크릿을 바꾸면 보관함 재잠금. `ALLOWED_EMAILS` 는 필수(비면 부팅 실패) — 목록 밖 계정은 구글·이메일 코드 로그인 모두 거부.
 >
@@ -182,10 +182,12 @@ cd backend && npx prisma generate
 
 ## 운영 배포 (홈서버)
 
-`.github/workflows/deploy-home-server.yml`이 `docker compose build` → `prisma migrate deploy`
-(1회성 컨테이너) → `docker compose up -d` 순서로 자동 실행한다 (2026-08-01 전환 —
-원래는 배포와 마이그레이션 시점을 의도적으로 분리했었으나, 수동 적용을
-누락하기 쉬워 자동화로 되돌림). 별도 수동 조치 불필요.
+`.github/workflows/deploy-home-server.yml`이 `docker compose build` → `check-env`(환경변수·키 설정)
+→ `prisma migrate deploy`(1회성 컨테이너) → `crypto-check`(암호문 전체 복호화 점검, 읽기만)
+→ `docker compose up -d` → backend healthy 대기 → `crypto-check`(결과 기록) 순서로 자동 실행한다
+(2026-08-01 전환 — 원래는 배포와 마이그레이션 시점을 의도적으로 분리했었으나, 수동 적용을
+누락하기 쉬워 자동화로 되돌림). `up -d` 전 점검이 실패하면 기존 컨테이너가 그대로 서비스한다.
+서버 `.env` 만 바꿨을 때(키 교체 등)는 Actions 에서 수동 실행(`workflow_dispatch`)한다.
 
 수동으로 다시 적용해야 할 때만 아래처럼 직접 실행한다.
 

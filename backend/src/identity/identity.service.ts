@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { IdentityCard } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '@leejinyoun/core-security';
+import { cipherContext } from '../crypto/crypto-fields';
 import { AccessLogService } from '../access-log/access-log.service';
 import type { ClientInfo } from '@leejinyoun/core-logging';
 import { maskTail, toDateOrNull, toDateStr } from '../common/vault.util';
@@ -22,7 +23,7 @@ export class IdentityService {
       id: c.id,
       type: c.type,
       name: c.name,
-      numberMasked: maskTail(this.crypto.decrypt(c.number_enc), 2),
+      numberMasked: maskTail(this.crypto.decrypt(c.number_enc, cipherContext('identityCard.number_enc', c.user_id)), 2),
       issueDate: toDateStr(c.issue_date),
       expireDate: toDateStr(c.expire_date),
       memo: c.memo,
@@ -47,7 +48,7 @@ export class IdentityService {
         user_id: userId,
         type: dto.type,
         name: dto.name.trim(),
-        number_enc: this.crypto.encrypt(dto.number),
+        number_enc: this.crypto.encrypt(dto.number, cipherContext('identityCard.number_enc', userId)),
         file_id: dto.fileId ?? null,
         issue_date: toDateOrNull(dto.issueDate),
         expire_date: toDateOrNull(dto.expireDate),
@@ -70,7 +71,7 @@ export class IdentityService {
   async reveal(userId: number, id: number, client?: ClientInfo) {
     const row = await this.findOwned(userId, id);
     await this.accessLog.log(userId, 'identity_reveal', { type: 'identity', id, name: row.name }, client);
-    return { number: this.crypto.decrypt(row.number_enc) };
+    return { number: this.crypto.decrypt(row.number_enc, cipherContext('identityCard.number_enc', row.user_id)) };
   }
 
   // 신원 문서 수정 (number 가 오면 재암호화)
@@ -81,7 +82,7 @@ export class IdentityService {
       data: {
         type: dto.type,
         name: dto.name?.trim(),
-        number_enc: dto.number ? this.crypto.encrypt(dto.number) : undefined,
+        number_enc: dto.number ? this.crypto.encrypt(dto.number, cipherContext('identityCard.number_enc', userId)) : undefined,
         file_id: dto.fileId === undefined ? undefined : dto.fileId,
         issue_date: dto.issueDate === undefined ? undefined : toDateOrNull(dto.issueDate),
         expire_date: dto.expireDate === undefined ? undefined : toDateOrNull(dto.expireDate),

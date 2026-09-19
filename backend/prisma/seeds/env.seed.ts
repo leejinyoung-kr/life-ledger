@@ -1,9 +1,9 @@
 /**
  * ENV 보관함 더미 — 여러 프로젝트 + dev/prod 변수(AES) + 값 변경 이력(롤백 데모).
- * CREDENTIAL_SECRET 미설정 시 건너뜀(암호화 불가).
+ * 앱과 같은 키링(backend/.env 의 CRYPTO_KEYS)·문맥으로 암호화 — 이력도 변수와 같은 문맥.
  */
 import type { EnvKind } from '@prisma/client';
-import { canEncrypt, enc, type SeedFn } from './helpers';
+import { enc, type SeedFn } from './helpers';
 
 type VarSeed = { env: EnvKind; group: string | null; key: string; value: string };
 
@@ -70,11 +70,6 @@ const PROJECTS: ProjectSeed[] = [
 
 // 한 사용자에게 ENV 더미를 채운다 (기존 프로젝트/변수/이력 제거 후 재삽입 → idempotent)
 export const seedEnv: SeedFn = async (prisma, userId) => {
-  if (!canEncrypt()) {
-    console.warn('  ⚠️ CREDENTIAL_SECRET 미설정 — ENV 더미 건너뜀');
-    return 0;
-  }
-
   // 기존 정리 (이력 → 변수 → 프로젝트 순서, FK 안전)
   const projects = await prisma.envProject.findMany({ where: { user_id: userId }, select: { id: true } });
   if (projects.length) {
@@ -100,7 +95,7 @@ export const seedEnv: SeedFn = async (prisma, userId) => {
           env: v.env,
           group: v.group,
           key: v.key,
-          value_enc: enc(v.value),
+          value_enc: enc(v.value, 'envVar.value_enc', userId),
         },
       });
     }
@@ -115,7 +110,7 @@ export const seedEnv: SeedFn = async (prisma, userId) => {
       if (target) {
         for (const old of p.history.values) {
           await prisma.envVarHistory.create({
-            data: { env_var_id: target.id, user_id: userId, value_enc: enc(old) },
+            data: { env_var_id: target.id, user_id: userId, value_enc: enc(old, 'envVar.value_enc', userId) },
           });
         }
         count += p.history.values.length;

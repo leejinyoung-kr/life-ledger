@@ -59,8 +59,10 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ## 암호화 (보관함)
 
-민감 필드는 AES-256-GCM 암호문(`v1:ivHex:tagHex:cipherHex`)으로 저장. 목록은 마스킹, 원문은 reveal 엔드포인트로만 제공.
-키는 `CREDENTIAL_SECRET` 을 sha256 한 32바이트. 마스터 잠금 비번은 별도 scrypt 해시(`saltHex:hashHex`).
+민감 필드는 AES-256-GCM 암호문(`v2:<키ID>:ivHex:tagHex:cipherHex`)으로 저장. 목록은 마스킹, 원문은 reveal 엔드포인트로만 제공.
+키는 `CRYPTO_KEYS` 키링(키ID 마다 HKDF-SHA256 파생, 첫 번째 키로 암호화). AAD 는 `<모델>.<컬럼>:<user_id>` — 다른 필드·다른 사용자 행으로 옮긴 암호문은 복호화되지 않는다(`env_var_history` 는 `env_var` 와 같은 문맥).
+이전 포맷 `v1:ivHex:tagHex:cipherHex`(`CREDENTIAL_SECRET` sha256, AAD 없음)는 부팅 시 v2 로 재암호화된다. 암호문 컬럼 목록은 `backend/src/crypto/crypto-fields.ts`.
+마스터 잠금 비번은 별도 scrypt 해시(`saltHex:hashHex`).
 
 - `IdentityCard.number_enc` · `Credential.password_enc`·`totp_enc`·`backup_codes_enc` · `EnvVar.value_enc` · `EnvVarHistory.value_enc`
 

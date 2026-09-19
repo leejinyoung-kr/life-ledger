@@ -37,7 +37,8 @@ import { HealthModule } from './health/health.module';
 import { SystemLogModule } from './system-log/system-log.module';
 import { RecurringScheduleModule } from './recurring-schedule/recurring-schedule.module';
 import { AllExceptionsFilter } from '@leejinyoun/core-common';
-import { env } from './config/env';
+import { cryptoOptions } from './crypto/crypto-options';
+import { CryptoAuditModule } from './crypto/crypto-audit.module';
 
 @Module({
   imports: [
@@ -60,7 +61,10 @@ import { env } from './config/env';
     CategoryModule,
     SearchModule,
     DashboardModule,
-    CryptoModule.forRoot({ secret: env.CREDENTIAL_SECRET }),
+    // 키링(CRYPTO_KEYS) + v1 읽기용 CREDENTIAL_SECRET. 키 설정이 틀리면 여기서 부팅이 멈춘다
+    CryptoModule.forRoot(cryptoOptions()),
+    // 부팅 시 암호문 점검 + 현재 키가 아닌 암호문 자동 재암호화
+    CryptoAuditModule,
     IdentityModule,
     CredentialModule,
     EnvModule,

@@ -7,7 +7,8 @@ Object.assign(process.env, {
   JWT_SECRET: 'test-jwt-access-secret-0123456789abcdef',
   JWT_REFRESH_SECRET: 'test-jwt-refresh-secret-0123456789abcdef',
   JWT_VAULT_SECRET: 'test-jwt-vault-secret-0123456789abcdef',
-  CREDENTIAL_SECRET: 'test-credential-secret-0123456789abcdef',
+  // 키 ID 'test' — 스펙에서 암호문 머리(v2:test:)로 확인한다. CREDENTIAL_SECRET(v1 읽기 전용)은 두지 않는다
+  CRYPTO_KEYS: 'test:test-crypto-key-0123456789abcdef0123',
   GOOGLE_CLIENT_ID: 'test-google-client-id',
   GOOGLE_CLIENT_SECRET: 'test-google-client-secret',
   GOOGLE_CALLBACK_URL: 'http://localhost:8000/api/v1/auth/google/callback',

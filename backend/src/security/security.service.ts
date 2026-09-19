@@ -3,6 +3,7 @@ import { createHash } from 'crypto';
 import { LoginSession } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '@leejinyoun/core-security';
+import { cipherContext } from '../crypto/crypto-fields';
 import { AccessLogService } from '../access-log/access-log.service';
 import type { ClientInfo } from '@leejinyoun/core-logging';
 
@@ -49,7 +50,7 @@ export class SecurityService {
     const decoded = creds.map((c) => ({
       id: c.id,
       name: c.name,
-      pw: this.crypto.decrypt(c.password_enc),
+      pw: this.crypto.decrypt(c.password_enc, cipherContext('credential.password_enc', c.user_id)),
       has2fa: !!c.totp_enc,
     }));
 
@@ -136,7 +137,7 @@ export class SecurityService {
     const results: { credentialId: number; name: string; count: number }[] = [];
 
     for (const c of creds) {
-      const pw = this.crypto.decrypt(c.password_enc);
+      const pw = this.crypto.decrypt(c.password_enc, cipherContext('credential.password_enc', userId));
       const sha1 = createHash('sha1').update(pw).digest('hex').toUpperCase();
       const prefix = sha1.slice(0, 5);
       const suffix = sha1.slice(5);
@@ -181,7 +182,7 @@ export class SecurityService {
     });
     let strong = 0, medium = 0, weak = 0;
     for (const c of creds) {
-      const s = this.strength(this.crypto.decrypt(c.password_enc));
+      const s = this.strength(this.crypto.decrypt(c.password_enc, cipherContext('credential.password_enc', userId)));
       if (s >= 75) strong++;
       else if (s >= 45) medium++;
       else weak++;

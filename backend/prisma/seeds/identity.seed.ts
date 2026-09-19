@@ -1,9 +1,9 @@
 /**
  * 신원 지갑 더미 — 문서 번호 AES 암호화. 만료 임박(여권) 포함해 알림/D-day 데모.
- * CREDENTIAL_SECRET 미설정 시 건너뜀(암호화 불가).
+ * 앱과 같은 키링(backend/.env 의 CRYPTO_KEYS)·문맥으로 암호화.
  */
 import type { IdentityType } from '@prisma/client';
-import { canEncrypt, d, daysAgo, enc, type SeedFn } from './helpers';
+import { d, daysAgo, enc, type SeedFn } from './helpers';
 
 // 만료일은 오늘 기준 상대 계산 (여권은 D-45 임박)
 const inDays = (n: number): Date => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
@@ -22,10 +22,6 @@ const IDS: IdSeed[] = [
 
 // 한 사용자에게 신원 문서 더미를 채운다 (기존 행 제거 후 재삽입 → idempotent)
 export const seedIdentity: SeedFn = async (prisma, userId) => {
-  if (!canEncrypt()) {
-    console.warn('  ⚠️ CREDENTIAL_SECRET 미설정 — 신원 더미 건너뜀');
-    return 0;
-  }
   await prisma.identityCard.deleteMany({ where: { user_id: userId } });
 
   for (const i of IDS) {
@@ -34,7 +30,7 @@ export const seedIdentity: SeedFn = async (prisma, userId) => {
         user_id: userId,
         type: i.type,
         name: i.name,
-        number_enc: enc(i.number),
+        number_enc: enc(i.number, 'identityCard.number_enc', userId),
         issue_date: i.issueDate,
         expire_date: i.expireDate,
       },

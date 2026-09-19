@@ -1,9 +1,9 @@
 /**
  * 계정 보관함 더미 — 비밀번호/TOTP/백업코드 AES 암호화.
  * 실시간 보안 분석(재사용·취약·2FA미설정)·비번 회전 알림(90일+)·2FA 백업코드 데모가 모두 동작하도록 구성.
- * CREDENTIAL_SECRET 미설정 시 건너뜀(암호화 불가).
+ * 앱과 같은 키링(backend/.env 의 CRYPTO_KEYS)·문맥으로 암호화 — 앱에서 그대로 복호화된다.
  */
-import { canEncrypt, daysAgo, enc, type SeedFn } from './helpers';
+import { daysAgo, enc, type SeedFn } from './helpers';
 
 type CredSeed = {
   name: string;
@@ -48,10 +48,6 @@ const CREDS: CredSeed[] = [
 
 // 한 사용자에게 계정 더미를 채운다 (기존 행 제거 후 재삽입 → idempotent)
 export const seedCredentials: SeedFn = async (prisma, userId) => {
-  if (!canEncrypt()) {
-    console.warn('  ⚠️ CREDENTIAL_SECRET 미설정 — 계정 더미 건너뜀');
-    return 0;
-  }
   await prisma.credential.deleteMany({ where: { user_id: userId } });
 
   for (const c of CREDS) {
@@ -62,9 +58,11 @@ export const seedCredentials: SeedFn = async (prisma, userId) => {
         url: c.url,
         category: c.category,
         username: c.username,
-        password_enc: enc(c.password),
-        totp_enc: c.totp ? enc(c.totp) : null,
-        backup_codes_enc: c.backupCodes ? enc(JSON.stringify(c.backupCodes)) : null,
+        password_enc: enc(c.password, 'credential.password_enc', userId),
+        totp_enc: c.totp ? enc(c.totp, 'credential.totp_enc', userId) : null,
+        backup_codes_enc: c.backupCodes
+          ? enc(JSON.stringify(c.backupCodes), 'credential.backup_codes_enc', userId)
+          : null,
         password_changed_at: daysAgo(c.pwChangedDaysAgo),
       },
     });

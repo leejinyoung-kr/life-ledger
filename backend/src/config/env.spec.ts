@@ -70,7 +70,7 @@ describe('환경변수 스키마 (config/env)', () => {
       'JWT_SECRET',
       'JWT_REFRESH_SECRET',
       'JWT_VAULT_SECRET',
-      'CREDENTIAL_SECRET',
+      'CRYPTO_KEYS[0].secret',
     ]) {
       expect(byKey.get(key)).toContain('예시 기본값');
     }
@@ -106,6 +106,26 @@ describe('환경변수 스키마 (config/env)', () => {
         key: 'JWT_VAULT_SECRET',
         message: 'JWT_SECRET 와 같은 값 — 서로 달라야 함',
       },
+    ]);
+  });
+
+  it('암호화 키는 <키ID>:<32자 이상 시크릿> 쌍 목록 — 틀린 항목을 위치와 함께 알려 주고 값은 출력하지 않는다', () => {
+    const short = 'k2:short-secret';
+    const problems = problemsOf({
+      ...validSource(),
+      CRYPTO_KEYS: `k1:${'a'.repeat(40)},no-key-id-${'b'.repeat(40)},${short}`,
+    });
+    expect(problems).toEqual([
+      {
+        key: 'CRYPTO_KEYS[1]',
+        message:
+          '<키ID>:<시크릿> 형식이어야 함 (키ID 는 영문 소문자·숫자 16자 이내)',
+      },
+      { key: 'CRYPTO_KEYS[2].secret', message: '32자 이상 필요' },
+    ]);
+    expect(JSON.stringify(problems)).not.toContain('short-secret');
+    expect(problemsOf({ ...validSource(), CRYPTO_KEYS: '' })).toEqual([
+      { key: 'CRYPTO_KEYS', message: '미설정' },
     ]);
   });
 
