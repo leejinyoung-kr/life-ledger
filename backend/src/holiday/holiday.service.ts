@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface HolidayDto {
@@ -41,7 +42,7 @@ export class HolidayService {
 
   // 공공데이터포털 API 호출 → DB 캐싱 (키 미설정/API 실패 시 빈 배열 — 캘린더 자체는 정상 동작)
   private async fetchAndCache(year: number): Promise<HolidayDto[]> {
-    const apiKey = process.env.HOLIDAY_API_KEY;
+    const apiKey = env.HOLIDAY_API_KEY;
     if (!apiKey) return [];
     try {
       const items = await this.fetchFromApi(year, apiKey);

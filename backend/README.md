@@ -28,58 +28,22 @@ pnpm test        # 테스트
 
 ## 환경 변수
 
-`.env.example` 참고:
+전체 목록과 설명은 [.env.example](.env.example), 검증 규칙은 [src/config/env.ts](src/config/env.ts) 참고. 부팅할 때 `@leejinyoun/core-config` 로 검증하고, 틀린 키가 있으면 **전부** 출력한 뒤 부팅을 멈춘다. 성공하면 시크릿을 가린 유효 설정을 부팅 로그(`[Config] 유효 설정`)에 남긴다.
 
-```env
-PORT=8000
-DATABASE_URL="mysql://root:password@localhost:3306/docnexus"
+| 구분 | 키 | 규칙 |
+| --- | --- | --- |
+| 필수 | `FRONTEND_URL`, `DATABASE_URL`, `GOOGLE_*`, `B2_*` | 비면 부팅 실패 |
+| 필수 | `ALLOWED_EMAILS` | 콤마 구분, 1개 이상. 목록 밖 계정은 로그인 거부 |
+| 필수 | `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_VAULT_SECRET`, `CREDENTIAL_SECRET` | 32자 이상, 예시값 금지, JWT 3개는 서로 달라야 함 (`openssl rand -hex 32`). `CREDENTIAL_SECRET` 은 한 번 정하면 변경 금지(기존 암호문 복호화 불가) |
+| 선택 | `SMTP_HOST`·`SMTP_USER`·`SMTP_PASS` | 셋 다 비우면 메일 비활성. 일부만 있으면 부팅 실패 |
+| 선택 | `VAPID_PUBLIC_KEY`·`VAPID_PRIVATE_KEY` | 둘 다 비우면 푸시 비활성. 하나만 있으면 부팅 실패 |
+| 선택 | `PORT`(8000), `CORS_ORIGINS`(localhost:3000), `TRUST_PROXY`, `BACKUP_DIR`, `HOLIDAY_API_KEY`, `SMTP_PORT`, `SMTP_FROM`, `VAPID_SUBJECT` | 괄호는 기본값 |
 
-# Google OAuth2
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-GOOGLE_CALLBACK_URL=http://localhost:8000/api/v1/auth/google/callback
+코드에서는 `process.env` 대신 `import { env } from '../config/env'` 로 읽는다. 키를 추가·삭제하면 `env.ts` 와 `.env.example` 을 같이 고칠 것 — `src/config/env.spec.ts` 가 어긋나면 테스트를 실패시킨다.
 
-# 로그인 허용 이메일(콤마 구분) — 비우면 모든 구글 계정 허용
-ALLOWED_EMAILS=
-
-# JWT
-# 용도별로 서로 다른 32자 이상 랜덤값 (openssl rand -hex 32). 누락·중복·32자 미만이면 부팅 실패
-JWT_SECRET=your_super_secret_jwt_key_change_this
-JWT_REFRESH_SECRET=your_refresh_jwt_secret_change_this
-JWT_VAULT_SECRET=your_vault_jwt_secret_change_this
-
-# 보관함 암호화 (AES-256-GCM) — 계정 비밀번호·신원 번호·ENV 값 암호화 키
-# 한 번 정하면 변경 금지(기존 암호문 복호화 불가). 미설정 시 보관함 호출 500.
-CREDENTIAL_SECRET=change_this_to_a_long_random_secret
-
-# 파일 보관함 (Backblaze B2 — S3 호환)
-B2_ENDPOINT=
-B2_BUCKET_REGION=
-B2_BUCKET_NAME=
-B2_KEY_ID=
-B2_APPLICATION_KEY=
-
-# AI (OpenAI)
-OPENAI_API_KEY=
-
-# 웹 푸시 (VAPID) — 비우면 푸시 발송 비활성
-VAPID_PUBLIC_KEY=
-VAPID_PRIVATE_KEY=
-VAPID_SUBJECT=mailto:your-real-email@example.com
-
-# SMTP 메일 발송 — 비우면 비활성(이메일 코드 로그인 등에 사용)
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
-SMTP_FROM=DocNexus <no-reply@docnexus.local>
-
-# 리버스 프록시 뒤에서 운영 시 — x-forwarded-for 신뢰 홉 수
-TRUST_PROXY=
-
-# App
-FRONTEND_URL=http://localhost:3000
-CORS_ORIGINS=http://localhost:3000
+```bash
+# 배포 전 점검과 같은 검증만 실행 (빌드 후)
+node dist/config/check-env.js
 ```
 
 ## 모듈 구조

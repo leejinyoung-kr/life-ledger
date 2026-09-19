@@ -26,6 +26,9 @@ importers:
       '@leejinyoun/core-common':
         specifier: ^0.1.0
         version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
+      '@leejinyoun/core-config':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@leejinyoun/core-logging':
         specifier: ^0.1.0
         version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
@@ -41,9 +44,6 @@ importers:
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/config':
-        specifier: ^4.0.4
-        version: 4.0.4(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
       '@nestjs/core':
         specifier: ^11.0.1
         version: 11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.24)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -103,7 +103,7 @@ importers:
         version: 9.0.0
       openai:
         specifier: ^6.39.0
-        version: 6.42.0(zod@4.4.3)
+        version: 6.42.0(zod@4.6.5)
       otplib:
         specifier: ^12.0.1
         version: 12.0.1
@@ -1477,6 +1477,9 @@ packages:
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
+  '@leejinyoun/core-config@0.1.0':
+    resolution: {integrity: sha512-zRJMDInGW1LNshR+HEuMbDcWRqTD+p15mnqPtiqr/2POaYGoCTJ/6qTSCuO25OLjhqVA3on4WxWR+B1fUD1V2Q==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-config/0.1.0/dea3615f31f48410bf48af4650ba2fc0c6d10ea4}
+
   '@leejinyoun/core-logging@0.1.0':
     resolution: {integrity: sha512-p5rNKEZ0QX4BPwhJfiIAK6ThiQU9KttoaRvYJz6k88EWAT3uEmUZMaAxRe/6YLeWUnJvwdHwepD9Fw77dSENNQ==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-logging/0.1.0/dd37a406053e096b31256528e3f2d6536c54518f}
     peerDependencies:
@@ -1729,12 +1732,6 @@ packages:
         optional: true
       class-validator:
         optional: true
-
-  '@nestjs/config@4.0.4':
-    resolution: {integrity: sha512-CJPjNitr0bAufSEnRe2N+JbnVmMmDoo6hvKCPzXgZoGwJSmp/dZPk9f/RMbuD/+Q1ZJPjwsRpq0vxna++Knwow==}
-    peerDependencies:
-      '@nestjs/common': ^10.0.0 || ^11.0.0
-      rxjs: ^7.1.0
 
   '@nestjs/core@11.1.24':
     resolution: {integrity: sha512-K4bzT+lEdd0Hhcsw3jtk56QAW6s6skK3ViN7hIROSN0kUf4ROwWEAKopJID6yhPQxB45kDtP2wEcjzE8171J3g==}
@@ -3759,18 +3756,6 @@ packages:
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
     engines: {node: '>=0.10.0'}
-
-  dotenv-expand@12.0.3:
-    resolution: {integrity: sha512-uc47g4b+4k/M/SeaW1y4OApx+mtLWl92l5LMPP0GNXctZqELk+YGgOPIIC5elYmUH4OuoK3JLhuRUYegeySiFA==}
-    engines: {node: '>=12'}
-
-  dotenv@16.6.1:
-    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
-    engines: {node: '>=12'}
-
-  dotenv@17.4.1:
-    resolution: {integrity: sha512-k8DaKGP6r1G30Lx8V4+pCsLzKr8vLmV2paqEj1Y55GdAgJuIqpRp5FfajGF8KtwMxCz9qJc6wUIJnm053d/WCw==}
-    engines: {node: '>=12'}
 
   dotenv@17.4.2:
     resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
@@ -7042,6 +7027,9 @@ packages:
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
+  zod@4.6.5:
+    resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
+
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
@@ -8323,6 +8311,11 @@ snapshots:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       class-validator: 0.15.1
 
+  '@leejinyoun/core-config@0.1.0':
+    dependencies:
+      dotenv: 17.4.2
+      zod: 4.6.5
+
   '@leejinyoun/core-logging@0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
     dependencies:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -8536,14 +8529,6 @@ snapshots:
       class-validator: 0.15.1
     transitivePeerDependencies:
       - supports-color
-
-  '@nestjs/config@4.0.4(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)':
-    dependencies:
-      '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      dotenv: 17.4.1
-      dotenv-expand: 12.0.3
-      lodash: 4.18.1
-      rxjs: 7.8.2
 
   '@nestjs/core@11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.24)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
     dependencies:
@@ -10559,14 +10544,6 @@ snapshots:
   doctrine@2.1.0:
     dependencies:
       esutils: 2.0.3
-
-  dotenv-expand@12.0.3:
-    dependencies:
-      dotenv: 16.6.1
-
-  dotenv@16.6.1: {}
-
-  dotenv@17.4.1: {}
 
   dotenv@17.4.2: {}
 
@@ -12977,9 +12954,9 @@ snapshots:
     dependencies:
       mimic-fn: 4.0.0
 
-  openai@6.42.0(zod@4.4.3):
+  openai@6.42.0(zod@4.6.5):
     optionalDependencies:
-      zod: 4.4.3
+      zod: 4.6.5
 
   optionator@0.9.4:
     dependencies:
@@ -14595,5 +14572,7 @@ snapshots:
       zod: 4.4.3
 
   zod@4.4.3: {}
+
+  zod@4.6.5: {}
 
   zwitch@2.0.4: {}

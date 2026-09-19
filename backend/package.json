@@ -24,12 +24,12 @@
     "@aws-sdk/s3-request-presigner": "^3.1063.0",
     "@leejinyoun/core-auth": "^0.2.0",
     "@leejinyoun/core-common": "^0.1.0",
+    "@leejinyoun/core-config": "^0.1.0",
     "@leejinyoun/core-logging": "^0.1.0",
     "@leejinyoun/core-notification": "^0.1.0",
     "@leejinyoun/core-security": "^0.1.0",
     "@leejinyoun/core-storage": "^0.1.1",
     "@nestjs/common": "^11.0.1",
-    "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
@@ -113,6 +113,9 @@
       "<rootDir>/test"
     ],
     "testRegex": ".*\\.spec\\.ts$",
+    "setupFiles": [
+      "<rootDir>/test/setup-env.ts"
+    ],
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },

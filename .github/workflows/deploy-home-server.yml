@@ -43,6 +43,10 @@ jobs:
             echo "changed files: $CHANGED"
             echo "building services:$SERVICES"
             docker compose build $SERVICES
+            # 새 이미지로 환경변수(backend/.env + compose environment)만 먼저 검증한다.
+            # 새 코드가 요구하는 키가 서버 .env 에 없으면 여기서 틀린 키 목록과 함께 실패하고,
+            # 아래 up -d 까지 가지 않으므로 기존 컨테이너가 그대로 서비스를 계속한다.
+            docker compose run --rm --no-deps backend node dist/config/check-env.js
             # 컨테이너를 띄우기 전에 새 이미지로 1회성 컨테이너를 만들어 마이그레이션부터 적용한다.
             # docker compose run은 서비스에 정의된 environment/networks를 그대로 물려받아
             # nexus-db로 정상 접속되고, 실행 후 자동 종료(--rm)되어 실제 서비스에는 영향 없다.

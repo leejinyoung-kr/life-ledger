@@ -82,7 +82,9 @@ doc-nexus/
 
 > 보관함 동작 전제: `backend/.env` 에 `CREDENTIAL_SECRET`(긴 랜덤값) 필수. 한 번 정하면 변경 금지(기존 암호문 복호화 불가).
 >
-> 인증 전제: `JWT_SECRET`(access)·`JWT_REFRESH_SECRET`(refresh 쿠키)·`JWT_VAULT_SECRET`(보관함 잠금해제 토큰)은 **서로 다른** 32자 이상 랜덤값이어야 한다 — 누락·중복·예시값이면 부팅 실패(`main.ts` validateSecrets). access 토큰은 `iss`/`aud` = `doc-nexus` 로 발급·검증한다(`auth/jwt.constants.ts`). refresh 시크릿을 바꾸면 전 기기 재로그인, vault 시크릿을 바꾸면 보관함 재잠금.
+> 인증 전제: `JWT_SECRET`(access)·`JWT_REFRESH_SECRET`(refresh 쿠키)·`JWT_VAULT_SECRET`(보관함 잠금해제 토큰)은 **서로 다른** 32자 이상 랜덤값이어야 한다 — 누락·중복·예시값이면 부팅 실패. access 토큰은 `iss`/`aud` = `doc-nexus` 로 발급·검증한다(`auth/jwt.constants.ts`). refresh 시크릿을 바꾸면 전 기기 재로그인, vault 시크릿을 바꾸면 보관함 재잠금. `ALLOWED_EMAILS` 는 필수(비면 부팅 실패) — 목록 밖 계정은 구글·이메일 코드 로그인 모두 거부.
+>
+> 환경변수: 백엔드는 `process.env` 를 직접 읽지 않고 `backend/src/config/env.ts` 의 `env` 만 읽는다(`@leejinyoun/core-config` 의 `defineEnv` — import 하는 순간 `.env` 로드 + 검증, 틀린 키를 전부 출력하고 부팅 중단). 키를 추가·삭제하면 `env.ts` 와 `backend/.env.example` 을 같이 고친다 — `src/config/env.spec.ts` 가 두 목록 일치·`process.env` 직접 사용 금지를 테스트로 강제한다(도커 빌드 테스트 단계라 배포에서도 막힘). 배포 워크플로는 컨테이너 교체 전에 새 이미지로 `node dist/config/check-env.js` 를 돌려, 서버 `.env` 가 새 스키마에 안 맞으면 기존 컨테이너를 유지한 채 멈춘다. SMTP(HOST·USER·PASS)·VAPID(공개·비공개 키)는 일부만 설정하면 부팅 실패.
 
 ---
 

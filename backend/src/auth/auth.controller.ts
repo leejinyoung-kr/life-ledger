@@ -9,11 +9,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiExcludeController } from '@nestjs/swagger';
 import type { CookieOptions, Request, Response } from 'express';
 import { CurrentUser, GoogleAuthGuard, Public } from '@leejinyoun/core-auth';
+import { env } from '../config/env';
 import type { AuthUser } from './auth-user';
 import { AuthService, GoogleUser } from './auth.service';
 import { RequestEmailCodeDto, VerifyEmailCodeDto } from './dto/email-login.dto';
@@ -31,7 +31,7 @@ function clientIp(req: Request): string | undefined {
 // 갱신 토큰 쿠키 옵션 — 운영(교차 도메인)은 SameSite=None+Secure, 개발은 Lax.
 // maxAge는 사용자 설정(session_expiry) 기준 refresh 토큰 수명(ms)을 그대로 사용 — 토큰보다 쿠키가 더 오래 남지 않도록
 function refreshCookieOptions(maxAge: number): CookieOptions {
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = env.NODE_ENV === 'production';
   return {
     httpOnly: true,
     secure: isProd,
@@ -44,7 +44,7 @@ function refreshCookieOptions(maxAge: number): CookieOptions {
 // refresh 쿠키 존재 여부를 프론트가 JS로 미리 확인할 수 있게 하는 힌트 쿠키(값 자체는 비민감).
 // httpOnly가 아니어서 refresh 쿠키와 옵션이 다름 — 쿠키 자체 유무 외엔 노출 정보 없음. refresh 쿠키와 동일한 maxAge 유지
 function hasSessionCookieOptions(maxAge: number): CookieOptions {
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = env.NODE_ENV === 'production';
   return {
     httpOnly: false,
     secure: isProd,
@@ -57,10 +57,7 @@ function hasSessionCookieOptions(maxAge: number): CookieOptions {
 @ApiExcludeController()
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private authService: AuthService,
-    private configService: ConfigService,
-  ) {}
+  constructor(private authService: AuthService) {}
 
   // 현재 로그인 사용자 (토큰 필요) — 사이드바/설정 표시용
   // JwtStrategy(core-auth)는 토큰의 모든 클레임을 req.user에 그대로 싣기 때문에,
@@ -88,7 +85,7 @@ export class AuthController {
     @Req() req: Request & { user?: GoogleUser },
     @Res() res: Response,
   ) {
-    const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
+    const frontendUrl = env.FRONTEND_URL;
 
     // 화이트리스트 외 계정 등 인증 실패 — 프론트 로그인으로 에러 리다이렉트
     if (!req.user) {
@@ -112,10 +109,10 @@ export class AuthController {
   @Public()
   @Get('dev-login')
   async devLogin(@Req() req: Request, @Res() res: Response) {
-    if (process.env.NODE_ENV === 'production') {
+    if (env.NODE_ENV === 'production') {
       return res.status(404).send('Not Found');
     }
-    const frontendUrl = this.configService.getOrThrow('FRONTEND_URL');
+    const frontendUrl = env.FRONTEND_URL;
     const { access, refresh, refreshTtlMs } = await this.authService.devLogin({
       ip: clientIp(req),
       userAgent: req.headers['user-agent'],

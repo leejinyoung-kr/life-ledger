@@ -1,13 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { spawn } from 'child_process';
 import { createWriteStream } from 'fs';
 import { mkdir, readdir, stat, unlink } from 'fs/promises';
 import { join } from 'path';
 import { createGzip } from 'zlib';
+import { env } from '../config/env';
 
 const RETENTION_DAYS = 30;
+
+// DATABASE_URL 에서 mariadb-dump 접속 정보 추출
+export function parseDbUrl(databaseUrl: string) {
+  const url = new URL(databaseUrl);
+  return {
+    host: url.hostname,
+    port: url.port || '3306',
+    user: decodeURIComponent(url.username),
+    password: decodeURIComponent(url.password),
+    database: url.pathname.replace(/^\//, ''),
+  };
+}
 
 // DB 백업 — mariadb-dump 결과를 gzip 압축해 BACKUP_DIR(기본 backend/backups)에 저장.
 // 30일 지난 백업은 자동 삭제. 컨테이너 환경에서는 mariadb-client(mariadb-dump)가 설치되어 있어야 한다.
@@ -15,29 +27,17 @@ const RETENTION_DAYS = 30;
 export class DbBackupCronService {
   private readonly logger = new Logger(DbBackupCronService.name);
 
-  constructor(private config: ConfigService) {}
-
-  // DATABASE_URL 에서 mariadb-dump 접속 정보 추출
-  private dbConfig() {
-    const url = new URL(this.config.getOrThrow('DATABASE_URL'));
-    return {
-      host: url.hostname,
-      port: url.port || '3306',
-      user: decodeURIComponent(url.username),
-      password: decodeURIComponent(url.password),
-      database: url.pathname.replace(/^\//, ''),
-    };
-  }
-
   // 매일 새벽 4시 — mariadb-dump → gzip 저장 + 30일 경과 백업 정리
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async backup(): Promise<void> {
-    const dir = this.config.get('BACKUP_DIR') || join(process.cwd(), 'backups');
+    const dir = env.BACKUP_DIR ?? join(process.cwd(), 'backups');
     await mkdir(dir, { recursive: true });
 
     const date = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10); // KST 날짜
     const filePath = join(dir, `docnexus_${date}.sql.gz`);
-    const { host, port, user, password, database } = this.dbConfig();
+    const { host, port, user, password, database } = parseDbUrl(
+      env.DATABASE_URL,
+    );
 
     try {
       await new Promise<void>((resolve, reject) => {

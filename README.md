@@ -18,8 +18,8 @@ pnpm install
 
 # 환경 변수 설정
 cp backend/.env.example backend/.env
-# backend/.env 편집 — DATABASE_URL, Google OAuth, JWT_SECRET·JWT_REFRESH_SECRET·JWT_VAULT_SECRET(서로 다른 값),
-#   CREDENTIAL_SECRET(보관함 암호화 키, 긴 랜덤값) 필수
+# backend/.env 편집 — DATABASE_URL, Google OAuth, ALLOWED_EMAILS, B2, JWT_SECRET·JWT_REFRESH_SECRET·JWT_VAULT_SECRET(서로 다른 값),
+#   CREDENTIAL_SECRET(보관함 암호화 키, 긴 랜덤값) 필수 — 빠지거나 틀리면 부팅 시 틀린 키를 전부 출력하고 멈춘다
 
 # DB 시작
 pnpm run db

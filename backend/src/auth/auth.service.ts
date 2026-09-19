@@ -5,9 +5,9 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User } from '@prisma/client';
+import { env } from '../config/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
 import { MailService } from '../mail/mail.service.js';
@@ -54,28 +54,21 @@ function parseDevice(ua = ''): { device: string; type: 'desktop' | 'mobile' | 'u
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  // 로그인 허용 이메일 화이트리스트 (구글 전략과 동일 기준) — 비우면 모든 이메일 허용
-  private readonly allowedEmails: string[];
+  // 로그인 허용 이메일 화이트리스트 (구글 전략과 동일 기준, 소문자) — env 가 1개 이상을 보장한다(비면 부팅 실패)
+  private readonly allowedEmails = env.ALLOWED_EMAILS;
   // refresh 전용 시크릿 — access 와 분리해 refresh 토큰이 보호 API 에서 절대 검증되지 않게 한다
-  private readonly refreshSecret: string;
+  private readonly refreshSecret = env.JWT_REFRESH_SECRET;
 
   constructor(
     private jwtService: JwtService,
     private prisma: PrismaService,
     private push: PushService,
-    private config: ConfigService,
     private mail: MailService,
-  ) {
-    this.allowedEmails = (this.config.get<string>('ALLOWED_EMAILS') ?? '')
-      .split(',')
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-    this.refreshSecret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
-  }
+  ) {}
 
-  // 이메일이 화이트리스트에 있는지 (비어있으면 전체 허용)
+  // 이메일이 화이트리스트에 있는지 — 목록 밖이면 거부(fail-closed)
   private isEmailAllowed(email: string): boolean {
-    return !this.allowedEmails.length || this.allowedEmails.includes(email.toLowerCase());
+    return this.allowedEmails.includes(email.toLowerCase());
   }
 
   private hashCode(code: string): string {

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { NotificationModule } from '@leejinyoun/core-notification';
+import { env } from '../config/env';
 import { PrismaModule } from '../prisma/prisma.module';
 import { PushController } from './push.controller';
 import { PushService } from './push.service';
@@ -10,9 +11,9 @@ import { PushService } from './push.service';
     PrismaModule,
     NotificationModule.forRoot({
       webPush: {
-        publicKey: process.env.VAPID_PUBLIC_KEY,
-        privateKey: process.env.VAPID_PRIVATE_KEY,
-        subject: process.env.VAPID_SUBJECT ?? 'mailto:admin@docnexus.local',
+        publicKey: env.VAPID_PUBLIC_KEY,
+        privateKey: env.VAPID_PRIVATE_KEY,
+        subject: env.VAPID_SUBJECT,
       },
     }),
   ],

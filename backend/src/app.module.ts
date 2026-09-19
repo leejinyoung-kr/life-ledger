@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { JwtAuthGuard } from '@leejinyoun/core-auth';
@@ -38,10 +37,10 @@ import { HealthModule } from './health/health.module';
 import { SystemLogModule } from './system-log/system-log.module';
 import { RecurringScheduleModule } from './recurring-schedule/recurring-schedule.module';
 import { AllExceptionsFilter } from '@leejinyoun/core-common';
+import { env } from './config/env';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     // 기본 분당 120요청(IP) — 민감 엔드포인트는 @Throttle 로 더 엄격히 제한
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
@@ -61,7 +60,7 @@ import { AllExceptionsFilter } from '@leejinyoun/core-common';
     CategoryModule,
     SearchModule,
     DashboardModule,
-    CryptoModule.forRoot({ secret: process.env.CREDENTIAL_SECRET }),
+    CryptoModule.forRoot({ secret: env.CREDENTIAL_SECRET }),
     IdentityModule,
     CredentialModule,
     EnvModule,

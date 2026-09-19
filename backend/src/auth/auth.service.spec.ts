@@ -1,16 +1,16 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { env } from '../config/env';
 import { AuthService } from './auth.service';
 
 // 갱신 토큰 검증·로그인 세션/새 기기 감지 로직 회귀 테스트.
-// Jwt/Prisma/Push 는 가짜로 대체해 분기만 검증.
+// Jwt/Prisma/Push 는 가짜로 대체해 분기만 검증. 시크릿 등 설정값은 test/setup-env.ts 의 고정값
 describe('AuthService', () => {
   let prisma: any;
   let jwt: any;
   let push: any;
-  let config: any;
   let mail: any;
-  const svc = () => new AuthService(jwt, prisma, push, config, mail);
+  const svc = () => new AuthService(jwt, prisma, push, mail);
 
   beforeEach(() => {
     jwt = {
@@ -18,7 +18,6 @@ describe('AuthService', () => {
       verify: jest.fn(),
       decode: jest.fn(),
     };
-    config = { get: jest.fn(() => ''), getOrThrow: jest.fn(() => 'refresh-secret') };
     mail = { isEnabled: true, sendLoginCode: jest.fn().mockResolvedValue(true) };
     prisma = {
       user: { upsert: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
@@ -165,7 +164,7 @@ describe('AuthService', () => {
       );
       expect(jwt.sign).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'refresh' }),
-        expect.objectContaining({ secret: 'refresh-secret' }),
+        expect.objectContaining({ secret: env.JWT_REFRESH_SECRET }),
       );
     });
 
@@ -184,8 +183,8 @@ describe('AuthService', () => {
 
   // 가짜 대신 실제 JwtService 로 서명·검증해 "용도별 시크릿 분리"가 실제로 토큰을 가르는지 확인
   describe('토큰 시크릿 분리 (실제 JwtService)', () => {
-    const ACCESS_SECRET = 'a'.repeat(32);
-    const REFRESH_SECRET = 'r'.repeat(32);
+    const ACCESS_SECRET = env.JWT_SECRET;
+    const REFRESH_SECRET = env.JWT_REFRESH_SECRET;
     const gUser = { googleId: 'g1', email: 'e', name: 'n', picture: 'p' };
     const user = { id: 3, google_id: 'g1', email: 'e', name: 'n', picture: 'p' };
     let realJwt: JwtService;
@@ -193,7 +192,6 @@ describe('AuthService', () => {
     beforeEach(() => {
       realJwt = new JwtService({ secret: ACCESS_SECRET });
       jwt = realJwt;
-      config.getOrThrow = jest.fn(() => REFRESH_SECRET);
       prisma.user.upsert.mockResolvedValue(user);
       prisma.user.findUnique.mockResolvedValue(user);
     });

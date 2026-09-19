@@ -1,7 +1,7 @@
 import { Global, Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { JWT_ALGORITHMS } from '../auth/jwt.constants';
+import { env } from '../config/env';
 import { SecurityController } from './security.controller';
 import { SecurityService } from './security.service';
 import { VaultService } from './vault.service';
@@ -13,12 +13,9 @@ import { VaultGuard } from './vault.guard';
 @Global()
 @Module({
   imports: [
-    JwtModule.registerAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.getOrThrow('JWT_VAULT_SECRET'),
-        verifyOptions: { algorithms: JWT_ALGORITHMS },
-      }),
+    JwtModule.register({
+      secret: env.JWT_VAULT_SECRET,
+      verifyOptions: { algorithms: JWT_ALGORITHMS },
     }),
   ],
   controllers: [SecurityController],
