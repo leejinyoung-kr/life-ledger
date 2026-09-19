@@ -43,7 +43,10 @@ GOOGLE_CALLBACK_URL=http://localhost:8000/api/v1/auth/google/callback
 ALLOWED_EMAILS=
 
 # JWT
+# 용도별로 서로 다른 32자 이상 랜덤값 (openssl rand -hex 32). 누락·중복·32자 미만이면 부팅 실패
 JWT_SECRET=your_super_secret_jwt_key_change_this
+JWT_REFRESH_SECRET=your_refresh_jwt_secret_change_this
+JWT_VAULT_SECRET=your_vault_jwt_secret_change_this
 
 # 보관함 암호화 (AES-256-GCM) — 계정 비밀번호·신원 번호·ENV 값 암호화 키
 # 한 번 정하면 변경 금지(기존 암호문 복호화 불가). 미설정 시 보관함 호출 500.

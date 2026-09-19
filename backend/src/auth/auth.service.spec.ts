@@ -1,4 +1,5 @@
 import { UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 
 // 갱신 토큰 검증·로그인 세션/새 기기 감지 로직 회귀 테스트.
@@ -17,7 +18,7 @@ describe('AuthService', () => {
       verify: jest.fn(),
       decode: jest.fn(),
     };
-    config = { get: jest.fn(() => '') };
+    config = { get: jest.fn(() => ''), getOrThrow: jest.fn(() => 'refresh-secret') };
     mail = { isEnabled: true, sendLoginCode: jest.fn().mockResolvedValue(true) };
     prisma = {
       user: { upsert: jest.fn(), findUnique: jest.fn(), delete: jest.fn() },
@@ -155,6 +156,19 @@ describe('AuthService', () => {
       expect(push.sendToUser).toHaveBeenCalled();
     });
 
+    it('access 는 iss/aud 를 넣어 기본 시크릿으로, refresh 는 refresh 전용 시크릿으로 서명', async () => {
+      prisma.user.upsert.mockResolvedValue(user);
+      await svc().login(gUser);
+      expect(jwt.sign).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'access' }),
+        { expiresIn: '15m', issuer: 'doc-nexus', audience: 'doc-nexus' },
+      );
+      expect(jwt.sign).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'refresh' }),
+        expect.objectContaining({ secret: 'refresh-secret' }),
+      );
+    });
+
     it('동일 기기 재로그인 → 기존 세션 갱신, create 없음', async () => {
       prisma.user.upsert.mockResolvedValue(user);
       prisma.loginSession.count.mockResolvedValue(1);
@@ -165,6 +179,53 @@ describe('AuthService', () => {
       expect(prisma.refreshToken.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ session_id: 99 }) }),
       );
+    });
+  });
+
+  // 가짜 대신 실제 JwtService 로 서명·검증해 "용도별 시크릿 분리"가 실제로 토큰을 가르는지 확인
+  describe('토큰 시크릿 분리 (실제 JwtService)', () => {
+    const ACCESS_SECRET = 'a'.repeat(32);
+    const REFRESH_SECRET = 'r'.repeat(32);
+    const gUser = { googleId: 'g1', email: 'e', name: 'n', picture: 'p' };
+    const user = { id: 3, google_id: 'g1', email: 'e', name: 'n', picture: 'p' };
+    let realJwt: JwtService;
+
+    beforeEach(() => {
+      realJwt = new JwtService({ secret: ACCESS_SECRET });
+      jwt = realJwt;
+      config.getOrThrow = jest.fn(() => REFRESH_SECRET);
+      prisma.user.upsert.mockResolvedValue(user);
+      prisma.user.findUnique.mockResolvedValue(user);
+    });
+
+    it('refresh 토큰은 access 시크릿으로 검증되지 않는다 (보호 API 에서 통과 불가)', async () => {
+      const { refresh } = await svc().login(gUser);
+      expect(() => realJwt.verify(refresh)).toThrow();
+      expect(realJwt.verify(refresh, { secret: REFRESH_SECRET }).type).toBe('refresh');
+    });
+
+    it('access 토큰은 iss/aud 가 doc-nexus 이고, 갱신 토큰으로 쓰면 서명 단계에서 거부된다', async () => {
+      const { access } = await svc().login(gUser);
+      const payload = realJwt.verify(access, { issuer: 'doc-nexus', audience: 'doc-nexus' });
+      expect(payload.type).toBe('access');
+      await expect(svc().refresh(access)).rejects.toThrow(UnauthorizedException);
+      expect(prisma.refreshToken.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('정상 refresh 토큰이면 rotation 성공', async () => {
+      const { refresh } = await svc().login(gUser);
+      prisma.refreshToken.findUnique.mockResolvedValue({ id: 1, user_id: 3, session_id: null, revoked_at: null });
+      const next = await svc().refresh(refresh);
+      expect(realJwt.verify(next.access, { issuer: 'doc-nexus', audience: 'doc-nexus' }).sub).toBe(3);
+    });
+
+    it('refresh 시크릿이 맞아도 HS256 이 아닌 알고리즘이면 거부', async () => {
+      const forged = realJwt.sign(
+        { sub: 3, jti: 'x', type: 'refresh' },
+        { secret: REFRESH_SECRET, algorithm: 'HS512' },
+      );
+      await expect(svc().refresh(forged)).rejects.toThrow(UnauthorizedException);
+      expect(prisma.refreshToken.findUnique).not.toHaveBeenCalled();
     });
   });
 });

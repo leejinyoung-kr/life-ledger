@@ -54,29 +54,36 @@ describe('VaultGuard', () => {
     await expect(promise).rejects.toMatchObject({ status: HttpStatus.LOCKED });
   });
 
-  it('잠금 활성 + scope 가 vault 가 아니면 -> 423 LOCKED', async () => {
+  it('잠금 활성 + type 이 vault 가 아니면 -> 423 LOCKED', async () => {
     prisma.userSettings.findUnique.mockResolvedValue({ master_lock_enabled: true });
-    jwt.verify.mockReturnValue({ sub: 1, scope: 'access' });
+    jwt.verify.mockReturnValue({ sub: 1, type: 'access' });
+    const promise = guard().canActivate(ctx({ id: 1 }, { 'x-vault-token': 'tok' }));
+    await expect(promise).rejects.toMatchObject({ status: HttpStatus.LOCKED });
+  });
+
+  it('잠금 활성 + type 없이 scope 만 있는 이전 형식 토큰이면 -> 423 LOCKED', async () => {
+    prisma.userSettings.findUnique.mockResolvedValue({ master_lock_enabled: true });
+    jwt.verify.mockReturnValue({ sub: 1, scope: 'vault' });
     const promise = guard().canActivate(ctx({ id: 1 }, { 'x-vault-token': 'tok' }));
     await expect(promise).rejects.toMatchObject({ status: HttpStatus.LOCKED });
   });
 
   it('잠금 활성 + 다른 사용자(sub 불일치) 토큰이면 -> 423 LOCKED', async () => {
     prisma.userSettings.findUnique.mockResolvedValue({ master_lock_enabled: true });
-    jwt.verify.mockReturnValue({ sub: 2, scope: 'vault' });
+    jwt.verify.mockReturnValue({ sub: 2, type: 'vault' });
     const promise = guard().canActivate(ctx({ id: 1 }, { 'x-vault-token': 'tok' }));
     await expect(promise).rejects.toMatchObject({ status: HttpStatus.LOCKED });
   });
 
   it('잠금 활성 + 본인 vault 토큰이면 통과시킨다', async () => {
     prisma.userSettings.findUnique.mockResolvedValue({ master_lock_enabled: true });
-    jwt.verify.mockReturnValue({ sub: 1, scope: 'vault' });
+    jwt.verify.mockReturnValue({ sub: 1, type: 'vault' });
     await expect(guard().canActivate(ctx({ id: 1 }, { 'x-vault-token': 'tok' }))).resolves.toBe(true);
   });
 
   it('헤더가 배열로 전달되어도 첫 번째 값을 토큰으로 사용한다', async () => {
     prisma.userSettings.findUnique.mockResolvedValue({ master_lock_enabled: true });
-    jwt.verify.mockReturnValue({ sub: 1, scope: 'vault' });
+    jwt.verify.mockReturnValue({ sub: 1, type: 'vault' });
     await expect(guard().canActivate(ctx({ id: 1 }, { 'x-vault-token': ['tok', 'extra'] }))).resolves.toBe(true);
     expect(jwt.verify).toHaveBeenCalledWith('tok');
   });

@@ -29,8 +29,9 @@ export class VaultGuard implements CanActivate {
     if (!token) this.locked('보관함이 잠겨 있습니다. 마스터 비밀번호로 잠금을 해제하세요.');
 
     try {
-      const payload = this.jwt.verify<{ sub: number; scope: string }>(token!);
-      if (payload.scope !== 'vault' || payload.sub !== user.id) throw new Error('invalid');
+      // vault 전용 시크릿·알고리즘은 SecurityModule 의 JwtModule 설정으로 검증된다
+      const payload = this.jwt.verify<{ sub: number; type: string }>(token!);
+      if (payload.type !== 'vault' || payload.sub !== user.id) throw new Error('invalid');
     } catch {
       this.locked('보관함 잠금이 만료되었습니다. 다시 잠금을 해제하세요.');
     }

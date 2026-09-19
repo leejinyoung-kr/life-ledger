@@ -99,7 +99,8 @@ export class VaultService {
     }
     // timeout 0(수동 잠금만) 은 12시간으로 길게 둔다
     const ttlSec = row.master_lock_timeout > 0 ? row.master_lock_timeout * 60 : 12 * 3600;
-    const token = this.jwt.sign({ sub: userId, scope: 'vault' }, { expiresIn: ttlSec });
+    // type 을 access 와 다르게 두어 Bearer 로 넣어도 JwtStrategy 가 거부한다(시크릿 분리와 이중 방어)
+    const token = this.jwt.sign({ sub: userId, type: 'vault' }, { expiresIn: ttlSec });
     await this.accessLog.log(userId, 'vault_unlock', { type: 'security', id: userId, name: 'vault' }, client);
     return { token, expiresIn: ttlSec };
   }

@@ -12,13 +12,17 @@ import { requestLogger } from '@leejinyoun/core-logging';
 
 // 부팅 시 핵심 시크릿 검증 — 미설정/약함/placeholder 기본값이면 즉시 종료.
 // 약한 시크릿으로 운영 배포되는 것을 막는다(런타임 500 으로 미루지 않음).
+// 용도별 JWT 시크릿(access·refresh·vault)은 서로 달라야 한다 — 같으면 토큰끼리 서로의 검증을 통과해 분리한 의미가 없다.
 function validateSecrets() {
   const PLACEHOLDERS = new Set([
     'your_super_secret_jwt_key_change_this',
+    'your_refresh_jwt_secret_change_this',
+    'your_vault_jwt_secret_change_this',
     'change_this_to_a_long_random_secret',
     'change_this_to_a_strong_password',
   ]);
-  const required = ['JWT_SECRET', 'CREDENTIAL_SECRET'];
+  const jwtSecrets = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'JWT_VAULT_SECRET'];
+  const required = [...jwtSecrets, 'CREDENTIAL_SECRET'];
   const errors: string[] = [];
   for (const name of required) {
     const v = process.env[name];
@@ -29,6 +33,14 @@ function validateSecrets() {
     } else if (PLACEHOLDERS.has(v)) {
       errors.push(`${name} 가 예시 기본값 그대로임 — 고유 랜덤값으로 교체 필요`);
     }
+  }
+  const seen = new Map<string, string>();
+  for (const name of jwtSecrets) {
+    const v = process.env[name];
+    if (!v) continue;
+    const same = seen.get(v);
+    if (same) errors.push(`${name} 가 ${same} 와 같음 — 용도별로 다른 값 필요`);
+    else seen.set(v, name);
   }
   if (errors.length) {
     // 부팅 중단 — 운영 환경에 약한 시크릿 노출 방지

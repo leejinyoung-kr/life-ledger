@@ -45,6 +45,8 @@ describe('VaultService (마스터 잠금)', () => {
     const res = await s.unlock(1, 'master-pw');
     expect(res.token).toBe('signed-token');
     expect(res.expiresIn).toBe(600); // 10분 = 600초
+    // access 와 구분되는 type — Bearer 로 넣어도 JwtStrategy 가 거부하게
+    expect(jwt.sign).toHaveBeenCalledWith({ sub: 1, type: 'vault' }, { expiresIn: 600 });
   });
 
   it('unlock: 틀린 비번 거부', async () => {

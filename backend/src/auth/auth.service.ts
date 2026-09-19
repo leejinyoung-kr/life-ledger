@@ -11,6 +11,7 @@ import { User } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
 import { MailService } from '../mail/mail.service.js';
+import { JWT_ALGORITHMS, JWT_AUDIENCE, JWT_ISSUER } from './jwt.constants.js';
 
 export interface GoogleUser {
   googleId: string;
@@ -55,6 +56,8 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   // 로그인 허용 이메일 화이트리스트 (구글 전략과 동일 기준) — 비우면 모든 이메일 허용
   private readonly allowedEmails: string[];
+  // refresh 전용 시크릿 — access 와 분리해 refresh 토큰이 보호 API 에서 절대 검증되지 않게 한다
+  private readonly refreshSecret: string;
 
   constructor(
     private jwtService: JwtService,
@@ -67,6 +70,7 @@ export class AuthService {
       .split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean);
+    this.refreshSecret = this.config.getOrThrow<string>('JWT_REFRESH_SECRET');
   }
 
   // 이메일이 화이트리스트에 있는지 (비어있으면 전체 허용)
@@ -78,7 +82,7 @@ export class AuthService {
     return createHash('sha256').update(code).digest('hex');
   }
 
-  // 접근 토큰 — 사용자 정보 포함(JwtStrategy 가 검증)
+  // 접근 토큰 — 사용자 정보 포함. JwtStrategy(core-auth)가 type·iss·aud 까지 검증한다
   private signAccess(user: User): string {
     return this.jwtService.sign(
       {
@@ -89,14 +93,29 @@ export class AuthService {
         picture: user.picture,
         type: 'access',
       },
-      { expiresIn: ACCESS_TTL },
+      { expiresIn: ACCESS_TTL, issuer: JWT_ISSUER, audience: JWT_AUDIENCE },
     );
   }
 
-  // 갱신 토큰 — sub + jti(화이트리스트 식별자), httpOnly 쿠키로만 사용
+  // 갱신 토큰 — sub + jti(화이트리스트 식별자), httpOnly 쿠키로만 사용. refresh 전용 시크릿으로 서명
   // ttl은 SESSION_EXPIRY_MAP의 값(jsonwebtoken이 받는 시간 문자열)만 들어오므로 캐스팅이 안전함
   private signRefresh(userId: number, jti: string, ttl: string): string {
-    return this.jwtService.sign({ sub: userId, jti, type: 'refresh' }, { expiresIn: ttl as never });
+    return this.jwtService.sign(
+      { sub: userId, jti, type: 'refresh' },
+      { secret: this.refreshSecret, expiresIn: ttl as never },
+    );
+  }
+
+  // 갱신 토큰 서명 검증 — refresh 전용 시크릿 + 알고리즘 고정. 실패 시 jsonwebtoken 에러를 그대로 던진다
+  private verifyRefresh(token: string): {
+    sub: number;
+    jti?: string;
+    type?: string;
+  } {
+    return this.jwtService.verify(token, {
+      secret: this.refreshSecret,
+      algorithms: JWT_ALGORITHMS,
+    });
   }
 
   // 사용자의 세션 자동 만료 설정(session_expiry) 조회 — 미설정 시 기본 7일
@@ -275,7 +294,7 @@ export class AuthService {
     if (!refreshToken) throw new UnauthorizedException('갱신 토큰이 없습니다.');
     let payload: { sub: number; jti?: string; type?: string };
     try {
-      payload = this.jwtService.verify(refreshToken);
+      payload = this.verifyRefresh(refreshToken);
     } catch {
       throw new UnauthorizedException('갱신 토큰이 유효하지 않습니다.');
     }
@@ -311,7 +330,7 @@ export class AuthService {
     if (!refreshToken) return;
     let payload: { jti?: string } | null;
     try {
-      payload = this.jwtService.verify(refreshToken);
+      payload = this.verifyRefresh(refreshToken);
     } catch {
       payload = this.jwtService.decode(refreshToken) as { jti?: string } | null;
     }
