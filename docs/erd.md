@@ -3,7 +3,7 @@
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
 > 마이그레이션: `20260713000000_init`(전 도메인 통합) + `20260715104820_add_recurring_schedule` · `20260715105206_drop_legacy_recurring_columns` · `20260731121236_remove_note_task_calendar` · `20260801140000_restore_calendar_remove_goal` · `20260801225151_add_calendar_lunar` · `20260801233607_add_holiday_and_show_holidays` · `20260822225654_remove_trash_and_asset_realestate_debt`(휴지통 기능 삭제 + Asset 테이블/부동산·부채 제거)
 
-## 테이블 목록 (30)
+## 테이블 목록 (31)
 
 | 테이블 | 설명 |
 | --- | --- |
@@ -37,6 +37,7 @@
 | RefreshToken | 갱신 토큰 화이트리스트 (jti, rotation/로그아웃/세션revoke 시 폐기) |
 | EmailLoginCode | 이메일 인증코드 로그인 (code_hash, expires_at, attempts) |
 | SystemLog | 시스템 로그 (크론·투자 현재가 갱신 등 백그라운드 작업 실행 기록, 90일 경과 시 자동 삭제) |
+| JobRun | 예약 작업 실행 기록 (작업별 시작·종료·상태·요약·원본 에러·lease, 90일 경과 시 자동 삭제) |
 
 ## 주요 관계
 
@@ -129,6 +130,16 @@ LoginSession   1 ─── N RefreshToken(session_id)
 - `user_id` 는 FK 관계 없이 참조용 int만 저장(전체 사용자 집계 이벤트는 null) — 사용자 삭제 시 별도 정리 불필요
 - 기록: `SystemLogService.info/warn/error`(fire-and-forget, 실패해도 호출부에 영향 없음) · 조회: `/system-logs` (`/logs` 화면)
 - 90일 경과 항목은 `trash-cron.service.ts`가 매일 정리
+
+### 예약 작업 실행 기록 — JobRun
+
+- `@leejinyoun/core-jobs` 가 잡 실행마다 1행: `job`(작업 이름), `triggered_by`(schedule/manual), `status`(running → succeeded | failed), `started_at`·`finished_at`, `summary`(작업이 돌려준 요약), `error`(원본 에러 — 메시지·개별 에러·cause 뒤에 stack)
+- `lease_until`: 이 시각까지 끝나지 않으면 `failed` + `error` 가 `lease_expired` 로 시작 — 멈춘 실행은 그 프로세스가, 프로세스가 죽어 `running` 으로 남은 행은 다음 점검(1분 주기)이 마감한다
+- `running_key`(유니크): 실행 중일 때만 작업 이름 — 같은 작업이 동시에 두 번 돌지 못하게 DB 에서 막는다. 끝나면 NULL
+- 종료 기록은 `status = 'running'` 인 행만 바꾼다(늦게 끝난 실행이 lease 마감을 덮지 않게)
+- 실패하면 시스템 로그에도 `예약 작업 실패: <작업>` 한 줄(category `cron`)
+- 90일 경과 행(실행 중 제외)은 `trash-cron.service.ts`가 매일 정리
+- 저장소 구현: `backend/src/maintenance/job-run.store.ts`
 
 ## 타임스탬프
 

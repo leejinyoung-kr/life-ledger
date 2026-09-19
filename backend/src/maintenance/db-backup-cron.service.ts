@@ -1,9 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Job } from '@leejinyoun/core-jobs';
+import type { JobContext } from '@leejinyoun/core-jobs';
 import { spawn } from 'child_process';
 import { createWriteStream } from 'fs';
 import { mkdir, readdir, stat, unlink } from 'fs/promises';
-import { join } from 'path';
+import { basename, join } from 'path';
+import { pipeline } from 'stream/promises';
 import { createGzip } from 'zlib';
 import { env } from '../config/env';
 
@@ -27,9 +29,10 @@ export function parseDbUrl(databaseUrl: string) {
 export class DbBackupCronService {
   private readonly logger = new Logger(DbBackupCronService.name);
 
-  // 매일 새벽 4시 — mariadb-dump → gzip 저장 + 30일 경과 백업 정리
-  @Cron(CronExpression.EVERY_DAY_AT_4AM)
-  async backup(): Promise<void> {
+  // 매일 새벽 4시 — mariadb-dump → gzip 저장 + 30일 경과 백업 정리.
+  // 실패하면 쓰다 만 파일을 지우고 던진다(정상 백업처럼 남지 않게). lease 가 끝나면 signal 로 mariadb-dump 도 끝낸다
+  @Job({ name: 'db-backup', cron: '0 4 * * *', leaseMs: 30 * 60_000 })
+  async backup(ctx: JobContext): Promise<string> {
     const dir = env.BACKUP_DIR ?? join(process.cwd(), 'backups');
     await mkdir(dir, { recursive: true });
 
@@ -40,51 +43,51 @@ export class DbBackupCronService {
     );
 
     try {
-      await new Promise<void>((resolve, reject) => {
-        const dump = spawn('mariadb-dump', [
-          '-h', host,
-          '-P', port,
-          '-u', user,
-          `-p${password}`,
-          '--single-transaction',
-          '--routines',
-          database,
-        ]);
-        const gzip = createGzip();
-        const out = createWriteStream(filePath);
-
-        dump.stdout.pipe(gzip).pipe(out);
-
-        let stderr = '';
-        dump.stderr.on('data', (d) => { stderr += d.toString(); });
+      const dump = spawn('mariadb-dump', [
+        '-h', host,
+        '-P', port,
+        '-u', user,
+        `-p${password}`,
+        '--single-transaction',
+        '--routines',
+        database,
+      ], { signal: ctx.signal });
+      let stderr = '';
+      dump.stderr.on('data', (d) => { stderr += d.toString(); });
+      const exited = new Promise<void>((resolve, reject) => {
         dump.on('error', reject);
         dump.on('close', (code) => {
           if (code === 0) resolve();
-          else reject(new Error(stderr || `mysqldump exit ${code}`));
+          else reject(new Error(stderr.trim() || `mariadb-dump exit ${code}`));
         });
-        out.on('error', reject);
       });
-      this.logger.log(`DB 백업 완료: ${filePath}`);
+      // 파일까지 다 써진 뒤에 성공으로 본다(프로세스 종료만 보면 gzip 끝부분이 덜 써질 수 있다)
+      await Promise.all([pipeline(dump.stdout, createGzip(), createWriteStream(filePath)), exited]);
     } catch (e) {
-      this.logger.error(`DB 백업 실패: ${(e as Error).message}`);
-      return;
+      await unlink(filePath).catch(() => undefined);
+      throw e;
     }
 
-    await this.purgeOld(dir);
+    const { size } = await stat(filePath);
+    const removed = await this.purgeOld(dir);
+    return `${basename(filePath)} (${(size / 1024 / 1024).toFixed(1)}MB)${removed ? `, 오래된 백업 ${removed}개 삭제` : ''}`;
   }
 
-  // 30일 지난 백업 파일 삭제
-  private async purgeOld(dir: string): Promise<void> {
+  // 30일 지난 백업 파일 삭제 — 지운 개수를 돌려준다
+  private async purgeOld(dir: string): Promise<number> {
     const cutoff = Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000;
     const files = await readdir(dir);
+    let removed = 0;
     for (const f of files) {
       if (!f.startsWith('docnexus_') || !f.endsWith('.sql.gz')) continue;
       const full = join(dir, f);
       const info = await stat(full);
       if (info.mtimeMs < cutoff) {
         await unlink(full);
+        removed++;
         this.logger.log(`오래된 백업 삭제: ${f}`);
       }
     }
+    return removed;
   }
 }

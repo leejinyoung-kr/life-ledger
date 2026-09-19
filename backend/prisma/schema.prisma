@@ -815,6 +815,40 @@ model SecurityScoreSnapshot {
   @@map("security_score_snapshot")
 }
 
+/// 예약 작업 실행 기록 — @leejinyoun/core-jobs 가 시작·종료·lease 만료를 남긴다. 90일 경과 시 자동 삭제
+model JobRun {
+  id           Int          @id @default(autoincrement())
+  job          String       @db.VarChar(100) /// 작업 이름 (@Job name)
+  triggered_by JobTrigger /// 실행 계기 (schedule: cron / manual: 수동)
+  status       JobRunStatus /// running → succeeded | failed
+  started_at   DateTime /// 시작 시각
+  lease_until  DateTime /// 이 시각까지 끝나지 않으면 failed(lease_expired)로 마감
+  finished_at  DateTime? /// 종료 시각 (running 이면 null)
+  summary      String?      @db.VarChar(500) /// 작업이 돌려준 요약
+  error        String?      @db.Text /// 원본 에러(stack 포함) — lease 만료는 lease_expired 로 시작
+  running_key  String?      @unique @db.VarChar(100) /// 실행 중일 때만 작업 이름 — 같은 작업의 동시 실행을 유니크로 막는다
+  created_at   DateTime     @default(now())
+
+  @@index([job, started_at])
+  @@index([status, lease_until])
+  @@map("job_run")
+}
+
+enum JobRunStatus {
+  running
+  succeeded
+  failed
+
+  @@map("job_run_status")
+}
+
+enum JobTrigger {
+  schedule
+  manual
+
+  @@map("job_trigger")
+}
+
 /// 시스템 로그 — 크론/반복매수/AI 등 백그라운드 작업의 실행 기록. 90일 경과 시 자동 삭제
 model SystemLog {
   id         Int      @id @default(autoincrement())

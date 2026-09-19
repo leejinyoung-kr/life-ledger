@@ -1,12 +1,57 @@
-import { mkdtemp, readdir, rm, utimes, writeFile } from 'fs/promises';
+import { EventEmitter } from 'events';
+import { existsSync } from 'fs';
+import { mkdtemp, readdir, readFile, rm, utimes, writeFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { PassThrough } from 'stream';
+import { gunzipSync } from 'zlib';
+import { spawn } from 'child_process';
+import type { JobContext } from '@leejinyoun/core-jobs';
 import { DbBackupCronService, parseDbUrl } from './db-backup-cron.service';
 
-// DATABASE_URL 파싱 + 보관기간(30일) 정리 로직 회귀 테스트.
-// mariadb-dump 실행은 외부 바이너리 의존이라 제외하고 순수 로직만 검증.
+// env 는 동결 객체라 모듈째 바꾼다 — getter 로 두어 테스트마다 BACKUP_DIR 을 바꿀 수 있게
+const mockEnv: { BACKUP_DIR?: string; DATABASE_URL: string } = {
+  DATABASE_URL: 'mysql://root:secret@db:3306/docnexus',
+};
+jest.mock('../config/env', () => ({
+  get env() {
+    return mockEnv;
+  },
+}));
+jest.mock('child_process', () => ({
+  ...jest.requireActual<typeof import('child_process')>('child_process'),
+  spawn: jest.fn(),
+}));
+
+// mariadb-dump 대역 — stdout 으로 덤프를 흘리고 exitCode 로 끝난다
+function fakeDump(exitCode: number, stdout: string, stderr = '') {
+  const child = Object.assign(new EventEmitter(), {
+    stdout: new PassThrough(),
+    stderr: new PassThrough(),
+  });
+  setImmediate(() => {
+    child.stderr.end(stderr);
+    child.stdout.end(stdout);
+    setImmediate(() => child.emit('close', exitCode));
+  });
+  return child;
+}
+
+// DATABASE_URL 파싱 + 보관기간(30일) 정리 + 덤프 성공·실패 처리 회귀 테스트.
+// mariadb-dump 는 외부 바이너리라 spawn 을 대역으로 바꿔 검증한다
 describe('DbBackupCronService', () => {
   const svc = () => new DbBackupCronService();
+  let dir: string;
+
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'docnexus-backup-'));
+    mockEnv.BACKUP_DIR = dir;
+  });
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+    jest.mocked(spawn).mockReset();
+  });
 
   it('DATABASE_URL 을 host/port/user/password/database 로 분해한다', () => {
     const cfg = parseDbUrl('mysql://root:p%40ss@db:3306/docnexus');
@@ -17,17 +62,29 @@ describe('DbBackupCronService', () => {
     expect(parseDbUrl('mysql://root:secret@localhost/docnexus').port).toBe('3306');
   });
 
+  describe('backup', () => {
+    const ctx = () => ({ signal: new AbortController().signal }) as JobContext;
+
+    it('덤프를 gzip 파일로 남기고 요약을 돌려준다 — lease signal 을 mariadb-dump 에 넘긴다', async () => {
+      jest.mocked(spawn).mockImplementation(() => fakeDump(0, 'CREATE TABLE t;') as never);
+      const c = ctx();
+      const summary = await svc().backup(c);
+
+      const [file] = await readdir(dir);
+      expect(file).toMatch(/^docnexus_\d{4}-\d{2}-\d{2}\.sql\.gz$/);
+      expect(gunzipSync(await readFile(join(dir, file))).toString()).toBe('CREATE TABLE t;');
+      expect(summary).toMatch(new RegExp(`^${file.replace(/\./g, '\\.')} \\(\\d+\\.\\dMB\\)$`));
+      expect(jest.mocked(spawn).mock.calls[0][2]).toEqual({ signal: c.signal });
+    });
+
+    it('mariadb-dump 가 실패하면 쓰다 만 파일을 지우고 원본 에러(stderr)로 던진다', async () => {
+      jest.mocked(spawn).mockImplementation(() => fakeDump(2, 'partial', 'Access denied for user') as never);
+      await expect(svc().backup(ctx())).rejects.toThrow('Access denied for user');
+      expect(await readdir(dir)).toEqual([]);
+    });
+  });
+
   describe('purgeOld', () => {
-    let dir: string;
-
-    beforeEach(async () => {
-      dir = await mkdtemp(join(tmpdir(), 'docnexus-backup-'));
-    });
-
-    afterEach(async () => {
-      await rm(dir, { recursive: true, force: true });
-    });
-
     it('30일 지난 백업 파일만 삭제하고 최근 파일·다른 파일은 보존한다', async () => {
       const old = join(dir, 'docnexus_2026-01-01.sql.gz');
       const recent = join(dir, 'docnexus_2026-06-10.sql.gz');
@@ -39,10 +96,11 @@ describe('DbBackupCronService', () => {
       const oldTime = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
       await utimes(old, oldTime, oldTime);
 
-      await (svc() as any).purgeOld(dir);
+      expect(await (svc() as any).purgeOld(dir)).toBe(1);
 
       const left = await readdir(dir);
       expect(left.sort()).toEqual(['docnexus_2026-06-10.sql.gz', 'note.txt']);
+      expect(existsSync(old)).toBe(false);
     });
   });
 });

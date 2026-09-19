@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable } from '@nestjs/common';
+import { Job } from '@leejinyoun/core-jobs';
 import { NotiGroup, NotiTone } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
@@ -13,20 +13,18 @@ function addDays(base: Date, days: number): Date {
 
 @Injectable()
 export class NotificationCronService {
-  private readonly logger = new Logger(NotificationCronService.name);
-
   constructor(
     private prisma: PrismaService,
     private push: PushService,
   ) {}
 
   // 매일 오전 9시 — 전 사용자 대상 임박/초과 알림 생성
-  @Cron(CronExpression.EVERY_DAY_AT_9AM)
-  async generateDaily(): Promise<void> {
+  @Job({ name: 'notification-daily', cron: '0 9 * * *', leaseMs: 10 * 60_000 })
+  async generateDaily(): Promise<string> {
     const users = await this.prisma.user.findMany({ select: { id: true } });
     let created = 0;
     for (const u of users) created += await this.runForUser(u.id);
-    if (created) this.logger.log(`알림 ${created}건 생성 (사용자 ${users.length}명)`);
+    return `알림 ${created}건 생성 (사용자 ${users.length}명)`;
   }
 
   // 동일 제목의 미읽음 알림이 있으면 건너뛰고, 없으면 생성 (중복 방지)

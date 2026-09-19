@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { JwtAuthGuard } from '@leejinyoun/core-auth';
+import { JobsModule } from '@leejinyoun/core-jobs';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AssetModule } from './asset/asset.module';
@@ -39,10 +39,13 @@ import { RecurringScheduleModule } from './recurring-schedule/recurring-schedule
 import { AllExceptionsFilter } from '@leejinyoun/core-common';
 import { cryptoOptions } from './crypto/crypto-options';
 import { CryptoAuditModule } from './crypto/crypto-audit.module';
+import { PrismaJobRunStore } from './maintenance/job-run.store';
 
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
+    // 예약 작업(@Job, maintenance/) — 실행 기록은 job_run, 실패는 시스템 로그에도 남긴다.
+    // lease 안에 끝나지 않거나 프로세스가 죽어 끝을 기록하지 못한 실행은 failed(lease_expired)로 마감된다
+    JobsModule.forRoot({ store: PrismaJobRunStore, imports: [SystemLogModule], timeZone: 'Asia/Seoul' }),
     // 기본 분당 120요청(IP) — 민감 엔드포인트는 @Throttle 로 더 엄격히 제한
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
     PrismaModule,

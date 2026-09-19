@@ -20,3 +20,4 @@ minimumReleaseAgeExclude:
   - '@leejinyoun/core-security@0.0.1 || 0.1.0 || 0.2.0'
   - '@leejinyoun/core-storage@0.0.1 || 0.1.0 || 0.1.1 || 0.2.0'
   - '@leejinyoun/core-config@0.1.0 || 0.1.1'
+  - '@leejinyoun/core-jobs@0.1.0'

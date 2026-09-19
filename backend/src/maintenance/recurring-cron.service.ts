@@ -1,9 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Job } from '@leejinyoun/core-jobs';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionService } from '../transaction/transaction.service';
 import { InvestmentService } from '../investment/investment.service';
 import { SystemLogService } from '../system-log/system-log.service';
+import { finishPerUser } from './job-result';
 
 // 반복거래/반복매수 회차 일괄 생성 — 조회 시점(lazy)이 아닌 매일 정해진 시각에 전체 사용자분을 채운다.
 // 해외 반복매수는 미국 장 시작 시각에 맞춰 별도 시간대(밤 11시)에 따로 돌린다(runForeign).
@@ -26,8 +27,9 @@ export class RecurringCronService {
 
   // 반복거래 + 반복매수(국내) — 매일 오전 9시 (반복매수/현재가 갱신은 평일에만 실행)
   // 반복거래와 반복매수(국내)는 서로 독립적으로 켜고 끌 수 있으므로, 요약 로그도 각자 처리 건수 기준으로 따로 남긴다.
-  @Cron(CronExpression.EVERY_DAY_AT_9AM)
-  async run(): Promise<void> {
+  // 가격 조회(외부 API)가 사용자마다 있어 lease 를 넉넉히 둔다
+  @Job({ name: 'recurring-domestic', cron: '0 9 * * *', leaseMs: 30 * 60_000 })
+  async run(): Promise<string> {
     const users = await this.prisma.user.findMany({ select: { id: true } });
     const weekday = this.isWeekdayKST();
     let txCount = 0;
@@ -68,7 +70,6 @@ export class RecurringCronService {
 
     if (txCount || txFailed) {
       const summary = `반복거래 일괄 처리 완료 (사용자 ${users.length}명${txFailed ? `, 실패 ${txFailed}건` : ''})`;
-      this.logger.log(summary);
       this.sysLog.info({
         category: 'cron',
         message: summary,
@@ -78,24 +79,26 @@ export class RecurringCronService {
 
     if (weekday && (buyCount || buyFailed)) {
       const summary = `반복매수(국내) 일괄 처리 완료 (사용자 ${users.length}명${buyFailed ? `, 실패 ${buyFailed}건` : ''})`;
-      this.logger.log(summary);
       this.sysLog.info({
         category: 'cron',
         message: summary,
         metadata: { total: users.length, failed: buyFailed },
       });
     }
+
+    const buys = weekday ? `반복매수(국내) ${buyCount}건` : '반복매수(국내) 주말 건너뜀';
+    return finishPerUser(`반복거래 ${txCount}건·${buys} (사용자 ${users.length}명)`, txFailed + buyFailed);
   }
 
   // 반복매수(해외) — 미국 장이 열린 직후인 밤 11시(KST)에 돌려, 전날 종가에 고정된 가격이 아닌
   // 그 시점 실시간(장중) 가격으로 매수하도록 국내 배치와 시간을 분리한다. 주말(KST)에는 건너뛴다.
-  @Cron('0 23 * * *')
-  async runForeign(): Promise<void> {
-    if (!this.isWeekdayKST()) return; // 주말은 장이 열리지 않아 애초에 처리할 게 없으므로 로그 없이 조용히 건너뛴다
+  @Job({ name: 'recurring-foreign', cron: '0 23 * * *', leaseMs: 30 * 60_000 })
+  async runForeign(): Promise<string> {
+    if (!this.isWeekdayKST()) return '주말 — 건너뜀'; // 주말은 장이 열리지 않아 애초에 처리할 게 없다
 
     const users = await this.prisma.user.findMany({ select: { id: true } });
     let failed = 0;
-    let recurringCount = 0; // 활성 해외 반복매수 항목 수 — 0건이면 요약 로그를 남기지 않는다(불필요한 로그 방지)
+    let recurringCount = 0; // 활성 해외 반복매수 항목 수 — 0건이면 시스템 로그 요약을 남기지 않는다(불필요한 로그 방지)
 
     for (const u of users) {
       try {
@@ -113,14 +116,15 @@ export class RecurringCronService {
       }
     }
 
-    if (!recurringCount && !failed) return;
+    if (recurringCount || failed) {
+      const summary = `반복매수(해외) 일괄 처리 완료 (사용자 ${users.length}명${failed ? `, 실패 ${failed}건` : ''})`;
+      this.sysLog.info({
+        category: 'cron',
+        message: summary,
+        metadata: { total: users.length, failed },
+      });
+    }
 
-    const summary = `반복매수(해외) 일괄 처리 완료 (사용자 ${users.length}명${failed ? `, 실패 ${failed}건` : ''})`;
-    this.logger.log(summary);
-    this.sysLog.info({
-      category: 'cron',
-      message: summary,
-      metadata: { total: users.length, failed },
-    });
+    return finishPerUser(`반복매수(해외) ${recurringCount}건 (사용자 ${users.length}명)`, failed);
   }
 }

@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Job } from '@leejinyoun/core-jobs';
 import { PrismaService } from '../prisma/prisma.service';
 import { AssetService } from '../asset/asset.service';
 import { SystemLogService } from '../system-log/system-log.service';
+import { finishPerUser } from './job-result';
 
 // 매주 월요일 새벽 1시 — 전월 순자산(총자산/총부채)·현금 총액을 스냅샷으로 저장해 추이 차트와
 // 자산 요약 API의 델타 계산 기준점(cash_total)으로 쓴다. upsert라 같은 달엔 실행할 때마다 덮어쓰며,
@@ -18,8 +19,8 @@ export class NetWorthSnapshotCronService {
     private sysLog: SystemLogService,
   ) {}
 
-  @Cron('0 1 * * 1')
-  async snapshotMonthly(): Promise<void> {
+  @Job({ name: 'net-worth-snapshot', cron: '0 1 * * 1', leaseMs: 10 * 60_000 })
+  async snapshotMonthly(): Promise<string> {
     const users = await this.prisma.user.findMany({ select: { id: true } });
 
     // 실행 시점 기준 전월(YYYY-MM)을 스냅샷 키로 사용 — 매주 재계산되므로 이번 달 안에서는 항상 같은 키
@@ -47,8 +48,8 @@ export class NetWorthSnapshotCronService {
     }
 
     if (ok) {
-      this.logger.log(`순자산 스냅샷 ${ok}건 저장 (${month})`);
       this.sysLog.info({ category: 'asset', message: `순자산 스냅샷 ${ok}건 저장 (${month})`, metadata: { month, total: users.length, ok } });
     }
+    return finishPerUser(`순자산 스냅샷 ${ok}/${users.length}명 저장 (${month})`, users.length - ok);
   }
 }
