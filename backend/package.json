@@ -28,7 +28,7 @@
     "@leejinyoun/core-jobs": "^0.1.0",
     "@leejinyoun/core-logging": "^0.1.0",
     "@leejinyoun/core-notification": "^0.2.1",
-    "@leejinyoun/core-security": "^0.2.0",
+    "@leejinyoun/core-security": "^0.3.0",
     "@leejinyoun/core-storage": "^0.2.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",

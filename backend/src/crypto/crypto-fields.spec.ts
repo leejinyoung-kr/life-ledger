@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ENCRYPTED_COLUMNS } from './crypto-fields';
+import { ENCRYPTED_COLUMNS, ENCRYPTED_FIELD_MAP } from './crypto-fields';
 
 const SCHEMA = join(__dirname, '..', '..', 'prisma', 'schema.prisma');
 
@@ -48,5 +48,25 @@ describe('암호화 컬럼 목록 (crypto-fields)', () => {
     );
     for (const col of ENCRYPTED_COLUMNS)
       expect(withUser.has(col.table)).toBe(true);
+  });
+});
+
+// 쓰기 가드(PrismaService 의 $extends)는 이 지도만 본다 — 목록과 어긋나면 평문 저장을 놓친다
+describe('쓰기 가드 지도 (ENCRYPTED_FIELD_MAP)', () => {
+  it('ENCRYPTED_COLUMNS 의 컬럼을 Prisma 모델명(camelCase)으로 전부 담는다', () => {
+    const flat = Object.entries(ENCRYPTED_FIELD_MAP)
+      .flatMap(([model, cols]) => cols.map((c) => `${model}.${c}`))
+      .sort();
+    const expected = ENCRYPTED_COLUMNS.map(
+      (c) =>
+        `${c.table.replace(/_([a-z])/g, (_m, x: string) => x.toUpperCase())}.${c.column}`,
+    ).sort();
+    expect(flat).toEqual(expected);
+  });
+
+  it('모델명은 snake_case 가 아니다 — Prisma 클라이언트 표기와 맞춰야 가드가 걸린다', () => {
+    for (const model of Object.keys(ENCRYPTED_FIELD_MAP)) {
+      expect(model).not.toContain('_');
+    }
   });
 });

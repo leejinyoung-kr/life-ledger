@@ -39,8 +39,8 @@ importers:
         specifier: ^0.2.1
         version: 0.2.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@leejinyoun/core-security':
-        specifier: ^0.2.0
-        version: 0.2.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
+        specifier: ^0.3.0
+        version: 0.3.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@leejinyoun/core-storage':
         specifier: ^0.2.0
         version: 0.2.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
@@ -1496,8 +1496,8 @@ packages:
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
-  '@leejinyoun/core-security@0.2.0':
-    resolution: {integrity: sha512-etsHvkuitH5OIQ4Lq7IQAu4aYW/yLcLHfEGKBAOSDb4EqqxOb4SM6WuDHmF7jJRxhC1PuKLcl/smyO7w1Anc2A==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-security/0.2.0/a971d2372cd14a5b8f6265f1fa0206c9522f70a1}
+  '@leejinyoun/core-security@0.3.0':
+    resolution: {integrity: sha512-QGzusnZZra4ew37WuQIJL6E5penpUXGgcAEpLt6BDd6W1CqZkpISIPC2KQEtJz5aWW8kLmNMfccR54+fezt33w==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-security/0.3.0/73fbf2e2e1ecf3485941dd3fa3f13aeb33aa6a7f}
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
@@ -8331,7 +8331,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@leejinyoun/core-security@0.2.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
+  '@leejinyoun/core-security@0.3.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
     dependencies:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
 
