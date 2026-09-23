@@ -95,6 +95,28 @@ describe('FileService', () => {
     });
   });
 
+  describe('업로드 — 파일명', () => {
+    // multer 는 원본 파일명을 latin1 로 디코딩해서 준다 → utf8 로 재해석해야 한글이 살아난다
+    const asMulter = (name: string) => Buffer.from(name, 'utf8').toString('latin1');
+
+    it('맥에서 올린 조합형(NFD) 이름은 완성형(NFC)으로 저장한다 — 목록 검색이 못 찾는 것 방지', async () => {
+      const nfd = '보고서.pdf'.normalize('NFD');
+      const file = baseFile({ mimetype: 'text/plain', originalname: asMulter(nfd) });
+
+      const out = await svc().upload(1, file);
+
+      expect(out.name).toBe('보고서.pdf');
+      expect(out.name.normalize('NFC')).toBe(out.name);
+      expect(out.name).not.toBe(nfd);
+    });
+
+    it('윈도우·아이폰에서 올린 완성형 이름은 그대로 둔다', async () => {
+      const file = baseFile({ mimetype: 'text/plain', originalname: asMulter('보고서 (최종).pdf') });
+
+      expect((await svc().upload(1, file)).name).toBe('보고서 (최종).pdf');
+    });
+  });
+
   describe('업로드 — DB 실패 시 B2 보상삭제', () => {
     it('신규 업로드 후 DB create 실패 시 업로드한 오브젝트를 삭제', async () => {
       prisma.storageFile.create.mockRejectedValue(new Error('db down'));

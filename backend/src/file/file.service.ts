@@ -80,8 +80,9 @@ export class FileService {
 
     if (folderId) await this.findOwnedFolder(userId, folderId);
 
-    // multer가 원본 파일명을 latin1로 디코딩하므로 한글 등 비ASCII 파일명은 utf8로 재해석
-    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    // multer가 원본 파일명을 latin1로 디코딩하므로 한글 등 비ASCII 파일명은 utf8로 재해석.
+    // NFC 정규화는 맥에서 올린 이름(NFD, 자모 분리) 대비 — 저장 형태가 갈리면 목록 검색(name.includes)이 못 찾는다
+    const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8').normalize('NFC');
     const hash = createHash('sha256').update(file.buffer).digest('hex');
 
     // 동일 내용 파일이 이미 있으면 그 오브젝트 키를 재사용 (B2 업로드/저장 비용 절감)
