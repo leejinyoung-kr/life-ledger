@@ -1,4 +1,4 @@
-| push | /push (웹 푸시 구독/발송 — VAPID + 발송 아웃박스: 커밋된 것만 발송·재시도·원본 에러 보존) | 구현 완료 || notification | /notifications (알림 인박스. 알림 생성 시 웹푸시를 같은 트랜잭션에 아웃박스로 적재) | 구현 완료 |# DocNexus — Architecture
+# DocNexus — Architecture
 
 ## Overview
 
@@ -60,7 +60,8 @@
 | push | /push (웹 푸시 구독/발송 — VAPID + 발송 아웃박스: 커밋된 것만 발송·멱등키·재시도·원본 에러 보존) | 구현 완료 |
 | convert | /convert (이미지↔PDF 변환) | 구현 완료 |
 | system-log | /system-logs (백그라운드 작업 실행 로그 — 크론·투자 현재가 갱신 등, 조회 전용) | 구현 완료 |
-| health | /health (헬스체크) | 구현 완료 |
+| health | /health (헬스체크 — 공개, DB 핑) | 구현 완료 |
+| meta | /_meta (운영 상태 — 빌드 커밋·설치된 코어 패키지 버전 + 예약 작업 마지막 성공·아웃박스 적체·켜진 알림 채널. 경고는 `warn` 한자리에. 로그인 필요) | 구현 완료 |
 
 ## 크론 스케줄러
 

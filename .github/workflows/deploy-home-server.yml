@@ -46,6 +46,12 @@ jobs:
             fi
             echo "changed files: $CHANGED"
             echo "building services:$SERVICES"
+            # 빌드된 커밋을 이미지에 넣는다 — /_meta 가 "지금 도는 것이 어느 코드인지" 보여준다.
+            # 러너는 reset --hard 로 맞춘 클론이라 보통 깨끗하지만, 손댄 흔적이 있으면 -dirty 를 붙인다
+            DIRTY=""
+            git diff --quiet HEAD -- || DIRTY="-dirty"
+            export GIT_COMMIT="$(git rev-parse --short=12 HEAD)$DIRTY"
+            echo "build commit: $GIT_COMMIT"
             docker compose build $SERVICES
             # 새 이미지로 환경변수(backend/.env + compose environment)와 암호화 키 설정만 먼저 검증한다(DB 안 봄).
             # 새 코드가 요구하는 키가 서버 .env 에 없으면 여기서 틀린 키 목록과 함께 실패하고,

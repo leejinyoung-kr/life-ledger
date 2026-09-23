@@ -27,6 +27,9 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      args:
+        # 배포 워크플로가 넣어 준다(로컬 빌드는 비어 있고 /_meta 에 unknown 으로 나온다)
+        GIT_COMMIT: ${GIT_COMMIT:-}
       secrets:
         - npm_read_token
     restart: unless-stopped

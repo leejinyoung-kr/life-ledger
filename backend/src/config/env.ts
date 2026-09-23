@@ -43,6 +43,8 @@ export const envShape = {
   CORS_ORIGINS: csv(z.url()).default(['http://localhost:3000']),
   // 리버스 프록시 신뢰 홉 수(숫자) 또는 'true'/CIDR — 미설정이면 비활성
   TRUST_PROXY: z.string().optional(),
+  // 이 이미지를 빌드한 커밋 — 배포가 Docker 빌드 인자로 넣는다(/_meta 에 표시). 로컬 빌드에서는 비어 있다
+  GIT_COMMIT: z.string().optional(),
 
   DATABASE_URL: z.url({ protocol: /^(mysql|mariadb)$/ }),
   // DB 백업 저장 경로 — 미설정이면 <cwd>/backups

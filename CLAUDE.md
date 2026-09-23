@@ -55,6 +55,7 @@ doc-nexus/
 │       ├── push/          # 웹 푸시 구독/발송 (VAPID) + 발송 아웃박스 저장소·채널(outbox_message)
 │       ├── convert/       # 이미지↔PDF 변환
 │       ├── system-log/    # 시스템 로그 (크론·투자 갱신 등 백그라운드 작업 실행 기록, 90일 경과 시 자동 삭제)
+│       ├── meta/          # GET /_meta 수집기 — 예약 작업 마지막 성공·아웃박스 적체·켜진 알림 채널(core-common MetaModule)
 │       ├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
 │       └── prisma/        # PrismaService / PrismaModule
 ├── docs/              # 설계 문서
@@ -86,7 +87,9 @@ doc-nexus/
 >
 > 환경변수: 백엔드는 `process.env` 를 직접 읽지 않고 `backend/src/config/env.ts` 의 `env` 만 읽는다(`@leejinyoun/core-config` 의 `defineEnv` — import 하는 순간 `.env` 로드 + 검증, 틀린 키를 전부 출력하고 부팅 중단). 키를 추가·삭제하면 `env.ts` 와 `backend/.env.example` 을 같이 고친다 — `src/config/env.spec.ts` 가 두 목록 일치·`process.env` 직접 사용 금지를 테스트로 강제한다(도커 빌드 테스트 단계라 배포에서도 막힘). 배포 워크플로는 컨테이너 교체 전에 새 이미지로 `node dist/config/check-env.js` 를 돌려, 서버 `.env` 가 새 스키마에 안 맞으면 기존 컨테이너를 유지한 채 멈춘다. SMTP(HOST·USER·PASS)·VAPID(공개·비공개 키)는 일부만 설정하면 부팅 실패.
 >
-> 예약 작업: `@nestjs/schedule` 의 `@Cron` 대신 `@leejinyoun/core-jobs` 의 `@Job({ name, cron, leaseMs })` 을 쓴다(`maintenance/`). 작업 코드는 결과 요약 문자열을 돌려주고, 실패는 삼키지 말고 던진다 — 실행 기록(`job_run`)·겹침 방지·lease 만료 마감·실패 시 시스템 로그는 core-jobs 와 `maintenance/job-run.store.ts` 가 맡는다. 운영에서 "며칠째 안 돈 작업"은 `job_run` 에서 작업별 마지막 `succeeded` 시각으로 본다.
+> 예약 작업: `@nestjs/schedule` 의 `@Cron` 대신 `@leejinyoun/core-jobs` 의 `@Job({ name, cron, leaseMs })` 을 쓴다(`maintenance/`). 작업 코드는 결과 요약 문자열을 돌려주고, 실패는 삼키지 말고 던진다 — 실행 기록(`job_run`)·겹침 방지·lease 만료 마감·실패 시 시스템 로그는 core-jobs 와 `maintenance/job-run.store.ts` 가 맡는다. 운영에서 "며칠째 안 돈 작업"은 `GET /api/v1/_meta` 의 `jobs` 구역(작업별 마지막 성공·경과 시간)으로 본다 — 원본은 `job_run` 테이블.
+>
+> 운영 상태 확인: `GET /api/v1/_meta`(로그인 필요) 가 빌드 커밋·설치된 `@leejinyoun/core-*` 버전과 함께 예약 작업(마지막 성공·다음 실행)·아웃박스 적체·켜진 알림 채널을 한 번에 보여준다. **`warn` 배열만 먼저 보면 된다** — 비어 있으면 볼 게 없다는 뜻. 구역을 추가하려면 `meta/` 에 `MetaContributor` 를 만들어 `app.module.ts` 의 `MetaModule.forRoot({ contributors })` 에 넣는다(코어는 테이블을 모른다).
 >
 > 알림 + 푸시: 알림을 만들면서 푸시를 보내려면 `NotificationService.createWithPush()` 를 쓴다 — 알림 행 저장과 푸시 적재(`outbox_message`)가 한 트랜잭션이라, 저장이 롤백되면 푸시도 나가지 않는다. 푸시를 직접 보내지 않는다(발송·재시도·실패 기록은 아웃박스가 맡는다. 멱등키는 `noti:<알림 id>`). 즉시 결과를 봐야 하는 것(설정 화면의 테스트 푸시, 로그인 인증코드 메일)만 예외로 바로 보낸다.
 

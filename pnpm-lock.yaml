@@ -24,20 +24,20 @@ importers:
         specifier: ^0.2.0
         version: 0.2.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24)(@nestjs/passport@11.0.5(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(passport@0.7.0))
       '@leejinyoun/core-common':
-        specifier: ^0.1.0
-        version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
+        specifier: ^0.2.0
+        version: 0.2.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@leejinyoun/core-config':
         specifier: ^0.1.1
         version: 0.1.1
       '@leejinyoun/core-jobs':
-        specifier: ^0.1.0
-        version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24)
+        specifier: ^0.1.1
+        version: 0.1.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24)
       '@leejinyoun/core-logging':
         specifier: ^0.1.0
         version: 0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@leejinyoun/core-notification':
-        specifier: ^0.2.1
-        version: 0.2.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
+        specifier: ^0.3.0
+        version: 0.3.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
       '@leejinyoun/core-security':
         specifier: ^0.3.0
         version: 0.3.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))
@@ -1472,16 +1472,16 @@ packages:
       '@nestjs/core': ^11.0.0
       '@nestjs/passport': ^11.0.0
 
-  '@leejinyoun/core-common@0.1.0':
-    resolution: {integrity: sha512-cc7+JyjigCbrHScXn9e0FC80GK5xAHq1mU0bM9vT8m9DvcqaghFiYR8Wn8jj9vr94fKNRKP9ay06RCbZ2pH55w==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-common/0.1.0/60d4656682b6bcdb0e761a14b19b4ed34ec35f74}
+  '@leejinyoun/core-common@0.2.0':
+    resolution: {integrity: sha512-7ZBMolpCPy4hQZ1QreHuRBbgS5zW9yti36L9hvzErrticPq2fF6q50dy06OAMbCkppxSo4VWI2vqykjTtZqM+A==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-common/0.2.0/ea907b8a8a1059b976bc7ba0b9faa02791038979}
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
   '@leejinyoun/core-config@0.1.1':
     resolution: {integrity: sha512-oix5zb4Dj0XM5tzk8qLteAT2SssARXJrID7O+1Zch74DpwJwXRVhZHT+WltwVkqMUz1DbwMWAaucSdGtTuWQUA==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-config/0.1.1/ea831187c0c17b3870687e1bc13863acb36c12c8}
 
-  '@leejinyoun/core-jobs@0.1.0':
-    resolution: {integrity: sha512-wLmZYaBlSzU1qsWeQSjtvIFneeFmF29Vfyxy8Gio4aShRuJMctOHxUkLNhc7DH1qTrqAvlP7F+vYEJRgI7pIUQ==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-jobs/0.1.0/b1b7400a56e1e6ae90e6ca96870951d4abc9fe03}
+  '@leejinyoun/core-jobs@0.1.1':
+    resolution: {integrity: sha512-T2A18a0pfvP4Ho5FxuLv0AIgj4qbZ8Q1O6x6+MtzhHyu+OMmhM9x8J1ji2XYDtoivWx0IzQ/Ys0llziSyRad8w==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-jobs/0.1.1/928a0b7ee0ba20b57450b8459185d41f823dcdc8}
     peerDependencies:
       '@nestjs/common': ^11.0.0
       '@nestjs/core': ^11.0.0
@@ -1491,8 +1491,8 @@ packages:
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
-  '@leejinyoun/core-notification@0.2.1':
-    resolution: {integrity: sha512-s0MmCNfj23mosUuimXFMhn3mgJ6YuTG/4kTtyqSYpGKPrptkoGFUa1WzOsYy/yui6D0ZtUn2kj0MGTPrpT6xtA==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-notification/0.2.1/e0cfa95aab0c70fe61df455b9e18a2c46738dc23}
+  '@leejinyoun/core-notification@0.3.0':
+    resolution: {integrity: sha512-gA1mLl+YVZ6UjxWKLgnXbIu3B51uLU0T0J1/99rGS8j7uVnkxTQNwyZqZnLxWNYmWAuE1kHQCHhS+mmnSlPWgg==, tarball: https://npm.pkg.github.com/download/@leejinyoun/core-notification/0.3.0/117bc2930b18e641d8099cf9701ecaaf55d18382}
     peerDependencies:
       '@nestjs/common': ^11.0.0
 
@@ -8303,7 +8303,7 @@ snapshots:
       passport-jwt: 4.0.1
       passport-local: 1.0.0
 
-  '@leejinyoun/core-common@0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
+  '@leejinyoun/core-common@0.2.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
     dependencies:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       class-validator: 0.15.1
@@ -8313,7 +8313,7 @@ snapshots:
       dotenv: 17.4.2
       zod: 4.6.5
 
-  '@leejinyoun/core-jobs@0.1.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24)':
+  '@leejinyoun/core-jobs@0.1.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24)':
     dependencies:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.24)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -8323,7 +8323,7 @@ snapshots:
     dependencies:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
 
-  '@leejinyoun/core-notification@0.2.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
+  '@leejinyoun/core-notification@0.3.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))':
     dependencies:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       nodemailer: 9.0.0

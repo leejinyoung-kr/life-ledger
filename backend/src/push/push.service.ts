@@ -80,6 +80,15 @@ export class PushService {
     });
   }
 
+  // /_meta 가 읽는 "지금 켜진 발송 수단" — 코어 서비스(WebPushService·OutboxService)는
+  // 이 모듈 밖으로 내보내지 않고 여기서 필요한 것만 추려 넘긴다
+  status(): { webPush: boolean; outboxChannels: string[] } {
+    return {
+      webPush: this.webPush.isEnabled,
+      outboxChannels: this.outbox.channelNames(),
+    };
+  }
+
   // 커밋 직후 호출 — 다음 주기(10초)를 기다리지 않고 바로 보낸다. 기다리지 않는다
   flush(): void {
     this.outbox.flush();

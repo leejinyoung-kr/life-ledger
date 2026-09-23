@@ -45,6 +45,11 @@ RUN addgroup -S app && adduser -S app -G app \
     && rm -f /tmp/.test-ok
 USER app
 
+# 빌드된 커밋 — /_meta 가 "지금 도는 것이 어느 코드인지" 보여준다.
+# 맨 끝에 두어 커밋이 바뀌어도 앞 레이어 캐시가 깨지지 않게 한다
+ARG GIT_COMMIT=
+ENV GIT_COMMIT=$GIT_COMMIT
+
 WORKDIR /app/backend
 EXPOSE 8000
 CMD ["node", "dist/main"]
