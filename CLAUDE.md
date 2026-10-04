@@ -19,7 +19,7 @@
 
 ---
 
-## 모노레포 구조
+## 구조
 
 ```text
 doc-nexus/
@@ -62,40 +62,7 @@ doc-nexus/
 └── docker-compose.yml
 ```
 
----
-
-## 기술 스택
-
-| 영역 | 기술 |
-| --- | --- |
-| Frontend | Next.js 16.2, React 19, TypeScript, Tailwind CSS v4 |
-| 상태관리 | **TanStack Query(React Query)** — 서버 데이터 캐싱/무효화 (lib/query·queryKeys) |
-| Backend | NestJS 11, TypeScript |
-| ORM | Prisma |
-| DB | MariaDB (docker-compose, 포트 3307) |
-| 인증 | Google OAuth 2.0 + JWT (전역 가드) |
-| Rate-limit | `@nestjs/throttler` (reveal/totp/복호화·vault unlock 엄격 제한) |
-| 암호화 | AES-256-GCM (`CRYPTO_KEYS` 키링 + 필드·사용자 문맥(AAD), 보관함 민감필드) / 마스터 잠금은 scrypt 해시 |
-| 스토리지 | Backblaze B2 (`@aws-sdk/client-s3`, presigned) |
-| 유출검사 | HaveIBeenPwned Pwned Passwords (k-anonymity) |
-| AI | OpenAI API (사용자별 키·모델, 설정에서 입력) |
-| 패키지 매니저 | pnpm (모노레포) |
-
-> 보관함 암호화: `backend/.env` 의 `CRYPTO_KEYS`(`<키ID>:<32자 이상 시크릿>` 콤마 구분, 첫 번째가 현재 키) 필수. 이 값을 잃으면 보관함 데이터 복구 불가 — 서버 밖에도 보관. 암호문은 `v2:<키ID>:...` 이고 `cipherContext(필드, 사용자 id)`(`src/crypto/crypto-fields.ts`)를 AAD 로 묶어, 다른 필드·다른 사용자 행으로 옮기면 풀리지 않는다. **키 교체**: 새 키를 맨 앞에 추가 → 배포(부팅 시 현재 키가 아닌 암호문 자동 재암호화) → 이전 키 제거 → 배포. `CREDENTIAL_SECRET` 은 이전 포맷(v1) 읽기 전용이라 재암호화가 끝나면 비운다. 이전 키로 된 암호문이 남았는데 키를 빼면 배포 전 점검(`node dist/crypto/crypto-check.js`, 전체 복호화)과 부팅이 막는다. 암호문 컬럼을 추가하면 `ENCRYPTED_COLUMNS` 에도 추가 — `crypto-fields.spec.ts` 가 schema.prisma 와 대조해 강제. 재암호화는 raw SQL(compare-and-swap)이라 `updated_at` 을 건드리지 않는다. **암호문 컬럼에 평문을 쓰면 저장되지 않는다** — `PrismaService` 가 `encryptedFields`(core-security/prisma) 쓰기 가드를 걸어 `EncryptedFieldError` 로 막는다(목록은 `ENCRYPTED_COLUMNS` 에서 자동 생성). 읽을 때 자동 복호화는 하지 않는다 — 열람은 잠금·감사 로그를 거치는 명시적 행위로 남긴다. 재암호화·점검의 raw SQL 경로는 가드를 거치지 않는다.
->
-> 인증 전제: `JWT_SECRET`(access)·`JWT_REFRESH_SECRET`(refresh 쿠키)·`JWT_VAULT_SECRET`(보관함 잠금해제 토큰)은 **서로 다른** 32자 이상 랜덤값이어야 한다 — 누락·중복·예시값이면 부팅 실패. access 토큰은 `iss`/`aud` = `doc-nexus` 로 발급·검증한다(`auth/jwt.constants.ts`). refresh 시크릿을 바꾸면 전 기기 재로그인, vault 시크릿을 바꾸면 보관함 재잠금. `ALLOWED_EMAILS` 는 필수(비면 부팅 실패) — 목록 밖 계정은 구글·이메일 코드 로그인 모두 거부.
->
-> 환경변수: 백엔드는 `process.env` 를 직접 읽지 않고 `backend/src/config/env.ts` 의 `env` 만 읽는다(`@leejinyoun/core-config` 의 `defineEnv` — import 하는 순간 `.env` 로드 + 검증, 틀린 키를 전부 출력하고 부팅 중단). 키를 추가·삭제하면 `env.ts` 와 `backend/.env.example` 을 같이 고친다 — `src/config/env.spec.ts` 가 두 목록 일치·`process.env` 직접 사용 금지를 테스트로 강제한다(도커 빌드 테스트 단계라 배포에서도 막힘). 배포 워크플로는 컨테이너 교체 전에 새 이미지로 `node dist/config/check-env.js` 를 돌려, 서버 `.env` 가 새 스키마에 안 맞으면 기존 컨테이너를 유지한 채 멈춘다. SMTP(HOST·USER·PASS)·VAPID(공개·비공개 키)는 일부만 설정하면 부팅 실패.
->
-> 예약 작업: `@nestjs/schedule` 의 `@Cron` 대신 `@leejinyoun/core-jobs` 의 `@Job({ name, cron, leaseMs })` 을 쓴다(`maintenance/`). 작업 코드는 결과 요약 문자열을 돌려주고, 실패는 삼키지 말고 던진다 — 실행 기록(`job_run`)·겹침 방지·lease 만료 마감·실패 시 시스템 로그는 core-jobs 와 `maintenance/job-run.store.ts` 가 맡는다. 운영에서 "며칠째 안 돈 작업"은 `GET /api/v1/_meta` 의 `jobs` 구역(작업별 마지막 성공·경과 시간)으로 본다 — 원본은 `job_run` 테이블.
->
-> 운영 상태 확인: `GET /api/v1/_meta`(로그인 필요) 가 빌드 커밋·설치된 `@leejinyoun/core-*` 버전과 함께 예약 작업(마지막 성공·다음 실행)·아웃박스 적체·켜진 알림 채널을 한 번에 보여준다. **`warn` 배열만 먼저 보면 된다** — 비어 있으면 볼 게 없다는 뜻. 구역을 추가하려면 `meta/` 에 `MetaContributor` 를 만들어 `app.module.ts` 의 `MetaModule.forRoot({ contributors })` 에 넣는다(코어는 테이블을 모른다).
->
-> 알림 + 푸시: 알림을 만들면서 푸시를 보내려면 `NotificationService.createWithPush()` 를 쓴다 — 알림 행 저장과 푸시 적재(`outbox_message`)가 한 트랜잭션이라, 저장이 롤백되면 푸시도 나가지 않는다. 푸시를 직접 보내지 않는다(발송·재시도·실패 기록은 아웃박스가 맡는다. 멱등키는 `noti:<알림 id>`). 즉시 결과를 봐야 하는 것(설정 화면의 테스트 푸시, 로그인 인증코드 메일)만 예외로 바로 보낸다.
-
----
-
-## 데이터 모델 (ERD 요약)
+### 데이터 모델 (ERD 요약)
 
 | 엔티티 | 주요 필드 | 상태 |
 | --- | --- | --- |
@@ -135,6 +102,25 @@ doc-nexus/
 
 ---
 
+## 기술 스택
+
+| 영역 | 기술 |
+| --- | --- |
+| Frontend | Next.js 16.2, React 19, TypeScript, Tailwind CSS v4 |
+| 상태관리 | **TanStack Query(React Query)** — 서버 데이터 캐싱/무효화 (lib/query·queryKeys) |
+| Backend | NestJS 11, TypeScript |
+| ORM | Prisma |
+| DB | MariaDB (docker-compose, 포트 3307) |
+| 인증 | Google OAuth 2.0 + JWT (전역 가드) |
+| Rate-limit | `@nestjs/throttler` (reveal/totp/복호화·vault unlock 엄격 제한) |
+| 암호화 | AES-256-GCM (`CRYPTO_KEYS` 키링 + 필드·사용자 문맥(AAD), 보관함 민감필드) / 마스터 잠금은 scrypt 해시 |
+| 스토리지 | Backblaze B2 (`@aws-sdk/client-s3`, presigned) |
+| 유출검사 | HaveIBeenPwned Pwned Passwords (k-anonymity) |
+| AI | OpenAI API (사용자별 키·모델, 설정에서 입력) |
+| 패키지 매니저 | pnpm (모노레포) |
+
+---
+
 ## 현재 상태
 
 | 영역 | 상태 |
@@ -167,7 +153,7 @@ doc-nexus/
 
 ---
 
-## 개발 명령어
+## 명령
 
 ```bash
 pnpm install                           # 전체 의존성 설치
@@ -187,9 +173,7 @@ cd backend && npx prisma studio        # localhost:5555
 cd backend && npx prisma generate
 ```
 
----
-
-## 운영 배포 (홈서버)
+### 운영 배포 (홈서버)
 
 `.github/workflows/deploy-home-server.yml`이 `docker compose build` → `check-env`(환경변수·키 설정)
 → `prisma migrate deploy`(1회성 컨테이너) → `crypto-check`(암호문 전체 복호화 점검, 읽기만)
@@ -209,9 +193,7 @@ docker compose exec backend npx prisma migrate deploy
 > `migrate dev`(신규 마이그레이션 생성, dev 전용)와 달리 `migrate deploy`는
 > 이미 존재하는 마이그레이션 파일을 프롬프트 없이 적용만 한다.
 
----
-
-## 슬래시 커맨드
+### 슬래시 커맨드
 
 | 커맨드 | 동작 |
 | --- | --- |
@@ -222,12 +204,27 @@ docker compose exec backend npx prisma migrate deploy
 
 ## 규칙
 
-코드 주석·커밋 메시지·DB 컬럼 코멘트는 루트 `develop/CLAUDE.md` 공통 규칙을 따른다.
+코드 주석·커밋 메시지·DB 컬럼 코멘트는 루트 `develop/CLAUDE.md` 공통 규칙을 따른다. 이 프로젝트에만 있는 것:
+
+- **보관함 암호화**: `backend/.env` 의 `CRYPTO_KEYS`(`<키ID>:<32자 이상 시크릿>` 콤마 구분, 첫 번째가 현재 키) 필수. 이 값을 잃으면 보관함 데이터 복구 불가 — 서버 밖에도 보관. 암호문은 `v2:<키ID>:...` 이고 `cipherContext(필드, 사용자 id)`(`src/crypto/crypto-fields.ts`)를 AAD 로 묶어, 다른 필드·다른 사용자 행으로 옮기면 풀리지 않는다. **키 교체**: 새 키를 맨 앞에 추가 → 배포(부팅 시 현재 키가 아닌 암호문 자동 재암호화) → 이전 키 제거 → 배포. `CREDENTIAL_SECRET` 은 이전 포맷(v1) 읽기 전용이라 재암호화가 끝나면 비운다. 이전 키로 된 암호문이 남았는데 키를 빼면 배포 전 점검(`node dist/crypto/crypto-check.js`, 전체 복호화)과 부팅이 막는다. 암호문 컬럼을 추가하면 `ENCRYPTED_COLUMNS` 에도 추가 — `crypto-fields.spec.ts` 가 schema.prisma 와 대조해 강제. 재암호화는 raw SQL(compare-and-swap)이라 `updated_at` 을 건드리지 않는다. **암호문 컬럼에 평문을 쓰면 저장되지 않는다** — `PrismaService` 가 `encryptedFields`(core-security/prisma) 쓰기 가드를 걸어 `EncryptedFieldError` 로 막는다(목록은 `ENCRYPTED_COLUMNS` 에서 자동 생성). 읽을 때 자동 복호화는 하지 않는다 — 열람은 잠금·감사 로그를 거치는 명시적 행위로 남긴다. 재암호화·점검의 raw SQL 경로는 가드를 거치지 않는다.
+
+- **인증 전제**: `JWT_SECRET`(access)·`JWT_REFRESH_SECRET`(refresh 쿠키)·`JWT_VAULT_SECRET`(보관함 잠금해제 토큰)은 **서로 다른** 32자 이상 랜덤값이어야 한다 — 누락·중복·예시값이면 부팅 실패. access 토큰은 `iss`/`aud` = `doc-nexus` 로 발급·검증한다(`auth/jwt.constants.ts`). refresh 시크릿을 바꾸면 전 기기 재로그인, vault 시크릿을 바꾸면 보관함 재잠금. `ALLOWED_EMAILS` 는 필수(비면 부팅 실패) — 목록 밖 계정은 구글·이메일 코드 로그인 모두 거부.
+
+- **환경변수**: 백엔드는 `process.env` 를 직접 읽지 않고 `backend/src/config/env.ts` 의 `env` 만 읽는다(`@leejinyoun/core-config` 의 `defineEnv` — import 하는 순간 `.env` 로드 + 검증, 틀린 키를 전부 출력하고 부팅 중단). 키를 추가·삭제하면 `env.ts` 와 `backend/.env.example` 을 같이 고친다 — `src/config/env.spec.ts` 가 두 목록 일치·`process.env` 직접 사용 금지를 테스트로 강제한다(도커 빌드 테스트 단계라 배포에서도 막힘). 배포 워크플로는 컨테이너 교체 전에 새 이미지로 `node dist/config/check-env.js` 를 돌려, 서버 `.env` 가 새 스키마에 안 맞으면 기존 컨테이너를 유지한 채 멈춘다. SMTP(HOST·USER·PASS)·VAPID(공개·비공개 키)는 일부만 설정하면 부팅 실패.
+
+- **예약 작업**: `@nestjs/schedule` 의 `@Cron` 대신 `@leejinyoun/core-jobs` 의 `@Job({ name, cron, leaseMs })` 을 쓴다(`maintenance/`). 작업 코드는 결과 요약 문자열을 돌려주고, 실패는 삼키지 말고 던진다 — 실행 기록(`job_run`)·겹침 방지·lease 만료 마감·실패 시 시스템 로그는 core-jobs 와 `maintenance/job-run.store.ts` 가 맡는다. 운영에서 "며칠째 안 돈 작업"은 `GET /api/v1/_meta` 의 `jobs` 구역(작업별 마지막 성공·경과 시간)으로 본다 — 원본은 `job_run` 테이블.
+
+- **운영 상태 확인**: `GET /api/v1/_meta`(로그인 필요) 가 빌드 커밋·설치된 `@leejinyoun/core-*` 버전과 함께 예약 작업(마지막 성공·다음 실행)·아웃박스 적체·켜진 알림 채널을 한 번에 보여준다. **`warn` 배열만 먼저 보면 된다** — 비어 있으면 볼 게 없다는 뜻. 구역을 추가하려면 `meta/` 에 `MetaContributor` 를 만들어 `app.module.ts` 의 `MetaModule.forRoot({ contributors })` 에 넣는다(코어는 테이블을 모른다).
+
+- **알림 + 푸시**: 알림을 만들면서 푸시를 보내려면 `NotificationService.createWithPush()` 를 쓴다 — 알림 행 저장과 푸시 적재(`outbox_message`)가 한 트랜잭션이라, 저장이 롤백되면 푸시도 나가지 않는다. 푸시를 직접 보내지 않는다(발송·재시도·실패 기록은 아웃박스가 맡는다. 멱등키는 `noti:<알림 id>`). 즉시 결과를 봐야 하는 것(설정 화면의 테스트 푸시, 로그인 인증코드 메일)만 예외로 바로 보낸다.
+
 
 ---
 
 ## 참고 문서
 
+- [docs/architecture.md](docs/architecture.md) — 구조·모듈
 - [docs/erd.md](docs/erd.md) — DB 엔티티 정의
 - [docs/api.md](docs/api.md) — API 명세
 - [docs/category-migration.md](docs/category-migration.md) — 카테고리 2계층 구조 + 엑셀→앱 매칭표(실데이터 마이그레이션용)
+- [docs/archive/](docs/archive/) — 끝난 작업의 설계·계획 문서

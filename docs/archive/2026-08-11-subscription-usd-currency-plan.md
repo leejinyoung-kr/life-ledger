@@ -13,7 +13,7 @@
 - DB 컬럼 추가 시 `COMMENT`를 함께 작성한다 (doc-nexus/CLAUDE.md "DB 컬럼 코멘트 규칙").
 - 새 함수/메서드 위에는 동작을 설명하는 한 줄 한국어 주석을 단다 (doc-nexus/CLAUDE.md "코드 주석 규칙").
 - 새 서비스를 만들지 않고 `backend/src/investment/price-lookup.service.ts`의 `PriceLookupService`를 재사용한다.
-- 환율 변동 이력 저장, USD 외 통화(엔·유로 등), 실시간 환율 UI 노출은 범위 밖(스펙 참고: `docs/superpowers/specs/2026-08-11-subscription-usd-currency-design.md`).
+- 환율 변동 이력 저장, USD 외 통화(엔·유로 등), 실시간 환율 UI 노출은 범위 밖(스펙 참고: `docs/archive/2026-08-11-subscription-usd-currency-design.md`).
 
 ---
 
