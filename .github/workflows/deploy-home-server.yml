@@ -2,7 +2,7 @@ name: Deploy Home Server
 
 on:
   push:
-    branches: [develop]
+    branches: [main]
     paths:
       - 'frontend/**'
       - 'backend/**'
@@ -22,8 +22,8 @@ jobs:
       - name: Pull latest
         run: |
           cd ~/nexus-family/doc-nexus
-          git fetch origin develop
-          git reset --hard origin/develop
+          git fetch origin main
+          git reset --hard origin/main
 
       # 여러 Nexus 패밀리 레포가 각자 별도 self-hosted 러너를 쓰더라도 실제로는 같은
       # 물리 홈서버를 공유하므로, 동시에 push되면 docker build가 서로 CPU를 경합해서

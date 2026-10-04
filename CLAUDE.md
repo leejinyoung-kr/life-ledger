@@ -197,7 +197,7 @@ docker compose exec backend npx prisma migrate deploy
 
 | 커맨드 | 동작 |
 | --- | --- |
-| `/push` | develop 브랜치에 커밋 + 푸시 |
+| `/push` | 기본 브랜치(`main`)에 커밋 + 푸시 — push 하면 홈서버 배포가 돈다 |
 | `/migrate` | prisma migrate dev 실행 |
 
 ---
