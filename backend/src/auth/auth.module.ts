@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { AuthModule as CoreAuthModule } from '@leejinyoun/core-auth';
+import { AuthModule as CoreAuthModule } from '@leejinyoung-kr/core-auth';
 import { env } from '../config/env';
 import { NotificationModule } from '../notification/notification.module';
 import { AuthController } from './auth.controller';

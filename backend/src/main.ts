@@ -7,9 +7,9 @@ import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
-import { describeEnv } from '@leejinyoun/core-config';
+import { describeEnv } from '@leejinyoung-kr/core-config';
 import { AppModule } from './app.module';
-import { requestLogger } from '@leejinyoun/core-logging';
+import { requestLogger } from '@leejinyoung-kr/core-logging';
 import { configureOutboundNetwork } from './config/network';
 
 async function bootstrap() {

@@ -12,7 +12,11 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiExcludeController } from '@nestjs/swagger';
 import type { CookieOptions, Request, Response } from 'express';
-import { CurrentUser, GoogleAuthGuard, Public } from '@leejinyoun/core-auth';
+import {
+  CurrentUser,
+  GoogleAuthGuard,
+  Public,
+} from '@leejinyoung-kr/core-auth';
 import { env } from '../config/env';
 import type { AuthUser } from './auth-user';
 import { AuthService, GoogleUser } from './auth.service';

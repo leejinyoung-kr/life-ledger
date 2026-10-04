@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Job } from '@leejinyoun/core-jobs';
+import { Job } from '@leejinyoung-kr/core-jobs';
 import { NotiGroup, NotiTone } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';

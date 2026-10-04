@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InvestmentAccount, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { parsePage } from '@leejinyoun/core-common';
-import { CryptoService } from '@leejinyoun/core-security';
+import { parsePage } from '@leejinyoung-kr/core-common';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { cipherContext } from '../crypto/crypto-fields';
 import { PriceLookupService } from '../investment/price-lookup.service';
 import { CreateInvestmentAccountDto } from './dto/create-investment-account.dto';

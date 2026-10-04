@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { MailService as CoreMailService } from '@leejinyoun/core-notification';
+import { MailService as CoreMailService } from '@leejinyoung-kr/core-notification';
 
 @Injectable()
 export class MailService {

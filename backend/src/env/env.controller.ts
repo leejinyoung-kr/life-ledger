@@ -12,11 +12,11 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '@leejinyoun/core-auth';
-import { JwtAuthGuard } from '@leejinyoun/core-auth';
+import { CurrentUser } from '@leejinyoung-kr/core-auth';
+import { JwtAuthGuard } from '@leejinyoung-kr/core-auth';
 import { VaultGuard } from '../security/vault.guard';
 import type { AuthUser } from '../auth/auth-user';
-import { Client, type ClientInfo } from '@leejinyoun/core-logging';
+import { Client, type ClientInfo } from '@leejinyoung-kr/core-logging';
 import {
   BulkEnvDto,
   CreateEnvProjectDto,

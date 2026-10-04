@@ -6,7 +6,7 @@ import { join } from 'path';
 import { PassThrough } from 'stream';
 import { gunzipSync } from 'zlib';
 import { spawn } from 'child_process';
-import type { JobContext } from '@leejinyoun/core-jobs';
+import type { JobContext } from '@leejinyoung-kr/core-jobs';
 import { DbBackupCronService, parseDbUrl } from './db-backup-cron.service';
 
 // env 는 동결 객체라 모듈째 바꾼다 — getter 로 두어 테스트마다 BACKUP_DIR 을 바꿀 수 있게

@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { IdentityCard } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '@leejinyoun/core-security';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { cipherContext } from '../crypto/crypto-fields';
 import { AccessLogService } from '../access-log/access-log.service';
-import type { ClientInfo } from '@leejinyoun/core-logging';
+import type { ClientInfo } from '@leejinyoung-kr/core-logging';
 import { maskTail, toDateOrNull, toDateStr } from '../common/vault.util';
 import { CreateIdentityDto } from './dto/create-identity.dto';
 import { UpdateIdentityDto } from './dto/update-identity.dto';

@@ -1,7 +1,7 @@
 // 배포 전 점검(node dist/crypto/crypto-check) — 새 이미지의 키 설정으로 DB 의 암호문을 전부 실제로 복호화해 본다.
 // 이전 키를 너무 일찍 뺐거나 시크릿을 잘못 넣었으면 exit 1 → 배포 워크플로가 컨테이너를 교체하기 전에 멈춘다.
 // 읽기만 한다(재암호화는 새 컨테이너가 부팅하며 한다 — 기존 컨테이너는 새 포맷을 못 읽을 수 있어서). 값은 출력하지 않는다
-import { CryptoService } from '@leejinyoun/core-security';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { PrismaService } from '../prisma/prisma.service';
 import { PrismaCipherStore } from './cipher-store';
 import { CryptoAuditService, formatReports } from './crypto-audit.service';

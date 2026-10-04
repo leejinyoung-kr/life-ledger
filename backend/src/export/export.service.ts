@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import AdmZip from 'adm-zip';
-import { CryptoService } from '@leejinyoun/core-security';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccessLogService } from '../access-log/access-log.service';
-import type { ClientInfo } from '@leejinyoun/core-logging';
+import type { ClientInfo } from '@leejinyoung-kr/core-logging';
 import type { AuthUser } from '../auth/auth-user';
 import {
   cipherContext,

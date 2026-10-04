@@ -1,4 +1,4 @@
-import type { JobsService } from '@leejinyoun/core-jobs';
+import type { JobsService } from '@leejinyoung-kr/core-jobs';
 import type { PrismaService } from '../prisma/prisma.service';
 import { JobsMetaContributor } from './jobs.meta';
 

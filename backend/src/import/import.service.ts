@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { CryptoService, readCipherHeader } from '@leejinyoun/core-security';
+import { CryptoService, readCipherHeader } from '@leejinyoung-kr/core-security';
 import { PrismaService } from '../prisma/prisma.service';
 import type { AuthUser } from '../auth/auth-user';
 import {

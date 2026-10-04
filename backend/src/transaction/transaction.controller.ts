@@ -17,8 +17,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
-import { CurrentUser } from '@leejinyoun/core-auth';
-import { JwtAuthGuard } from '@leejinyoun/core-auth';
+import { CurrentUser } from '@leejinyoung-kr/core-auth';
+import { JwtAuthGuard } from '@leejinyoung-kr/core-auth';
 import type { AuthUser } from '../auth/auth-user';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { QueryTransactionDto } from './dto/query-transaction.dto';

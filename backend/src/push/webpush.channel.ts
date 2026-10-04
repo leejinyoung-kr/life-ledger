@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { OutboxChannel, OutboxPermanentError, WebPushService } from '@leejinyoun/core-notification';
+import {
+  OutboxChannel,
+  OutboxPermanentError,
+  WebPushService,
+} from '@leejinyoung-kr/core-notification';
 import { PrismaService } from '../prisma/prisma.service';
 
 // 푸시 페이로드 — 민감정보 금지(제목/요약만). 상세는 앱을 열어 확인하게 한다.

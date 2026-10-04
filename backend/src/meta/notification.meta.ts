@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { MetaContributor } from '@leejinyoun/core-common';
-import type { MetaSection } from '@leejinyoun/core-common';
+import { MetaContributor } from '@leejinyoung-kr/core-common';
+import type { MetaSection } from '@leejinyoung-kr/core-common';
 import { MailService } from '../mail/mail.service';
 import { PushService } from '../push/push.service';
 

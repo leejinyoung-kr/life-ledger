@@ -134,7 +134,7 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ### 예약 작업 실행 기록 — JobRun
 
-- `@leejinyoun/core-jobs` 가 잡 실행마다 1행: `job`(작업 이름), `triggered_by`(schedule/manual), `status`(running → succeeded | failed), `started_at`·`finished_at`, `summary`(작업이 돌려준 요약), `error`(원본 에러 — 메시지·개별 에러·cause 뒤에 stack)
+- `@leejinyoung-kr/core-jobs` 가 잡 실행마다 1행: `job`(작업 이름), `triggered_by`(schedule/manual), `status`(running → succeeded | failed), `started_at`·`finished_at`, `summary`(작업이 돌려준 요약), `error`(원본 에러 — 메시지·개별 에러·cause 뒤에 stack)
 - `lease_until`: 이 시각까지 끝나지 않으면 `failed` + `error` 가 `lease_expired` 로 시작 — 멈춘 실행은 그 프로세스가, 프로세스가 죽어 `running` 으로 남은 행은 다음 점검(1분 주기)이 마감한다
 - `running_key`(유니크): 실행 중일 때만 작업 이름 — 같은 작업이 동시에 두 번 돌지 못하게 DB 에서 막는다. 끝나면 NULL
 - 종료 기록은 `status = 'running'` 인 행만 바꾼다(늦게 끝난 실행이 lease 마감을 덮지 않게)
@@ -144,7 +144,7 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ### 알림 발송 아웃박스 — OutboxMessage
 
-- `@leejinyoun/core-notification` 의 아웃박스. 알림(`Notification`) 행을 만드는 **같은 트랜잭션**에 발송 대상을 적재한다 → 알림 저장이 롤백되면 푸시도 나가지 않는다
+- `@leejinyoung-kr/core-notification` 의 아웃박스. 알림(`Notification`) 행을 만드는 **같은 트랜잭션**에 발송 대상을 적재한다 → 알림 저장이 롤백되면 푸시도 나가지 않는다
 - `idempotency_key`(유니크): `noti:<알림 id>` — 시간창이 아니라 도메인 식별자로 중복 발송을 막는다. 크론이 두 번 돌아도 한 번만 나간다
 - `status`: `pending` → (선점) `sending` → `sent` | `failed`. `claimed_until` 은 선점 유효시각 — 발송 중 프로세스가 죽으면 지난 뒤 회수해 다시 보낸다(보장은 at-least-once)
 - 실패하면 `attempts` 를 올리고 `available_at` 을 백오프(30초·2분·8분·32분) 뒤로 미뤄 `pending` 으로 되돌린다. `max_attempts`(기본 5) 를 넘기면 `failed` — 이때도 `last_error` 의 **원본 에러를 마감 사유로 덮어쓰지 않는다**

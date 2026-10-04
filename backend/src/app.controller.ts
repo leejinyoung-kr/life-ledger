@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { Public } from '@leejinyoun/core-auth';
+import { Public } from '@leejinyoung-kr/core-auth';
 import { AppService } from './app.service';
 
 @Controller()

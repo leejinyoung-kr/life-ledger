@@ -28,7 +28,7 @@ pnpm test        # 테스트
 
 ## 환경 변수
 
-전체 목록과 설명은 [.env.example](.env.example), 검증 규칙은 [src/config/env.ts](src/config/env.ts) 참고. 부팅할 때 `@leejinyoun/core-config` 로 검증하고, 틀린 키가 있으면 **전부** 출력한 뒤 부팅을 멈춘다. 성공하면 시크릿을 가린 유효 설정을 부팅 로그(`[Config] 유효 설정`)에 남긴다.
+전체 목록과 설명은 [.env.example](.env.example), 검증 규칙은 [src/config/env.ts](src/config/env.ts) 참고. 부팅할 때 `@leejinyoung-kr/core-config` 로 검증하고, 틀린 키가 있으면 **전부** 출력한 뒤 부팅을 멈춘다. 성공하면 시크릿을 가린 유효 설정을 부팅 로그(`[Config] 유효 설정`)에 남긴다.
 
 | 구분 | 키 | 규칙 |
 | --- | --- | --- |
@@ -93,7 +93,7 @@ src/
 ├── system-log/    # 시스템 로그 (크론·투자 갱신 등 백그라운드 작업 실행 기록)
 ├── health/        # 헬스체크
 ├── crypto/        # 암호화 컬럼 목록·문맥(AAD)·키 설정, 부팅 시 점검·재암호화, 배포 전 점검(crypto-check)
-├── common/        # vault 유틸·ClientInfo 등 공용 (CryptoService 는 @leejinyoun/core-security)
+├── common/        # vault 유틸·ClientInfo 등 공용 (CryptoService 는 @leejinyoung-kr/core-security)
 └── prisma/        # PrismaService / PrismaModule
 ```
 

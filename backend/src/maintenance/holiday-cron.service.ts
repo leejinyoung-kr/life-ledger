@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Job } from '@leejinyoun/core-jobs';
+import { Job } from '@leejinyoung-kr/core-jobs';
 import { HolidayService } from '../holiday/holiday.service';
 
 // 매월 1일 새벽 2시 — 올해/내년 공휴일을 미리 캐싱해 사용자가 캘린더를 열 때 외부 API 호출 없이 바로 표시되게 한다.

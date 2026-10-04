@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from '@leejinyoun/core-jobs';
+import { Job } from '@leejinyoung-kr/core-jobs';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecurityService } from '../security/security.service';
 import { SystemLogService } from '../system-log/system-log.service';

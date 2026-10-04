@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Notification, NotiGroup, NotiTone, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PushService } from '../push/push.service';
-import { parsePage } from '@leejinyoun/core-common';
+import { parsePage } from '@leejinyoung-kr/core-common';
 import { QueryNotificationDto } from './dto/query-notification.dto';
 
 @Injectable()

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Job } from '@leejinyoun/core-jobs';
+import { Job } from '@leejinyoung-kr/core-jobs';
 import { PrismaService } from '../prisma/prisma.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;

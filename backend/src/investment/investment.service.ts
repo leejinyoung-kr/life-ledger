@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Investment, InvestmentType, Prisma, RecurringSchedule } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { parsePage } from '@leejinyoun/core-common';
+import { parsePage } from '@leejinyoung-kr/core-common';
 import { RRule, periodOf, nthOccurrence } from '../transaction/recurring.util';
 import { CreateInvestmentDto } from './dto/create-investment.dto';
 import { QueryInvestmentDto } from './dto/query-investment.dto';

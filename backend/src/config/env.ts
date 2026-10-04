@@ -1,4 +1,4 @@
-import { csv, defineEnv, z } from '@leejinyoun/core-config';
+import { csv, defineEnv, z } from '@leejinyoung-kr/core-config';
 
 // .env.example 의 예시 기본값 — 그대로 운영에 올라가는 것을 막는다
 const PLACEHOLDERS = new Set([

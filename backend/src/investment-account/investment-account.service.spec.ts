@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { InvestmentAccountService } from './investment-account.service';
-import { CryptoService } from '@leejinyoun/core-security';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { PriceLookupService } from '../investment/price-lookup.service';
 import { ExchangeDirection } from './dto/exchange-investment-account.dto';
 import { cryptoOptions } from '../crypto/crypto-options';

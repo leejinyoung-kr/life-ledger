@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { MetaContributor } from '@leejinyoun/core-common';
-import type { MetaSection } from '@leejinyoun/core-common';
-import { JobsService } from '@leejinyoun/core-jobs';
-import type { JobInfo } from '@leejinyoun/core-jobs';
+import { MetaContributor } from '@leejinyoung-kr/core-common';
+import type { MetaSection } from '@leejinyoung-kr/core-common';
+import { JobsService } from '@leejinyoung-kr/core-jobs';
+import type { JobInfo } from '@leejinyoung-kr/core-jobs';
 import { PrismaService } from '../prisma/prisma.service';
 
 const HOUR = 3_600_000;

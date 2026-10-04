@@ -1,7 +1,7 @@
 import {
   CryptoService,
   type CryptoModuleOptions,
-} from '@leejinyoun/core-security';
+} from '@leejinyoung-kr/core-security';
 import type { CipherRow, CipherStore } from './cipher-store';
 import {
   brokenKeys,

@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EnvProject, EnvVar, EnvKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '@leejinyoun/core-security';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { cipherContext } from '../crypto/crypto-fields';
 import { AccessLogService } from '../access-log/access-log.service';
-import type { ClientInfo } from '@leejinyoun/core-logging';
+import type { ClientInfo } from '@leejinyoung-kr/core-logging';
 import {
   BulkEnvDto,
   CreateEnvProjectDto,

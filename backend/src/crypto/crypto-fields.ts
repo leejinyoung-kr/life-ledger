@@ -50,7 +50,7 @@ export function exportContext(field: CipherField, email: string): string {
 }
 
 // Prisma 모델명(camelCase) → 암호문 컬럼 목록.
-// PrismaService 의 쓰기 가드(@leejinyoun/core-security/prisma)가 이 목록으로 평문 저장을 막는다
+// PrismaService 의 쓰기 가드(@leejinyoung-kr/core-security/prisma)가 이 목록으로 평문 저장을 막는다
 export const ENCRYPTED_FIELD_MAP: Record<string, string[]> = ENCRYPTED_COLUMNS.reduce<
   Record<string, string[]>
 >((map, { table, column }) => {

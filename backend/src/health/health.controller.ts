@@ -1,5 +1,5 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
-import { Public } from '@leejinyoun/core-auth';
+import { Public } from '@leejinyoung-kr/core-auth';
 import { PrismaService } from '../prisma/prisma.service';
 
 // 헬스체크 — 오케스트레이터(Docker/k8s) probe 용. 토큰 없이 접근 허용.

@@ -1,4 +1,4 @@
-import { OutboxPermanentError } from '@leejinyoun/core-notification';
+import { OutboxPermanentError } from '@leejinyoung-kr/core-notification';
 import { WebPushChannel } from './webpush.channel';
 
 // 'webpush' 채널 회귀 테스트 — 기기별 발송 결과에 따라 재시도할지(던짐) 말지(정상 반환)를 가른다

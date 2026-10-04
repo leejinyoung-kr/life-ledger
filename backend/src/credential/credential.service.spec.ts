@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { CredentialService } from './credential.service';
-import { CryptoService } from '@leejinyoun/core-security';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { cryptoOptions } from '../crypto/crypto-options';
 import { cipherContext } from '../crypto/crypto-fields';
 

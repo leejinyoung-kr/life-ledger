@@ -65,7 +65,7 @@
 
 ## 크론 스케줄러
 
-`@leejinyoun/core-jobs` 기반(2026-09-20 `@nestjs/schedule` 에서 전환), `backend/src/maintenance/`(AI 리포트는 같은 모듈에 등록된 `ai-report-cron.service.ts`)에 위치. 각 작업은 `@Job({ name, cron, leaseMs })` 으로 등록하고, `AppModule` 의 `JobsModule.forRoot({ timeZone: 'Asia/Seoul' })` 가 KST 기준으로 실행한다(컨테이너도 `TZ=Asia/Seoul`). 부팅 로그에 작업 목록과 다음 실행 시각이 찍힌다.
+`@leejinyoung-kr/core-jobs` 기반(2026-09-20 `@nestjs/schedule` 에서 전환), `backend/src/maintenance/`(AI 리포트는 같은 모듈에 등록된 `ai-report-cron.service.ts`)에 위치. 각 작업은 `@Job({ name, cron, leaseMs })` 으로 등록하고, `AppModule` 의 `JobsModule.forRoot({ timeZone: 'Asia/Seoul' })` 가 KST 기준으로 실행한다(컨테이너도 `TZ=Asia/Seoul`). 부팅 로그에 작업 목록과 다음 실행 시각이 찍힌다.
 
 공통 동작(작업 코드에 try/catch·요약 로그를 따로 쓰지 않는다):
 

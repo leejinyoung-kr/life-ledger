@@ -1,6 +1,6 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@leejinyoun/core-auth';
+import { JwtAuthGuard } from '@leejinyoung-kr/core-auth';
 import { SystemLogService } from './system-log.service';
 
 @ApiTags('시스템 로그')

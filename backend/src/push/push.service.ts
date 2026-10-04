@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { OutboxService, WebPushService } from '@leejinyoun/core-notification';
+import {
+  OutboxService,
+  WebPushService,
+} from '@leejinyoung-kr/core-notification';
 import { PrismaService } from '../prisma/prisma.service';
 import { WebPushChannel } from './webpush.channel';
 import type { PushMessage } from './webpush.channel';

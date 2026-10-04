@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { defineEnv, EnvValidationError } from '@leejinyoun/core-config';
+import { defineEnv, EnvValidationError } from '@leejinyoung-kr/core-config';
 import { env, envOptions, envShape } from './env';
 
 const BACKEND_DIR = join(__dirname, '..', '..');

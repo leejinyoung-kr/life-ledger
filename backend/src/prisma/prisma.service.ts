@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { encryptedFields } from '@leejinyoun/core-security/prisma';
+import { encryptedFields } from '@leejinyoung-kr/core-security/prisma';
 import { env } from '../config/env';
 import { ENCRYPTED_FIELD_MAP } from '../crypto/crypto-fields';
 

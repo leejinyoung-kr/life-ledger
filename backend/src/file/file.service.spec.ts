@@ -12,7 +12,7 @@ jest.mock('@aws-sdk/s3-request-presigner', () => ({
 }));
 
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { StorageService } from '@leejinyoun/core-storage';
+import { StorageService } from '@leejinyoung-kr/core-storage';
 import { FileService } from './file.service';
 
 // MIME 매직바이트 검증·inline XSS 차단·폴더 재귀삭제 단일 트랜잭션·업로드 보상삭제 회귀 테스트.

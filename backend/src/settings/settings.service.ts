@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, UserSettings } from '@prisma/client';
 import type { AuthUser } from '../auth/auth-user';
-import { CryptoService } from '@leejinyoun/core-security';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { cipherContext } from '../crypto/crypto-fields';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { NotificationModule } from '@leejinyoun/core-notification';
+import { NotificationModule } from '@leejinyoung-kr/core-notification';
 import { env } from '../config/env';
 import { PrismaModule } from '../prisma/prisma.module';
 import { SystemLogModule } from '../system-log/system-log.module';

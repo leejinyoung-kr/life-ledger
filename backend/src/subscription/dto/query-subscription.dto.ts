@@ -1,5 +1,5 @@
 import { IsOptional, IsString } from 'class-validator';
-import { PageQueryDto } from '@leejinyoun/core-common';
+import { PageQueryDto } from '@leejinyoung-kr/core-common';
 
 // 구독 목록 조회 — 서비스명/카테고리 검색 + 페이지네이션
 export class QuerySubscriptionDto extends PageQueryDto {

@@ -11,8 +11,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '@leejinyoun/core-auth';
-import { JwtAuthGuard } from '@leejinyoun/core-auth';
+import { CurrentUser } from '@leejinyoung-kr/core-auth';
+import { JwtAuthGuard } from '@leejinyoung-kr/core-auth';
 import type { AuthUser } from '../auth/auth-user';
 import { CreateInvestmentAccountDto } from './dto/create-investment-account.dto';
 import { QueryInvestmentAccountDto } from './dto/query-investment-account.dto';

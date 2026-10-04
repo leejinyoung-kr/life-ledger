@@ -15,8 +15,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
-import { CurrentUser } from '@leejinyoun/core-auth';
-import { JwtAuthGuard } from '@leejinyoun/core-auth';
+import { CurrentUser } from '@leejinyoung-kr/core-auth';
+import { JwtAuthGuard } from '@leejinyoung-kr/core-auth';
 import type { AuthUser } from '../auth/auth-user';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
 import { FileService } from './file.service';

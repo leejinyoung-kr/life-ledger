@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Subscription, SubscriptionCurrency, SubscriptionCycle } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PriceLookupService } from '../investment/price-lookup.service';
-import { parsePage } from '@leejinyoun/core-common';
+import { parsePage } from '@leejinyoung-kr/core-common';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { QuerySubscriptionDto } from './dto/query-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';

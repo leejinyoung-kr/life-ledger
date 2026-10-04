@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { NotificationModule } from '@leejinyoun/core-notification';
+import { NotificationModule } from '@leejinyoung-kr/core-notification';
 import { env } from '../config/env';
 import { MailService } from './mail.service';
 

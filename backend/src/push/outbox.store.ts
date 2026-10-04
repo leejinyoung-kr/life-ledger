@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { OutboxStore } from '@leejinyoun/core-notification';
+import { OutboxStore } from '@leejinyoung-kr/core-notification';
 import type {
   OutboxEnqueue,
   OutboxFailure,
   OutboxId,
   OutboxPending,
-} from '@leejinyoun/core-notification';
+} from '@leejinyoung-kr/core-notification';
 import { PrismaService } from '../prisma/prisma.service';
 import { SystemLogService } from '../system-log/system-log.service';
 

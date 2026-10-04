@@ -815,7 +815,7 @@ model SecurityScoreSnapshot {
   @@map("security_score_snapshot")
 }
 
-/// 예약 작업 실행 기록 — @leejinyoun/core-jobs 가 시작·종료·lease 만료를 남긴다. 90일 경과 시 자동 삭제
+/// 예약 작업 실행 기록 — @leejinyoung-kr/core-jobs 가 시작·종료·lease 만료를 남긴다. 90일 경과 시 자동 삭제
 model JobRun {
   id           Int          @id @default(autoincrement())
   job          String       @db.VarChar(100) /// 작업 이름 (@Job name)

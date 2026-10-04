@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CryptoService, readCipherHeader } from '@leejinyoun/core-security';
+import { CryptoService, readCipherHeader } from '@leejinyoung-kr/core-security';
 import { CIPHER_STORE, type CipherRow, type CipherStore } from './cipher-store';
 import {
   cipherContext,

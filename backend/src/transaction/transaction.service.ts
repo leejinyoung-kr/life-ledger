@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { QueryTransactionDto } from './dto/query-transaction.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
-import { parsePage } from '@leejinyoun/core-common';
+import { parsePage } from '@leejinyoung-kr/core-common';
 import {
   RRule, toDateStr, periodOf, adjustWeekend, monthlyDate, nthOccurrence, monthRange,
 } from './recurring.util';

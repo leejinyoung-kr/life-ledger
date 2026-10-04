@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { MetaContributor } from '@leejinyoun/core-common';
-import type { MetaSection } from '@leejinyoun/core-common';
+import { MetaContributor } from '@leejinyoung-kr/core-common';
+import type { MetaSection } from '@leejinyoung-kr/core-common';
 import { PrismaService } from '../prisma/prisma.service';
 
 const MINUTE = 60_000;

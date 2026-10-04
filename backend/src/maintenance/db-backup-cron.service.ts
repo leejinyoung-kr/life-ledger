@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Job } from '@leejinyoun/core-jobs';
-import type { JobContext } from '@leejinyoun/core-jobs';
+import { Job } from '@leejinyoung-kr/core-jobs';
+import type { JobContext } from '@leejinyoung-kr/core-jobs';
 import { spawn } from 'child_process';
 import { createWriteStream } from 'fs';
 import { mkdir, readdir, stat, unlink } from 'fs/promises';

@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { EnvService } from './env.service';
-import { CryptoService } from '@leejinyoun/core-security';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { cryptoOptions } from '../crypto/crypto-options';
 import { cipherContext } from '../crypto/crypto-fields';
 

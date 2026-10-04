@@ -1,4 +1,4 @@
-import type { CryptoModuleOptions } from '@leejinyoun/core-security';
+import type { CryptoModuleOptions } from '@leejinyoung-kr/core-security';
 import { env } from '../config/env';
 
 // 환경변수 → CryptoModule 옵션. CRYPTO_KEYS 의 첫 번째 키로 암호화하고 나머지는 복호화만 한다.

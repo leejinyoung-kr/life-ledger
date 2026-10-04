@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { JobRunStore } from '@leejinyoun/core-jobs';
-import type { ExpiredJobRun, JobRunFinish, JobRunId, JobRunStart } from '@leejinyoun/core-jobs';
+import { JobRunStore } from '@leejinyoung-kr/core-jobs';
+import type {
+  ExpiredJobRun,
+  JobRunFinish,
+  JobRunId,
+  JobRunStart,
+} from '@leejinyoung-kr/core-jobs';
 import { PrismaService } from '../prisma/prisma.service';
 import { SystemLogService } from '../system-log/system-log.service';
 

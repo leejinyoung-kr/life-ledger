@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { StorageModule } from '@leejinyoun/core-storage';
+import { StorageModule } from '@leejinyoung-kr/core-storage';
 import { env } from '../config/env';
 import { NotificationModule } from '../notification/notification.module';
 import { FileController } from './file.controller';

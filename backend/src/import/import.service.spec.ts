@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { CryptoService } from '@leejinyoun/core-security';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { ImportService } from './import.service';
 import { cryptoOptions } from '../crypto/crypto-options';
 import { cipherContext, exportContext } from '../crypto/crypto-fields';

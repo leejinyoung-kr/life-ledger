@@ -3,7 +3,7 @@
  * 각 도메인 시드 파일(transactions/savings/investments)이 함께 쓰는 유틸·타입.
  */
 import type { PrismaClient } from '@prisma/client';
-import { CryptoService } from '@leejinyoun/core-security';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { cipherContext, type CipherField } from '../../src/crypto/crypto-fields';
 import { cryptoOptions } from '../../src/crypto/crypto-options';
 

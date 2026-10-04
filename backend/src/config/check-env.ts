@@ -2,7 +2,7 @@
 // 실패하면 env.ts 가 틀린 키 목록과 함께, CryptoService 가 키 설정 오류 목록과 함께 던져 exit 1
 // → 배포 워크플로가 기존 컨테이너를 교체하기 전에 멈춘다.
 // 값은 배포 로그에 남기지 않는다(가린 유효 설정은 부팅 로그에만)
-import { CryptoService } from '@leejinyoun/core-security';
+import { CryptoService } from '@leejinyoung-kr/core-security';
 import { env } from './env';
 import { cryptoOptions } from '../crypto/crypto-options';
 
