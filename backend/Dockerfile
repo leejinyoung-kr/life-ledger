@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM node:26-alpine AS base
-RUN corepack enable
+# Node 25 부터 corepack 이 Node 이미지에 들어 있지 않아 따로 설치한다 (버전 고정)
+RUN npm install -g corepack@0.36.0 && corepack enable
 WORKDIR /app
 
 FROM base AS deps
