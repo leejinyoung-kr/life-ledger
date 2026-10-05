@@ -26,7 +26,7 @@
 |---------|------|
 | Frontend | 3000 |
 | Backend | 8000 |
-| DB (infra 공용 MariaDB) | 3307 |
+| DB (infra 공용 MariaDB) | 13306 |
 | Prisma Studio | 5555 |
 
 ## 백엔드 모듈

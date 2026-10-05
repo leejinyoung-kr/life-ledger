@@ -18,7 +18,7 @@ services:
     env_file:
       - backend/.env
     environment:
-      # backend/.env 는 호스트 기준(localhost:3307)이라 컨테이너 값으로 덮는다. 전용 사용자 docnexus — 비밀번호는 infra/.env 의 DOCNEXUS_DB_PASSWORD
+      # backend/.env 는 호스트 기준(localhost:13306)이라 컨테이너 값으로 덮는다. 전용 사용자 docnexus — 비밀번호는 infra/.env 의 DOCNEXUS_DB_PASSWORD
       DATABASE_URL: "mysql://docnexus:${DB_PASSWORD}@mariadb:3306/docnexus?timezone=+09:00"
       BACKUP_DIR: /app/backend/backups
     volumes:
