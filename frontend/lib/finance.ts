@@ -45,6 +45,17 @@ export interface Transaction {
   targetId: number | null; // 자산이동 누적 대상 id
 }
 
+// 거래 즐겨찾기 — 수입/지출만, 날짜 없이 저장해 두고 오늘 날짜로 불러온다
+export interface TransactionFavorite {
+  id: number;
+  type: 'income' | 'expense';
+  title: string;
+  category: string; // 코드
+  amount: number;
+  payMethod: string;
+  memo: string | null;
+}
+
 export interface TransactionSummary {
   month: string | null;
   income: number;
@@ -258,6 +269,11 @@ export function daysUntil(date: string | null): number | null {
   if (!date) return null;
   const diff = new Date(`${date}T00:00:00`).getTime() - Date.now();
   return Math.ceil(diff / (24 * 60 * 60 * 1000));
+}
+
+// 로컬(KST) 날짜 YYYY-MM-DD — toISOString 은 UTC 라 오전 9시 전에는 하루 전 날짜가 된다
+export function localDate(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // 현재 월 YYYY-MM

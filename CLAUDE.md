@@ -30,6 +30,7 @@ doc-nexus/
 │       ├── auth/          # Google OAuth + JWT 인증 (+ 새 기기 로그인 감지)
 │       ├── transaction/   # 수입/지출 내역
 │       ├── recurring-schedule/ # 자동이체 설정 (반복거래/반복매수 자동 생성 규칙 — 등록 폼과 분리)
+│       ├── transaction-favorite/ # 거래 즐겨찾기 (자주 쓰는 수입/지출 — 오늘 날짜로 불러오기)
 │       ├── saving/        # 예적금
 │       ├── investment/    # 투자
 │       ├── subscription/  # 구독 서비스
@@ -49,7 +50,7 @@ doc-nexus/
 │       ├── file/          # 파일 보관함 (Backblaze B2)
 │       ├── export/        # 데이터 내보내기 (계정 JSON·전체 ZIP)
 │       ├── import/        # 데이터 가져오기 (계정 JSON 복원)
-│       ├── maintenance/   # 예약 작업 @Job(core-jobs) (알림·보안점수 스냅샷·순자산 스냅샷·DB 백업·투자 현재가 갱신·소프트삭제 항목 자동정리) + 실행 기록 저장소(job_run)
+│       ├── maintenance/   # 예약 작업 @Job(core-jobs) (알림·보안점수 스냅샷·순자산 스냅샷·DB 백업·투자 현재가 갱신·구독 결제일 갱신·소프트삭제 항목 자동정리) + 실행 기록 저장소(job_run)
 │       ├── ai/            # AI 리포트 (사용자별 OpenAI 키)
 │       ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
 │       ├── push/          # 웹 푸시 구독/발송 (VAPID) + 발송 아웃박스 저장소·채널(outbox_message)
@@ -69,9 +70,10 @@ doc-nexus/
 | User | id, google_id, email, name, picture | 구현 완료 |
 | Transaction | user_id, type, category, amount, date, recurring_schedule_id | 구현 완료 |
 | RecurringSchedule | user_id, kind(transaction/investment), rule(JSON), start_date, active | 구현 완료 |
+| TransactionFavorite | user_id, type(income/expense), title, category, amount, pay_method, sort_order | 구현 완료 |
 | Saving | user_id, type, interest_rate, balance, maturity_date | 구현 완료 |
 | Investment | user_id, type, principal, current_value, purchase_date | 구현 완료 |
-| Subscription | user_id, name, amount, cycle, status, next_payment_date | 구현 완료 |
+| Subscription | user_id, name, amount, cycle, status, next_payment_date, billing_day(원래 결제일) | 구현 완료 |
 | NetWorthSnapshot | user_id, month, total_assets, total_debt(부동산/부채 기능 제거 이후 항상 0), cash_total(현금 스냅샷 캐시) | 구현 완료 |
 | UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, categories/widgets(JSON), menu_order | 구현 완료 |
 | Notification | user_id, group, tone, title, description, source, read_at | 구현 완료 |
@@ -97,7 +99,7 @@ doc-nexus/
 | JobRun | job, triggered_by(schedule/manual), status(running/succeeded/failed), started_at, lease_until, finished_at, summary, error, running_key(유니크 — 동시 실행 방지) — 예약 작업 실행 기록(core-jobs), 90일 경과 시 자동 삭제 | 구현 완료 |
 | OutboxMessage | channel, payload(JSON), idempotency_key(유니크 — `noti:<알림 id>`), status(pending/sending/sent/failed), attempts, max_attempts, available_at, claimed_until, last_error, sent_at — 알림 발송 아웃박스(core-notification). 알림 행과 **같은 트랜잭션**에 적재되므로 롤백되면 발송도 없다. 끝난 행(sent/failed)은 90일 경과 시 자동 삭제 | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 32개 테이블
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 33개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---
@@ -149,7 +151,7 @@ doc-nexus/
 | Backend — 현금흐름 예측·통합 D-day | 구현 완료 |
 | Backend — AI 리포트 (OpenAI, 사용자별 키) | 구현 완료 |
 | Backend — 시스템 로그 / 순자산 월간 스냅샷 / 투자 현재가 자동 갱신 | 구현 완료 |
-| DB | 32개 테이블 구현 완료 |
+| DB | 33개 테이블 구현 완료 |
 
 ---
 

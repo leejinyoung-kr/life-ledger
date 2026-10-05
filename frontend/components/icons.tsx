@@ -318,6 +318,12 @@ export const IconCheck = (p: IconProps) => (
 );
 
 // 복사 아이콘
+export const IconStar = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round" {...p}>
+    <path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5L2.5 9.4l6.6-.9z" />
+  </svg>
+);
+
 export const IconCopy = (p: IconProps) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} {...p}>
     <rect x="9" y="9" width="13" height="13" rx="2" />

@@ -39,6 +39,7 @@ model User {
   pushSubscriptions  PushSubscription[]
   refreshTokens      RefreshToken[]
   recurringSchedules RecurringSchedule[]
+  txFavorites        TransactionFavorite[]
 
   @@map("user")
 }
@@ -86,6 +87,26 @@ model Transaction {
   @@index([recurring_schedule_id])
   @@index([user_id, type, deleted_at, date, amount]) // 자산 종합(cashTotal) 델타 집계가 date 구간으로 좁혀 스캔되며, amount까지 포함해 PK 재조회 없이 인덱스만으로 합산(커버링 인덱스)
   @@map("transaction")
+}
+
+/// 자주 쓰는 수입/지출 내역 즐겨찾기 — 고르면 오늘 날짜로 채운 추가 창을 연다 (날짜는 저장하지 않음)
+model TransactionFavorite {
+  id         Int             @id @default(autoincrement())
+  user_id    Int /// user.id FK
+  type       TransactionType /// income·expense 만 (transfer 는 DTO 에서 거부)
+  title      String          @db.VarChar(200)
+  category   String          @db.VarChar(50)
+  amount     Decimal         @db.Decimal(15, 2) /// 기본 금액 — 불러온 뒤 바꿔 저장하는 경우가 많다
+  pay_method String          @db.VarChar(50)
+  memo       String?         @db.VarChar(300)
+  sort_order Int             @default(0)
+  created_at DateTime        @default(now())
+  updated_at DateTime        @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, sort_order])
+  @@map("transaction_favorite")
 }
 
 /// 예적금 유형: savings(적금) | deposit(예금) | subscription(청약) | etc(기타)
@@ -265,6 +286,7 @@ model Subscription {
   cycle             SubscriptionCycle    @default(monthly)
   status            SubscriptionStatus   @default(active)
   next_payment_date DateTime             @db.Date
+  billing_day       Int                  @db.TinyInt /// 원래 결제일(1-31) — 2월 등에 말일로 줄어든 뒤 다음 달에 되돌리는 기준
   pay_method        String               @db.VarChar(50)
   last_used_at      DateTime?            @db.Date
   memo              String?              @db.VarChar(300)

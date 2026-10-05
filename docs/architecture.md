@@ -12,7 +12,7 @@
 | 상태관리 | TanStack Query (React Query) — lib/query·queryKeys | 전 페이지 전환 완료 |
 | Backend | NestJS 11, TypeScript | 31개 모듈 구현 완료 |
 | ORM | Prisma | 구현 완료 |
-| DB | MariaDB 11 | 32개 테이블 구현 완료 |
+| DB | MariaDB 11 | 33개 테이블 구현 완료 |
 | Auth | Google OAuth 2.0 + JWT (전역 가드 + 새 기기 감지) | 구현 완료 |
 | Rate-limit | @nestjs/throttler | 구현 완료 |
 | 암호화 | AES-256-GCM(`CRYPTO_KEYS` 키링 + 필드·사용자 AAD, 부팅 시 자동 재암호화, 암호문 컬럼 평문 저장은 Prisma 쓰기 가드가 차단) / 마스터잠금 scrypt | 구현 완료 |
@@ -35,6 +35,7 @@
 | --- | --- | --- |
 | auth | /auth | 구현 완료 |
 | transaction | /transactions | 구현 완료 |
+| transaction-favorite | /transaction-favorites | 구현 완료 |
 | saving | /savings | 구현 완료 |
 | investment-account | /investment-accounts | 구현 완료 |
 | investment | /investments | 구현 완료 |
@@ -54,7 +55,7 @@
 | file | /files (Backblaze B2) | 구현 완료 |
 | export | /export | 구현 완료 |
 | import | /import | 구현 완료 |
-| maintenance | (크론 — 알림·보안점수 스냅샷·순자산 스냅샷·DB 백업·AI 리포트 자동생성·투자 현재가 갱신·소프트삭제 항목 자동정리) | 구현 완료 |
+| maintenance | (크론 — 알림·보안점수 스냅샷·순자산 스냅샷·DB 백업·AI 리포트 자동생성·투자 현재가 갱신·구독 결제일 갱신·소프트삭제 항목 자동정리) | 구현 완료 |
 | ai | /ai (AI 리포트, 사용자별 OpenAI 키) | 구현 완료 |
 | mail | (SMTP 메일 발송 — 이메일 코드 로그인 등, 미설정 시 no-op) | 구현 완료 |
 | push | /push (웹 푸시 구독/발송 — VAPID + 발송 아웃박스: 커밋된 것만 발송·멱등키·재시도·원본 에러 보존) | 구현 완료 |
@@ -76,6 +77,7 @@
 
 | 일정 | 작업 이름 · lease | 파일 | 내용 |
 | --- | --- | --- | --- |
+| 매일 00:05 | `subscription-roll-forward` · 5분 | subscription-cron.service.ts | 결제일(`next_payment_date`)이 오늘(KST)보다 지난 구독을 주기(월/연/주)만큼 넘겨 오늘 이후 첫 결제일로 갱신. 월/연 주기는 원래 결제일(`billing_day`)로 맞추고 그 달에 없으면 말일로 — 31일 결제는 2/28 → 3/31 로 되돌아간다(`billing-date.util.ts`). 체험(`trial`)은 종료일이 지나면 유료 전환으로 보고 `active` 로 바꾸고, 일시정지(`paused`)는 건드리지 않는다. 09:00 결제 알림보다 먼저 돈다 |
 | 매일 03:00 | `trash-purge` · 10분 | trash-cron.service.ts | soft-delete 후 30일 경과 항목 영구삭제 (거래·예적금·투자·구독·캘린더·신원·계정·ENV 등) + 시스템 로그·작업 실행 기록 90일 경과분 삭제. 휴지통 UI는 없으며 삭제된 항목은 이 크론으로만 정리됨. 테이블 하나가 실패해도 나머지는 계속 지우고 끝에 실패로 마감 |
 | 매일 04:00 | `db-backup` · 30분 | db-backup-cron.service.ts | `mariadb-dump` → gzip 압축 후 `backups/`에 저장, 30일 경과 백업 자동 삭제. 실패하면 쓰다 만 파일을 지운다. lease 가 끝나면 `mariadb-dump` 도 함께 종료(signal) |
 | 매일 09:00 | `notification-daily` · 10분 | notification-cron.service.ts | 사용자별 알림 생성(예적금·투자계좌 만기 D-30/14/7/1, 구독결제/체험종료 D-7/3/1, 신원만료 D-60/30/14/7/1, 비번회전 90일 경과 후 30일 간격 재알림) + 웹푸시 발송. 매일 반복 알림을 막기 위해 해당 일자에 정확히 일치할 때만 생성. 만기/마감 알림은 설정(`notifMaturity`/`notifDeadline`)으로 개별 토글 가능 |

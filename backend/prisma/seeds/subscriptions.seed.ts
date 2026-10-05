@@ -52,6 +52,7 @@ export const seedSubscriptions: SeedFn = async (prisma, userId) => {
         cycle: s.cycle,
         status: s.status,
         next_payment_date: d(s.nextPaymentDate),
+        billing_day: d(s.nextPaymentDate).getUTCDate(),
         pay_method: s.payMethod,
         last_used_at: s.lastUsedAt ? d(s.lastUsedAt) : null,
         memo: s.memo,

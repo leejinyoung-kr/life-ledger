@@ -25,6 +25,7 @@ import { NAV_BTN_34 } from '@/components/ui/styles';
 import { useConfirm } from '@/components/ConfirmModal';
 import { api } from '@/lib/api';
 import type { Settings } from '@/lib/settings';
+import { localDate } from '@/lib/finance';
 import {
   EV_TYPE_LABEL, EV_TYPE_OPTIONS, EV_LEGEND, VIRT_SOURCE_META, ddLabel,
   RECUR_FREQ_LABEL, RECUR_FREQ_OPTIONS, LUNAR_RECUR_FREQ_OPTIONS,
@@ -392,7 +393,7 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
     if (!state.open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     reset(); setTitle(''); setType('pay'); setMemo(''); setIsLunar(false); setRecurFreq('none'); setRecurUntil('');
-    setDate(state.date ?? new Date().toISOString().slice(0, 10));
+    setDate(state.date ?? localDate());
   }, [state.open, state.date, reset]);
 
   // 음력 체크 시 반복 옵션을 매년으로 제한(음력 매주/매월 반복은 지원하지 않음) — 음력 체크의 주 목적이 매년 반복(생일 등)이므로 기본값도 매년으로

@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { Job } from '@leejinyoung-kr/core-jobs';
 import { NotiGroup, NotiTone } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { todayKst } from '../common/kst-date';
 import { NotificationService } from '../notification/notification.service';
 
-// 오늘(UTC 자정) + days 후 Date
+// 오늘(KST 날짜의 UTC 자정) + days 후 Date
 function addDays(base: Date, days: number): Date {
   const d = new Date(base);
   d.setUTCDate(d.getUTCDate() + days);
@@ -45,8 +46,7 @@ export class NotificationCronService {
 
   // 한 사용자의 알림 후보를 생성 (예적금만기·구독결제/체험·신원만료·비번회전)
   private async runForUser(userId: number): Promise<number> {
-    const now = new Date();
-    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const today = todayKst();
     let n = 0;
 
     const settings = await this.prisma.userSettings.findUnique({ where: { user_id: userId } });

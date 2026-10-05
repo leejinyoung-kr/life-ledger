@@ -10,6 +10,7 @@ import { IconClock, IconCaret, IconSearch } from '@/components/icons';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { usePagination } from '@/lib/usePagination';
+import { localDate } from '@/lib/finance';
 
 type LogLevel = 'info' | 'warn' | 'error';
 type LogCategory = 'recurring_buy' | 'recurring_tx' | 'cron' | 'asset' | 'file' | 'security' | 'ai' | 'notification';
@@ -50,10 +51,10 @@ const LEVEL_LABEL: Record<LogLevel, string> = {
 function monthsAgo(n: number): string {
   const d = new Date();
   d.setMonth(d.getMonth() - n);
-  return d.toISOString().slice(0, 10);
+  return localDate(d);
 }
 function toDay(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localDate();
 }
 
 function formatLogTime(iso: string): string {

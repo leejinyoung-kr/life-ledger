@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, TransactionType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { kstMonthStr } from '../common/kst-date';
 import { PriceLookupService } from '../investment/price-lookup.service';
 import { SystemLogService } from '../system-log/system-log.service';
 
@@ -59,7 +60,7 @@ export class AssetService {
           select: { cash_balance: true, cash_balance_usd: true },
         }),
         this.prisma.netWorthSnapshot.findFirst({
-          where: { user_id: userId, month: { lt: new Date().toISOString().slice(0, 7) } },
+          where: { user_id: userId, month: { lt: kstMonthStr() } },
           orderBy: { month: 'desc' },
         }),
       ]);

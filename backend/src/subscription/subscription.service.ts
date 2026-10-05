@@ -6,6 +6,7 @@ import { parsePage } from '@leejinyoung-kr/core-common';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { QuerySubscriptionDto } from './dto/query-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
+import { todayKst } from '../common/kst-date';
 
 // Date → 'YYYY-MM-DD' (@db.Date 는 시각 정보 없음)
 function toDateStr(d: Date | null): string | null {
@@ -86,9 +87,8 @@ export class SubscriptionService {
       billing.reduce((sum, r) => sum + toMonthly(r.amount.toNumber(), r.cycle, r.currency, usdToKrwRate), 0),
     );
 
-    // 다음 결제 임박 — 오늘 이후 가장 가까운 결제일
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    // 다음 결제 임박 — 오늘(KST) 이후 가장 가까운 결제일
+    const today = todayKst();
     const upcoming = billing
       .filter((r) => r.next_payment_date >= today)
       .sort((a, b) => a.next_payment_date.getTime() - b.next_payment_date.getTime())[0];
@@ -129,6 +129,7 @@ export class SubscriptionService {
         cycle: dto.cycle,
         status: dto.status ?? 'active',
         next_payment_date: new Date(dto.nextPaymentDate),
+        billing_day: new Date(dto.nextPaymentDate).getUTCDate(),
         pay_method: dto.payMethod,
         last_used_at: dto.lastUsedAt ? new Date(dto.lastUsedAt) : null,
         memo: dto.memo,
@@ -146,9 +147,12 @@ export class SubscriptionService {
     return row;
   }
 
-  // 구독 수정
+  // 구독 수정 — 결제일을 바꾼 경우에만 원래 결제일(billing_day)도 새 날짜로 맞춘다
+  // (수정 폼은 결제일을 늘 함께 보내므로, 말일로 줄어든 날짜를 그대로 보냈을 때 원래 결제일을 잃지 않게)
   async update(userId: number, id: number, dto: UpdateSubscriptionDto) {
-    await this.findOwned(userId, id);
+    const current = await this.findOwned(userId, id);
+    const nextDate = dto.nextPaymentDate ? new Date(dto.nextPaymentDate) : undefined;
+    const dateChanged = nextDate !== undefined && nextDate.getTime() !== current.next_payment_date.getTime();
     const updated = await this.prisma.subscription.update({
       where: { id },
       data: {
@@ -158,7 +162,8 @@ export class SubscriptionService {
         currency: dto.currency,
         cycle: dto.cycle,
         status: dto.status,
-        next_payment_date: dto.nextPaymentDate ? new Date(dto.nextPaymentDate) : undefined,
+        next_payment_date: nextDate,
+        billing_day: nextDate && dateChanged ? nextDate.getUTCDate() : undefined,
         pay_method: dto.payMethod,
         last_used_at: dto.lastUsedAt ? new Date(dto.lastUsedAt) : undefined,
         memo: dto.memo,

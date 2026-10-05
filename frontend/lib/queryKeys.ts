@@ -37,6 +37,7 @@ export const qk = {
     summary: (month?: string) => ['transactions', 'summary', month ?? null] as const,
     monthlyTrend: (month?: string) => ['transactions', 'trend', month ?? null] as const,
   },
+  transactionFavorites: { all: ['transaction-favorites'] as const, list: () => ['transaction-favorites', 'list'] as const },
   savings: { all: ['savings'] as const, list: (params?: unknown) => ['savings', 'list', params ?? null] as const },
   investmentAccounts: { all: ['investment-accounts'] as const, list: (params?: unknown) => ['investment-accounts', 'list', params ?? null] as const },
   investments: { all: ['investments'] as const, list: (params?: unknown) => ['investments', 'list', params ?? null] as const },

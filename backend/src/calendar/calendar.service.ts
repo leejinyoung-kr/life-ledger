@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma, CalendarEvent, CalRecurFreq } from '@prisma/client';
 import KoreanLunarCalendar from 'korean-lunar-calendar';
 import { PrismaService } from '../prisma/prisma.service';
+import { todayKst } from '../common/kst-date';
 import { HolidayService } from '../holiday/holiday.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
@@ -391,8 +392,7 @@ export class CalendarService {
 
   // 다가오는 일정 — 오늘 이후 가까운 순(반복 일정은 다음 발생일 1건). 실제 + 가상 합산 후 limit 적용
   async upcoming(userId: number, limit = 5) {
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    const today = todayKst();
 
     const oneYearLater = new Date(Date.UTC(today.getUTCFullYear() + 1, today.getUTCMonth(), today.getUTCDate()));
 

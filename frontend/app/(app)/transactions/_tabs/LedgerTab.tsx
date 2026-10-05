@@ -10,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
-  IconWon, IconBank, IconChart, IconSearch,
+  IconWon, IconBank, IconChart, IconSearch, IconStar,
 } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
@@ -22,8 +22,8 @@ import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import {
   TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
-  won, signedWon, dotDate,
-  type Category, type Transaction, type TransactionSummary, type TrendBucket,
+  won, signedWon, dotDate, localDate,
+  type Category, type Transaction, type TransactionFavorite, type TransactionSummary, type TrendBucket,
   type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget,
   type Saving, type InvestmentAccount, type RecurringSchedule,
 } from '@/lib/finance';
@@ -107,6 +107,44 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
   // 자산이동 거래가 예적금/투자 잔액을 바꿀 수 있어 해당 탭도 함께 무효화
   const reload = () => invalidate(qk.transactions.all, qk.savings.all, qk.investments.all, qk.investmentAccounts.all);
   const reloadRecurring = () => invalidate(qk.recurringSchedules.all);
+
+  // 즐겨찾기 — 유형·내역명·카테고리·결제수단이 같으면 같은 즐겨찾기로 본다(서버 중복 기준과 동일)
+  const favoritesQuery = useApiQuery<TransactionFavorite[]>(qk.transactionFavorites.list(), '/transaction-favorites');
+  const favorites = useMemo(() => favoritesQuery.data ?? [], [favoritesQuery.data]);
+  const favoriteIdByKey = useMemo(() => new Map(favorites.map((f) => [favoriteKey(f), f.id])), [favorites]);
+  const [favManageOpen, setFavManageOpen] = useState(false);
+  const reloadFavorites = () => invalidate(qk.transactionFavorites.all);
+
+  // 별 버튼 — 이미 즐겨찾기면 해제, 아니면 지금 내역 그대로 저장
+  async function handleToggleFavorite(row: Transaction) {
+    const favId = favoriteIdByKey.get(favoriteKey(row));
+    try {
+      if (favId != null) {
+        await api.del(`/transaction-favorites/${favId}`);
+        notify.success('즐겨찾기에서 뺐습니다.');
+      } else {
+        await api.post('/transaction-favorites', {
+          type: row.type, title: row.title, category: row.category,
+          amount: row.amount, payMethod: row.payMethod, memo: row.memo ?? undefined,
+        });
+        notify.success('즐겨찾기에 저장했습니다.');
+      }
+      reloadFavorites();
+    } catch (err) {
+      notify.error((err as Error).message || '즐겨찾기 저장에 실패했습니다.');
+    }
+  }
+
+  // 즐겨찾기 사용 — 저장된 내용으로 채운 추가 모달을 오늘 날짜로 연다 (금액만 바꿔 저장하는 흐름)
+  function handleUseFavorite(f: TransactionFavorite) {
+    setModal({
+      open: true, mode: 'add',
+      prefill: {
+        date: toDay(), title: f.title, amount: f.amount, type: f.type,
+        category: f.category, payMethod: f.payMethod, memo: f.memo ?? undefined,
+      },
+    });
+  }
 
   async function handleToggleRecurring(id: number) {
     try {
@@ -226,6 +264,23 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
       <p className="text-[0.78rem] text-muted mb-6 [&_strong]:text-blue">
         💡 <strong>자산이동</strong>은 실소비가 아닌 자산 이동으로 잔액 계산에서 제외됩니다.
       </p>
+
+      <div className="flex items-start gap-3 mb-6 px-4 py-3 bg-surface border border-border rounded-(--radius)">
+        <span className="flex items-center gap-1 text-[0.75rem] font-semibold text-muted shrink-0 pt-1.5">
+          <IconStar width={13} height={13} className="text-amber" fill="currentColor" />즐겨찾기
+        </span>
+        <div className="flex gap-1.5 flex-wrap flex-1 min-w-0">
+          {favorites.length === 0 && (
+            <span className="text-[0.75rem] text-muted pt-1.5">내역 오른쪽 ☆ 버튼으로 자주 쓰는 수입·지출을 저장하면, 여기서 눌러 오늘 날짜로 바로 추가할 수 있습니다.</span>
+          )}
+          {favorites.map((f) => (
+            <Button key={f.id} size="sm" variant="ghost" onClick={() => handleUseFavorite(f)} title={`${catMap[f.category] ?? f.category} · ${won(f.amount)}`}>
+              <span className={`amount-${f.type}`}>{f.type === 'income' ? '+' : '−'}</span>{f.title}
+            </Button>
+          ))}
+        </div>
+        {favorites.length > 0 && <Button size="sm" variant="ghost" className="shrink-0" onClick={() => setFavManageOpen(true)}>관리</Button>}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
         <Card>
@@ -359,9 +414,9 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
               <col />
               <col style={{ width: '112px' }} />
               <col style={{ width: '132px' }} />
-              <col style={{ width: '200px' }} />
+              <col style={{ width: '168px' }} />
               <col style={{ width: '96px' }} />
-              <col style={{ width: '72px' }} />
+              <col style={{ width: '136px' }} />
             </colgroup>
             <thead>
               <tr>
@@ -384,7 +439,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
                   <td className={`td-right amount-${row.type}`}>{signedWon(row.type, row.amount)}</td>
                   <td className="td-center td-muted">{row.memo ?? '-'}</td>
                   <td className="td-center td-muted">{dotDate(row.date)}</td>
-                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} /></td>
+                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} onFavorite={row.type !== 'transfer' ? () => handleToggleFavorite(row) : undefined} favorited={favoriteIdByKey.has(favoriteKey(row))} /></td>
                 </tr>
               ))}
             </tbody>
@@ -415,7 +470,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
                   </div>
                 ))}
               </div>
-              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} />
+              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} onFavorite={row.type !== 'transfer' ? () => handleToggleFavorite(row) : undefined} favorited={favoriteIdByKey.has(favoriteKey(row))} />
             </div>
           ))}
         </div>
@@ -438,8 +493,77 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
         onClose={() => setRecurringModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setRecurringModal((s) => ({ ...s, open: false })); reloadRecurring(); }}
       />
+      <FavoriteManageModal
+        open={favManageOpen}
+        favorites={favorites}
+        catMap={catMap}
+        onClose={() => setFavManageOpen(false)}
+        onChanged={reloadFavorites}
+      />
       {confirmElement}
     </>
+  );
+}
+
+// 즐겨찾기 동일 판정 키 — 서버 중복 기준(유형·내역명·카테고리·결제수단)과 같게
+function favoriteKey(t: { type: string; title: string; category: string; payMethod: string }): string {
+  return `${t.type}|${t.title}|${t.category}|${t.payMethod}`;
+}
+
+// 즐겨찾기 관리 — 순서 변경(위/아래)·삭제. 바뀔 때마다 바로 저장한다
+function FavoriteManageModal({ open, favorites, catMap, onClose, onChanged }: { open: boolean; favorites: TransactionFavorite[]; catMap: Record<string, string>; onClose: () => void; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+
+  async function move(index: number, dir: -1 | 1) {
+    const ids = favorites.map((f) => f.id);
+    const to = index + dir;
+    if (to < 0 || to >= ids.length) return;
+    [ids[index], ids[to]] = [ids[to], ids[index]];
+    setBusy(true);
+    try {
+      await api.put('/transaction-favorites/order', { ids });
+      onChanged();
+    } catch {
+      notify.saveFailed();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(id: number) {
+    setBusy(true);
+    try {
+      await api.del(`/transaction-favorites/${id}`);
+      notify.deleted('즐겨찾기');
+      onChanged();
+    } catch {
+      notify.deleteFailed();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal open={open} title="즐겨찾기 관리" onClose={onClose} footer={<Button variant="ghost" onClick={onClose}>닫기</Button>}>
+      {favorites.length === 0 && <div className="text-[0.82rem] text-muted">저장된 즐겨찾기가 없습니다.</div>}
+      <div className="flex flex-col">
+        {favorites.map((f, i) => (
+          <div key={f.id} className="py-2.5 border-b border-border-subtle last:border-b-0 flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-[0.84rem] font-medium truncate">{f.title}</div>
+              <div className="text-[0.72rem] text-muted">
+                {TX_TYPE_LABEL[f.type]} · {catMap[f.category] ?? f.category} · <span className={`amount-${f.type}`}>{won(f.amount)}</span>
+              </div>
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <Button size="sm" variant="ghost" disabled={busy || i === 0} onClick={() => move(i, -1)} aria-label="위로">▲</Button>
+              <Button size="sm" variant="ghost" disabled={busy || i === favorites.length - 1} onClick={() => move(i, 1)} aria-label="아래로">▼</Button>
+              <Button size="sm" variant="danger" disabled={busy} onClick={() => remove(f.id)}>삭제</Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Modal>
   );
 }
 
@@ -490,7 +614,7 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
     const initLeaf = leaf?.code ?? leaves.find((l) => l.parentCode === initParent)?.code ?? '';
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setType(initType);
-    setDate(e?.date ?? pf?.date ?? new Date().toISOString().slice(0, 10));
+    setDate(e?.date ?? pf?.date ?? localDate());
     setTitle(e?.title ?? pf?.title ?? '');
     setParentCode(initParent);
     setCategory(initLeaf);
@@ -674,7 +798,7 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
     const initLeaf = leaf?.code ?? leaves.find((l) => l.parentCode === initParent)?.code ?? '';
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setType(initType);
-    setStartDate(r?.startDate ?? new Date().toISOString().slice(0, 10));
+    setStartDate(r?.startDate ?? localDate());
     setTitle(r?.title ?? '');
     setParentCode(initParent);
     setCategory(initLeaf);

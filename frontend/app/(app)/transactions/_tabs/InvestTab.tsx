@@ -17,7 +17,7 @@ import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { qk } from '@/lib/queryKeys';
 import {
-  INVEST_TYPE_LABEL, won, usd, dotDate, daysUntil, recurringRuleSummary, WEEKDAY_LABEL,
+  INVEST_TYPE_LABEL, won, usd, dotDate, daysUntil, localDate, recurringRuleSummary, WEEKDAY_LABEL,
   type Category, type Investment, type InvestmentAccount, type InvestmentSummary, type InvestmentType,
   type RecurringCycle, type WeekendAdjust, type RecurringSchedule,
 } from '@/lib/finance';
@@ -900,7 +900,7 @@ function RecurringInvestmentModal({ state, onClose, onSaved }: { state: Recurrin
     reset();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setInvestmentId(r?.investmentId ?? '');
-    setStartDate(r?.startDate ?? new Date().toISOString().slice(0, 10));
+    setStartDate(r?.startDate ?? localDate());
     setActive(r?.active ?? true);
     setRecurringCycle(r?.rule?.cycle ?? 'monthly');
     setRecurringDay(r?.rule?.day ?? 1);

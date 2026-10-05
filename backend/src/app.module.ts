@@ -36,6 +36,7 @@ import { MailModule } from './mail/mail.module';
 import { HealthModule } from './health/health.module';
 import { SystemLogModule } from './system-log/system-log.module';
 import { RecurringScheduleModule } from './recurring-schedule/recurring-schedule.module';
+import { TransactionFavoriteModule } from './transaction-favorite/transaction-favorite.module';
 import { AllExceptionsFilter, MetaModule } from '@leejinyoung-kr/core-common';
 import { cryptoOptions } from './crypto/crypto-options';
 import { CryptoAuditModule } from './crypto/crypto-audit.module';
@@ -93,6 +94,7 @@ import { env } from './config/env';
     HealthModule,
     SystemLogModule,
     RecurringScheduleModule,
+    TransactionFavoriteModule,
   ],
   controllers: [AppController],
   // 전역 가드 — 요청량 제한(Throttler) 후 JWT 인증. @Public() 핸들러만 토큰 예외

@@ -78,6 +78,17 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /investments/:id/sell | 매도 — 평가금액 → 소속 계좌 예수금 환입 |
 | DELETE | /investments/:id | 투자 삭제 (soft delete) |
 
+## 거래 즐겨찾기
+
+자주 쓰는 수입/지출 내역을 날짜 없이 저장해 두고, 고르면 오늘 날짜로 채운 추가 창을 연다(자산 관리 > 지출·수입 탭).
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| GET | /transaction-favorites | 즐겨찾기 목록 (표시 순서대로) |
+| POST | /transaction-favorites | 즐겨찾기 추가 (`type`=`income`\|`expense`·`title`·`category`·`amount`·`payMethod?`·`memo?`) — 같은 유형·내역명·카테고리·결제수단이면 409, 50개 초과면 400 |
+| PUT | /transaction-favorites/order | 표시 순서 변경 (`ids`: 새 순서의 id 배열 — 남의 id 가 섞이면 400) |
+| DELETE | /transaction-favorites/:id | 즐겨찾기 삭제 |
+
 ## 자동이체 설정
 
 반복거래(수입/지출/자산이동)·반복매수(주식모으기) 자동 생성 규칙. 거래/투자 등록 폼과 분리된 전용 CRUD — 저장 시 데이터를 즉시 생성하지 않고, `RecurringCronService`가 매일 규칙에 따라 순수 생성만 한다.

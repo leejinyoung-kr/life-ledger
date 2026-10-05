@@ -10,6 +10,7 @@
 | User | 사용자 (Google OAuth) |
 | Transaction | 수입/지출 내역 |
 | RecurringSchedule | 자동이체 설정 (반복거래/반복매수 자동 생성 규칙 — 거래·투자 등록 폼과 분리) |
+| TransactionFavorite | 거래 즐겨찾기 (자주 쓰는 수입/지출 — 오늘 날짜로 불러오기) |
 | Saving | 예적금 |
 | InvestmentAccount | 투자 계좌 (예수금 보유 — 종목 여러 개가 공유) |
 | Investment | 투자 종목 (소속 계좌의 예수금을 매수/매도로 전환) |
@@ -46,7 +47,8 @@
 User 1 ─── N (Transaction, Saving, InvestmentAccount, Investment, Subscription, NetWorthSnapshot,
               Notification, CalendarEvent,
               SecurityRisk, LoginSession, Category, IdentityCard, Credential,
-              EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport, RefreshToken)
+              EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport, RefreshToken,
+              TransactionFavorite)
 User 1 ─── 1 UserSettings
 User 1 ─── N RecurringSchedule
 RecurringSchedule 1 ─── N Transaction(recurring_schedule_id, 자동 생성 회차)
@@ -74,13 +76,14 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 - `Transaction` — `type`(income/expense/transfer), `category`(소분류 code 저장 — 대분류는 Category.parent_code 로 파생), `amount`, `pay_method`, `recurring_schedule_id`(RecurringSchedule FK — 자동이체 설정으로 생성된 회차인 경우)·`recurring_period`(회차 식별), `target_type`(saving/investment)·`target_id` — transfer 거래가 가리키는 누적 대상(FK 아님, 지정 시 대상 잔액에 자동 반영. `investment` 대상은 `InvestmentAccount.id`를 가리킴), soft delete
 - `RecurringSchedule` — 자동이체(자동 생성) 설정. `kind`(transaction/investment), `rule`(JSON: cycle/day/month/weekendAdjust), `start_date`, `last_period`(중복 생성 방지), `active`(일시정지). `kind=transaction`이면 거래 생성에 필요한 `tx_type`·`title`·`category`·`amount`·`pay_method`·`memo`·`target_*` 필드 사용, `kind=investment`이면 `investment_id`(대상 종목 FK)·`buy_amount`·`buy_quantity` 사용. 등록/수정 폼과 별개로, 크론(`RecurringCronService`)이 이 규칙에 따라 거래/투자 데이터를 순수 생성만 한다
+- `TransactionFavorite` — 자주 쓰는 수입/지출 즐겨찾기. `type`(income/expense — transfer 는 DTO 에서 거부), `title`·`category`·`amount`(기본 금액)·`pay_method`·`memo`, `sort_order`(표시 순서). 날짜는 저장하지 않고, 고르면 오늘 날짜로 채운 추가 창을 연다. 유형·내역명·카테고리·결제수단이 같으면 중복으로 거부, 사용자당 50개까지. soft delete 없이 바로 삭제
 - `Saving` — `type`(savings/deposit/subscription/etc), `interest_rate`, `monthly_amount`, `maturity_date`, `balance`
 - `InvestmentAccount` — `name`(계좌명, 예: ISA·일반위탁), `cash_balance`(예수금 — 자산이동으로 충전, 매수/매도로 보유 종목과 전환. 계좌 내 종목들이 공유), `account_number_enc`(계좌번호, AES-256-GCM 암호화 — 동일 계좌명 다중 보유 시 구분용, 응답 시 마스킹), `start_date`·`maturity_date`(ISA 등 만기 — 둘 다 선택값, 생성 시 만기일 미입력하면 가입일+3년으로 자동 계산)
 - `Investment` — `account_id`(InvestmentAccount FK), `type`(domestic_stock/foreign_stock/foreign_etf/domestic_etf/crypto/etc), `principal`, `principal_usd`(해외종목 달러 원금 — 국내종목은 null), `current_value`, `purchase_date`
 
 ### 자산 — Subscription / NetWorthSnapshot
 
-- `Subscription` — `currency`(KRW/USD), `cycle`(monthly/yearly/weekly), `status`(active/trial/paused), `next_payment_date`, `last_used_at` — USD 구독은 요약 통계 계산 시 `PriceLookupService`(frankfurter.app)로 조회한 환율로 원화 환산
+- `Subscription` — `currency`(KRW/USD), `cycle`(monthly/yearly/weekly), `status`(active/trial/paused), `next_payment_date`, `billing_day`(원래 결제일 1-31 — 말일로 줄어든 결제일을 다음 달에 되돌리는 기준, 결제일을 바꿔 저장할 때만 갱신), `last_used_at` — 지난 결제일은 매일 00:05 `subscription-roll-forward` 가 주기만큼 넘긴다(체험은 종료일이 지나면 active 로) — USD 구독은 요약 통계 계산 시 `PriceLookupService`(frankfurter.app)로 조회한 환율로 원화 환산
 - `NetWorthSnapshot` — `month`(YYYY-MM), `total_assets`(현금+예적금+투자 집계), `total_debt`(부동산/부채 기능 제거 이후로는 항상 0 — 과거 스냅샷의 기록값은 유지), `cash_total?`(그 달 말 기준 누적 현금 총액 캐시 — 자산 요약 API의 델타 계산 기준점, 과거 행은 null 허용) (`@@unique([user_id, month])`)
 
 ### 설정 — UserSettings (1:1)

@@ -24,7 +24,7 @@ import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { IconRepeat, IconAlertTriangle, IconSearch } from '@/components/icons';
 import { api } from '@/lib/api';
-import { won, usd, dotDate, daysUntil } from '@/lib/finance';
+import { won, usd, dotDate, daysUntil, localDate } from '@/lib/finance';
 import {
   SUB_CATEGORY_LABEL, SUB_CATEGORY_EMOJI, SUB_CATEGORY_OPTIONS,
   CYCLE_LABEL, STATUS_LABEL, SUB_PAY_METHODS, SUB_CURRENCY_LABEL,
@@ -217,7 +217,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
     setAmount(e ? String(e.amount) : '');
     setCurrency(e?.currency ?? 'KRW');
     setCycle(e?.cycle ?? 'monthly');
-    setNextPaymentDate(e?.nextPaymentDate ?? new Date().toISOString().slice(0, 10));
+    setNextPaymentDate(e?.nextPaymentDate ?? localDate());
     setStatus(e?.status ?? 'active');
     setPayMethod(e?.payMethod ?? SUB_PAY_METHODS[0]);
     setLastUsedAt(e?.lastUsedAt ?? '');
