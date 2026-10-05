@@ -42,8 +42,9 @@ pnpm run dev
 ### 배포 (Docker)
 
 ```bash
+# DB 는 infra 레포의 공용 MariaDB — 먼저 ../infra 에서 docker compose up -d
 cp .env.example .env
-# .env 편집 — MARIADB_ROOT_PASSWORD (backend/.env의 DB_PASSWORD/DATABASE_URL과 동일하게)
+# .env 편집 — DB_PASSWORD (infra/.env 의 DOCNEXUS_DB_PASSWORD 와 같게)
 
 docker compose up -d --build
 ```

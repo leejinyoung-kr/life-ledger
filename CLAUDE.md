@@ -110,7 +110,7 @@ doc-nexus/
 | 상태관리 | **TanStack Query(React Query)** — 서버 데이터 캐싱/무효화 (lib/query·queryKeys) |
 | Backend | NestJS 11, TypeScript |
 | ORM | Prisma |
-| DB | MariaDB (docker-compose, 포트 3307) |
+| DB | MariaDB — `infra` 레포의 공용 MariaDB(포트 3307), 데이터베이스 `docnexus` · 전용 사용자 `docnexus` |
 | 인증 | Google OAuth 2.0 + JWT (전역 가드) |
 | Rate-limit | `@nestjs/throttler` (reveal/totp/복호화·vault unlock 엄격 제한) |
 | 암호화 | AES-256-GCM (`CRYPTO_KEYS` 키링 + 필드·사용자 문맥(AAD), 보관함 민감필드) / 마스터 잠금은 scrypt 해시 |
@@ -157,11 +157,10 @@ doc-nexus/
 
 ```bash
 pnpm install                           # 전체 의존성 설치
-pnpm run db                            # MariaDB 컨테이너 시작 (포트 3307)
+pnpm run db                            # 공용 MariaDB 시작 (../infra compose, 포트 3307 — 앱 여럿이 쓰니 여기서 끄지 않는다)
 pnpm run dev                           # frontend + backend 동시 실행
 pnpm run dev:backend                   # backend만 실행
 pnpm run dev:frontend                  # frontend만 실행
-pnpm run db:stop                       # DB 컨테이너 중지
 
 # DB 마이그레이션 (스키마 변경 시)
 cd backend && npx prisma migrate dev   # = prisma migrate dev
@@ -181,12 +180,13 @@ cd backend && npx prisma generate
 (2026-08-01 전환 — 원래는 배포와 마이그레이션 시점을 의도적으로 분리했었으나, 수동 적용을
 누락하기 쉬워 자동화로 되돌림). `up -d` 전 점검이 실패하면 기존 컨테이너가 그대로 서비스한다.
 서버 `.env` 만 바꿨을 때(키 교체 등)는 Actions 에서 수동 실행(`workflow_dispatch`)한다.
+DB 는 이 워크플로가 다루지 않는다 — `infra` 레포(`~/apps/infra`)의 공용 MariaDB 이고 수동으로 띄운다. 루트 `.env` 의 `DB_PASSWORD` 는 `infra/.env` 의 `DOCNEXUS_DB_PASSWORD` 와 같아야 한다.
 
 수동으로 다시 적용해야 할 때만 아래처럼 직접 실행한다.
 
 ```bash
 # 홈서버 SSH 접속 후
-cd ~/nexus-family/doc-nexus
+cd ~/apps/doc-nexus
 docker compose exec backend npx prisma migrate deploy
 ```
 

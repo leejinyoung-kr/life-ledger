@@ -17,20 +17,20 @@ jobs:
     runs-on: [self-hosted]
     concurrency: deploy-home-server
     steps:
-      # actions/checkout을 쓰지 않고 러너가 이미 갖고 있는 ~/nexus-family/doc-nexus 클론을 그대로 갱신한다.
+      # actions/checkout을 쓰지 않고 러너가 이미 갖고 있는 ~/apps/doc-nexus 클론을 그대로 갱신한다.
       # .env / backend/.env 는 git에 커밋되지 않으므로, fresh checkout을 쓰면 이 파일들이 사라진다.
       - name: Pull latest
         run: |
-          cd ~/nexus-family/doc-nexus
+          cd ~/apps/doc-nexus
           git fetch origin main
           git reset --hard origin/main
 
-      # 여러 Nexus 패밀리 레포가 각자 별도 self-hosted 러너를 쓰더라도 실제로는 같은
-      # 물리 홈서버를 공유하므로, 동시에 push되면 docker build가 서로 CPU를 경합해서
-      # 오히려 더 느려질 수 있다. flock으로 홈서버 전체에서 배포가 한 번에 하나만 돌도록 강제한다.
+      # 홈서버에 배포하는 레포가 여럿이어도 물리 서버는 하나라, 동시에 push되면 docker build가
+      # 서로 CPU를 경합해서 오히려 더 느려질 수 있다. 홈서버 공통 잠금(/tmp/deploy.lock — infra README)으로
+      # 배포가 한 번에 하나만 돌도록 강제한다.
       - name: Build and deploy
         run: |
-          cd ~/nexus-family/doc-nexus
+          cd ~/apps/doc-nexus
           (
             flock -x 200
             # 실제로 바뀐 경로만 보고 backend/frontend 중 필요한 서비스만 빌드한다.
@@ -59,7 +59,7 @@ jobs:
             docker compose run --rm --no-deps backend node dist/config/check-env.js
             # 컨테이너를 띄우기 전에 새 이미지로 1회성 컨테이너를 만들어 마이그레이션부터 적용한다.
             # docker compose run은 서비스에 정의된 environment/networks를 그대로 물려받아
-            # nexus-db로 정상 접속되고, 실행 후 자동 종료(--rm)되어 실제 서비스에는 영향 없다.
+            # infra 의 mariadb로 정상 접속되고, 실행 후 자동 종료(--rm)되어 실제 서비스에는 영향 없다.
             # backend를 안 빌드한 경우에도 스키마 확인 차원에서 매번 실행 (변경 없으면 즉시 끝남).
             docker compose run --rm backend npx prisma migrate deploy
             # 새 이미지의 키 설정(CRYPTO_KEYS·CREDENTIAL_SECRET)으로 DB 의 암호문을 전부 복호화해 본다(읽기만).
@@ -78,7 +78,7 @@ jobs:
             [ "$STATUS" = healthy ] || { docker compose logs --tail 80 backend; exit 1; }
             docker compose run --rm backend node dist/crypto/crypto-check.js
             docker compose ps
-          ) 200>/tmp/nexus-deploy.lock
+          ) 200>/tmp/deploy.lock
         env:
           NPM_READ_TOKEN: ${{ secrets.NPM_READ_TOKEN }}
           BEFORE_SHA: ${{ github.event.before }}

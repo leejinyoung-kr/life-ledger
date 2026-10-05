@@ -10,8 +10,7 @@
     "dev": "pnpm run db && concurrently -n \"backend,frontend\" -c \"blue,green\" \"pnpm run dev:backend\" \"pnpm run dev:frontend\"",
     "dev:backend": "pnpm --filter backend start:dev",
     "dev:frontend": "node -e \"require('fs').rmSync('frontend/.next',{recursive:true,force:true})\" && pnpm --filter frontend dev",
-    "db": "docker compose up db -d",
-    "db:stop": "docker compose stop db",
+    "db": "docker compose -f ../infra/docker-compose.yml up -d",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:build": "docker compose build --no-cache"

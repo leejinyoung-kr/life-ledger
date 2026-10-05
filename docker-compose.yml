@@ -1,28 +1,8 @@
-# 홈서버 클론 경로: ~/nexus-family/doc-nexus (2026-08-02 폴더 재구성, deploy-home-server.yml 참고)
-name: nexus-shared
+# 홈서버 클론 경로: ~/apps/doc-nexus (deploy-home-server.yml 참고)
+# DB 는 infra 레포의 공용 MariaDB 다 — infra 를 먼저 띄운다(외부 네트워크 infra, 호스트 이름 mariadb)
+name: doc-nexus
 
 services:
-  db:
-    image: mariadb:11
-    # doc-nexus 전용으로 이름 짓지 않고, 향후 Nexus 패밀리 프로젝트가 추가되면
-    # 데이터베이스명만 다르게 공유할 수 있도록 컨테이너명을 프로젝트 중립적으로 고정.
-    container_name: nexus-db
-    restart: unless-stopped
-    environment:
-      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
-      MARIADB_DATABASE: docnexus
-      TZ: Asia/Seoul
-    command: --default-time-zone=+09:00
-    ports:
-      - "127.0.0.1:${DB_HOST_PORT:-3307}:3306"
-    volumes:
-      - db_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: .
@@ -38,13 +18,14 @@ services:
     env_file:
       - backend/.env
     environment:
-      DATABASE_URL: "mysql://root:${MARIADB_ROOT_PASSWORD}@db:3306/docnexus?timezone=+09:00"
+      # backend/.env 는 호스트 기준(localhost:3307)이라 컨테이너 값으로 덮는다. 전용 사용자 docnexus — 비밀번호는 infra/.env 의 DOCNEXUS_DB_PASSWORD
+      DATABASE_URL: "mysql://docnexus:${DB_PASSWORD}@mariadb:3306/docnexus?timezone=+09:00"
       BACKUP_DIR: /app/backend/backups
     volumes:
       - db_backups:/app/backend/backups
-    depends_on:
-      db:
-        condition: service_healthy
+    networks:
+      - default
+      - infra
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8000/api/v1/health"]
       interval: 10s
@@ -76,8 +57,11 @@ services:
       retries: 5
       start_period: 20s
 
+networks:
+  infra:
+    external: true
+
 volumes:
-  db_data:
   db_backups:
 
 secrets:
