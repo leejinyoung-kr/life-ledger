@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import Button from '@/components/ui/Button';
-import { IconEdit, IconTrash, IconCopy, IconStar } from '@/components/icons';
+import { IconEdit, IconTrash, IconCopy } from '@/components/icons';
 import { localDate, type TransactionType } from '@/lib/finance';
 
 // 상단 "추가" 버튼 클릭 횟수(addTrigger)가 바뀌면 추가 모달을 연다.
@@ -38,17 +38,9 @@ export function monthsAgo(n: number): string {
   const d = new Date(); d.setMonth(d.getMonth() - n); return localDate(d);
 }
 
-// 즐겨찾기 버튼 상태 — favorited 면 채운 별(누르면 해제), 아니면 빈 별(누르면 저장)
-type FavoriteProps = { onFavorite?: () => void; favorited?: boolean };
-
-export function RowActions({ onEdit, onDelete, onCopy, onFavorite, favorited }: { onEdit: () => void; onDelete: () => void; onCopy?: () => void } & FavoriteProps) {
+export function RowActions({ onEdit, onDelete, onCopy }: { onEdit: () => void; onDelete: () => void; onCopy?: () => void }) {
   return (
     <div className="flex justify-center gap-1">
-      {onFavorite && (
-        <button type="button" className={`icon-btn-bordered${favorited ? ' text-amber!' : ''}`} onClick={onFavorite} aria-label={favorited ? '즐겨찾기 해제' : '즐겨찾기'} aria-pressed={favorited} title={favorited ? '즐겨찾기 해제' : '즐겨찾기에 저장'}>
-          <IconStar width={14} height={14} fill={favorited ? 'currentColor' : 'none'} />
-        </button>
-      )}
       {onCopy && <button type="button" className="icon-btn-bordered" onClick={onCopy} aria-label="복사"><IconCopy width={14} height={14} /></button>}
       <button type="button" className="icon-btn-bordered" onClick={onEdit} aria-label="수정"><IconEdit width={14} height={14} /></button>
       <button type="button" className="icon-btn-danger" onClick={onDelete} aria-label="삭제"><IconTrash width={14} height={14} /></button>
@@ -56,14 +48,9 @@ export function RowActions({ onEdit, onDelete, onCopy, onFavorite, favorited }: 
   );
 }
 
-export function CardActions({ onEdit, onDelete, onCopy, onFavorite, favorited }: { onEdit: () => void; onDelete: () => void; onCopy?: () => void } & FavoriteProps) {
+export function CardActions({ onEdit, onDelete, onCopy }: { onEdit: () => void; onDelete: () => void; onCopy?: () => void }) {
   return (
     <div className="flex gap-2 mt-3">
-      {onFavorite && (
-        <Button variant="ghost" className={favorited ? 'text-amber!' : undefined} onClick={onFavorite} aria-label={favorited ? '즐겨찾기 해제' : '즐겨찾기'} aria-pressed={favorited}>
-          <IconStar width={14} height={14} fill={favorited ? 'currentColor' : 'none'} />
-        </Button>
-      )}
       {onCopy && <Button variant="ghost" className="flex-1" onClick={onCopy}>복사</Button>}
       <Button variant="ghost" className="flex-1" onClick={onEdit}>수정</Button>
       <Button variant="danger" className="flex-1" onClick={onDelete}>삭제</Button>

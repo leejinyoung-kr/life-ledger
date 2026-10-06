@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '@leejinyoung-kr/core-auth';
 import type { AuthUser } from '../auth/auth-user';
 import { CreateTransactionFavoriteDto } from './dto/create-transaction-favorite.dto';
 import { ReorderTransactionFavoriteDto } from './dto/reorder-transaction-favorite.dto';
+import { UpdateTransactionFavoriteDto } from './dto/update-transaction-favorite.dto';
 import { TransactionFavoriteService } from './transaction-favorite.service';
 
 // 거래 즐겨찾기 — 자주 쓰는 수입/지출 내역을 저장해 두고 오늘 날짜로 바로 불러온다
@@ -31,6 +32,16 @@ export class TransactionFavoriteController {
   @Put('order')
   reorder(@CurrentUser() user: AuthUser, @Body() dto: ReorderTransactionFavoriteDto) {
     return this.service.reorder(user.id, dto.ids);
+  }
+
+  // 즐겨찾기 수정
+  @Put(':id')
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateTransactionFavoriteDto,
+  ) {
+    return this.service.update(user.id, id, dto);
   }
 
   // 즐겨찾기 삭제

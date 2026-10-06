@@ -80,12 +80,13 @@ Base URL: `http://localhost:8000/api/v1`
 
 ## 거래 즐겨찾기
 
-자주 쓰는 수입/지출 내역을 날짜 없이 저장해 두고, 고르면 오늘 날짜로 채운 추가 창을 연다(자산 관리 > 지출·수입 탭).
+자주 쓰는 수입/지출 내역을 날짜 없이 저장해 두고, 고르면 오늘 날짜로 채운 추가 창을 연다(자산 관리 > 지출·수입 탭). 등록·수정은 즐겨찾기 줄의 `+ 등록`·관리 창에서 직접 한다(내역 행에서 등록하지 않음).
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | /transaction-favorites | 즐겨찾기 목록 (표시 순서대로) |
 | POST | /transaction-favorites | 즐겨찾기 추가 (`type`=`income`\|`expense`·`title`·`category`·`amount`·`payMethod?`·`memo?`) — 같은 유형·내역명·카테고리·결제수단이면 409, 50개 초과면 400 |
+| PUT | /transaction-favorites/:id | 즐겨찾기 수정 (부분 수정 — 바꾼 결과가 다른 즐겨찾기와 같으면 409) |
 | PUT | /transaction-favorites/order | 표시 순서 변경 (`ids`: 새 순서의 id 배열 — 남의 id 가 섞이면 400) |
 | DELETE | /transaction-favorites/:id | 즐겨찾기 삭제 |
 

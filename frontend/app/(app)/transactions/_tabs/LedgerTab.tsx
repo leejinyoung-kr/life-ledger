@@ -108,32 +108,12 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
   const reload = () => invalidate(qk.transactions.all, qk.savings.all, qk.investments.all, qk.investmentAccounts.all);
   const reloadRecurring = () => invalidate(qk.recurringSchedules.all);
 
-  // 즐겨찾기 — 유형·내역명·카테고리·결제수단이 같으면 같은 즐겨찾기로 본다(서버 중복 기준과 동일)
+  // 즐겨찾기 — 즐겨찾기 줄·관리 창에서 직접 등록/수정한다 (내역 행에서 등록하지 않음)
   const favoritesQuery = useApiQuery<TransactionFavorite[]>(qk.transactionFavorites.list(), '/transaction-favorites');
   const favorites = useMemo(() => favoritesQuery.data ?? [], [favoritesQuery.data]);
-  const favoriteIdByKey = useMemo(() => new Map(favorites.map((f) => [favoriteKey(f), f.id])), [favorites]);
   const [favManageOpen, setFavManageOpen] = useState(false);
+  const [favForm, setFavForm] = useState<FavoriteFormState>({ open: false });
   const reloadFavorites = () => invalidate(qk.transactionFavorites.all);
-
-  // 별 버튼 — 이미 즐겨찾기면 해제, 아니면 지금 내역 그대로 저장
-  async function handleToggleFavorite(row: Transaction) {
-    const favId = favoriteIdByKey.get(favoriteKey(row));
-    try {
-      if (favId != null) {
-        await api.del(`/transaction-favorites/${favId}`);
-        notify.success('즐겨찾기에서 뺐습니다.');
-      } else {
-        await api.post('/transaction-favorites', {
-          type: row.type, title: row.title, category: row.category,
-          amount: row.amount, payMethod: row.payMethod, memo: row.memo ?? undefined,
-        });
-        notify.success('즐겨찾기에 저장했습니다.');
-      }
-      reloadFavorites();
-    } catch (err) {
-      notify.error((err as Error).message || '즐겨찾기 저장에 실패했습니다.');
-    }
-  }
 
   // 즐겨찾기 사용 — 저장된 내용으로 채운 추가 모달을 오늘 날짜로 연다 (금액만 바꿔 저장하는 흐름)
   function handleUseFavorite(f: TransactionFavorite) {
@@ -271,7 +251,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
         </span>
         <div className="flex gap-1.5 flex-wrap flex-1 min-w-0">
           {favorites.length === 0 && (
-            <span className="text-[0.75rem] text-muted pt-1.5">내역 오른쪽 ☆ 버튼으로 자주 쓰는 수입·지출을 저장하면, 여기서 눌러 오늘 날짜로 바로 추가할 수 있습니다.</span>
+            <span className="text-[0.75rem] text-muted pt-1.5">자주 쓰는 수입·지출을 등록해 두면, 여기서 눌러 오늘 날짜로 바로 추가할 수 있습니다.</span>
           )}
           {favorites.map((f) => (
             <Button key={f.id} size="sm" variant="ghost" onClick={() => handleUseFavorite(f)} title={`${catMap[f.category] ?? f.category} · ${won(f.amount)}`}>
@@ -279,7 +259,10 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
             </Button>
           ))}
         </div>
-        {favorites.length > 0 && <Button size="sm" variant="ghost" className="shrink-0" onClick={() => setFavManageOpen(true)}>관리</Button>}
+        <div className="flex gap-1.5 shrink-0">
+          <Button size="sm" variant="ghost" onClick={() => setFavForm({ open: true })}>+ 등록</Button>
+          {favorites.length > 0 && <Button size="sm" variant="ghost" onClick={() => setFavManageOpen(true)}>관리</Button>}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
@@ -414,9 +397,9 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
               <col />
               <col style={{ width: '112px' }} />
               <col style={{ width: '132px' }} />
-              <col style={{ width: '168px' }} />
+              <col style={{ width: '200px' }} />
               <col style={{ width: '96px' }} />
-              <col style={{ width: '136px' }} />
+              <col style={{ width: '72px' }} />
             </colgroup>
             <thead>
               <tr>
@@ -439,7 +422,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
                   <td className={`td-right amount-${row.type}`}>{signedWon(row.type, row.amount)}</td>
                   <td className="td-center td-muted">{row.memo ?? '-'}</td>
                   <td className="td-center td-muted">{dotDate(row.date)}</td>
-                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} onFavorite={row.type !== 'transfer' ? () => handleToggleFavorite(row) : undefined} favorited={favoriteIdByKey.has(favoriteKey(row))} /></td>
+                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} /></td>
                 </tr>
               ))}
             </tbody>
@@ -470,7 +453,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
                   </div>
                 ))}
               </div>
-              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} onFavorite={row.type !== 'transfer' ? () => handleToggleFavorite(row) : undefined} favorited={favoriteIdByKey.has(favoriteKey(row))} />
+              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} />
             </div>
           ))}
         </div>
@@ -499,19 +482,137 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
         catMap={catMap}
         onClose={() => setFavManageOpen(false)}
         onChanged={reloadFavorites}
+        onAdd={() => { setFavManageOpen(false); setFavForm({ open: true, fromManage: true }); }}
+        onEdit={(f) => { setFavManageOpen(false); setFavForm({ open: true, editing: f, fromManage: true }); }}
+      />
+      <FavoriteFormModal
+        state={favForm}
+        categories={categories}
+        bankCats={bankCats}
+        payMethodCats={payMethodCats}
+        onClose={() => { setFavForm((s) => ({ ...s, open: false })); if (favForm.fromManage) setFavManageOpen(true); }}
+        onSaved={() => { setFavForm((s) => ({ ...s, open: false })); reloadFavorites(); if (favForm.fromManage) setFavManageOpen(true); }}
       />
       {confirmElement}
     </>
   );
 }
 
-// 즐겨찾기 동일 판정 키 — 서버 중복 기준(유형·내역명·카테고리·결제수단)과 같게
-function favoriteKey(t: { type: string; title: string; category: string; payMethod: string }): string {
-  return `${t.type}|${t.title}|${t.category}|${t.payMethod}`;
+// fromManage: 관리 창에서 연 경우 — 닫으면 관리 창으로 돌아간다
+type FavoriteFormState = { open: boolean; editing?: TransactionFavorite; fromManage?: boolean };
+
+// 즐겨찾기 등록/수정 — 날짜 없이 유형(수입·지출)·내역·카테고리·기본 금액·결제수단(입금 은행)·메모만 저장
+function FavoriteFormModal({ state, categories, bankCats, payMethodCats, onClose, onSaved }: { state: FavoriteFormState; categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; onClose: () => void; onSaved: () => void }) {
+  const e = state.editing;
+  const parents = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
+  const leaves = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
+  const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [title, setTitle] = useState('');
+  const [parentCode, setParentCode] = useState('');
+  const [category, setCategory] = useState('');
+  const [amount, setAmount] = useState('');
+  const [payMethod, setPayMethod] = useState('');
+  const [memo, setMemo] = useState('');
+  const [saving, setSaving] = useState(false);
+  const { errors, setErrors, clearError, reset } = useFormErrors();
+
+  useEffect(() => {
+    if (!state.open) return;
+    reset();
+    // 수정이면 저장된 소분류에서 대분류를 파생, 등록이면 지출의 첫 대분류·소분류로 시작
+    const leaf = leaves.find((l) => l.code === e?.category);
+    const initType = e?.type ?? 'expense';
+    const initParent = leaf?.parentCode ?? parents.find((p) => parentTypeOf(p.code) === initType)?.code ?? '';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
+    setType(initType);
+    setTitle(e?.title ?? '');
+    setParentCode(initParent);
+    setCategory(leaf?.code ?? leaves.find((l) => l.parentCode === initParent)?.code ?? '');
+    setAmount(e ? String(e.amount) : '');
+    setPayMethod(e?.payMethod ?? (initType === 'income' ? (bankCats[0]?.code ?? '') : (payMethodCats[0]?.code ?? '')));
+    setMemo(e?.memo ?? '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
+  }, [state.open, e]);
+
+  // 유형 변경 시 그 유형의 첫 대분류·소분류와 결제수단(지출)/입금 은행(수입) 기본값으로
+  function handleChangeType(t: 'income' | 'expense') {
+    setType(t);
+    const fp = parents.find((p) => parentTypeOf(p.code) === t);
+    setParentCode(fp?.code ?? '');
+    setCategory(leaves.find((l) => l.parentCode === fp?.code)?.code ?? '');
+    setPayMethod(t === 'income' ? (bankCats[0]?.code ?? '') : (payMethodCats[0]?.code ?? ''));
+  }
+
+  // 대분류 변경 시 그 대분류의 첫 소분류로
+  function handleChangeParent(pc: string) {
+    setParentCode(pc);
+    setCategory(leaves.find((l) => l.parentCode === pc)?.code ?? '');
+  }
+
+  const availableParents = parents.filter((p) => parentTypeOf(p.code) === type);
+  const childLeaves = leaves.filter((l) => l.parentCode === parentCode);
+  const payOptions = type === 'income' ? bankCats : payMethodCats;
+
+  async function handleSave() {
+    const err: Record<string, string> = {};
+    if (!title.trim()) err.title = '내역을 입력하세요.';
+    if (!amount || Number(amount) <= 0) err.amount = '금액을 입력하세요.';
+    setErrors(err);
+    if (Object.keys(err).length) return;
+    setSaving(true);
+    try {
+      const payload = { type, title: title.trim(), category, amount: Number(amount), payMethod, memo: memo || undefined };
+      if (e) await api.put(`/transaction-favorites/${e.id}`, payload);
+      else await api.post('/transaction-favorites', payload);
+      notify.upserted(e ? 'edit' : 'add', '즐겨찾기');
+      onSaved();
+    } catch (ex) {
+      notify.error((ex as Error).message || '저장에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={state.open} onClose={onClose} title={e ? '즐겨찾기 수정' : '즐겨찾기 등록'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
+      <Field label="유형" required>
+        <select className="input" aria-label="유형" value={type} onChange={(ev) => handleChangeType(ev.target.value as 'income' | 'expense')}>
+          <option value="expense">지출</option><option value="income">수입</option>
+        </select>
+      </Field>
+      <Field label="내역" required error={errors.title}>
+        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} aria-label="내역" placeholder="예: GS칼텍스 강남점" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
+      </Field>
+      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+        <Field label="대분류" required>
+          <select className="input" aria-label="대분류" value={parentCode} onChange={(ev) => handleChangeParent(ev.target.value)}>
+            {availableParents.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
+          </select>
+        </Field>
+        <Field label="소분류" required>
+          <select className="input" aria-label="소분류" value={category} onChange={(ev) => setCategory(ev.target.value)} disabled={childLeaves.length === 0}>
+            {childLeaves.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="기본 금액 (원)" required error={errors.amount}>
+        <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} aria-label="기본 금액" placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
+      </Field>
+      <Field label={type === 'income' ? '입금 은행' : '결제수단'} required>
+        <select className="input" aria-label={type === 'income' ? '입금 은행' : '결제수단'} value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
+          {/* 기존 값이 목록에 없으면 그대로 노출 */}
+          {payMethod && !payOptions.some((m) => m.code === payMethod) && <option value={payMethod}>{payMethod}</option>}
+          {payOptions.map((m) => <option key={m.code} value={m.code}>{m.label}</option>)}
+        </select>
+      </Field>
+      <Field label="메모 (선택)"><input type="text" className="input" aria-label="메모" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
+      <p className="text-[0.72rem] text-muted">불러오면 오늘 날짜로 채운 추가 창이 열립니다. 금액은 그때 바꿀 수 있어요.</p>
+    </Modal>
+  );
 }
 
-// 즐겨찾기 관리 — 순서 변경(위/아래)·삭제. 바뀔 때마다 바로 저장한다
-function FavoriteManageModal({ open, favorites, catMap, onClose, onChanged }: { open: boolean; favorites: TransactionFavorite[]; catMap: Record<string, string>; onClose: () => void; onChanged: () => void }) {
+// 즐겨찾기 관리 — 등록·수정·순서 변경(위/아래)·삭제. 순서·삭제는 바로 저장한다
+function FavoriteManageModal({ open, favorites, catMap, onClose, onChanged, onAdd, onEdit }: { open: boolean; favorites: TransactionFavorite[]; catMap: Record<string, string>; onClose: () => void; onChanged: () => void; onAdd: () => void; onEdit: (f: TransactionFavorite) => void }) {
   const [busy, setBusy] = useState(false);
 
   async function move(index: number, dir: -1 | 1) {
@@ -544,8 +645,8 @@ function FavoriteManageModal({ open, favorites, catMap, onClose, onChanged }: { 
   }
 
   return (
-    <Modal open={open} title="즐겨찾기 관리" onClose={onClose} footer={<Button variant="ghost" onClick={onClose}>닫기</Button>}>
-      {favorites.length === 0 && <div className="text-[0.82rem] text-muted">저장된 즐겨찾기가 없습니다.</div>}
+    <Modal open={open} title="즐겨찾기 관리" onClose={onClose} footer={<><Button variant="ghost" onClick={onAdd}>+ 등록</Button><Button variant="ghost" onClick={onClose}>닫기</Button></>}>
+      {favorites.length === 0 && <div className="text-[0.82rem] text-muted">등록된 즐겨찾기가 없습니다.</div>}
       <div className="flex flex-col">
         {favorites.map((f, i) => (
           <div key={f.id} className="py-2.5 border-b border-border-subtle last:border-b-0 flex items-center justify-between gap-2">
@@ -558,6 +659,7 @@ function FavoriteManageModal({ open, favorites, catMap, onClose, onChanged }: { 
             <div className="flex gap-1 shrink-0">
               <Button size="sm" variant="ghost" disabled={busy || i === 0} onClick={() => move(i, -1)} aria-label="위로">▲</Button>
               <Button size="sm" variant="ghost" disabled={busy || i === favorites.length - 1} onClick={() => move(i, 1)} aria-label="아래로">▼</Button>
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => onEdit(f)}>수정</Button>
               <Button size="sm" variant="danger" disabled={busy} onClick={() => remove(f.id)}>삭제</Button>
             </div>
           </div>

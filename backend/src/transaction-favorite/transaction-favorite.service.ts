@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { Prisma, TransactionFavorite } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTransactionFavoriteDto } from './dto/create-transaction-favorite.dto';
+import { UpdateTransactionFavoriteDto } from './dto/update-transaction-favorite.dto';
 
 // 한 사용자가 둘 수 있는 즐겨찾기 수 — 상단 버튼 줄이 너무 길어지지 않게
 export const MAX_FAVORITES = 50;
@@ -63,6 +64,33 @@ export class TransactionFavoriteService {
       },
     });
     return this.toDto(created);
+  }
+
+  // 즐겨찾기 수정 — 바꾼 결과가 다른 즐겨찾기와 같아지면(유형·내역명·카테고리·결제수단) 거부
+  async update(userId: number, id: number, dto: UpdateTransactionFavoriteDto) {
+    const current = await this.prisma.transactionFavorite.findFirst({ where: { id, user_id: userId } });
+    if (!current) throw new NotFoundException('즐겨찾기를 찾을 수 없습니다.');
+    const next = {
+      type: dto.type ?? current.type,
+      title: dto.title ?? current.title,
+      category: dto.category ?? current.category,
+      pay_method: dto.payMethod ?? current.pay_method,
+    };
+    const dup = await this.prisma.transactionFavorite.findFirst({
+      where: { user_id: userId, id: { not: id }, ...next },
+      select: { id: true },
+    });
+    if (dup) throw new ConflictException('이미 즐겨찾기에 있습니다.');
+
+    const updated = await this.prisma.transactionFavorite.update({
+      where: { id },
+      data: {
+        ...next,
+        amount: dto.amount !== undefined ? new Prisma.Decimal(dto.amount) : undefined,
+        memo: dto.memo,
+      },
+    });
+    return this.toDto(updated);
   }
 
   // 표시 순서 변경 — 넘긴 id 순서대로 0,1,2… (본인 것이 아닌 id 가 섞이면 거부)

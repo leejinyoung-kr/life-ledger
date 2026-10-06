@@ -8,7 +8,11 @@ describe('TransactionFavoriteService', () => {
   let prisma: any;
   const svc = () => new TransactionFavoriteService(prisma);
   const match = (r: any, where: any) =>
-    Object.entries(where).every(([k, v]: [string, any]) => (v && typeof v === 'object' && 'in' in v ? v.in.includes(r[k]) : r[k] === v));
+    Object.entries(where).every(([k, v]: [string, any]) => {
+      if (v && typeof v === 'object' && 'in' in v) return v.in.includes(r[k]);
+      if (v && typeof v === 'object' && 'not' in v) return r[k] !== v.not;
+      return r[k] === v;
+    });
 
   beforeEach(() => {
     rows = [];
@@ -68,6 +72,15 @@ describe('TransactionFavoriteService', () => {
     const list = await svc().reorder(1, [2, 1]);
     expect(list.map((f) => f.title)).toEqual(['B', 'A']);
     await expect(svc().reorder(1, [1, 3])).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('수정은 금액·내역명을 바꾸고, 다른 즐겨찾기와 같아지면 거부한다', async () => {
+    await svc().create(1, dto({ title: 'A' }));
+    await svc().create(1, dto({ title: 'B' }));
+    const updated = await svc().update(1, 1, { title: 'A2', amount: 70000 });
+    expect(updated).toMatchObject({ title: 'A2', amount: 70000, category: 'car_fuel' });
+    await expect(svc().update(1, 1, { title: 'B' })).rejects.toBeInstanceOf(ConflictException);
+    await expect(svc().update(2, 1, { title: 'X' })).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('남의 즐겨찾기는 지울 수 없다', async () => {
