@@ -179,8 +179,8 @@ importers:
         specifier: ^3.1063.0
         version: 3.1063.0
       '@leejinyoung-kr/core-auth':
-        specifier: ^0.3.0
-        version: 0.3.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.1.24)(@nestjs/passport@11.0.5(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(passport@0.7.0))
+        specifier: ^0.4.0
+        version: 0.4.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.1.24)(@nestjs/passport@11.0.5(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(passport@0.7.0))
       '@leejinyoung-kr/core-common':
         specifier: ^0.3.0
         version: 0.3.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))
@@ -1623,8 +1623,8 @@ packages:
   '@kurkle/color@0.3.4':
     resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
 
-  '@leejinyoung-kr/core-auth@0.3.0':
-    resolution: {integrity: sha512-vWPmvg3DkSq8UupQreViXArN4Wijh7+Rx20kq3DSNImFaWGrMrgZKcn7hb730Nz+5XPHyYxpm89yNzMMYHd3zQ==, tarball: https://npm.pkg.github.com/download/@leejinyoung-kr/core-auth/0.3.0/7ceeb202a1e446f68a31671b362eb64f185512b9}
+  '@leejinyoung-kr/core-auth@0.4.0':
+    resolution: {integrity: sha512-O3d+yTN95Ss68bNXNc+nLOwg+psmmA3DuGW7HADwjG2MjTogY8U+oQ21V3TjuEUuBv13aDQhoZaqoIJD58AxHA==, tarball: https://npm.pkg.github.com/download/@leejinyoung-kr/core-auth/0.4.0/333156f66564d91f206aa45c8312ce62aacb58d7}
     peerDependencies:
       '@nestjs/common': ^11.0.0
       '@nestjs/core': ^11.0.0
@@ -8454,7 +8454,7 @@ snapshots:
 
   '@kurkle/color@0.3.4': {}
 
-  '@leejinyoung-kr/core-auth@0.3.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.1.24)(@nestjs/passport@11.0.5(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(passport@0.7.0))':
+  '@leejinyoung-kr/core-auth@0.4.0(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.1.24)(@nestjs/passport@11.0.5(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(passport@0.7.0))':
     dependencies:
       '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
       '@nestjs/core': 11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/platform-express@11.1.24)(reflect-metadata@0.2.2)(rxjs@7.8.2)
