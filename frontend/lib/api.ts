@@ -56,7 +56,7 @@ function tryRefresh(): Promise<boolean> {
 // 이게 없으면 refresh 쿠키도 없는 게 확실하므로, 불필요한 401 요청(콘솔 노이즈)을 보내지 않는다.
 function hasSessionHint(): boolean {
   if (typeof document === 'undefined') return false;
-  return document.cookie.split('; ').some((c) => c.startsWith('has_session='));
+  return document.cookie.split('; ').some((c) => c.startsWith('dn_has_session='));
 }
 
 // 새로고침/최초 진입 시 세션 복구 — httpOnly refresh 쿠키로 access 재발급 시도
