@@ -121,6 +121,16 @@ describe('CredentialService', () => {
     expect(res.imported).toBe(1);
     expect(crypto.decrypt(store[0].password_enc, PW)).toBe('roundtrip!');
   });
+
+  it('exportExcel: 전 계정 평문 내보내기는 열람 기록을 남긴다', async () => {
+    await svc().exportExcel(1);
+    expect(accessLog.log).toHaveBeenCalledWith(
+      1,
+      'data_export',
+      expect.objectContaining({ name: 'export:credentials-xlsx' }),
+      undefined,
+    );
+  });
 });
 
 // 헤더 + 행으로 .xlsx 버퍼 생성 (importExcel 입력용)

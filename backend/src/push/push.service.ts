@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { WebPushChannel } from './webpush.channel';
 import type { PushMessage } from './webpush.channel';
+import { PUSH_ENDPOINT_PATTERN } from './dto/subscribe.dto';
 
 export type { PushDelivery, PushMessage, PushPayload } from './webpush.channel';
 
@@ -23,15 +24,21 @@ export class PushService {
     return this.webPush.getPublicKey();
   }
 
-  // 구독 저장 — endpoint 기준 upsert (같은 기기 재구독 시 키 갱신). 비활성이어도 저장은 허용
+  // 구독 저장 — endpoint 기준 upsert (같은 기기 재구독 시 키 갱신). 비활성이어도 저장은 허용.
+  // 다른 사용자가 등록한 endpoint 는 덮어쓰지 않는다(남의 기기 알림 가로채기 방지)
   async subscribe(
     userId: number,
     sub: { endpoint: string; keys: { p256dh: string; auth: string } },
     userAgent?: string,
   ): Promise<{ ok: boolean }> {
-    if (!sub?.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) {
+    if (!sub?.endpoint || !sub.keys?.p256dh || !sub.keys?.auth || !PUSH_ENDPOINT_PATTERN.test(sub.endpoint)) {
       return { ok: false };
     }
+    const existing = await this.prisma.pushSubscription.findUnique({
+      where: { endpoint: sub.endpoint },
+      select: { user_id: true },
+    });
+    if (existing && existing.user_id !== userId) return { ok: false };
     await this.prisma.pushSubscription.upsert({
       where: { endpoint: sub.endpoint },
       create: {

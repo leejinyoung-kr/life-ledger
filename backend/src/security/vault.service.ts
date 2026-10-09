@@ -1,10 +1,16 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { DEFAULT_CATEGORIES, DEFAULT_WIDGETS } from '../settings/settings.defaults';
 import { AccessLogService } from '../access-log/access-log.service';
 import type { ClientInfo } from '@leejinyoung-kr/core-logging';
+import { MIN_MASTER_PASSWORD } from './dto/vault.dto';
+
+// 잠김 응답 — 프론트가 401(재로그인)과 구분하도록 423 + 코드 사용
+function vaultLocked(message: string): never {
+  throw new HttpException({ message, code: 'VAULT_LOCKED' }, HttpStatus.LOCKED);
+}
 
 // 마스터 잠금(보관함 2차 잠금) — 마스터 비번 해시 관리 + 잠금해제 토큰 발급.
 // Google 로그인 외에 민감 보관함 진입 시 별도 비번을 요구해 reveal 류 호출을 막는다.
@@ -57,10 +63,10 @@ export class VaultService {
     };
   }
 
-  // 마스터 잠금 설정/변경 — 비번 해시 저장 + 활성화
+  // 마스터 잠금 설정/변경 — 비번 해시 저장 + 활성화. 변경 시 현재 비번 확인은 컨트롤러의 VaultGuard 가 맡는다
   async setup(userId: number, password: string, timeoutMin: number) {
-    if (!password || password.length < 4) {
-      throw new BadRequestException('마스터 비밀번호는 4자 이상이어야 합니다.');
+    if (!password || password.length < MIN_MASTER_PASSWORD) {
+      throw new BadRequestException(`마스터 비밀번호는 ${MIN_MASTER_PASSWORD}자 이상이어야 합니다.`);
     }
     await this.ensureSettings(userId);
     await this.prisma.userSettings.update({
@@ -86,6 +92,23 @@ export class VaultService {
     });
     await this.accessLog.log(userId, 'vault_disable', { type: 'security', id: userId, name: 'vault' }, client);
     return { enabled: false };
+  }
+
+  // 마스터 잠금이 켜진 사용자면 유효한 vault 토큰을 요구 — 잠김/만료 시 423 + code:VAULT_LOCKED (VaultGuard·조건부 잠금 공용)
+  async assertUnlocked(userId: number, token: string | undefined): Promise<void> {
+    const settings = await this.prisma.userSettings.findUnique({
+      where: { user_id: userId },
+      select: { master_lock_enabled: true },
+    });
+    if (!settings?.master_lock_enabled) return;
+    if (!token) vaultLocked('보관함이 잠겨 있습니다. 마스터 비밀번호로 잠금을 해제하세요.');
+    try {
+      // vault 전용 시크릿·알고리즘은 SecurityModule 의 JwtModule 설정으로 검증된다
+      const payload = this.jwt.verify<{ sub: number; type: string }>(token);
+      if (payload.type !== 'vault' || payload.sub !== userId) throw new Error('invalid');
+    } catch {
+      vaultLocked('보관함 잠금이 만료되었습니다. 다시 잠금을 해제하세요.');
+    }
   }
 
   // 잠금 해제 — 비번 확인 후 만료시간이 있는 vault 토큰 발급. 자동잠금=토큰 만료

@@ -191,17 +191,26 @@ export function apiUploadProgress<T>(
   });
 }
 
-// 인증을 붙여 바이너리(blob)를 받아 파일 다운로드를 트리거한다.
+// 인증(+ 잠금해제 토큰)을 붙여 바이너리(blob)를 받아 파일 다운로드를 트리거한다. 401 은 refresh, 423 은 잠금해제 모달 후 1회 재시도
 export async function apiDownload(path: string, filename: string, retried = false): Promise<void> {
   const token = getToken();
+  const vault = getVaultToken();
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(vault ? { 'x-vault-token': vault } : {}),
+    },
   });
 
   if (res.status === 401) {
     if (!retried && (await tryRefresh())) return apiDownload(path, filename, true);
     toLogin();
     throw new Error('인증이 필요합니다.');
+  }
+  if (res.status === 423) {
+    if (!retried && (await requestVaultUnlock())) return apiDownload(path, filename, true);
+    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? '보관함이 잠겨 있습니다.');
   }
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { message?: string } | null;

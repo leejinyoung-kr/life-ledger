@@ -17,6 +17,7 @@ import { Client, type ClientInfo } from '@leejinyoung-kr/core-logging';
 import { AccessLogService } from '../access-log/access-log.service';
 import { SecurityService } from './security.service';
 import { VaultService } from './vault.service';
+import { VaultGuard } from './vault.guard';
 import { SetupVaultDto, VaultPasswordDto } from './dto/vault.dto';
 
 @ApiTags('보안 센터')
@@ -96,8 +97,9 @@ export class SecurityController {
     return this.vault.status(user.id);
   }
 
-  // 마스터 잠금 설정/변경
+  // 마스터 잠금 설정/변경 — 이미 켜져 있으면 VaultGuard 로 잠금 해제(현재 비번 확인)를 먼저 요구해 비번 덮어쓰기 우회를 막는다
   @Post('vault/setup')
+  @UseGuards(VaultGuard)
   vaultSetup(@CurrentUser() user: AuthUser, @Body() dto: SetupVaultDto) {
     return this.vault.setup(user.id, dto.password, dto.timeoutMin ?? 5);
   }

@@ -6,12 +6,13 @@ import { CurrentUser } from '@leejinyoung-kr/core-auth';
 import { JwtAuthGuard } from '@leejinyoung-kr/core-auth';
 import type { AuthUser } from '../auth/auth-user';
 import { Client, type ClientInfo } from '@leejinyoung-kr/core-logging';
+import { VaultGuard } from '../security/vault.guard';
 import { ExportService } from './export.service';
 
 @ApiTags('데이터 내보내기')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
-// 전 데이터 백업 — 유출 공격 throttle. 전 엔드포인트 분당 5회 제한
+// 전 데이터 백업 — 보관함 데이터가 통째로 나가므로 마스터 잠금(VaultGuard) 통과 필요, 유출 공격 대비 분당 5회 제한
+@UseGuards(JwtAuthGuard, VaultGuard)
 @Throttle({ default: { limit: 5, ttl: 60000 } })
 @Controller('export')
 export class ExportController {

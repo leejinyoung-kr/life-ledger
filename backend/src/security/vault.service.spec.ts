@@ -29,8 +29,8 @@ describe('VaultService (마스터 잠금)', () => {
     jest.clearAllMocks();
   });
 
-  it('setup: 4자 미만 비번 거부', async () => {
-    await expect(svc().setup(1, '123', 5)).rejects.toThrow(BadRequestException);
+  it('setup: 8자 미만 비번 거부', async () => {
+    await expect(svc().setup(1, '1234567', 5)).rejects.toThrow(BadRequestException);
   });
 
   it('setup 후 saltHex:hashHex 형태로 해시 저장 + 활성화', async () => {

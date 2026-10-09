@@ -1,4 +1,5 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { env } from '../config/env';
 import { AuthService } from './auth.service';
@@ -227,6 +228,89 @@ describe('AuthService', () => {
       );
       await expect(svc().refresh(forged)).rejects.toThrow(UnauthorizedException);
       expect(prisma.refreshToken.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
+  // 이메일 코드 로그인 — 발급 상한·실패 문구 통일(열거 방지)·조건부 시도 증가 회귀 테스트
+  describe('이메일 코드', () => {
+    const ALLOWED = 'tester@example.com';
+    const hash = (c: string) => createHash('sha256').update(c).digest('hex');
+    const live = (over: any = {}) => ({
+      id: 7,
+      code_hash: hash('123456'),
+      attempts: 0,
+      expires_at: new Date(Date.now() + 60_000),
+      ...over,
+    });
+
+    beforeEach(() => {
+      prisma.emailLoginCode = {
+        count: jest.fn().mockResolvedValue(0),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        create: jest.fn(),
+        findFirst: jest.fn(),
+        update: jest.fn(),
+      };
+      prisma.user.upsert.mockResolvedValue({ id: 3, email: ALLOWED, name: 'tester', picture: null });
+    });
+
+    it('허용 이메일이면 코드를 저장하고 메일을 보낸다', async () => {
+      await expect(svc().requestEmailCode(ALLOWED)).resolves.toEqual({ ok: true });
+      expect(prisma.emailLoginCode.create).toHaveBeenCalled();
+      expect(mail.sendLoginCode).toHaveBeenCalledWith(ALLOWED, expect.stringMatching(/^\d{6}$/));
+    });
+
+    it('발급 상한을 넘으면 같은 응답이지만 코드를 만들지 않는다', async () => {
+      prisma.emailLoginCode.count.mockResolvedValue(5);
+      await expect(svc().requestEmailCode(ALLOWED)).resolves.toEqual({ ok: true });
+      expect(prisma.emailLoginCode.create).not.toHaveBeenCalled();
+      expect(mail.sendLoginCode).not.toHaveBeenCalled();
+    });
+
+    it('허용되지 않은 이메일도 같은 응답이고 DB·메일을 건드리지 않는다', async () => {
+      await expect(svc().requestEmailCode('other@example.com')).resolves.toEqual({ ok: true });
+      expect(prisma.emailLoginCode.count).not.toHaveBeenCalled();
+      expect(mail.sendLoginCode).not.toHaveBeenCalled();
+    });
+
+    it('검증 실패는 허용 여부·코드 유무·불일치와 무관하게 같은 400 문구', async () => {
+      const messages: string[] = [];
+      const capture = async (p: Promise<unknown>) => {
+        const err = await p.catch((e: unknown) => e);
+        expect(err).toBeInstanceOf(BadRequestException);
+        messages.push((err as BadRequestException).message);
+      };
+      await capture(svc().verifyEmailCode('other@example.com', '123456'));
+      prisma.emailLoginCode.findFirst.mockResolvedValueOnce(null);
+      await capture(svc().verifyEmailCode(ALLOWED, '123456'));
+      prisma.emailLoginCode.findFirst.mockResolvedValueOnce(live());
+      await capture(svc().verifyEmailCode(ALLOWED, '000000'));
+      expect(new Set(messages).size).toBe(1);
+    });
+
+    it('시도 상한에 걸리면(조건부 증가 count 0) 맞는 코드여도 거부하고 코드를 무효화한다', async () => {
+      prisma.emailLoginCode.findFirst.mockResolvedValue(live({ attempts: 5 }));
+      prisma.emailLoginCode.updateMany.mockResolvedValueOnce({ count: 0 });
+      await expect(svc().verifyEmailCode(ALLOWED, '123456')).rejects.toThrow(BadRequestException);
+      expect(prisma.user.upsert).not.toHaveBeenCalled();
+    });
+
+    it('맞는 코드면 코드를 소비하고 토큰을 발급한다', async () => {
+      prisma.emailLoginCode.findFirst.mockResolvedValue(live());
+      const out = await svc().verifyEmailCode(ALLOWED, '123456');
+      expect(out.access).toBeDefined();
+      expect(prisma.emailLoginCode.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({ where: { id: 7, consumed_at: null } }),
+      );
+    });
+
+    it('같은 코드로 동시에 성공해도 소비는 한 번뿐 — 뒤 요청은 거부', async () => {
+      prisma.emailLoginCode.findFirst.mockResolvedValue(live());
+      prisma.emailLoginCode.updateMany
+        .mockResolvedValueOnce({ count: 1 }) // 시도 증가
+        .mockResolvedValueOnce({ count: 0 }); // 소비 — 이미 다른 요청이 소비함
+      await expect(svc().verifyEmailCode(ALLOWED, '123456')).rejects.toThrow(BadRequestException);
+      expect(prisma.user.upsert).not.toHaveBeenCalled();
     });
   });
 });

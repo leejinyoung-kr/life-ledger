@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   ParseIntPipe,
   Patch,
@@ -20,13 +21,20 @@ import { JwtAuthGuard } from '@leejinyoung-kr/core-auth';
 import type { AuthUser } from '../auth/auth-user';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
 import { FileService } from './file.service';
+import { VaultService } from '../security/vault.service';
+
+// 업로드 상한 — core-storage 검증(50MB)과 같은 값
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 @ApiTags('파일 보관함')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('files')
 export class FileController {
-  constructor(private readonly service: FileService) {}
+  constructor(
+    private readonly service: FileService,
+    private readonly vault: VaultService,
+  ) {}
 
   // 현재 폴더의 하위 폴더·파일 + 브레드크럼 + 전체 사용량
   @Get()
@@ -37,10 +45,10 @@ export class FileController {
     return this.service.list(user.id, folderId ? Number(folderId) : undefined);
   }
 
-  // 파일 업로드 (multipart/form-data)
+  // 파일 업로드 (multipart/form-data). 크기 상한을 multer 에도 걸어 큰 파일을 메모리에 다 받기 전에 끊는다
   @Post('upload')
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_UPLOAD_BYTES } }))
   upload(
     @CurrentUser() user: AuthUser,
     @UploadedFile() file: Express.Multer.File,
@@ -49,13 +57,18 @@ export class FileController {
     return this.service.upload(user.id, file, folderId ? Number(folderId) : undefined);
   }
 
-  // presigned 다운로드/미리보기 URL 발급 (?disposition=inline 이면 브라우저 내 미리보기용)
+  // presigned 다운로드/미리보기 URL 발급 (?disposition=inline 이면 브라우저 내 미리보기용).
+  // 신원 지갑 사본으로 연결된 파일은 보관함 민감정보라 마스터 잠금 해제를 요구한다
   @Get(':id/url')
-  getUrl(
+  async getUrl(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) id: number,
     @Query('disposition') disposition?: string,
+    @Headers('x-vault-token') vaultToken?: string,
   ) {
+    if (await this.service.isIdentityAttachment(user.id, id)) {
+      await this.vault.assertUnlocked(user.id, vaultToken);
+    }
     return this.service.getDownloadUrl(user.id, id, disposition === 'inline' ? 'inline' : 'attachment');
   }
 

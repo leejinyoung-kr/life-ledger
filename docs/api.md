@@ -11,14 +11,14 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /auth/google | Google OAuth 로그인 리다이렉트 (`@Public`) |
 | GET | /auth/google/callback | OAuth 콜백, JWT 발급 후 프론트엔드로 리다이렉트 (`@Public`) |
 | GET | /auth/me | 현재 로그인 사용자 정보 (name/email/picture) |
-| DELETE | /auth/me | 계정 영구 삭제 (전 도메인 데이터 + user 삭제) |
-| POST | /auth/email/request | 이메일 인증코드 요청 (`@Public`, `ALLOWED_EMAILS` 화이트리스트 대조, SMTP 발송) |
-| POST | /auth/email/verify | 이메일 인증코드 검증 → JWT 발급 (`@Public`) |
+| DELETE | /auth/me | 계정 영구 삭제 (전 도메인 데이터 + user 삭제, 마스터 잠금 시 `x-vault-token` 필요) |
+| POST | /auth/email/request | 이메일 인증코드 요청 (`@Public`, `ALLOWED_EMAILS` 화이트리스트 대조, 이메일당 1시간 5회·24시간 10회 발급, SMTP 발송은 응답을 기다리지 않음) |
+| POST | /auth/email/verify | 이메일 인증코드 검증 → JWT 발급 (`@Public`, 코드당 5회 시도. 실패는 사유와 무관하게 같은 400 문구 — 허용 이메일 열거 방지) |
 | POST | /auth/refresh | refresh 쿠키로 새 access 발급 (`@Public`) |
 | POST | /auth/logout | refresh 쿠키 제거 (`@Public`) |
 | GET | /auth/dev-login | 로컬 개발용 원클릭 로그인, 고정 유저(`dev@local`)로 즉시 JWT 발급 (`@Public`, `NODE_ENV=production`에서는 404) |
 
-> 토큰: **Access(15분)** 는 `?token=` 으로 전달 → localStorage → `Authorization: Bearer`.
+> 토큰: **Access(15분)** 는 `?token=` 으로 전달 → 프론트 메모리(모듈 변수) → `Authorization: Bearer`.
 > **Refresh(7일)** 는 httpOnly 쿠키(`refresh_token`)로만 저장. access 만료(401) 시 프론트가 `/auth/refresh` 1회 호출해 갱신·재요청.
 > 전역 JWT 가드 — 로그인 관련(`@Public()`) 외 **모든** 엔드포인트는 access 토큰 필수.
 
@@ -163,11 +163,11 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /security/strength-stats | 비밀번호 강도 분포 (강함/보통/취약) |
 | GET | /security/breach-check | 유출 비밀번호 검사 (HIBP k-anonymity, throttle 6/분) |
 | GET | /security/vault | 마스터 잠금 상태 |
-| POST | /security/vault/setup | 마스터 잠금 설정/변경 (비번 scrypt 해시) |
+| POST | /security/vault/setup | 마스터 잠금 설정 (비번 8자 이상, scrypt 해시). 이미 켜져 있으면 `x-vault-token` 필요 |
 | POST | /security/vault/disable | 마스터 잠금 해제 (현재 비번 확인) |
 | POST | /security/vault/unlock | 잠금 해제 — vault 토큰 발급 (throttle 5/분) |
 
-> **마스터 잠금**: 켜지면 reveal/totp/백업코드/신원/ENV 열람 시 `x-vault-token` 헤더 필요(없으면 423 + `code:VAULT_LOCKED`). 자동잠금 = 토큰 만료.
+> **마스터 잠금**: 켜지면 reveal/totp/백업코드/신원/ENV 열람, 계정 엑셀·데이터 내보내기(`/credentials/export`, `/export/*`), 신원 사본 파일 URL, 잠금 재설정, 계정 삭제 시 `x-vault-token` 헤더 필요(없으면 423 + `code:VAULT_LOCKED`). 자동잠금 = 토큰 만료.
 > **Rate-limit**(`@nestjs/throttler`): 전역 120/분, reveal·totp·신원·ENV·백업코드 20/분, vault unlock 5/분.
 
 ## 설정
@@ -228,7 +228,7 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /credentials/:id/backup-codes | 2FA 백업코드 생성 (평문 1회 반환) |
 | DELETE | /credentials/:id/backup-codes | 백업코드 삭제 |
 | GET | /credentials/template | 엑셀 양식(.xlsx) 다운로드 |
-| GET | /credentials/export | 계정 엑셀 다운로드 (비밀번호 평문 — 본인 백업) |
+| GET | /credentials/export | 계정 엑셀 다운로드 (비밀번호 평문 — 본인 백업, VaultGuard · 감사 로그 기록) |
 | POST | /credentials | 계정 추가 (비번·TOTP AES 암호화) |
 | POST | /credentials/import | 엑셀 업로드 → 일괄 추가 (multipart `file`) |
 | PUT | /credentials/:id | 수정 (`password`/`totp` 전달 시 재암호화) |
@@ -265,9 +265,9 @@ Base URL: `http://localhost:8000/api/v1`
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | /export/credentials | 계정 JSON 백업 (비번/TOTP 암호문 보존) |
-| GET | /export/backup | 전체 데이터 ZIP (도메인별 JSON) |
+| GET | /export/backup | 전체 데이터 ZIP (도메인별 JSON. 설정의 `master_lock_hash`·`openai_api_key` 는 제외) |
 
-> 암호화 컬럼은 평문으로 풀지 않고 암호문(`v2:<키ID>:...`)으로 내보낸다. 계정 JSON 백업은 사용자 id 대신 **계정 이메일 문맥**으로 다시 감싸, DB 를 다시 만들어 id 가 바뀌어도 같은 계정이면 복원된다(다른 계정으로는 복원 불가). 어느 쪽이든 이 서버에 해당 키가 남아 있는 동안만 복호화된다.
+> 두 엔드포인트 모두 VaultGuard(마스터 잠금) 대상이다. 암호화 컬럼은 평문으로 풀지 않고 암호문(`v2:<키ID>:...`)으로 내보낸다. 계정 JSON 백업은 사용자 id 대신 **계정 이메일 문맥**으로 다시 감싸, DB 를 다시 만들어 id 가 바뀌어도 같은 계정이면 복원된다(다른 계정으로는 복원 불가). 어느 쪽이든 이 서버에 해당 키가 남아 있는 동안만 복호화된다.
 
 ## 데이터 가져오기
 
@@ -280,8 +280,8 @@ Base URL: `http://localhost:8000/api/v1`
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | /files?folderId= | 폴더 내용 (브레드크럼·하위폴더·파일·사용량) |
-| POST | /files/upload?folderId= | 업로드 (multipart `file`, MIME 화이트리스트 + SHA-256 중복제거) |
-| GET | /files/:id/url?disposition= | presigned URL 발급 (5분, inline=미리보기). 응답 파일명은 `filename*=UTF-8''…` + ASCII 대체 이름(NFC) — 프론트의 `a.download` 는 다른 origin 이라 무시됨 |
+| POST | /files/upload?folderId= | 업로드 (multipart `file`, 50MB — multer 단계에서 끊음, MIME 화이트리스트 + SHA-256 중복제거) |
+| GET | /files/:id/url?disposition= | presigned URL 발급 (5분, inline=미리보기). 신원 지갑 사본으로 연결된 파일은 마스터 잠금 시 `x-vault-token` 필요. 응답 파일명은 `filename*=UTF-8''…` + ASCII 대체 이름(NFC) — 프론트의 `a.download` 는 다른 origin 이라 무시됨 |
 | PATCH | /files/:id/move | 파일 폴더 이동 |
 | DELETE | /files/:id | 파일 삭제 (공유 오브젝트 보호) |
 | POST | /files/folders | 폴더 생성 |
@@ -299,7 +299,7 @@ Base URL: `http://localhost:8000/api/v1`
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | /push/public-key | VAPID 공개키 조회 |
-| POST | /push/subscribe | 구독 등록 (endpoint·p256dh·auth) |
+| POST | /push/subscribe | 구독 등록 (endpoint·p256dh·auth). endpoint 는 브라우저 푸시 서비스(FCM·Mozilla·WNS·Apple) https 주소만 허용(SSRF 방지), 다른 사용자가 등록한 endpoint 는 덮어쓰지 않음 |
 | POST | /push/unsubscribe | 구독 해제 |
 | POST | /push/test | 테스트 푸시 발송 |
 
@@ -316,7 +316,7 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /system-logs?level=&category=&from=&to=&q=&page=&limit= | 크론/투자갱신 등 백그라운드 작업 실행 로그 목록 (레벨·카테고리·기간·메시지 검색 + 페이지네이션) |
+| GET | /system-logs?level=&category=&from=&to=&q=&page=&limit= | 크론/투자갱신 등 백그라운드 작업 실행 로그 목록 (본인 + 사용자 없는 전역 작업 로그만, 레벨·카테고리·기간·메시지 검색 + 페이지네이션, `limit` 1~100) |
 
 > `level`: info / warn / error · `category`: recurring_buy / recurring_tx / cron / asset / file / security / ai
 > 조회 전용(읽기 API만 존재) — 기록은 `SystemLogService.info/warn/error`를 각 서비스·크론이 직접 호출해 적재하며 실패해도 호출부 로직에 영향 없음(fire-and-forget). 90일 경과 항목은 소프트삭제 자동정리 크론(매일 03:00)이 함께 정리.

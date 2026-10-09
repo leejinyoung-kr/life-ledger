@@ -215,8 +215,9 @@ export class CredentialService {
     return Buffer.from((await wb.xlsx.writeBuffer()) as ArrayBuffer);
   }
 
-  // 계정 데이터 엑셀(.xlsx) 내보내기 — 비밀번호/TOTP 는 복호화한 평문으로 출력(사용자 본인 백업).
-  async exportExcel(userId: number): Promise<Buffer> {
+  // 계정 데이터 엑셀(.xlsx) 내보내기 — 비밀번호/TOTP 는 복호화한 평문으로 출력(사용자 본인 백업). 열람 기록을 남긴다
+  async exportExcel(userId: number, client?: ClientInfo): Promise<Buffer> {
+    await this.accessLog.log(userId, 'data_export', { type: 'account', id: userId, name: 'export:credentials-xlsx' }, client);
     const rows = await this.prisma.credential.findMany({
       where: { user_id: userId, deleted_at: null },
       orderBy: { id: 'asc' },

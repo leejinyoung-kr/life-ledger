@@ -1,5 +1,6 @@
 import { ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { VaultGuard } from './vault.guard';
+import { VaultService } from './vault.service';
 
 // 마스터 잠금 핵심 가드 — 미설정/비활성/토큰누락/잘못된 토큰/정상 토큰 분기 회귀 테스트.
 describe('VaultGuard', () => {
@@ -18,7 +19,8 @@ describe('VaultGuard', () => {
     jwt = { verify: jest.fn() };
   });
 
-  const guard = () => new VaultGuard(prisma, jwt);
+  // 검사 로직은 VaultService.assertUnlocked 에 있으므로 실제 서비스를 가짜 prisma/jwt 로 감싸 쓴다
+  const guard = () => new VaultGuard(new VaultService(prisma, jwt, { log: jest.fn() } as any));
 
   it('인증되지 않은 요청(req.user 없음)은 통과시킨다', async () => {
     await expect(guard().canActivate(ctx(undefined))).resolves.toBe(true);

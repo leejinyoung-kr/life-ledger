@@ -54,14 +54,16 @@ export class CredentialController {
     res.end(buf);
   }
 
-  // 계정 데이터 엑셀 다운로드 (비밀번호 평문 — 본인 백업). 평문 유출 공격 방지로 분당 5회 제한
+  // 계정 데이터 엑셀 다운로드 (비밀번호 평문 — 본인 백업). 전 계정 평문이라 마스터 잠금(VaultGuard) 통과 필요, 분당 5회 제한
   @Get('export')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @UseGuards(VaultGuard)
   async export(
     @CurrentUser() user: AuthUser,
     @Res() res: Response,
+    @Client() client: ClientInfo,
   ): Promise<void> {
-    const buf = await this.service.exportExcel(user.id);
+    const buf = await this.service.exportExcel(user.id, client);
     const filename = encodeURIComponent('계정.xlsx');
     res.set({
       'Content-Type':

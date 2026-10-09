@@ -157,6 +157,14 @@ export class FileService {
   // disposition: 'attachment'면 다운로드, 'inline'이면 브라우저 내 미리보기
   // text/html·image/svg+xml 등 inline 렌더링 시 XSS 위험이 있는 형식은 attachment 로 강제 전환
   // 파일명은 core-storage 가 filename*(UTF-8, NFC) + ASCII 대체 이름으로 싣는다 — 프론트의 a.download 는 B2 가 다른 origin 이라 무시된다
+  // 이 파일이 본인 신원 지갑 카드의 사본으로 연결돼 있는지 (마스터 잠금 대상 판별)
+  async isIdentityAttachment(userId: number, fileId: number): Promise<boolean> {
+    const linked = await this.prisma.identityCard.count({
+      where: { user_id: userId, file_id: fileId, deleted_at: null },
+    });
+    return linked > 0;
+  }
+
   async getDownloadUrl(userId: number, fileId: number, disposition: 'attachment' | 'inline' = 'attachment') {
     const file = await this.findOwnedFile(userId, fileId);
     const url = await this.storage.getDownloadUrl(file.object_key, file.name, file.mime_type, disposition);

@@ -21,6 +21,7 @@ import { env } from '../config/env';
 import type { AuthUser } from './auth-user';
 import { AuthService, GoogleUser } from './auth.service';
 import { RequestEmailCodeDto, VerifyEmailCodeDto } from './dto/email-login.dto';
+import { VaultGuard } from '../security/vault.guard';
 
 const REFRESH_COOKIE = 'refresh_token';
 const HAS_SESSION_COOKIE = 'has_session';
@@ -71,8 +72,9 @@ export class AuthController {
     return { id: user.id, email: user.email, name: user.name, picture: user.picture };
   }
 
-  // 계정 영구 삭제 (토큰 필요) — 전 도메인 데이터 + 사용자 제거
+  // 계정 영구 삭제 (토큰 필요) — 전 도메인 데이터 + 사용자 제거. 되돌릴 수 없어 마스터 잠금(VaultGuard) 통과도 요구
   @Delete('me')
+  @UseGuards(VaultGuard)
   deleteAccount(@CurrentUser() user: AuthUser) {
     return this.authService.deleteAccount(user.id);
   }

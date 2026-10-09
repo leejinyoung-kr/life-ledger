@@ -41,6 +41,12 @@ const DEFAULT_SESSION_EXPIRY = SESSION_EXPIRY_MAP['7d'];
 // 이메일 로그인 코드 — 6자리, 5분 만료, 최대 5회 검증 시도
 const EMAIL_CODE_TTL_MS = 5 * 60 * 1000;
 const EMAIL_CODE_MAX_ATTEMPTS = 5;
+// 이메일 단위 발급 상한 — 재발급으로 시도 횟수를 초기화하는 대입 공격을 IP 와 무관하게 하루 50회 추측 이하로 묶는다
+const EMAIL_CODE_HOURLY_MAX = 5;
+const EMAIL_CODE_DAILY_MAX = 10;
+const HOUR_MS = 60 * 60 * 1000;
+// 검증 실패 공통 문구 — 허용 여부·코드 유무·만료·횟수 초과를 구분하지 않아 허용 이메일 열거를 막는다
+const EMAIL_CODE_INVALID = '인증코드가 올바르지 않거나 만료되었습니다. 다시 요청하세요.';
 
 // User-Agent → 기기 표기/종류 추정 (간이)
 function parseDevice(ua = ''): { device: string; type: 'desktop' | 'mobile' | 'unknown' } {
@@ -162,13 +168,17 @@ export class AuthService {
     return { access: this.signAccess(user), refresh: this.signRefresh(user.id, jti, ttl), refreshTtlMs: ms };
   }
 
-  // 이메일 코드 발송 — 화이트리스트 통과 시 6자리 코드를 메일로 보낸다.
-  // 이메일 존재 여부/허용 여부를 응답으로 노출하지 않음(열거 공격 차단) — 항상 동일 결과 반환
+  // 이메일 코드 발송 — 화이트리스트 통과 + 발급 상한 이내일 때 6자리 코드를 메일로 보낸다.
+  // 이메일 허용 여부·상한 초과를 응답으로 노출하지 않음(열거 공격 차단) — 항상 동일 결과, 메일 발송은 기다리지 않는다
   async requestEmailCode(rawEmail: string, client?: LoginClient): Promise<{ ok: true }> {
     const email = rawEmail.trim().toLowerCase();
 
     // 허용 이메일만 실제 발송. 그 외엔 조용히 무시(응답은 동일)
     if (this.isEmailAllowed(email) && this.mail.isEnabled) {
+      if (await this.emailCodeQuotaExceeded(email)) {
+        this.logger.warn(`이메일 코드 발급 상한 초과 — 발송 생략 (to=${email})`);
+        return { ok: true };
+      }
       const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
       // 이전 미사용 코드 무효화 후 새 코드 저장(해시만)
       await this.prisma.emailLoginCode.updateMany({
@@ -182,8 +192,13 @@ export class AuthService {
           expires_at: new Date(Date.now() + EMAIL_CODE_TTL_MS),
         },
       });
-      const sent = await this.mail.sendLoginCode(email, code);
-      if (!sent) this.logger.warn(`이메일 코드 발송 실패 (to=${email})`);
+      // 응답 시간으로 허용 이메일이 드러나지 않게 SMTP 발송은 기다리지 않는다
+      void this.mail
+        .sendLoginCode(email, code)
+        .then((sent) => {
+          if (!sent) this.logger.warn(`이메일 코드 발송 실패 (to=${email})`);
+        })
+        .catch((e: unknown) => this.logger.warn(`이메일 코드 발송 오류 (to=${email}): ${String(e)}`));
     } else if (!this.mail.isEnabled) {
       this.logger.warn('SMTP 비활성 — 이메일 코드 발송 불가');
     }
@@ -191,41 +206,56 @@ export class AuthService {
     return { ok: true };
   }
 
-  // 이메일 코드 검증 → 성공 시 사용자 조회/생성 후 토큰 발급
+  // 이메일 단위 발급 상한(1시간·24시간) 초과 여부 — 무효화된 코드도 발급 횟수에 센다
+  private async emailCodeQuotaExceeded(email: string): Promise<boolean> {
+    const now = Date.now();
+    const [hourly, daily] = await Promise.all([
+      this.prisma.emailLoginCode.count({ where: { email, created_at: { gte: new Date(now - HOUR_MS) } } }),
+      this.prisma.emailLoginCode.count({ where: { email, created_at: { gte: new Date(now - 24 * HOUR_MS) } } }),
+    ]);
+    return hourly >= EMAIL_CODE_HOURLY_MAX || daily >= EMAIL_CODE_DAILY_MAX;
+  }
+
+  // 이메일 코드 검증 → 성공 시 사용자 조회/생성 후 토큰 발급. 실패는 사유와 무관하게 같은 400 문구
   async verifyEmailCode(
     rawEmail: string,
     code: string,
     client?: LoginClient,
   ): Promise<{ access: string; refresh: string; refreshTtlMs: number }> {
     const email = rawEmail.trim().toLowerCase();
-    if (!this.isEmailAllowed(email)) {
-      throw new UnauthorizedException('허용되지 않은 계정입니다.');
-    }
+    const invalid = () => new BadRequestException(EMAIL_CODE_INVALID);
+    if (!this.isEmailAllowed(email)) throw invalid();
 
     // 최신 미사용 코드 1건
     const record = await this.prisma.emailLoginCode.findFirst({
       where: { email, consumed_at: null },
       orderBy: { created_at: 'desc' },
     });
-    if (!record) throw new BadRequestException('유효한 인증코드가 없습니다. 다시 요청하세요.');
+    if (!record) throw invalid();
 
     if (record.expires_at.getTime() < Date.now()) {
       await this.prisma.emailLoginCode.update({ where: { id: record.id }, data: { consumed_at: new Date() } });
-      throw new BadRequestException('인증코드가 만료되었습니다. 다시 요청하세요.');
-    }
-    if (record.attempts >= EMAIL_CODE_MAX_ATTEMPTS) {
-      await this.prisma.emailLoginCode.update({ where: { id: record.id }, data: { consumed_at: new Date() } });
-      throw new BadRequestException('시도 횟수를 초과했습니다. 다시 요청하세요.');
+      throw invalid();
     }
 
-    // 코드 불일치 — 시도 횟수만 증가
-    if (record.code_hash !== this.hashCode(code.trim())) {
-      await this.prisma.emailLoginCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
-      throw new BadRequestException('인증코드가 일치하지 않습니다.');
+    // 시도 횟수를 조건부로 먼저 올린다 — 동시 요청이 와도 상한을 넘겨 비교하지 못한다(원자적)
+    const counted = await this.prisma.emailLoginCode.updateMany({
+      where: { id: record.id, consumed_at: null, attempts: { lt: EMAIL_CODE_MAX_ATTEMPTS } },
+      data: { attempts: { increment: 1 } },
+    });
+    if (counted.count !== 1) {
+      await this.prisma.emailLoginCode.updateMany({ where: { id: record.id, consumed_at: null }, data: { consumed_at: new Date() } });
+      throw invalid();
     }
 
-    // 성공 — 코드 소비 후 사용자 조회/생성
-    await this.prisma.emailLoginCode.update({ where: { id: record.id }, data: { consumed_at: new Date() } });
+    if (record.code_hash !== this.hashCode(code.trim())) throw invalid();
+
+    // 성공 — 코드를 조건부로 소비해 같은 코드로 동시에 두 번 로그인되지 않게 한다
+    const consumed = await this.prisma.emailLoginCode.updateMany({
+      where: { id: record.id, consumed_at: null },
+      data: { consumed_at: new Date() },
+    });
+    if (consumed.count !== 1) throw invalid();
     const user = await this.prisma.user.upsert({
       where: { email },
       update: {},

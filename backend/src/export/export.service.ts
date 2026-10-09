@@ -56,7 +56,8 @@ export class ExportService {
   }
 
   // 전체 데이터 백업 ZIP — 도메인별 JSON.
-  // 암호화 컬럼은 암호문 그대로 포함(복호화하지 않음).
+  // 암호화 컬럼은 암호문 그대로 포함(복호화하지 않음). 설정의 마스터 잠금 해시·OpenAI 키는 복원에 쓰이지 않고
+  // 파일이 새면 오프라인 대입·키 노출로 이어지므로 뺀다
   async backupZip(userId: number, client?: ClientInfo): Promise<Buffer> {
     await this.accessLog.log(userId, 'data_export', { type: 'account', id: userId, name: 'export:backup' }, client);
     const where = { where: { user_id: userId, deleted_at: null } };
@@ -78,7 +79,10 @@ export class ExportService {
       this.prisma.credential.findMany(where),
       this.prisma.envProject.findMany(where),
       this.prisma.envVar.findMany(where),
-      this.prisma.userSettings.findUnique({ where: { user_id: userId } }),
+      this.prisma.userSettings.findUnique({
+        where: { user_id: userId },
+        omit: { master_lock_hash: true, openai_api_key: true },
+      }),
     ]);
 
     const zip = new AdmZip();

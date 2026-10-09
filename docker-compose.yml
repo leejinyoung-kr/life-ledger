@@ -14,7 +14,7 @@ services:
         - npm_read_token
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000" # 루프백만 — 외부는 Tailscale Funnel(localhost 프록시)로만 들어온다
     env_file:
       - backend/.env
     environment:
@@ -44,7 +44,7 @@ services:
         - npm_read_token
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000" # 루프백만 — 외부는 Tailscale Funnel(localhost 프록시)로만 들어온다
     environment:
       BACKEND_URL: "http://backend:8000"
     depends_on:

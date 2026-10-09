@@ -37,7 +37,8 @@ export class SystemLogService {
     });
   }
 
-  async findAll(params: {
+  // 시스템 로그 조회 — 본인 로그 + 사용자 없는 전역 작업(크론 등) 로그만. 페이지 크기는 1~100 으로 제한
+  async findAll(userId: number, params: {
     level?: string;
     category?: string;
     from?: string;
@@ -46,8 +47,10 @@ export class SystemLogService {
     page?: number;
     limit?: number;
   }) {
-    const { level, category, from, to, q, page = 1, limit = 20 } = params;
-    const where: Record<string, unknown> = {};
+    const { level, category, from, to, q } = params;
+    const page = Math.max(1, Math.floor(params.page ?? 1) || 1);
+    const limit = Math.min(100, Math.max(1, Math.floor(params.limit ?? 20) || 20));
+    const where: Record<string, unknown> = { OR: [{ user_id: userId }, { user_id: null }] };
     if (level) where.level = level;
     if (category) where.category = category;
     if (from || to) {

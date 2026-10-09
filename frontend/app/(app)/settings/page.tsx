@@ -457,7 +457,7 @@ export default function SettingsPage() {
                   <input
                     type="password"
                     className="input sm:w-56"
-                    placeholder={vault?.enabled ? '현재 마스터 비밀번호' : '새 마스터 비밀번호 (4자 이상)'}
+                    placeholder={vault?.enabled ? '현재 마스터 비밀번호' : '새 마스터 비밀번호 (8자 이상)'}
                     value={vaultPw}
                     onChange={(e) => setVaultPw(e.target.value)}
                     aria-label="마스터 비밀번호"
