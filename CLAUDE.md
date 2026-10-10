@@ -182,6 +182,7 @@ cd backend && npx prisma generate
 (2026-08-01 전환 — 원래는 배포와 마이그레이션 시점을 의도적으로 분리했었으나, 수동 적용을
 누락하기 쉬워 자동화로 되돌림). `up -d` 전 점검이 실패하면 기존 컨테이너가 그대로 서비스한다.
 서버 `.env` 만 바꿨을 때(키 교체 등)는 Actions 에서 수동 실행(`workflow_dispatch`)한다.
+외부 접속은 앱 전용 Tailscale 사이드카(compose `tailscale`, 프로필 `homeserver`) `https://docnexus.tailba78c1.ts.net` — `/` frontend · `/api` backend 가 같은 origin 이다(`tailscale/serve.json`, infra README "외부 접속"). 2026-10-10 전에는 홈서버 노드 Funnel 443(화면)·8443(API) 이었다.
 DB 는 이 워크플로가 다루지 않는다 — `infra` 레포(`~/apps/infra`)의 공용 MariaDB 이고 수동으로 띄운다. 루트 `.env` 의 `DB_PASSWORD` 는 `infra/.env` 의 `DOCNEXUS_DB_PASSWORD` 와 같아야 한다.
 
 수동으로 다시 적용해야 할 때만 아래처럼 직접 실행한다.

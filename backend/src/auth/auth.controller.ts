@@ -34,7 +34,7 @@ function clientIp(req: Request): string | undefined {
   return ip?.trim();
 }
 
-// 갱신 토큰 쿠키 옵션 — 항상 SameSite=Lax(운영은 +Secure). 프론트와 API 가 같은 호스트의 다른 포트라 같은 사이트로 취급되어
+// 갱신 토큰 쿠키 옵션 — 항상 SameSite=Lax(운영은 +Secure). 프론트와 API 가 같은 호스트(운영은 같은 origin, 로컬은 다른 포트)라 같은 사이트로 취급되어
 // Lax 로도 fetch(credentials:'include') 에 실리고, 외부 사이트에서 /auth/refresh·/logout 을 부르는 CSRF 는 막힌다.
 // maxAge는 사용자 설정(session_expiry) 기준 refresh 토큰 수명(ms)을 그대로 사용 — 토큰보다 쿠키가 더 오래 남지 않도록
 function refreshCookieOptions(maxAge: number): CookieOptions {

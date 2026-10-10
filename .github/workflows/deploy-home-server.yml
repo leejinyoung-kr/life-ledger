@@ -7,6 +7,7 @@ on:
       - 'frontend/**'
       - 'backend/**'
       - 'docker-compose.yml'
+      - 'tailscale/**'
       - '.github/workflows/deploy-home-server.yml'
   # 코드 변경 없이 서버 .env 만 바꿨을 때(암호화 키 교체 등) 같은 점검을 거쳐 다시 배포한다.
   # 수동 실행은 before 가 없어 diff 가 비므로 backend·frontend 를 둘 다 빌드한다
