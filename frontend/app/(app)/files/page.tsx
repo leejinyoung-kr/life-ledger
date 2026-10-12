@@ -17,8 +17,8 @@ import QueryState from '@/components/QueryState';
 import Modal from '@/components/Modal';
 import { useConfirm } from '@/components/ConfirmModal';
 import Button, { buttonClasses } from '@/components/ui/Button';
+import IconButton from '@/components/ui/IconButton';
 import { Field, ModalFooter } from '@/components/ui/Field';
-import { NAV_BTN_34 } from '@/components/ui/styles';
 import {
   IconFolderPlus, IconUpload, IconFolder, IconTrash,
   IconDoc, IconImage, IconClose, IconSearch,
@@ -484,14 +484,9 @@ function ViewerModal({
       <span className="text-[0.875rem] font-semibold text-primary flex-1 truncate">{file.name}</span>
       <div className="flex gap-1.5 items-center">
         <Button variant="ghost" size="sm" onClick={() => onDownload(file)}>다운로드</Button>
-        <button
-          type="button"
-          className={NAV_BTN_34}
-          onClick={onClose}
-          aria-label="닫기"
-        >
+        <IconButton label="닫기" variant="bordered" size="lg" onClick={onClose}>
           <IconClose width={16} height={16} />
-        </button>
+        </IconButton>
       </div>
     </div>
   );

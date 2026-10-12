@@ -28,8 +28,8 @@ import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Button from '@/components/ui/Button';
+import IconButton from '@/components/ui/IconButton';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
-import { ICON_BTN_SQUARE } from '@/components/ui/styles';
 import { IconDrag, IconPlus } from '@/components/icons';
 import { api } from '@/lib/api';
 
@@ -428,15 +428,9 @@ function SortableRow({
       <span className="min-w-6 text-[0.72rem] font-bold text-muted text-right [font-family:var(--font-mono)] shrink-0">{idx + 1}</span>
 
       {/* 드래그 핸들 */}
-      <button
-        type="button"
-        className={ICON_BTN_SQUARE}
-        aria-label="순서 변경"
-        {...attributes}
-        {...listeners}
-      >
+      <IconButton label="순서 변경" variant="handle" {...attributes} {...listeners}>
         <IconDrag width={14} height={14} />
-      </button>
+      </IconButton>
 
       {/* 인라인 편집 / 표시 */}
       {editingId === item.id ? (
@@ -506,15 +500,9 @@ function SortableGroupRow({
 
   return (
     <div ref={setNodeRef} style={style} className={`flex flex-wrap items-center gap-2.5 px-5 py-2.5 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface ${isParent ? 'bg-surface' : 'bg-background pl-8'}`}>
-      <button
-        type="button"
-        className={ICON_BTN_SQUARE}
-        aria-label="순서 변경"
-        {...attributes}
-        {...listeners}
-      >
+      <IconButton label="순서 변경" variant="handle" {...attributes} {...listeners}>
         <IconDrag width={14} height={14} />
-      </button>
+      </IconButton>
       {editingId === item.id ? (
         <div className="flex items-center gap-2 flex-1 min-w-[180px]">
           <input

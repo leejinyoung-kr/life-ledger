@@ -16,6 +16,7 @@ import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
+import IconButton from '@/components/ui/IconButton';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import { IconAlertCircle, IconEye, IconEdit, IconTrash } from '@/components/icons';
@@ -138,20 +139,20 @@ export default function IdWalletPage() {
                 <div className="flex flex-col gap-2 items-end">
                   <span className={`px-2 py-0.5 rounded-full text-[0.7rem] font-bold ${dd.warn ? 'bg-warning text-white' : 'bg-white/20'}`}>{dd.text}</span>
                   <div className="flex gap-1.5">
-                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => handleToggleNum(card)} aria-label="번호 표시/숨김">
+                    <IconButton label="번호 표시/숨김" variant="overlay" size="card" onClick={() => handleToggleNum(card)}>
                       <IconEye width={14} height={14} />
-                    </button>
+                    </IconButton>
                     {card.fileId && (
-                      <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => handleViewFile(card)} aria-label="사본 보기" title="사본 이미지 보기">
+                      <IconButton label="사본 보기" variant="overlay" size="card" onClick={() => handleViewFile(card)} title="사본 이미지 보기">
                         🖼️
-                      </button>
+                      </IconButton>
                     )}
-                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => setModal({ open: true, mode: 'edit', editing: card })} aria-label="수정">
+                    <IconButton label="수정" variant="overlay" size="card" onClick={() => setModal({ open: true, mode: 'edit', editing: card })}>
                       <IconEdit width={14} height={14} />
-                    </button>
-                    <button type="button" className="w-[30px] h-[30px] rounded-md bg-white/[0.18] flex items-center justify-center text-white transition-colors hover:bg-white/[0.32]" onClick={() => handleRemove(card)} aria-label="삭제">
+                    </IconButton>
+                    <IconButton label="삭제" variant="overlay" size="card" onClick={() => handleRemove(card)}>
                       <IconTrash width={14} height={14} />
-                    </button>
+                    </IconButton>
                   </div>
                 </div>
               </div>

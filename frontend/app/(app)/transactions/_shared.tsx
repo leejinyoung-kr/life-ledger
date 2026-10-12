@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import Button from '@/components/ui/Button';
+import IconButton from '@/components/ui/IconButton';
 import { IconEdit, IconTrash, IconCopy } from '@/components/icons';
 import { localDate, type TransactionType } from '@/lib/finance';
 
@@ -41,9 +42,9 @@ export function monthsAgo(n: number): string {
 export function RowActions({ onEdit, onDelete, onCopy }: { onEdit: () => void; onDelete: () => void; onCopy?: () => void }) {
   return (
     <div className="flex justify-center gap-1">
-      {onCopy && <button type="button" className="icon-btn-bordered" onClick={onCopy} aria-label="복사"><IconCopy width={14} height={14} /></button>}
-      <button type="button" className="icon-btn-bordered" onClick={onEdit} aria-label="수정"><IconEdit width={14} height={14} /></button>
-      <button type="button" className="icon-btn-danger" onClick={onDelete} aria-label="삭제"><IconTrash width={14} height={14} /></button>
+      {onCopy && <IconButton label="복사" variant="bordered" onClick={onCopy}><IconCopy width={14} height={14} /></IconButton>}
+      <IconButton label="수정" variant="bordered" onClick={onEdit}><IconEdit width={14} height={14} /></IconButton>
+      <IconButton label="삭제" variant="danger" onClick={onDelete}><IconTrash width={14} height={14} /></IconButton>
     </div>
   );
 }

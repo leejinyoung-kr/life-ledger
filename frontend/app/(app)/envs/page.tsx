@@ -17,6 +17,7 @@ import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
+import IconButton from '@/components/ui/IconButton';
 import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { TOOLBAR_DIVIDER } from '@/components/ui/styles';
@@ -494,25 +495,25 @@ function EnvGroupRows({
             <td>
               <div className="env-value-wrap">
                 <span className={`env-value${shown ? '' : ' masked'}`}>{display}</span>
-                <button type="button" className="icon-btn" onClick={() => onToggle(item)} aria-label="값 표시/숨김">
+                <IconButton label="값 표시/숨김" onClick={() => onToggle(item)}>
                   <IconEye width={13} height={13} />
-                </button>
-                <button type="button" className="icon-btn" onClick={() => onCopy(item)} aria-label="값 복사">
+                </IconButton>
+                <IconButton label="값 복사" onClick={() => onCopy(item)}>
                   <IconCopy width={13} height={13} />
-                </button>
+                </IconButton>
               </div>
             </td>
             <td className="td-center">
               <div className="flex justify-center gap-1">
-                <button type="button" className="icon-btn-bordered" onClick={() => onEdit(item)} aria-label="수정">
+                <IconButton label="수정" variant="bordered" onClick={() => onEdit(item)}>
                   <IconEdit width={14} height={14} />
-                </button>
-                <button type="button" className="icon-btn-bordered" onClick={() => onHistory(item)} aria-label="변경 이력">
+                </IconButton>
+                <IconButton label="변경 이력" variant="bordered" onClick={() => onHistory(item)}>
                   <IconClock width={14} height={14} />
-                </button>
-                <button type="button" className="icon-btn-danger" onClick={() => onDelete(item)} aria-label="삭제">
+                </IconButton>
+                <IconButton label="삭제" variant="danger" onClick={() => onDelete(item)}>
                   <IconTrash width={14} height={14} />
-                </button>
+                </IconButton>
               </div>
             </td>
           </tr>

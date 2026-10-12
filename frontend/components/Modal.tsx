@@ -7,6 +7,7 @@
  */
 import { useEffect, useRef, type ReactNode } from 'react';
 import { IconClose } from './icons';
+import IconButton from './ui/IconButton';
 
 interface ModalProps {
   open: boolean;
@@ -101,14 +102,9 @@ export default function Modal({ open, title, onClose, children, footer, header, 
         {header ?? (
           <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border">
             <span className="[font-family:var(--font-display)] text-base font-bold text-primary">{title}</span>
-            <button
-              type="button"
-              className="w-[34px] h-[34px] inline-flex items-center justify-center rounded-[var(--radius)] text-secondary border border-border transition-all hover:bg-surface hover:text-primary"
-              onClick={onClose}
-              aria-label="닫기"
-            >
+            <IconButton label="닫기" variant="bordered" size="lg" onClick={onClose}>
               <IconClose width={16} height={16} />
-            </button>
+            </IconButton>
           </div>
         )}
         <div className="p-6 flex flex-col gap-4 overflow-y-auto">{children}</div>

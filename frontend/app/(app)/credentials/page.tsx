@@ -16,6 +16,7 @@ import ErrorBanner from '@/components/ErrorBanner';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
+import IconButton from '@/components/ui/IconButton';
 import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
@@ -40,7 +41,6 @@ function pwAutoHideMs(v: string | undefined): number | null {
   return null;
 }
 
-const ICON_BTN = 'w-7 h-7 rounded-[5px] flex items-center justify-center text-muted transition-all shrink-0 hover:bg-elevated hover:text-accent';
 const FILTER_CATEGORIES = ['전체 카테고리', ...CRED_CATEGORIES];
 
 export default function CredentialsPage() {
@@ -241,8 +241,8 @@ export default function CredentialsPage() {
                   <td className="td-muted td-center">{fmtCredDate(c.updatedAt)}</td>
                   <td className="td-center" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-center gap-1">
-                      <button type="button" className="icon-btn-bordered" onClick={() => setEdit({ open: true, mode: 'edit', editing: c })} aria-label="수정"><IconEdit width={14} height={14} /></button>
-                      <button type="button" className="icon-btn-danger" onClick={() => handleRemove(c)} aria-label="삭제"><IconTrash width={14} height={14} /></button>
+                      <IconButton label="수정" variant="bordered" onClick={() => setEdit({ open: true, mode: 'edit', editing: c })}><IconEdit width={14} height={14} /></IconButton>
+                      <IconButton label="삭제" variant="danger" onClick={() => handleRemove(c)}><IconTrash width={14} height={14} /></IconButton>
                     </div>
                   </td>
                 </tr>
@@ -377,9 +377,9 @@ function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelete }: { cred: Cr
         <div className="text-[0.78rem] text-muted mt-0.5">{cred.url ?? '—'}</div>
       </div>
       <Badge tone="neutral">{cred.category}</Badge>
-      <button type="button" className="w-8.5 h-8.5 inline-flex items-center justify-center rounded-(--radius) text-secondary border border-border transition-all hover:bg-surface hover:text-primary" onClick={onClose} aria-label="닫기">
+      <IconButton label="닫기" variant="bordered" size="lg" onClick={onClose}>
         <IconClose width={16} height={16} />
-      </button>
+      </IconButton>
     </div>
   );
 
@@ -401,14 +401,14 @@ function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelete }: { cred: Cr
       {/* 아이디 */}
       <DetailField label="아이디">
         <span className="flex-1 font-mono text-[0.875rem] text-primary truncate">{cred.username}</span>
-        <button type="button" className={ICON_BTN} onClick={() => copyToClipboard(cred.username)} aria-label="아이디 복사"><IconCopy width={14} height={14} /></button>
+        <IconButton label="아이디 복사" onClick={() => copyToClipboard(cred.username)}><IconCopy width={14} height={14} /></IconButton>
       </DetailField>
 
       {/* 비밀번호 */}
       <DetailField label="비밀번호">
         <span className={`flex-1 font-mono text-[0.875rem] truncate ${pwVisible ? 'text-primary' : 'tracking-[0.25em] text-muted'}`}>{pwVisible ? pw : maskedPw}</span>
-        <button type="button" className={ICON_BTN} onClick={handleTogglePw} aria-label="비밀번호 표시/숨김" disabled={!secret}><IconEye width={14} height={14} /></button>
-        <button type="button" className={ICON_BTN} onClick={() => copyToClipboard(pw)} aria-label="비밀번호 복사" disabled={!secret}><IconCopy width={14} height={14} /></button>
+        <IconButton label="비밀번호 표시/숨김" onClick={handleTogglePw} disabled={!secret}><IconEye width={14} height={14} /></IconButton>
+        <IconButton label="비밀번호 복사" onClick={() => copyToClipboard(pw)} disabled={!secret}><IconCopy width={14} height={14} /></IconButton>
       </DetailField>
 
       {/* 2FA — 실시간 6자리 코드 + 남은 시간 */}
@@ -416,7 +416,7 @@ function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelete }: { cred: Cr
         <DetailField label="2FA (TOTP)">
           <span className="flex-1 font-mono text-[1.1rem] font-bold tracking-[0.2em] text-primary">{totp ? totp.code : '••••••'}</span>
           {totp && <span className="text-[0.72rem] text-muted shrink-0">{totp.remaining}s</span>}
-          <button type="button" className={ICON_BTN} onClick={() => totp && copyToClipboard(totp.code)} aria-label="TOTP 복사" disabled={!totp}><IconCopy width={14} height={14} /></button>
+          <IconButton label="TOTP 복사" onClick={() => totp && copyToClipboard(totp.code)} disabled={!totp}><IconCopy width={14} height={14} /></IconButton>
         </DetailField>
       )}
 

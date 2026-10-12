@@ -19,10 +19,10 @@ import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
+import IconButton from '@/components/ui/IconButton';
 import Toggle from '@/components/ui/Toggle';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
-import { NAV_BTN_34 } from '@/components/ui/styles';
 import { useConfirm } from '@/components/ConfirmModal';
 import { api } from '@/lib/api';
 import type { Settings } from '@/lib/settings';
@@ -163,7 +163,6 @@ export default function CalendarPage() {
   }
 
   const cells = view ? buildMonth(view.year, view.month) : [];
-  const navBtn = `${NAV_BTN_34} text-[1.1rem] leading-none`;
 
   return (
     <AppShell activePath="/calendar" topbarLabel="캘린더">
@@ -184,7 +183,7 @@ export default function CalendarPage() {
           {/* 월 이동 + 연/월 직접 선택 툴바 */}
           <div className="flex items-center justify-between mb-3.5 flex-wrap gap-2">
             <div className="flex items-center gap-1.5">
-              <button type="button" className={navBtn} onClick={() => handleMoveMonth(-1)} aria-label="이전 달">‹</button>
+              <IconButton label="이전 달" variant="bordered" size="lg" onClick={() => handleMoveMonth(-1)}><span className="text-[1.1rem] leading-none">‹</span></IconButton>
               <select
                 className="input w-auto! py-1! text-[0.84rem] font-semibold"
                 aria-label="연도 선택"
@@ -201,7 +200,7 @@ export default function CalendarPage() {
               >
                 {MONTH_OPTIONS.map((m) => <option key={m} value={m}>{m + 1}월</option>)}
               </select>
-              <button type="button" className={navBtn} onClick={() => handleMoveMonth(1)} aria-label="다음 달">›</button>
+              <IconButton label="다음 달" variant="bordered" size="lg" onClick={() => handleMoveMonth(1)}><span className="text-[1.1rem] leading-none">›</span></IconButton>
             </div>
             <Button variant="ghost" size="sm" onClick={handleGoToday}>오늘</Button>
           </div>
@@ -270,12 +269,7 @@ export default function CalendarPage() {
                       <div className="text-[0.72rem] text-muted">{EV_TYPE_LABEL[u.type]} · {ddLabel(u.daysUntil)}</div>
                     </div>
                     {u.type !== 'holiday' && (
-                      <button
-                        type="button"
-                        className="icon-btn-danger"
-                        onClick={() => handleRemoveEvent(u)}
-                        aria-label="일정 삭제"
-                      ><IconTrash width={12} height={12} /></button>
+                      <IconButton label="일정 삭제" variant="danger" onClick={() => handleRemoveEvent(u)}><IconTrash width={12} height={12} /></IconButton>
                     )}
                   </div>
                 );
