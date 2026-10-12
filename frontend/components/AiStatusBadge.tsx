@@ -22,7 +22,7 @@ export default function AiStatusBadge() {
       href="/settings?tab=api"
       className={`flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[0.72rem] font-medium border transition-colors shrink-0 ${
         linked
-          ? 'border-[rgba(0,192,127,0.3)] bg-accent-dim text-accent hover:bg-accent-dim/70'
+          ? 'border-accent/30 bg-accent-dim text-accent hover:bg-accent-dim/70'
           : 'border-border bg-surface text-muted hover:text-secondary hover:border-border'
       }`}
       title={linked ? 'AI 연동됨 · 클릭하여 설정' : 'AI 미연동 · 클릭하여 키 등록'}

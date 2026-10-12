@@ -57,7 +57,7 @@ export default function NetworthPage() {
       {summary && (
         <>
           {/* 히어로 — 총 순자산 + 도넛 + 범례 */}
-          <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left gap-7 p-7 bg-[linear-gradient(135deg,var(--accent-dim),transparent)] border border-border rounded-[var(--radius-lg)] mb-6">
+          <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left gap-7 p-7 bg-[linear-gradient(135deg,var(--accent-dim),transparent)] border border-border rounded-panel mb-6">
             <div className="flex-1 min-w-[200px]">
               <div className="text-[0.8rem] text-secondary font-semibold uppercase tracking-[0.06em] mb-2">총 순자산</div>
               <div className="[font-family:var(--font-display)] text-[2.6rem] font-extrabold tracking-[-0.04em] text-primary leading-none">{won(summary.netWorth)}</div>

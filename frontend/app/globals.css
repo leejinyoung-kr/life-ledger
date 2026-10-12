@@ -24,6 +24,7 @@
   --text-secondary: #4B5768;
   --text-muted:     #9AA5B4;
   --danger:         #F04438;
+  --danger-dark:    #D32F1E;
   --danger-dim:     rgba(240, 68, 56, 0.08);
   --warning:        #F79009;
   --warning-dim:    rgba(247, 144, 9, 0.10);
@@ -95,6 +96,7 @@
   --color-secondary: var(--text-secondary);
   --color-muted: var(--text-muted);
   --color-danger: var(--danger);
+  --color-danger-dark: var(--danger-dark);
   --color-danger-dim: var(--danger-dim);
   --color-warning: var(--warning);
   --color-warning-dim: var(--warning-dim);
@@ -102,6 +104,13 @@
   --color-blue-dim: var(--blue-dim);
   --color-amber: var(--amber);
   --color-amber-dim: var(--amber-dim);
+
+  /* 모서리 · 그림자: :root 값에 연결한 이름. rounded-lg 는 Tailwind 기본(8px)이라 14px 은 rounded-panel */
+  --radius-ui: var(--radius);
+  --radius-panel: var(--radius-lg);
+  --shadow-card: var(--shadow-sm);
+  --shadow-raised: var(--shadow-md);
+  --shadow-overlay: var(--shadow-lg);
 }
 
 @layer base {
@@ -130,8 +139,8 @@
 
 /* ── Form Validation ── */
 /* Field 에 error 가 있으면 (data-invalid) 안의 입력칸이 빨개진다. Field 밖 입력칸은 aria-invalid 로 */
-[data-invalid] .input, .input[aria-invalid="true"] { border-color: #F04438 !important; }
-[data-invalid] .input:focus, .input[aria-invalid="true"]:focus { border-color: #F04438 !important; box-shadow: 0 0 0 3px rgba(240,68,56,0.12) !important; }
+[data-invalid] .input, .input[aria-invalid="true"] { border-color: var(--danger) !important; }
+[data-invalid] .input:focus, .input[aria-invalid="true"]:focus { border-color: var(--danger) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 12%, transparent) !important; }
 
 /* ── Progress / Budget track ── */
 .track { height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; }
@@ -234,7 +243,7 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
   border-radius: var(--radius-full); font-size: .75rem; font-weight: 500;
   background: var(--bg-surface); color: var(--text-secondary); border: 1px solid var(--border);
 }
-.cat-chip.transfer { background: var(--blue-dim); color: var(--blue); border-color: rgba(59,130,246,.2); }
+.cat-chip.transfer { background: var(--blue-dim); color: var(--blue); border-color: color-mix(in srgb, var(--blue) 20%, transparent); }
 
 /* 유형 배지 */
 .type-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-full); font-size: .72rem; font-weight: 600; white-space: nowrap; }
@@ -260,7 +269,7 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 
 /* .bars — 자산종합 + 가계부 월별추이 공용 막대차트 */
 .bars { display: flex; align-items: flex-end; gap: 10px; height: 160px; padding: 16px 0; }
-.bars .bar { flex: 1; background: var(--accent-dim); border: 1px solid rgba(0,192,127,.3); border-bottom: none; border-radius: 4px 4px 0 0; position: relative; transition: all var(--ease); }
+.bars .bar { flex: 1; background: var(--accent-dim); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-bottom: none; border-radius: 4px 4px 0 0; position: relative; transition: all var(--ease); }
 .bars .bar:hover { background: var(--accent-hover); }
 .bars .bar.current { background: var(--accent); }
 .bars .bar span { position: absolute; top: -18px; left: 0; right: 0; text-align: center; font-size: .65rem; color: var(--text-muted); }

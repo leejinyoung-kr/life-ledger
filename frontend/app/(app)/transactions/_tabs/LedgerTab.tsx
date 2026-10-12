@@ -251,7 +251,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
         💡 <strong>자산이동</strong>은 실소비가 아닌 자산 이동으로 잔액 계산에서 제외됩니다.
       </p>
 
-      <div className="flex items-start gap-3 mb-6 px-4 py-3 bg-surface border border-border rounded-(--radius)">
+      <div className="flex items-start gap-3 mb-6 px-4 py-3 bg-surface border border-border rounded-ui">
         <span className="flex items-center gap-1 text-[0.75rem] font-semibold text-muted shrink-0 pt-1.5">
           <IconStar width={13} height={13} className="text-amber" fill="currentColor" />즐겨찾기
         </span>
@@ -1031,7 +1031,7 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
       )}
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
 
-      <div className="flex flex-col gap-3 p-3.5 bg-surface border border-border rounded-(--radius)">
+      <div className="flex flex-col gap-3 p-3.5 bg-surface border border-border rounded-ui">
         <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
           <Field label="시작일" required error={errors.startDate}>
             <input type="date" className="input" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />

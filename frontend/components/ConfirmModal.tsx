@@ -59,7 +59,7 @@ export default function ConfirmModal({
       role="presentation"
     >
       <div
-        className="bg-background border border-border rounded-2xl shadow-[var(--shadow-lg)] w-full max-w-[360px] px-6 pt-8 pb-6 flex flex-col items-center gap-[18px] text-center [animation:slideUp_0.25s_ease]"
+        className="bg-background border border-border rounded-2xl shadow-overlay w-full max-w-[360px] px-6 pt-8 pb-6 flex flex-col items-center gap-[18px] text-center [animation:slideUp_0.25s_ease]"
         role="alertdialog"
         aria-modal="true"
         aria-describedby="cm-msg"

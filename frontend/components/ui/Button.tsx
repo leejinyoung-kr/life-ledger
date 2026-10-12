@@ -9,13 +9,13 @@ type Variant = 'primary' | 'ghost' | 'danger' | 'solid-danger';
 type Size = 'md' | 'sm' | 'lg';
 
 const BASE =
-  'inline-flex items-center justify-center gap-1.5 rounded-[var(--radius)] font-semibold whitespace-nowrap transition-all cursor-pointer [&_svg]:w-[15px] [&_svg]:h-[15px] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none';
+  'inline-flex items-center justify-center gap-1.5 rounded-ui font-semibold whitespace-nowrap transition-all cursor-pointer [&_svg]:w-[15px] [&_svg]:h-[15px] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none';
 
 const VARIANT: Record<Variant, string> = {
   primary: 'bg-accent text-white hover:bg-accent-dark hover:shadow-[0_0_0_3px_var(--accent-dim)]',
   ghost: 'bg-transparent text-secondary border border-border font-medium hover:bg-surface hover:text-primary',
-  danger: 'bg-danger-dim text-danger hover:bg-[rgba(240,68,56,0.15)]',
-  'solid-danger': 'bg-danger text-white border border-danger font-semibold hover:bg-[#d32f1e] hover:border-[#d32f1e]',
+  danger: 'bg-danger-dim text-danger hover:bg-danger/15',
+  'solid-danger': 'bg-danger text-white border border-danger font-semibold hover:bg-danger-dark hover:border-danger-dark',
 };
 
 const SIZE: Record<Size, string> = {

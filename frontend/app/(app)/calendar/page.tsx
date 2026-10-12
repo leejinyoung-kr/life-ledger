@@ -172,7 +172,7 @@ export default function CalendarPage() {
         actions={<Button onClick={() => setAddModal({ open: true })}>일정 추가</Button>}
       />
 
-      <p className="text-[0.8rem] text-muted bg-surface border border-border-subtle rounded-(--radius) px-3.5 py-2 mb-5">
+      <p className="text-[0.8rem] text-muted bg-surface border border-border-subtle rounded-ui px-3.5 py-2 mb-5">
         ◈ 표시 항목(구독·예적금·신원지갑·할일)은 연동된 데이터입니다. 수정은 각 페이지에서, 삭제 시 원본에서도 삭제됩니다. 날짜를 클릭하면 그 날에 바로 일정을 추가할 수 있습니다.
       </p>
 
@@ -206,7 +206,7 @@ export default function CalendarPage() {
           </div>
 
           {/* 월 그리드 */}
-          <div className="grid grid-cols-7 bg-border gap-px border border-border rounded-[var(--radius-lg)] overflow-hidden">
+          <div className="grid grid-cols-7 bg-border gap-px border border-border rounded-panel overflow-hidden">
             {DOW.map((d) => <div key={d} className="bg-surface p-2 text-center text-[0.7rem] font-semibold text-muted uppercase">{d}</div>)}
             {cells.map((cell, i) => {
               const events = cell.iso ? eventsByDate[cell.iso] : undefined;
@@ -335,7 +335,7 @@ function EventDetailModal({ event, onClose, onDelete }: { event: CalEvent | null
           )}
         </div>
         <p className="text-[1rem] font-semibold text-primary">{event.title}</p>
-        {event.memo && <p className="text-[0.875rem] text-secondary bg-surface border border-border-subtle rounded-(--radius) px-3 py-2">{event.memo}</p>}
+        {event.memo && <p className="text-[0.875rem] text-secondary bg-surface border border-border-subtle rounded-ui px-3 py-2">{event.memo}</p>}
       </div>
       <div className="flex justify-between mt-5">
         {event.type !== 'holiday' ? (
@@ -357,7 +357,7 @@ function DayListModal({ day, onClose, onSelect }: { day: { day: number; events: 
           <button
             key={ev.id}
             type="button"
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-(--radius) border border-border-subtle text-left hover:bg-surface transition-colors"
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-ui border border-border-subtle text-left hover:bg-surface transition-colors"
             onClick={() => onSelect(ev)}
           >
             <span className={`w-2 h-2 rounded-full shrink-0 ${DOT_BG[ev.type]}`} />

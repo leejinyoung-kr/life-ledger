@@ -58,7 +58,7 @@ export default function AiReportPage() {
       <PageHeader title="AI 리포트" description="가계부 데이터를 분석하여 소비 패턴과 절약 인사이트를 제공합니다. 매월 자동 생성 여부는 설정 &gt; 알림에서 켤 수 있습니다." />
 
       {/* 새 리포트 생성 박스 */}
-      <div className="border border-dashed border-border rounded-[var(--radius-lg)] px-6 py-12 flex flex-col items-center gap-4 text-center mb-7 transition-all hover:border-accent hover:bg-accent-dim [&>svg]:text-accent">
+      <div className="border border-dashed border-border rounded-panel px-6 py-12 flex flex-col items-center gap-4 text-center mb-7 transition-all hover:border-accent hover:bg-accent-dim [&>svg]:text-accent">
         <IconCube width={34} height={34} />
         <div>
           <div className="[font-family:var(--font-display)] font-bold text-primary mb-1.5">새 리포트 생성</div>
@@ -98,7 +98,7 @@ function ReportCard({ report }: { report: AiReport }) {
     <Card className="mb-4">
       <CardBody>
         <div className="flex items-start gap-3 mb-3.5">
-          <div className="w-[38px] h-[38px] rounded-[var(--radius)] bg-accent-dim border border-[rgba(0,192,127,0.2)] flex items-center justify-center text-accent shrink-0"><IconCube width={17} height={17} /></div>
+          <div className="w-[38px] h-[38px] rounded-ui bg-accent-dim border border-accent/20 flex items-center justify-center text-accent shrink-0"><IconCube width={17} height={17} /></div>
           <div className="flex-1">
             <div className="[font-family:var(--font-display)] text-[0.95rem] font-bold text-primary">{report.periodLabel} 소비 분석 리포트</div>
             <div className="text-[0.75rem] text-muted mt-0.5">생성일: {formatReportDate(report.createdAt)} · {report.modelUsed}</div>
@@ -110,7 +110,7 @@ function ReportCard({ report }: { report: AiReport }) {
         {report.insights.length > 0 && (
           <div className="flex flex-col gap-2.5 mt-4">
             {report.insights.map((ins, i) => (
-              <div className="flex gap-3 px-3.5 py-3 bg-surface border border-border rounded-[var(--radius)]" key={i}>
+              <div className="flex gap-3 px-3.5 py-3 bg-surface border border-border rounded-ui" key={i}>
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 mt-[7px] ${INS_DOT[ins.tone]}`} />
                 <div className={`text-[0.845rem] leading-relaxed ${INS_TEXT[ins.tone] || 'text-secondary'}`}>{ins.text}</div>
               </div>

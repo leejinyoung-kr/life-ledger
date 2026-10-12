@@ -100,7 +100,7 @@ export default function Modal({ open, title, onClose, children, footer, header, 
     >
       <div
         ref={dialogRef}
-        className={`bg-background border border-border rounded-2xl w-full ${SIZE[size]} shadow-[var(--shadow-lg)] max-h-[calc(100vh-48px)] flex flex-col ${open ? '[animation:slideUp_0.25s_ease]' : ''}`}
+        className={`bg-background border border-border rounded-2xl w-full ${SIZE[size]} shadow-overlay max-h-[calc(100vh-48px)] flex flex-col ${open ? '[animation:slideUp_0.25s_ease]' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}

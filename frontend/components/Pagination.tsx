@@ -9,7 +9,7 @@
 const LIMIT_OPTIONS = [10, 20, 30];
 
 // 기본(hover 없음) + 비활성 hover 분리 — 활성 버튼 hover 색 충돌 방지
-const PAG_BASE = 'min-w-8 h-8 px-1.5 rounded-[var(--radius)] text-[0.85rem] font-medium flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed';
+const PAG_BASE = 'min-w-8 h-8 px-1.5 rounded-ui text-[0.85rem] font-medium flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed';
 const PAG_HOVER = 'text-secondary enabled:hover:bg-surface enabled:hover:text-primary';
 
 // ── 페이지 번호 내비게이션 ────────────────────────────────────────

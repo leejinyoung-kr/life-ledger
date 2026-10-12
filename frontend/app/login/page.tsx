@@ -22,7 +22,7 @@ export default async function LoginPage({
       {/* radial glow */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(560px,90vw)] h-[min(560px,90vw)] pointer-events-none [background:radial-gradient(circle,var(--accent-glow)_0%,transparent_65%)]" aria-hidden />
 
-      <div className="relative z-[1] w-full max-w-[460px] bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] px-[clamp(20px,5vw,36px)] py-[clamp(28px,5vw,40px)] [animation:slideUp_0.4s_ease_both]">
+      <div className="relative z-[1] w-full max-w-[460px] bg-background border border-border rounded-panel shadow-overlay px-[clamp(20px,5vw,36px)] py-[clamp(28px,5vw,40px)] [animation:slideUp_0.4s_ease_both]">
         {/* Logo */}
         <div className="flex items-center gap-[9px] text-[1.1rem] font-extrabold tracking-[-0.04em] text-primary mb-7">
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
@@ -39,21 +39,21 @@ export default async function LoginPage({
 
         {/* 접근 거부 안내 — 허용되지 않은 구글 계정 */}
         {isNotAllowed && (
-          <div className="flex items-start gap-2.5 px-3.5 py-3 mb-6 rounded-[var(--radius)] border border-[rgba(220,38,38,0.3)] bg-[rgba(220,38,38,0.08)]" role="alert">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" className="shrink-0 mt-px" aria-hidden>
+          <div className="flex items-start gap-2.5 px-3.5 py-3 mb-6 rounded-ui border border-danger/30 bg-danger-dim" role="alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 mt-px text-danger" aria-hidden>
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <div className="flex-1">
-              <strong className="block text-[0.82rem] font-semibold text-[#dc2626] mb-0.5">허용되지 않은 계정</strong>
+              <strong className="block text-[0.82rem] font-semibold text-danger mb-0.5">허용되지 않은 계정</strong>
               <span className="text-[0.76rem] text-secondary leading-normal">이 계정은 접근 권한이 없습니다. 등록된 계정으로 로그인하세요.</span>
             </div>
           </div>
         )}
 
         {/* Feature list */}
-        <ul className="list-none border border-border rounded-[var(--radius)] overflow-hidden mb-6">
+        <ul className="list-none border border-border rounded-ui overflow-hidden mb-6">
           {FEATURES.map((f) => (
             <li key={f.title} className="flex items-start gap-3.5 px-[18px] py-[15px] border-b border-border-subtle last:border-b-0 bg-background transition-colors hover:bg-surface">
               <CheckMark />
@@ -68,7 +68,7 @@ export default async function LoginPage({
         {/* Google login button */}
         <a
           href={`${backendUrl}/api/v1/auth/google`}
-          className="w-full flex items-center justify-center gap-2.5 p-3 bg-background border border-border rounded-[var(--radius)] text-primary text-[0.875rem] font-medium cursor-pointer transition-all no-underline mb-3.5 hover:border-accent hover:bg-surface hover:shadow-[0_0_0_3px_var(--accent-dim)]"
+          className="w-full flex items-center justify-center gap-2.5 p-3 bg-background border border-border rounded-ui text-primary text-[0.875rem] font-medium cursor-pointer transition-all no-underline mb-3.5 hover:border-accent hover:bg-surface hover:shadow-[0_0_0_3px_var(--accent-dim)]"
         >
           <GoogleIcon />
           Google 계정으로 계속하기
@@ -78,7 +78,7 @@ export default async function LoginPage({
         {process.env.NODE_ENV !== 'production' && (
           <a
             href={`${backendUrl}/api/v1/auth/dev-login`}
-            className="w-full flex items-center justify-center gap-2.5 p-3 bg-background border border-dashed border-border rounded-[var(--radius)] text-secondary text-[0.8rem] font-medium cursor-pointer transition-all no-underline mb-3.5 hover:border-accent hover:text-primary"
+            className="w-full flex items-center justify-center gap-2.5 p-3 bg-background border border-dashed border-border rounded-ui text-secondary text-[0.8rem] font-medium cursor-pointer transition-all no-underline mb-3.5 hover:border-accent hover:text-primary"
           >
             🛠️ 로컬 개발 로그인 (dev-login)
           </a>
@@ -113,7 +113,7 @@ const FEATURES = [
 
 function CheckMark() {
   return (
-    <span className="w-[22px] h-[22px] rounded-full bg-accent-dim border-[1.5px] border-[rgba(0,192,127,0.3)] flex items-center justify-center shrink-0 mt-px">
+    <span className="w-[22px] h-[22px] rounded-full bg-accent-dim border-[1.5px] border-accent/30 flex items-center justify-center shrink-0 mt-px">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" aria-hidden>
         <polyline points="20 6 9 17 4 12" />
       </svg>

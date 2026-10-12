@@ -125,7 +125,7 @@ export default function SecurityPage() {
             <Badge tone={vault?.enabled ? 'success' : 'warning'}>{vault?.enabled ? '사용 중' : '미설정'}</Badge>
           </CardHeader>
           <div className="px-5 py-4 flex items-center gap-3.5">
-            <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-accent-dim">{vault?.enabled ? '🔒' : '🔓'}</div>
+            <div className="w-9 h-9 rounded-ui flex items-center justify-center shrink-0 text-base bg-accent-dim">{vault?.enabled ? '🔒' : '🔓'}</div>
             <div className="flex-1">
               <div className="text-[0.82rem] text-secondary leading-relaxed [word-break:keep-all]">
                 {vault?.enabled
@@ -177,7 +177,7 @@ export default function SecurityPage() {
             return (
               <div className="flex flex-wrap items-center gap-3 sm:gap-3.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0" key={r.id}>
                 <div className="flex items-center gap-3.5 flex-1 min-w-[180px]">
-                  <div className={`w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base ${RISK_ICON_BG[sev.tone]}`}>{RISK_CATEGORY_ICON[r.category]}</div>
+                  <div className={`w-9 h-9 rounded-ui flex items-center justify-center shrink-0 text-base ${RISK_ICON_BG[sev.tone]}`}>{RISK_CATEGORY_ICON[r.category]}</div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-[0.875rem] break-keep">{r.title}</div>
                     <div className="text-[0.78rem] text-muted break-keep">{r.description}</div>
@@ -230,7 +230,7 @@ export default function SecurityPage() {
         <div className="px-5 py-4">
           {!runBreach ? (
             <div className="flex flex-wrap items-start gap-3.5">
-              <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-elevated">🛡️</div>
+              <div className="w-9 h-9 rounded-ui flex items-center justify-center shrink-0 text-base bg-elevated">🛡️</div>
               <div className="flex-1 min-w-[180px] text-[0.82rem] text-secondary leading-relaxed [word-break:keep-all]">
                 저장된 비밀번호가 외부 유출 DB에 있는지 검사합니다. 비밀번호 원문·전체 해시는 전송되지 않습니다(k-익명성).
               </div>
@@ -245,7 +245,7 @@ export default function SecurityPage() {
               <div className={breachQuery.data.items.length > 5 ? 'max-h-72 overflow-y-auto' : undefined}>
                 {breachQuery.data.items.map((b) => (
                   <div className="flex items-center gap-3.5 px-0 py-2.5 border-b border-border-subtle last:border-b-0" key={b.credentialId}>
-                    <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-danger-dim">🚨</div>
+                    <div className="w-9 h-9 rounded-ui flex items-center justify-center shrink-0 text-base bg-danger-dim">🚨</div>
                     <div className="flex-1">
                       <div className="font-semibold text-[0.85rem]">{b.name}</div>
                       <div className="text-[0.76rem] text-muted">유출 DB에서 {b.count.toLocaleString()}회 발견 — 즉시 변경 권장</div>
@@ -275,7 +275,7 @@ export default function SecurityPage() {
               const meta = ACCESS_ACTION_META[l.action];
               return (
                 <div className="flex items-center gap-3.5 px-5 py-3 border-b border-border-subtle last:border-b-0" key={l.id}>
-                  <div className="w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base bg-elevated">{meta?.icon ?? '🔓'}</div>
+                  <div className="w-9 h-9 rounded-ui flex items-center justify-center shrink-0 text-base bg-elevated">{meta?.icon ?? '🔓'}</div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-[0.85rem] truncate">{l.targetName}</div>
                     <div className="text-[0.76rem] text-muted">{meta?.label ?? l.action}{l.ip ? ` · ${l.ip}` : ''}</div>
@@ -303,7 +303,7 @@ export default function SecurityPage() {
                   : null;
               return (
                 <div className="flex items-center gap-3.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0" key={s.id}>
-                  <div className={`w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 text-base ${RISK_ICON_BG[tone]}`}>{DEVICE_ICON[s.deviceType]}</div>
+                  <div className={`w-9 h-9 rounded-ui flex items-center justify-center shrink-0 text-base ${RISK_ICON_BG[tone]}`}>{DEVICE_ICON[s.deviceType]}</div>
                   <div className="flex-1">
                     <div className="font-semibold text-[0.875rem] flex items-center gap-1.5">
                       {s.device}

@@ -16,7 +16,7 @@ export default function ExcelToolbar({
   accept?: string;
 }) {
   return (
-    <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5 px-4 py-3 bg-surface border border-border rounded-(--radius)">
+    <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5 px-4 py-3 bg-surface border border-border rounded-ui">
       <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
         <span className="text-[0.75rem] font-semibold text-muted">엑셀</span>
         <div className="flex gap-2 flex-wrap">

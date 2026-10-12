@@ -220,7 +220,7 @@ export default function LogsPage() {
       </div>
 
       {/* 로그 목록 */}
-      <div className="bg-background border border-border rounded-lg shadow-(--shadow-sm) overflow-hidden mb-4">
+      <div className="bg-background border border-border rounded-lg shadow-card overflow-hidden mb-4">
         {!logsQuery.isLoading && items.length === 0 && (
           <EmptyState size="lg" message="해당하는 로그가 없습니다." />
         )}
@@ -271,7 +271,7 @@ export default function LogsPage() {
               {/* 메타데이터 */}
               {isOpen && (
                 <div className="px-4 pb-4 bg-surface">
-                  <div className="border border-border rounded-(--radius) p-3.5 flex flex-col gap-1.5 text-[0.8rem]">
+                  <div className="border border-border rounded-ui p-3.5 flex flex-col gap-1.5 text-[0.8rem]">
                     <div className="flex gap-3 pb-1.5 mb-1 border-b border-border">
                       <span className="text-muted w-22 shrink-0">timestamp</span>
                       <span className="text-secondary dark:text-primary font-mono">{full}</span>

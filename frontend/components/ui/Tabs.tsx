@@ -12,7 +12,7 @@ type Size = 'sm' | 'md';
 // underline: 가로 밑줄 탭 / vertical: 카드 안 세로 목록 (모바일에서는 가로 스크롤)
 const LIST: Record<Variant, string> = {
   underline: 'flex overflow-x-auto scrollbar-none',
-  vertical: 'bg-background border border-border rounded-lg p-2.5 flex flex-col gap-0.5 shadow-(--shadow-sm) max-md:flex-row max-md:flex-nowrap max-md:overflow-x-auto max-md:scrollbar-none',
+  vertical: 'bg-background border border-border rounded-lg p-2.5 flex flex-col gap-0.5 shadow-card max-md:flex-row max-md:flex-nowrap max-md:overflow-x-auto max-md:scrollbar-none',
 };
 
 const TAB_BASE = 'cursor-pointer transition-all whitespace-nowrap shrink-0';
@@ -32,7 +32,7 @@ const UNDERLINE_SIZE: Record<Size, { base: string; on: string; off: string }> = 
 };
 
 const VERTICAL_TAB = {
-  base: 'px-3 py-2 rounded-(--radius) text-[0.855rem] font-medium text-left',
+  base: 'px-3 py-2 rounded-ui text-[0.855rem] font-medium text-left',
   on: 'bg-accent-dim text-accent font-semibold',
   off: 'text-secondary hover:bg-surface hover:text-primary',
 };

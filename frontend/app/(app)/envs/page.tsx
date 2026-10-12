@@ -281,7 +281,7 @@ export default function EnvsPage() {
             {projects.map((p) => {
               const active = p.id === selectedId;
               return (
-                <button type="button" key={p.id} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-[var(--radius)] cursor-pointer transition-colors border border-transparent w-full text-left hover:bg-surface ${active ? 'bg-accent-dim border-[rgba(0,192,127,0.2)]' : ''}`} onClick={() => handleSelectProject(p.id)}>
+                <button type="button" key={p.id} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-ui cursor-pointer transition-colors border border-transparent w-full text-left hover:bg-surface ${active ? 'bg-accent-dim border-accent/20' : ''}`} onClick={() => handleSelectProject(p.id)}>
                   <div className="min-w-0">
                     <div className={`text-[0.855rem] font-semibold truncate ${active ? 'text-accent' : 'text-primary'}`}>{p.name}</div>
                     <div className="text-[0.72rem] text-muted mt-px">변수 {p.totalVars}개</div>
@@ -396,7 +396,7 @@ export default function EnvsPage() {
             </Card>
 
             {/* 일괄 붙여넣기 */}
-            <div className="border-2 border-dashed border-border rounded-[var(--radius-lg)] p-5 flex flex-col gap-3">
+            <div className="border-2 border-dashed border-border rounded-panel p-5 flex flex-col gap-3">
               <div className="text-[0.82rem] font-semibold text-secondary flex items-center gap-1.5">
                 <IconCode width={14} height={14} />.env 파일 내용 붙여넣기 ({env} 환경에 일괄 저장)
               </div>
@@ -413,7 +413,7 @@ export default function EnvsPage() {
                 />
               </div>
               <textarea
-                className="w-full min-h-[120px] bg-surface border border-border rounded-[var(--radius)] px-3.5 py-3 [font-family:var(--font-mono)] text-[0.82rem] text-primary resize-y outline-none leading-[1.7] transition-[border-color,box-shadow] focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-dim)] placeholder:text-muted"
+                className="w-full min-h-[120px] bg-surface border border-border rounded-ui px-3.5 py-3 [font-family:var(--font-mono)] text-[0.82rem] text-primary resize-y outline-none leading-[1.7] transition-[border-color,box-shadow] focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-dim)] placeholder:text-muted"
                 value={paste}
                 onChange={(e) => setPaste(e.target.value)}
                 placeholder={'# .env 내용을 그대로 붙여넣으세요\nDATABASE_URL=mysql://root:root@localhost:3306/doc_nexus\nJWT_SECRET=your_jwt_secret'}
@@ -434,7 +434,7 @@ export default function EnvsPage() {
       {/* 환경 비교 모달 */}
       <Modal open={diffOpen} onClose={() => setDiffOpen(false)} title="환경 비교" footer={<Button variant="ghost" onClick={() => setDiffOpen(false)}>닫기</Button>}>
         <div className="flex items-center gap-2 mb-4 text-[0.84rem]">
-          <span className="px-2 py-1 rounded-[var(--radius)] bg-accent-dim text-accent font-semibold">{env}</span>
+          <span className="px-2 py-1 rounded-ui bg-accent-dim text-accent font-semibold">{env}</span>
           <span className="text-muted">vs</span>
           <select className="input w-auto" aria-label="비교 대상 환경" value={diffTarget} onChange={(e) => { const t = e.target.value as EnvKind; setDiffTarget(t); runDiff(t); }}>
             {ENV_TABS.filter((t) => t.key !== env).map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
@@ -470,7 +470,7 @@ function DiffBlock({ title, tone, keys }: { title: string; tone: string; keys: s
         <div className="text-[0.78rem] text-muted">없음</div>
       ) : (
         <div className="flex flex-wrap gap-1.5">
-          {keys.map((k) => <span key={k} className="[font-family:var(--font-mono)] text-[0.75rem] px-2 py-0.5 rounded-[var(--radius)] bg-surface border border-border">{k}</span>)}
+          {keys.map((k) => <span key={k} className="[font-family:var(--font-mono)] text-[0.75rem] px-2 py-0.5 rounded-ui bg-surface border border-border">{k}</span>)}
         </div>
       )}
     </div>
@@ -655,7 +655,7 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
       </Field>
       {isEdit && editing ? (
         <Field label="적용 환경">
-          <div className="text-[0.84rem] text-secondary px-3 py-2 bg-surface border border-border rounded-[var(--radius)]">{editing.env}</div>
+          <div className="text-[0.84rem] text-secondary px-3 py-2 bg-surface border border-border rounded-ui">{editing.env}</div>
         </Field>
       ) : (
         <Field label="적용 환경" required error={errors.envs}>
@@ -718,7 +718,7 @@ function HistoryModal({ envVar, onClose, onRolledBack, confirm }: {
       ) : (
         <div className="flex flex-col gap-2">
           {list.map((h) => (
-            <div key={h.id} className="flex items-center gap-2 bg-surface border border-border rounded-[var(--radius)] px-3 py-2.5">
+            <div key={h.id} className="flex items-center gap-2 bg-surface border border-border rounded-ui px-3 py-2.5">
               <span className="flex-1 [font-family:var(--font-mono)] text-[0.82rem] text-muted truncate">{h.valueMasked}</span>
               <span className="text-[0.72rem] text-muted shrink-0">{h.changedAt.slice(0, 16).replace('T', ' ')}</span>
               <Button variant="ghost" size="sm" onClick={() => handleRollback(h.id)}>되돌리기</Button>

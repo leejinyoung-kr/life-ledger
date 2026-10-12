@@ -254,7 +254,7 @@ export default function FilesPage() {
         role="button"
         tabIndex={0}
         aria-label="파일 업로드 — 드래그하거나 클릭"
-        className={`border-2 border-dashed rounded-[var(--radius-lg)] px-6 py-9 flex flex-col items-center gap-3 text-center cursor-pointer transition-all mb-5 [&>svg]:text-muted ${dragOver ? 'border-accent bg-accent-dim' : 'border-border hover:border-accent hover:bg-accent-dim'}`}
+        className={`border-2 border-dashed rounded-panel px-6 py-9 flex flex-col items-center gap-3 text-center cursor-pointer transition-all mb-5 [&>svg]:text-muted ${dragOver ? 'border-accent bg-accent-dim' : 'border-border hover:border-accent hover:bg-accent-dim'}`}
         onClick={() => fileInputRef.current?.click()}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -345,7 +345,7 @@ export default function FilesPage() {
                 <div
                   {...clickable(() => setFolderModal(true))}
                   aria-label="새 폴더 생성"
-                  className="flex flex-col items-center justify-center gap-2 px-3 py-5 border border-dashed border-border rounded-[var(--radius-lg)] text-muted cursor-pointer transition-all hover:border-accent hover:text-accent hover:bg-accent-dim"
+                  className="flex flex-col items-center justify-center gap-2 px-3 py-5 border border-dashed border-border rounded-panel text-muted cursor-pointer transition-all hover:border-accent hover:text-accent hover:bg-accent-dim"
                   onClick={() => setFolderModal(true)}
                 >
                   <IconFolderPlus width={24} height={24} />
@@ -362,7 +362,7 @@ export default function FilesPage() {
               <div
                 {...clickable(() => setFolderModal(true))}
                 aria-label="새 폴더 생성"
-                className="inline-flex flex-col items-center justify-center gap-2 px-6 py-5 border border-dashed border-border rounded-[var(--radius-lg)] text-muted cursor-pointer transition-all hover:border-accent hover:text-accent hover:bg-accent-dim"
+                className="inline-flex flex-col items-center justify-center gap-2 px-6 py-5 border border-dashed border-border rounded-panel text-muted cursor-pointer transition-all hover:border-accent hover:text-accent hover:bg-accent-dim"
                 onClick={() => setFolderModal(true)}
               >
                 <IconFolderPlus width={24} height={24} />
@@ -494,7 +494,7 @@ function ViewerModal({
     <Modal open={!!file} onClose={onClose} title={file.name} size="lg" header={header} footer={
       <span className="text-[0.78rem] text-muted">{formatBytes(file.size)} · {file.mimeType}</span>
     }>
-      <div className="bg-elevated flex items-center justify-center min-h-[400px] rounded-[var(--radius)] -m-6 overflow-hidden">
+      <div className="bg-elevated flex items-center justify-center min-h-[400px] rounded-ui -m-6 overflow-hidden">
         {isImage ? (
           previewUrl ? (
             // 만료되는 presigned URL 이라 next/image 최적화 프록시 대신 unoptimized 로 직접 로드
@@ -502,7 +502,7 @@ function ViewerModal({
               <Image src={previewUrl} alt={file.name} fill unoptimized className="object-contain" />
             </div>
           ) : (
-            <div className="w-full max-w-[480px] aspect-[4/3] bg-[linear-gradient(135deg,var(--bg-surface)_0%,var(--bg-elevated)_100%)] border border-border rounded-[var(--radius)] flex flex-col items-center justify-center gap-3 [&>svg]:text-muted">
+            <div className="w-full max-w-[480px] aspect-[4/3] bg-[linear-gradient(135deg,var(--bg-surface)_0%,var(--bg-elevated)_100%)] border border-border rounded-ui flex flex-col items-center justify-center gap-3 [&>svg]:text-muted">
               <IconImage width={48} height={48} />
               <span className="text-[0.78rem] text-muted">불러오는 중…</span>
             </div>

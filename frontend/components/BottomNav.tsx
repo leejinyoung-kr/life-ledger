@@ -17,7 +17,7 @@ const NAV_ITEMS = [
 ];
 
 const ITEM =
-  'flex-1 flex flex-col items-center justify-center gap-[3px] text-[0.63rem] font-medium transition-colors bg-transparent border-none cursor-pointer no-underline rounded-[var(--radius)] px-1 py-1.5 [&>svg]:shrink-0';
+  'flex-1 flex flex-col items-center justify-center gap-[3px] text-[0.63rem] font-medium transition-colors bg-transparent border-none cursor-pointer no-underline rounded-ui px-1 py-1.5 [&>svg]:shrink-0';
 
 export default function BottomNav({ activePath, onMore }: BottomNavProps) {
   return (

@@ -9,8 +9,8 @@ type CardHover = 'lift' | 'accent' | 'tile';
 
 // hover: lift 은 살짝 뜨기(정보 카드), accent 는 테두리 강조(미리보기 카드), tile 은 배경 강조(폴더 타일)
 const HOVER: Record<CardHover, string> = {
-  lift: 'transition-all hover:shadow-[var(--shadow-md)] hover:-translate-y-px',
-  accent: 'transition-all hover:border-accent hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]',
+  lift: 'transition-all hover:shadow-raised hover:-translate-y-px',
+  accent: 'transition-all hover:border-accent hover:-translate-y-0.5 hover:shadow-raised',
   tile: 'transition-all hover:border-accent hover:bg-accent-dim hover:-translate-y-px',
 };
 
@@ -25,7 +25,7 @@ export function Card({
 }: Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> & { clip?: boolean; hover?: CardHover; onClick?: () => void }) {
   const h = hover ?? (onClick ? 'accent' : undefined);
   const cls = [
-    'bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)]',
+    'bg-background border border-border rounded-panel shadow-card',
     clip ? 'overflow-hidden' : '',
     onClick ? 'cursor-pointer' : '',
     h ? HOVER[h] : '',

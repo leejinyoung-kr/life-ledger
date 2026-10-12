@@ -74,7 +74,7 @@ export default function TopBar({ label }: TopBarProps) {
       {/* 우측: 통합 검색 → 알림 → 다크 (사용 빈도순) */}
       <div className="flex items-center gap-1.5">
         <GlobalSearch />
-        <a href="/notifications" className="relative w-9 h-9 flex items-center justify-center rounded-[var(--radius)] text-secondary transition-colors shrink-0 hover:bg-surface hover:text-primary" aria-label="알림">
+        <a href="/notifications" className="relative w-9 h-9 flex items-center justify-center rounded-ui text-secondary transition-colors shrink-0 hover:bg-surface hover:text-primary" aria-label="알림">
           <IconBell width={18} height={18} />
           {unread > 0 && (
             <span className="absolute top-1 right-1 min-w-4 h-4 bg-danger text-white text-[0.62rem] font-bold rounded-full flex items-center justify-center px-1 leading-none border-[1.5px] border-background">{unread > 99 ? '99+' : unread}</span>
@@ -82,7 +82,7 @@ export default function TopBar({ label }: TopBarProps) {
         </a>
         <button
           type="button"
-          className="text-[1.2rem] w-9 h-9 flex items-center justify-center rounded-[var(--radius)] cursor-pointer transition-[background] select-none hover:bg-surface"
+          className="text-[1.2rem] w-9 h-9 flex items-center justify-center rounded-ui cursor-pointer transition-[background] select-none hover:bg-surface"
           onClick={toggleDark}
           aria-label={dark ? '라이트 모드로 전환' : '다크 모드로 전환'}
         >

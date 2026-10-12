@@ -174,7 +174,7 @@ export default function CredentialsPage() {
 
       {/* 보안 경고 배너 — 2FA 미설정 계정 수 */}
       {no2fa > 0 && (
-        <div className="flex items-center gap-2.5 px-4 py-3 bg-warning-dim border border-[rgba(247,144,9,0.2)] rounded-(--radius) mb-5 text-[0.82rem]">
+        <div className="flex items-center gap-2.5 px-4 py-3 bg-warning-dim border border-warning/20 rounded-ui mb-5 text-[0.82rem]">
           <span>🔐</span>
           <span className="flex-1 text-secondary">2FA 미설정 계정이 <strong>{no2fa}건</strong> 있습니다. 2단계 인증 설정을 권장합니다.</span>
         </div>
@@ -184,7 +184,7 @@ export default function CredentialsPage() {
       <ExcelToolbar onDownloadTemplate={handleDownloadTemplate} onUpload={handleUploadExcel} onDownloadData={handleDownloadData} />
 
       {/* 검색 필터 — PC: 카드 박스, 모바일: 스타일 없음 */}
-      <div className="md:bg-surface md:border md:border-border md:rounded-(--radius) md:px-4 md:py-3 mb-2">
+      <div className="md:bg-surface md:border md:border-border md:rounded-ui md:px-4 md:py-3 mb-2">
         <div className="flex gap-2 flex-col md:flex-row">
           <div className="md:w-40 md:shrink-0">
             <select className="input" value={pendingCategory} onChange={(e) => setPendingCategory(e.target.value)} aria-label="카테고리 필터">
@@ -207,7 +207,7 @@ export default function CredentialsPage() {
       </div>
 
       {/* 테이블 + 모바일 카드 */}
-      <div className="bg-background border border-border rounded-lg shadow-(--shadow-sm) overflow-hidden">
+      <div className="bg-background border border-border rounded-lg shadow-card overflow-hidden">
         <div className="table-wrap max-md:hidden">
           <table>
             <thead>
@@ -402,7 +402,7 @@ function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelete }: { cred: Cr
         <div className="flex flex-col gap-1.5">
           <span className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-muted">2FA 백업코드</span>
           {backupCodes ? (
-            <div className="bg-surface border border-border rounded-(--radius) p-3">
+            <div className="bg-surface border border-border rounded-ui p-3">
               <div className="grid grid-cols-2 gap-1.5">
                 {backupCodes.map((code) => (
                   <span key={code} className="font-mono text-[0.8rem] text-primary tracking-[0.08em] text-center py-0.5">{code}</span>
@@ -414,7 +414,7 @@ function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelete }: { cred: Cr
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2 bg-surface border border-border rounded-(--radius) px-3 py-2.5">
+            <div className="flex items-center gap-2 bg-surface border border-border rounded-ui px-3 py-2.5">
               <span className="flex-1 text-[0.8rem] text-secondary">{cred.hasBackupCodes ? '백업코드가 저장되어 있습니다.' : '저장된 백업코드가 없습니다.'}</span>
               {cred.hasBackupCodes
                 ? <Button variant="ghost" size="sm" onClick={handleViewBackup} disabled={backupBusy}>보기</Button>
@@ -427,7 +427,7 @@ function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelete }: { cred: Cr
       {/* 메모 */}
       <div className="flex flex-col gap-1.5">
         <span className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-muted">메모</span>
-        <div className="text-[0.855rem] text-secondary px-3 py-2.5 bg-surface border border-border rounded-(--radius) min-h-9.5 leading-normal">{cred.memo || '—'}</div>
+        <div className="text-[0.855rem] text-secondary px-3 py-2.5 bg-surface border border-border rounded-ui min-h-9.5 leading-normal">{cred.memo || '—'}</div>
       </div>
 
       <div className="text-[0.72rem] text-muted pt-1">수정일: {fmtCredDate(cred.updatedAt)}</div>
@@ -440,7 +440,7 @@ function DetailField({ label, children }: { label: string; children: React.React
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-muted">{label}</span>
-      <div className="flex items-center gap-2 bg-surface border border-border rounded-(--radius) px-3 py-2.5">{children}</div>
+      <div className="flex items-center gap-2 bg-surface border border-border rounded-ui px-3 py-2.5">{children}</div>
     </div>
   );
 }

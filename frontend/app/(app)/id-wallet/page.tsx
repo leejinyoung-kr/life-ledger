@@ -108,7 +108,7 @@ export default function IdWalletPage() {
 
       {/* 만료 임박 경고 */}
       {soonest && (
-        <div className="flex items-center gap-3 px-[18px] py-3.5 rounded-[var(--radius-lg)] bg-warning-dim border border-[rgba(247,144,9,0.2)] mb-6">
+        <div className="flex items-center gap-3 px-[18px] py-3.5 rounded-panel bg-warning-dim border border-warning/20 mb-6">
           <IconAlertCircle width={20} height={20} className="text-warning shrink-0" />
           <div className="flex-1">
             <div className="font-semibold text-[0.875rem] text-primary">{soonest.card.name} 만료 임박 — {soonest.dd.text}</div>
@@ -127,7 +127,7 @@ export default function IdWalletPage() {
           const dd = ddayOf(card.expireDate);
           const isShown = shown.has(card.id);
           return (
-            <div className={`rounded-[var(--radius-lg)] p-5 text-white shadow-[var(--shadow-md)] relative overflow-hidden min-h-[180px] flex flex-col justify-between ${ID_VARIANT_BG[card.type]}`} key={card.id}>
+            <div className={`rounded-panel p-5 text-white shadow-raised relative overflow-hidden min-h-[180px] flex flex-col justify-between ${ID_VARIANT_BG[card.type]}`} key={card.id}>
               <div>
                 <div className="text-[0.72rem] opacity-85 uppercase tracking-[0.08em] font-semibold">{ID_TYPE_LABEL[card.type]}</div>
                 <div className="[font-family:var(--font-display)] text-[1.2rem] font-bold mt-1">{card.name}</div>

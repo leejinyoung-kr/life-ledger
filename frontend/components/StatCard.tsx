@@ -42,11 +42,11 @@ export default function StatCard({
 }: StatCardProps) {
   return (
     <div
-      className="relative border border-border rounded-[var(--radius-lg)] p-5 shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)] hover:-translate-y-px overflow-hidden"
+      className="relative border border-border rounded-panel p-5 shadow-card transition-all hover:shadow-raised hover:-translate-y-px overflow-hidden"
       style={CARD_STYLE[tone]}
     >
-      <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-[var(--radius-lg)]" style={ACCENT_BAR[tone]} />
-      <div className={`w-[38px] h-[38px] rounded-[var(--radius)] flex items-center justify-center mb-[14px] ${ICON_TONE[tone]}`}>
+      <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-panel" style={ACCENT_BAR[tone]} />
+      <div className={`w-[38px] h-[38px] rounded-ui flex items-center justify-center mb-[14px] ${ICON_TONE[tone]}`}>
         {icon}
       </div>
       <div className={`[font-family:var(--font-display)] text-[1.25rem] min-[480px]:text-[1.55rem] min-[1100px]:text-[1.75rem] font-bold tracking-[-0.04em] leading-none ${valueAccent ? 'text-accent' : 'text-primary'}`}>

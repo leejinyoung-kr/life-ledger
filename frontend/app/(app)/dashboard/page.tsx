@@ -109,7 +109,7 @@ export default function DashboardPage() {
         <QueryError
           message="일부 대시보드 데이터를 불러오지 못했습니다."
           onRetry={() => { summaryQuery.refetch(); forecastQuery.refetch(); deadlinesQuery.refetch(); }}
-          className="mb-6 border border-border rounded-[var(--radius-lg)] bg-background"
+          className="mb-6 border border-border rounded-panel bg-background"
         />
       )}
 
@@ -159,7 +159,7 @@ export default function DashboardPage() {
                     {latestReport.insights.length > 0 && (
                       <div className="flex flex-col gap-2 mt-3">
                         {latestReport.insights.slice(0, 2).map((ins, i) => (
-                          <div key={i} className="flex gap-2.5 items-start px-3 py-2.5 bg-surface border border-border rounded-(--radius)">
+                          <div key={i} className="flex gap-2.5 items-start px-3 py-2.5 bg-surface border border-border rounded-ui">
                             <div className={`w-1.5 h-1.5 rounded-full shrink-0 mt-[6px] ${ins.tone === 'green' ? 'bg-accent' : ins.tone === 'danger' ? 'bg-danger' : 'bg-warning'}`} />
                             <span className="text-[0.82rem] text-secondary leading-relaxed">{ins.text}</span>
                           </div>
@@ -182,11 +182,11 @@ export default function DashboardPage() {
               </CardHeader>
               <CardBody>
                 <div className="flex gap-3 mb-3 flex-wrap">
-                  <div className="flex-1 min-w-[120px] px-4 py-3 bg-surface border border-border rounded-(--radius)">
+                  <div className="flex-1 min-w-[120px] px-4 py-3 bg-surface border border-border rounded-ui">
                     <div className="text-[0.72rem] text-muted">구독 {forecast.subscriptions.count}건</div>
                     <div className="text-[0.95rem] font-bold text-primary mt-0.5">{won(forecast.subscriptions.monthly)}</div>
                   </div>
-                  <div className="flex-1 min-w-[120px] px-4 py-3 bg-surface border border-border rounded-(--radius)">
+                  <div className="flex-1 min-w-[120px] px-4 py-3 bg-surface border border-border rounded-ui">
                     <div className="text-[0.72rem] text-muted">반복지출 {forecast.recurring.count}건</div>
                     <div className="text-[0.95rem] font-bold text-primary mt-0.5">{won(forecast.recurring.monthly)}</div>
                   </div>
@@ -253,9 +253,9 @@ export default function DashboardPage() {
                 <a
                   key={q.title}
                   href={q.href}
-                  className="flex flex-col items-center text-center gap-2 px-3 py-4 min-[1100px]:flex-row min-[1100px]:text-left min-[1100px]:gap-3 min-[1100px]:px-4 min-[1100px]:py-3.5 border border-border rounded-(--radius) bg-background transition-all hover:border-accent hover:bg-accent-dim hover:shadow-(--shadow-sm)"
+                  className="flex flex-col items-center text-center gap-2 px-3 py-4 min-[1100px]:flex-row min-[1100px]:text-left min-[1100px]:gap-3 min-[1100px]:px-4 min-[1100px]:py-3.5 border border-border rounded-ui bg-background transition-all hover:border-accent hover:bg-accent-dim hover:shadow-card"
                 >
-                  <div className="w-9 h-9 rounded-(--radius) bg-surface border border-border flex items-center justify-center text-accent shrink-0">{q.icon}</div>
+                  <div className="w-9 h-9 rounded-ui bg-surface border border-border flex items-center justify-center text-accent shrink-0">{q.icon}</div>
                   <div>
                     <div className="text-[0.78rem] font-semibold text-primary">{q.title}</div>
                     <div className="text-[0.68rem] text-muted mt-px">{q.desc}</div>

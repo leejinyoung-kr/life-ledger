@@ -160,7 +160,7 @@ export default function ConvertPage() {
               onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
-              className={`flex flex-col items-center justify-center gap-3 px-6 py-14 rounded-[var(--radius)] border-2 border-dashed cursor-pointer transition-colors text-center ${
+              className={`flex flex-col items-center justify-center gap-3 px-6 py-14 rounded-ui border-2 border-dashed cursor-pointer transition-colors text-center ${
                 dragging ? 'border-accent bg-accent-dim' : 'border-border hover:border-accent hover:bg-surface'
               }`}
             >
@@ -182,7 +182,7 @@ export default function ConvertPage() {
 
             {/* 선택된 파일 */}
             {file && (
-              <div className="flex items-center gap-3 px-4 py-3 rounded-[var(--radius)] border border-border bg-surface">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-ui border border-border bg-surface">
                 <div className="[&_svg]:w-5 [&_svg]:h-5 text-accent shrink-0">
                   {dir === 'image-to-pdf' ? <IconImage /> : <IconFileBlank />}
                 </div>
@@ -193,7 +193,7 @@ export default function ConvertPage() {
                 <button
                   type="button"
                   onClick={() => setFile(null)}
-                  className="w-7 h-7 flex items-center justify-center rounded-[var(--radius)] text-muted hover:bg-danger-dim hover:text-danger [&_svg]:w-4 [&_svg]:h-4 shrink-0"
+                  className="w-7 h-7 flex items-center justify-center rounded-ui text-muted hover:bg-danger-dim hover:text-danger [&_svg]:w-4 [&_svg]:h-4 shrink-0"
                   aria-label="파일 제거"
                 >
                   <IconClose />
@@ -222,11 +222,11 @@ export default function ConvertPage() {
                 <div className="text-[0.85rem]">파일을 선택하면 미리보기가 표시됩니다.</div>
               </div>
             ) : dir === 'image-to-pdf' ? (
-              <div className="relative w-full h-[70vh] min-h-[360px] rounded-[var(--radius)] overflow-hidden bg-elevated">
+              <div className="relative w-full h-[70vh] min-h-[360px] rounded-ui overflow-hidden bg-elevated">
                 <Image src={previewUrl} alt={file.name} fill unoptimized className="object-contain" />
               </div>
             ) : (
-              <iframe src={previewUrl} title={file.name} className="w-full h-[70vh] min-h-[360px] rounded-[var(--radius)] border border-border" />
+              <iframe src={previewUrl} title={file.name} className="w-full h-[70vh] min-h-[360px] rounded-ui border border-border" />
             )}
           </CardBody>
         </Card>
@@ -243,7 +243,7 @@ function DirCard({
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-start gap-1.5 px-4 py-3.5 rounded-[var(--radius)] border text-left transition-colors ${
+      className={`flex flex-col items-start gap-1.5 px-4 py-3.5 rounded-ui border text-left transition-colors ${
         active ? 'bg-accent-dim border-accent' : 'bg-transparent border-border hover:bg-surface'
       }`}
     >

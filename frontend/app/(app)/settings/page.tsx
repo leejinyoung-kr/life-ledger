@@ -555,7 +555,7 @@ export default function SettingsPage() {
                       key={w.id}
                       className="flex items-center gap-3.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface"
                     >
-                      <div className={`w-9 h-9 rounded-[var(--radius)] flex items-center justify-center shrink-0 ${WIDGET_ICON_BG[meta.tone]}`}>{meta.icon}</div>
+                      <div className={`w-9 h-9 rounded-ui flex items-center justify-center shrink-0 ${WIDGET_ICON_BG[meta.tone]}`}>{meta.icon}</div>
                       <div className="flex-1">
                         <div className="text-[0.875rem] font-medium text-primary">{meta.name}</div>
                         <div className={`text-[0.775rem] mt-0.5 ${w.on ? 'text-muted' : 'text-danger'}`}>{w.on ? meta.desc : '숨겨짐 · 대시보드에 표시되지 않습니다'}</div>
@@ -623,8 +623,8 @@ export default function SettingsPage() {
                   <Button variant="ghost" href="/transactions">가계부로 이동</Button>
                 </Row>
               </Group>
-              <div className="bg-background border border-[rgba(240,68,56,0.2)] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">
-                <div className="px-5 py-3.5 border-b border-[rgba(240,68,56,0.15)] [font-family:var(--font-display)] font-bold text-[0.875rem] text-danger bg-danger-dim">위험 구역</div>
+              <div className="bg-background border border-danger/20 rounded-panel overflow-hidden shadow-card">
+                <div className="px-5 py-3.5 border-b border-danger/15 [font-family:var(--font-display)] font-bold text-[0.875rem] text-danger bg-danger-dim">위험 구역</div>
                 <Row labelClass="danger" label="계정 삭제" desc="모든 데이터가 영구 삭제됩니다. 되돌릴 수 없습니다.">
                   <Button variant="danger" onClick={handleDeleteAccount}>계정 삭제</Button>
                 </Row>
@@ -670,7 +670,7 @@ function UsageStat({ label, value, tone }: { label: string; value: string; tone:
     muted: 'text-primary',
   };
   return (
-    <div className="bg-surface border border-border-subtle rounded-[var(--radius)] px-4 py-3">
+    <div className="bg-surface border border-border-subtle rounded-ui px-4 py-3">
       <div className="text-[0.74rem] text-muted">{label}</div>
       <div className={`[font-family:var(--font-display)] text-[1.25rem] font-bold mt-1 ${toneCls[tone]}`}>{value}</div>
     </div>
@@ -680,7 +680,7 @@ function UsageStat({ label, value, tone }: { label: string; value: string; tone:
 // 토글 가능 위젯 셀 — on/off 상태 반영
 function WidgetCell({ on, children, center }: { on: boolean; children: ReactNode; center?: boolean }) {
   return (
-    <div className={`bg-background border rounded-[var(--radius)] px-2 py-1.5 text-[0.68rem] whitespace-nowrap overflow-hidden text-ellipsis transition-all
+    <div className={`bg-background border rounded-ui px-2 py-1.5 text-[0.68rem] whitespace-nowrap overflow-hidden text-ellipsis transition-all
       ${on ? 'border-border text-secondary' : 'border-border-subtle text-muted opacity-40 line-through'}
       ${center ? 'text-center' : ''}`}
     >
@@ -692,7 +692,7 @@ function WidgetCell({ on, children, center }: { on: boolean; children: ReactNode
 // 항상 표시되는 셀 (데이터 조건부)
 function AlwaysCell({ children }: { children: ReactNode }) {
   return (
-    <div className="bg-surface border border-dashed border-border rounded-[var(--radius)] px-2 py-1.5 text-[0.68rem] text-muted whitespace-nowrap overflow-hidden text-ellipsis">
+    <div className="bg-surface border border-dashed border-border rounded-ui px-2 py-1.5 text-[0.68rem] text-muted whitespace-nowrap overflow-hidden text-ellipsis">
       {children}
     </div>
   );
@@ -703,7 +703,7 @@ function WidgetPreview({ widgets }: { widgets: WidgetPref[] }) {
   const wp = Object.fromEntries(widgets.map((w) => [w.id, w.on]));
 
   return (
-    <div className="border border-border rounded-[var(--radius-lg)] bg-surface p-3 flex flex-col gap-2 select-none">
+    <div className="border border-border rounded-panel bg-surface p-3 flex flex-col gap-2 select-none">
       {/* 현황 카드 — 전체 너비 4열 */}
       <div className="grid grid-cols-4 gap-1.5">
         {['지출', '수입', '순자산', '구독'].map((l) => (

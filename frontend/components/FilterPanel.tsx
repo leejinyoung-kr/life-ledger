@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 
 export default function FilterPanel({ className = 'mb-4', children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={`bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex flex-col gap-3 ${className}`.trim()}>
+    <div className={`bg-surface border border-border rounded-panel px-5 py-4 flex flex-col gap-3 ${className}`.trim()}>
       {children}
     </div>
   );

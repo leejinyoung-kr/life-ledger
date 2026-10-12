@@ -118,7 +118,7 @@ export default function SubscriptionsPage() {
 
       {/* 체험 종료 임박 경고 배너 */}
       {trial && (
-        <div className="flex items-center gap-3 px-[18px] py-3.5 rounded-[var(--radius-lg)] bg-warning-dim border border-[rgba(247,144,9,0.2)] mb-6">
+        <div className="flex items-center gap-3 px-[18px] py-3.5 rounded-panel bg-warning-dim border border-warning/20 mb-6">
           <IconAlertTriangle width={20} height={20} className="text-warning shrink-0" />
           <div className="flex-1">
             <div className="font-semibold text-[0.875rem] text-primary">무료 체험 종료 임박 — {trial.name}</div>
@@ -132,7 +132,7 @@ export default function SubscriptionsPage() {
       )}
 
       {/* 검색 필터 — PC: 카드 박스, 모바일: 스타일 없음 */}
-      <div className="md:bg-surface md:border md:border-border md:rounded-(--radius) md:px-4 md:py-3 mb-2">
+      <div className="md:bg-surface md:border md:border-border md:rounded-ui md:px-4 md:py-3 mb-2">
         <div className="flex gap-2">
           <SearchInput label="구독 검색" className="flex-1 min-w-0" placeholder="서비스명, 카테고리 검색..." value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} onEnter={handleSearch} />
           <Button onClick={handleSearch}>검색</Button>
@@ -152,7 +152,7 @@ export default function SubscriptionsPage() {
           return (
             <Card hover="lift" className="p-[18px]" key={sub.id}>
               <div className="flex items-center gap-3 mb-3.5">
-                <div className="w-[42px] h-[42px] rounded-[var(--radius)] bg-surface border border-border flex items-center justify-center text-[1.3rem] shrink-0">{SUB_CATEGORY_EMOJI[sub.category] ?? '🧩'}</div>
+                <div className="w-[42px] h-[42px] rounded-ui bg-surface border border-border flex items-center justify-center text-[1.3rem] shrink-0">{SUB_CATEGORY_EMOJI[sub.category] ?? '🧩'}</div>
                 <div className="flex-1">
                   <div className="[font-family:var(--font-display)] font-bold text-[0.95rem] text-primary">{sub.name}</div>
                   <div className="text-[0.72rem] text-muted">{SUB_CATEGORY_LABEL[sub.category] ?? sub.category}</div>

@@ -134,7 +134,7 @@ export default function GlobalSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 h-9 px-2.5 rounded-[var(--radius)] text-secondary transition-colors shrink-0 hover:bg-surface hover:text-primary"
+        className="flex items-center gap-2 h-9 px-2.5 rounded-ui text-secondary transition-colors shrink-0 hover:bg-surface hover:text-primary"
         aria-label="통합 검색 열기"
       >
         <IconSearchBtn />
@@ -150,7 +150,7 @@ export default function GlobalSearch() {
           onMouseDown={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-[560px] bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-lg)] overflow-hidden"
+            className="w-full max-w-[560px] bg-background border border-border rounded-panel shadow-overlay overflow-hidden"
             onMouseDown={(e) => e.stopPropagation()}
           >
             {/* 입력 */}
@@ -235,7 +235,7 @@ const ICON_BG: Record<SearchType, string> = {
 function SearchResultRow({ item, query, onPick }: { item: SearchEntry; query: string; onPick?: () => void }) {
   return (
     <a className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer transition-colors border-b border-border-subtle last:border-b-0 hover:bg-surface no-underline" href={item.href} onClick={onPick}>
-      <div className={`w-8 h-8 rounded-[var(--radius)] flex items-center justify-center text-[0.9rem] shrink-0 ${ICON_BG[item.type]}`}>{item.icon}</div>
+      <div className={`w-8 h-8 rounded-ui flex items-center justify-center text-[0.9rem] shrink-0 ${ICON_BG[item.type]}`}>{item.icon}</div>
       <div>
         <div className="text-[0.855rem] font-medium text-primary">{query ? highlight(item.title, query) : item.title}</div>
         <div className="text-[0.75rem] text-muted mt-px">{item.sub}</div>

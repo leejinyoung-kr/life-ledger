@@ -226,7 +226,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
           const near = dleft !== null && dleft >= 0 && dleft <= 30;
           const matured = dleft !== null && dleft < 0;
           return (
-          <div key={a.id} className="border border-border rounded-[var(--radius-lg)] p-3.5 bg-background">
+          <div key={a.id} className="border border-border rounded-panel p-3.5 bg-background">
             <div className="flex justify-between items-baseline gap-2">
               <span className="font-semibold text-[0.95rem]">{a.name}</span>
               <span className="font-bold text-[0.95rem] [font-family:var(--font-mono)]">{won(a.cashBalance)}</span>
@@ -256,7 +256,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
         <span className="text-[0.84rem] font-semibold text-primary">🔁 반복매수 자동화</span>
         <Button size="sm" variant="ghost" onClick={() => setRecurringModal({ open: true })}>+ 설정 추가</Button>
       </div>
-      <div className="border border-border rounded-[var(--radius-lg)] bg-background px-3.5 py-2 mb-6">
+      <div className="border border-border rounded-panel bg-background px-3.5 py-2 mb-6">
         {recurringSchedules.length === 0 && <div className="text-[0.72rem] text-muted py-2">등록된 반복매수 설정이 없습니다.</div>}
         {recurringSchedules.map((s) => {
           const inv = rows.find((r) => r.id === s.investmentId);

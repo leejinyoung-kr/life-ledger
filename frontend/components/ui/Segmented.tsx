@@ -23,12 +23,12 @@ const SIZE: Record<Size, string> = {
 
 const ITEM: Record<Variant, { base: string; on: string; off: string }> = {
   solid: {
-    base: 'rounded-(--radius) border cursor-pointer transition-all whitespace-nowrap shrink-0',
+    base: 'rounded-ui border cursor-pointer transition-all whitespace-nowrap shrink-0',
     on: 'bg-accent border-accent text-white font-semibold',
     off: 'bg-background border-border text-secondary hover:bg-surface hover:text-primary',
   },
   soft: {
-    base: 'rounded-(--radius) border cursor-pointer font-semibold transition-colors',
+    base: 'rounded-ui border cursor-pointer font-semibold transition-colors',
     on: 'bg-accent-dim text-accent border-accent',
     off: 'bg-transparent text-secondary border-border hover:bg-surface hover:text-primary',
   },

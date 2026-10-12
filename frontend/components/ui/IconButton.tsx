@@ -13,7 +13,7 @@ const BASE = 'inline-flex items-center justify-center shrink-0 transition-all cu
 const VARIANT: Record<Variant, string> = {
   ghost: 'text-muted hover:bg-elevated hover:text-accent',
   bordered: 'text-secondary border border-border hover:bg-surface hover:text-primary',
-  danger: 'bg-danger-dim text-danger hover:bg-[rgba(240,68,56,0.15)]',
+  danger: 'bg-danger-dim text-danger hover:bg-danger/15',
   handle: 'text-muted cursor-grab touch-none hover:bg-elevated hover:text-secondary active:cursor-grabbing',
   overlay: 'bg-white/[0.18] text-white hover:bg-white/[0.32]',
 };
@@ -21,7 +21,7 @@ const VARIANT: Record<Variant, string> = {
 // md: 목록 행 / lg: 모달·툴바 상단 / card: 색 카드 위 오버레이
 const SIZE: Record<Size, string> = {
   md: 'w-7 h-7 rounded-[5px]',
-  lg: 'w-[34px] h-[34px] rounded-[var(--radius)]',
+  lg: 'w-[34px] h-[34px] rounded-ui',
   card: 'w-[30px] h-[30px] rounded-md',
 };
 
