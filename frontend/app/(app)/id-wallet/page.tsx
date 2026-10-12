@@ -16,6 +16,7 @@ import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
 import IconButton from '@/components/ui/IconButton';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
@@ -137,7 +138,7 @@ export default function IdWalletPage() {
                   <div>만료 {fmtDate(card.expireDate)}</div>
                 </div>
                 <div className="flex flex-col gap-2 items-end">
-                  <span className={`px-2 py-0.5 rounded-full text-[0.7rem] font-bold ${dd.warn ? 'bg-warning text-white' : 'bg-white/20'}`}>{dd.text}</span>
+                  <Badge size="sm" tone={dd.warn ? 'solid-warning' : 'overlay'}>{dd.text}</Badge>
                   <div className="flex gap-1.5">
                     <IconButton label="번호 표시/숨김" variant="overlay" size="card" onClick={() => handleToggleNum(card)}>
                       <IconEye width={14} height={14} />
