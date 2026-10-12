@@ -22,6 +22,7 @@ import { Card } from '@/components/ui/Card';
 import { PageLoading } from '@/components/QueryState';
 import EmptyState from '@/components/EmptyState';
 import TableEmptyRow from '@/components/TableEmptyRow';
+import FilterPanel from '@/components/FilterPanel';
 import {
   INVEST_TYPE_LABEL, won, usd, dotDate, daysUntil, localDate, recurringRuleSummary, WEEKDAY_LABEL,
   type Category, type Investment, type InvestmentAccount, type InvestmentSummary, type InvestmentType,
@@ -282,7 +283,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
         })}
       </div>
 
-      <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex flex-col gap-3 mb-4">
+      <FilterPanel>
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:flex-wrap">
           <div className="flex gap-2 md:contents">
             <select className="input flex-1 md:flex-none md:w-auto md:min-w-30 shrink-0" value={pendingAccount} onChange={(ev) => setPendingAccount(ev.target.value)} aria-label="계좌 필터">
@@ -300,7 +301,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
           </div>
           <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
         </div>
-      </div>
+      </FilterPanel>
 
       <div className="mb-2">
         <div className="flex items-center justify-between">

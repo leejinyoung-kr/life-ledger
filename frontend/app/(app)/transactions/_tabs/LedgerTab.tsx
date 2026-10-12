@@ -24,6 +24,8 @@ import { useRowSelection } from '@/lib/useRowSelection';
 import EmptyState from '@/components/EmptyState';
 import ErrorBanner from '@/components/ErrorBanner';
 import TableEmptyRow from '@/components/TableEmptyRow';
+import FilterPanel from '@/components/FilterPanel';
+import ExcelToolbar from '@/components/ExcelToolbar';
 import {
   TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
   won, signedWon, dotDate, localDate,
@@ -320,21 +322,9 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
         </Card>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5 px-4 py-3 bg-surface border border-border rounded-(--radius)">
-        <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
-          <span className="text-[0.75rem] font-semibold text-muted">엑셀</span>
-          <div className="flex gap-2 flex-wrap">
-            <button type="button" className="excel-btn" onClick={downloadTemplate}>양식 다운로드</button>
-            <label className="excel-btn upload">
-              엑셀 업로드
-              <input type="file" accept=".xlsx,.xls,.csv" hidden aria-label="엑셀 업로드" onChange={handleUpload} />
-            </label>
-            <button type="button" className="excel-btn" onClick={downloadData}>데이터 다운로드</button>
-          </div>
-        </div>
-      </div>
+      <ExcelToolbar onDownloadTemplate={downloadTemplate} onUpload={handleUpload} onDownloadData={downloadData} accept=".xlsx,.xls,.csv" />
 
-      <div className="bg-surface border border-border rounded-lg px-5 py-4 flex flex-col gap-3 mb-4">
+      <FilterPanel>
         <div className="flex gap-2 items-center flex-wrap">
           {/* PC: shrink-0으로 날짜 묶음 고정, 모바일: flex-1로 가득 채워 프리셋이 다음 줄로 */}
           <div className="date-range-group flex items-center gap-2 shrink-0">
@@ -372,7 +362,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
           </div>
           <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
         </div>
-      </div>
+      </FilterPanel>
 
       <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
         <div className="flex items-baseline gap-1.5 text-[0.78rem] text-secondary">

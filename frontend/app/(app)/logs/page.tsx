@@ -14,6 +14,7 @@ import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { usePagination } from '@/lib/usePagination';
 import { localDate } from '@/lib/finance';
+import FilterPanel from '@/components/FilterPanel';
 
 type LogLevel = 'info' | 'warn' | 'error';
 type LogCategory = 'recurring_buy' | 'recurring_tx' | 'cron' | 'asset' | 'file' | 'security' | 'ai' | 'notification';
@@ -164,7 +165,7 @@ export default function LogsPage() {
       />
 
       {/* 필터박스 — 조회 버튼으로 반영 */}
-      <div className="bg-surface border border-border rounded-lg px-5 py-4 flex flex-col gap-3 mb-4">
+      <FilterPanel>
         {/* 1행: 날짜 범위 + 기간 프리셋 */}
         <div className="flex gap-2 items-center flex-wrap">
           <div className="date-range-group flex items-center gap-2 shrink-0">
@@ -209,7 +210,7 @@ export default function LogsPage() {
           </div>
           <Button variant="ghost" className="w-full sm:w-auto" onClick={handleReset}>초기화</Button>
         </div>
-      </div>
+      </FilterPanel>
 
       <ErrorBanner message={logsQuery.error?.message ?? null} />
 

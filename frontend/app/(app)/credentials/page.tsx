@@ -35,6 +35,7 @@ import {
 import type { Settings } from '@/lib/settings';
 import EmptyState from '@/components/EmptyState';
 import TableEmptyRow from '@/components/TableEmptyRow';
+import ExcelToolbar from '@/components/ExcelToolbar';
 
 // 설정의 pwAutoHide(10s|30s|1m|none) → ms. none/누락 시 null(자동 숨김 안 함)
 function pwAutoHideMs(v: string | undefined): number | null {
@@ -180,19 +181,7 @@ export default function CredentialsPage() {
       )}
 
       {/* 엑셀 툴바 — 양식/업로드/데이터 */}
-      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5 px-4 py-3 bg-surface border border-border rounded-(--radius)">
-        <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-2">
-          <span className="text-[0.75rem] font-semibold text-muted">엑셀</span>
-          <div className="flex gap-2 flex-wrap">
-            <button type="button" className="excel-btn" onClick={handleDownloadTemplate}>양식 다운로드</button>
-            <label className="excel-btn upload">
-              엑셀 업로드
-              <input type="file" accept=".xlsx,.xls" hidden onChange={handleUploadExcel} />
-            </label>
-            <button type="button" className="excel-btn" onClick={handleDownloadData}>데이터 다운로드</button>
-          </div>
-        </div>
-      </div>
+      <ExcelToolbar onDownloadTemplate={handleDownloadTemplate} onUpload={handleUploadExcel} onDownloadData={handleDownloadData} />
 
       {/* 검색 필터 — PC: 카드 박스, 모바일: 스타일 없음 */}
       <div className="md:bg-surface md:border md:border-border md:rounded-(--radius) md:px-4 md:py-3 mb-2">

@@ -19,6 +19,7 @@ import { qk } from '@/lib/queryKeys';
 import { Card } from '@/components/ui/Card';
 import EmptyState from '@/components/EmptyState';
 import TableEmptyRow from '@/components/TableEmptyRow';
+import FilterPanel from '@/components/FilterPanel';
 import {
   SAVING_TYPE_LABEL, won, dotDate, daysUntil, calcMaturityAmount,
   type Category, type Saving, type SavingSummary, type SavingType,
@@ -112,7 +113,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
         </div>
       )}
 
-      <div className="bg-surface border border-border rounded-[var(--radius-lg)] px-5 py-4 flex flex-col gap-3 mb-4">
+      <FilterPanel>
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:flex-wrap">
           <select className="input w-full md:w-auto md:min-w-30 shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
             <option value="">전체 유형</option>
@@ -124,7 +125,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
           </div>
           <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
         </div>
-      </div>
+      </FilterPanel>
 
       <div className="flex items-center justify-between mb-2">
         <span className="text-[0.78rem] text-secondary">총 {total}건</span>
