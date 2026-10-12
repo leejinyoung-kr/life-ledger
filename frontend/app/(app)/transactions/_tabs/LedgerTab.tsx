@@ -29,7 +29,7 @@ import {
   type Saving, type InvestmentAccount, type RecurringSchedule,
 } from '@/lib/finance';
 import {
-  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
+  TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
   AMT_COLOR, RowActions, CardActions, toDay, monthsAgo, useAddTrigger,
 } from '../_shared';
 
@@ -384,7 +384,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
         </div>
       </div>
 
-      <div className={TABLE_CARD}>
+      <Card clip>
         <div className="table-wrap max-md:hidden">
           <table>
             <colgroup>
@@ -456,7 +456,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
           ))}
         </div>
         <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
-      </div>
+      </Card>
 
       <LedgerModal
         state={modal}

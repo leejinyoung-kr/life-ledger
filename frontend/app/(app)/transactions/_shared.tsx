@@ -18,7 +18,6 @@ export function useAddTrigger(addTrigger: number, onTrigger: () => void) {
   }, [addTrigger]);
 }
 
-export const TABLE_CARD = 'bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] overflow-hidden';
 export const TXCARDS = 'hidden max-md:flex flex-col gap-2.5 p-3';
 export const TXCARD = 'border border-border rounded-[var(--radius-lg)] p-3.5 bg-background';
 export const TXCARD_TOP = 'flex justify-between items-baseline gap-2.5';

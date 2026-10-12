@@ -28,6 +28,7 @@ import {
   IconCode, IconEdit, IconCopy, IconEye, IconTrash, IconClock,
 } from '@/components/icons';
 import { api } from '@/lib/api';
+import { Card } from '@/components/ui/Card';
 import {
   ENV_TABS, ENV_DOT, ENV_GROUPS, groupVars, toEnvText, toEnvExample,
   type EnvKind, type EnvProject, type EnvVar, type ExportVar, type EnvDiff, type EnvVarHistoryEntry,
@@ -268,7 +269,7 @@ export default function EnvsPage() {
 
       <div className="grid grid-cols-[280px_1fr] gap-5 items-start max-md:grid-cols-1">
         {/* 프로젝트 목록 */}
-        <div className="bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] overflow-hidden sticky top-[calc(var(--header-h)+24px)] max-md:static">
+        <Card clip className="sticky top-[calc(var(--header-h)+24px)] max-md:static">
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-border bg-surface">
             <span className="[font-family:var(--font-display)] text-[0.875rem] font-bold text-primary">프로젝트</span>
             <Badge tone="neutral">{projects.length}개</Badge>
@@ -287,7 +288,7 @@ export default function EnvsPage() {
               );
             })}
           </div>
-        </div>
+        </Card>
 
         {/* 환경변수 편집 패널 */}
         {project ? (
@@ -316,7 +317,7 @@ export default function EnvsPage() {
             </div>
 
             {/* 환경 탭 + 변수 테이블 + 전체 복사 바 */}
-            <div className="bg-background border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">
+            <Card clip>
               <div className="relative border-b border-border bg-surface">
                 <Tabs
                   label="환경"
@@ -390,7 +391,7 @@ export default function EnvsPage() {
                 <span className={TOOLBAR_DIVIDER} />
                 <Button variant="danger" disabled={selectedVars.size === 0} onClick={handleRemoveSelectedVars}>선택삭제</Button>
               </div>
-            </div>
+            </Card>
 
             {/* 일괄 붙여넣기 */}
             <div className="border-2 border-dashed border-border rounded-[var(--radius-lg)] p-5 flex flex-col gap-3">

@@ -16,12 +16,13 @@ import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
+import { Card } from '@/components/ui/Card';
 import {
   SAVING_TYPE_LABEL, won, dotDate, daysUntil, calcMaturityAmount,
   type Category, type Saving, type SavingSummary, type SavingType,
 } from '@/lib/finance';
 import {
-  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
+  TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
   RowActions, CardActions, toDay, useAddTrigger,
 } from '../_shared';
 
@@ -131,7 +132,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
         </div>
       </div>
 
-      <div className={`${TABLE_CARD} mb-4`}>
+      <Card clip className="mb-4">
         <div className="table-wrap max-md:hidden">
           <table>
             <colgroup>
@@ -236,7 +237,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
           })}
         </div>
         <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
-      </div>
+      </Card>
 
       <SavingsModal
         state={modal}

@@ -33,6 +33,7 @@ import {
   type Settings, type WidgetPref, type AiUsageSummary,
 } from '@/lib/settings';
 import type { VaultStatus } from '@/lib/security';
+import { Card } from '@/components/ui/Card';
 
 // 자동잠금 시간 옵션 (분)
 const VAULT_TIMEOUT_OPTIONS = [
@@ -640,10 +641,10 @@ export default function SettingsPage() {
 // 설정 그룹 (헤더 + 행 묶음)
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="bg-background border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">
+    <Card clip>
       <div className="px-5 py-3.5 border-b border-border [font-family:var(--font-display)] font-bold text-[0.875rem] text-primary bg-surface">{title}</div>
       {children}
-    </div>
+    </Card>
   );
 }
 

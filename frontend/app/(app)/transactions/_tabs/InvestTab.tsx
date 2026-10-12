@@ -18,13 +18,14 @@ import { useFormErrors } from '@/lib/useFormErrors';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { qk } from '@/lib/queryKeys';
+import { Card } from '@/components/ui/Card';
 import {
   INVEST_TYPE_LABEL, won, usd, dotDate, daysUntil, localDate, recurringRuleSummary, WEEKDAY_LABEL,
   type Category, type Investment, type InvestmentAccount, type InvestmentSummary, type InvestmentType,
   type RecurringCycle, type WeekendAdjust, type RecurringSchedule,
 } from '@/lib/finance';
 import {
-  TABLE_CARD, TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
+  TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
   RowActions, CardActions, toDay, useAddTrigger,
 } from '../_shared';
 
@@ -330,7 +331,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
         )}
       </div>
 
-      <div className={`${TABLE_CARD} mb-6`}>
+      <Card clip className="mb-6">
         <div className="table-wrap max-md:hidden">
           <table>
             <colgroup>
@@ -428,7 +429,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
           })}
         </div>
         <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
-      </div>
+      </Card>
 
       <InvestModal
         state={modal}

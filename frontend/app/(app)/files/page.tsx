@@ -20,6 +20,7 @@ import Button, { buttonClasses } from '@/components/ui/Button';
 import SearchInput from '@/components/ui/SearchInput';
 import IconButton from '@/components/ui/IconButton';
 import { Field, ModalFooter } from '@/components/ui/Field';
+import { Card } from '@/components/ui/Card';
 import {
   IconFolderPlus, IconUpload, IconFolder, IconTrash,
   IconDoc, IconImage, IconClose,
@@ -318,12 +319,12 @@ export default function FilesPage() {
               <div className={SECTION}><IconFolder width={16} height={16} />폴더</div>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 mb-7">
                 {filteredFolders.map((f) => (
-                  <div
+                  <Card
                     key={f.id}
-                    {...clickable(() => handleEnterFolder(f.id))}
-                    aria-label={`폴더 ${f.name} 열기`}
-                    className="flex flex-col items-center gap-2 px-3 pt-5 pb-3.5 bg-background border border-border rounded-[var(--radius-lg)] shadow-[var(--shadow-sm)] cursor-pointer transition-all text-center hover:border-accent hover:bg-accent-dim hover:-translate-y-px group relative"
+                    hover="tile"
                     onClick={() => handleEnterFolder(f.id)}
+                    aria-label={`폴더 ${f.name} 열기`}
+                    className="flex flex-col items-center gap-2 px-3 pt-5 pb-3.5 text-center group relative"
                   >
                     <div className="text-[2rem] leading-none">📁</div>
                     <div className="text-[0.82rem] font-semibold text-primary break-all">{f.name}</div>
@@ -338,7 +339,7 @@ export default function FilesPage() {
                     >
                       <IconTrash width={12} height={12} />
                     </button>
-                  </div>
+                  </Card>
                 ))}
                 <div
                   {...clickable(() => setFolderModal(true))}
@@ -376,12 +377,11 @@ export default function FilesPage() {
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
               {filteredFiles.map((file) => (
-                <div
+                <Card
                   key={file.id}
-                  {...clickable(() => setViewer(file))}
-                  aria-label={`${file.name} 미리보기`}
-                  className="bg-background border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)] transition-all cursor-pointer hover:border-accent hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]"
+                  clip
                   onClick={() => setViewer(file)}
+                  aria-label={`${file.name} 미리보기`}
                 >
                   <div className="h-[100px] bg-surface flex items-center justify-center text-[2rem] border-b border-border relative">
                     {fileEmoji(file.mimeType)}
@@ -398,7 +398,7 @@ export default function FilesPage() {
                     <button type="button" className={FILE_BTN} onClick={() => handleDownloadFile(file)}>다운</button>
                     <button type="button" className={`${FILE_BTN} hover:text-danger`} onClick={() => handleDeleteFile(file)}>삭제</button>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           )}

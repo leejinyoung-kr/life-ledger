@@ -27,6 +27,7 @@ import { Field, ModalFooter } from '@/components/ui/Field';
 import { IconRepeat, IconAlertTriangle } from '@/components/icons';
 import { api } from '@/lib/api';
 import { won, usd, dotDate, daysUntil, localDate } from '@/lib/finance';
+import { Card } from '@/components/ui/Card';
 import {
   SUB_CATEGORY_LABEL, SUB_CATEGORY_EMOJI, SUB_CATEGORY_OPTIONS,
   CYCLE_LABEL, STATUS_LABEL, SUB_PAY_METHODS, SUB_CURRENCY_LABEL,
@@ -149,7 +150,7 @@ export default function SubscriptionsPage() {
         {paged.map((sub) => {
           const dd = daysUntil(sub.nextPaymentDate);
           return (
-            <div className="bg-background border border-border rounded-[var(--radius-lg)] p-[18px] shadow-[var(--shadow-sm)] transition-all hover:shadow-[var(--shadow-md)] hover:-translate-y-px" key={sub.id}>
+            <Card hover="lift" className="p-[18px]" key={sub.id}>
               <div className="flex items-center gap-3 mb-3.5">
                 <div className="w-[42px] h-[42px] rounded-[var(--radius)] bg-surface border border-border flex items-center justify-center text-[1.3rem] shrink-0">{SUB_CATEGORY_EMOJI[sub.category] ?? '🧩'}</div>
                 <div className="flex-1">
@@ -172,7 +173,7 @@ export default function SubscriptionsPage() {
                 <Button variant="ghost" className="flex-1" onClick={() => setModal({ open: true, mode: 'edit', editing: sub })}>수정</Button>
                 <Button variant="danger" className="flex-1" onClick={() => handleCancel(sub.id)}>해지</Button>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
