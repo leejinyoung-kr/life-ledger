@@ -19,13 +19,15 @@ import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { qk } from '@/lib/queryKeys';
 import { Card } from '@/components/ui/Card';
+import { PageLoading } from '@/components/QueryState';
+import EmptyState from '@/components/EmptyState';
 import {
   INVEST_TYPE_LABEL, won, usd, dotDate, daysUntil, localDate, recurringRuleSummary, WEEKDAY_LABEL,
   type Category, type Investment, type InvestmentAccount, type InvestmentSummary, type InvestmentType,
   type RecurringCycle, type WeekendAdjust, type RecurringSchedule,
 } from '@/lib/finance';
 import {
-  TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
+  TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT,
   RowActions, CardActions, toDay, useAddTrigger,
 } from '../_shared';
 
@@ -388,7 +390,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
           </table>
         </div>
         <div className={TXCARDS}>
-          {paged.length === 0 && <div className={TXCARD_EMPTY}>투자 항목이 없습니다.</div>}
+          {paged.length === 0 && <EmptyState message="투자 항목이 없습니다." />}
           {paged.map((row) => {
             const recurringSchedule = scheduleByInvestmentId.get(row.id);
             const recurring = recurringSchedule ? recurringBuyLabel(recurringSchedule, row.type === 'foreign_stock' || row.type === 'foreign_etf') : null;
@@ -578,7 +580,7 @@ function PriceLookupModal({ state, onClose, onSaved }: { state: PriceState; onCl
 
   return (
     <Modal open={state.open} onClose={onClose} title={`${t?.name ?? ''} 시세조회`} footer={<ModalFooter onClose={onClose} onSave={handleApply} saving={saving} saveLabel="평가금액에 반영" saveDisabled={!result} />}>
-      {loading && <div className="text-[0.82rem] text-muted">조회 중...</div>}
+      {loading && <PageLoading size="sm" message="조회 중..." />}
       {result && (
         <div className="text-[0.82rem] text-secondary space-y-1">
           <div>

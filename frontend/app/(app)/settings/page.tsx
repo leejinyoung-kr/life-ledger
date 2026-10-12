@@ -293,7 +293,7 @@ export default function SettingsPage() {
         <PageHeader title="설정" />
         {settingsQuery.isError
           ? <QueryError message={error ?? undefined} onRetry={settingsQuery.refetch} />
-          : <PageLoading className="py-0! text-left! text-[0.82rem] text-secondary" />}
+          : <PageLoading size="sm" />}
       </AppShell>
     );
   }

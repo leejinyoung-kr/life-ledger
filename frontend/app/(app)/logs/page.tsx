@@ -221,7 +221,7 @@ export default function LogsPage() {
       {/* 로그 목록 */}
       <div className="bg-background border border-border rounded-lg shadow-(--shadow-sm) overflow-hidden mb-4">
         {!logsQuery.isLoading && items.length === 0 && (
-          <EmptyState message="해당하는 로그가 없습니다." className="text-center text-muted py-12 text-sm" />
+          <EmptyState size="lg" message="해당하는 로그가 없습니다." />
         )}
         {items.map((log) => {
           const isOpen = expanded.has(log.id);

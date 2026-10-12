@@ -23,6 +23,7 @@ import { useConfirm } from '@/components/ConfirmModal';
 import { IconAlertCircle, IconEye, IconEdit, IconTrash } from '@/components/icons';
 import { api } from '@/lib/api';
 import { useFormErrors } from '@/lib/useFormErrors';
+import EmptyState from '@/components/EmptyState';
 import {
   ID_TYPE_LABEL, ID_TYPE_OPTIONS, ID_VARIANT_BG, fmtDate, ddayOf,
   type IdCard, type IdType,
@@ -117,7 +118,7 @@ export default function IdWalletPage() {
       )}
 
       {cards.length === 0 && !error && (
-        <div className="text-center text-muted py-16">저장된 신원 문서가 없습니다.</div>
+        <EmptyState size="lg" message="저장된 신원 문서가 없습니다." />
       )}
 
       {/* 신분증 카드 그리드 */}

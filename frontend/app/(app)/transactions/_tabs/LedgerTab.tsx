@@ -21,6 +21,8 @@ import { qk } from '@/lib/queryKeys';
 import { downloadTransactionTemplate } from '@/lib/excel';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
+import EmptyState from '@/components/EmptyState';
+import ErrorBanner from '@/components/ErrorBanner';
 import {
   TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
   won, signedWon, dotDate, localDate,
@@ -29,7 +31,7 @@ import {
   type Saving, type InvestmentAccount, type RecurringSchedule,
 } from '@/lib/finance';
 import {
-  TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
+  TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT,
   AMT_COLOR, RowActions, CardActions, toDay, monthsAgo, useAddTrigger,
 } from '../_shared';
 
@@ -231,7 +233,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
 
   return (
     <>
-      {error && <p className="mt-3 text-[0.78rem] text-danger">⚠️ {error}</p>}
+      <ErrorBanner message={error} />
 
       {summary && (
         <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
@@ -427,7 +429,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
           </table>
         </div>
         <div className={TXCARDS}>
-          {pagedRows.length === 0 && <div className={TXCARD_EMPTY}>내역이 없습니다.</div>}
+          {pagedRows.length === 0 && <EmptyState message="내역이 없습니다." />}
           {pagedRows.map((row) => (
             <div className={TXCARD} key={row.id}>
               <div className="flex items-center gap-2 mb-1.5">

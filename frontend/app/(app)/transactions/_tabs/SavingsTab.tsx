@@ -17,12 +17,13 @@ import { useRowSelection } from '@/lib/useRowSelection';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { Card } from '@/components/ui/Card';
+import EmptyState from '@/components/EmptyState';
 import {
   SAVING_TYPE_LABEL, won, dotDate, daysUntil, calcMaturityAmount,
   type Category, type Saving, type SavingSummary, type SavingType,
 } from '@/lib/finance';
 import {
-  TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT, TXCARD_EMPTY,
+  TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT,
   RowActions, CardActions, toDay, useAddTrigger,
 } from '../_shared';
 
@@ -197,7 +198,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
           </table>
         </div>
         <div className={TXCARDS}>
-          {paged.length === 0 && <div className={TXCARD_EMPTY}>예적금 내역이 없습니다.</div>}
+          {paged.length === 0 && <EmptyState message="예적금 내역이 없습니다." />}
           {paged.map((c) => {
             const dleft = daysUntil(c.maturityDate);
             const near = dleft !== null && dleft >= 0 && dleft <= 30;

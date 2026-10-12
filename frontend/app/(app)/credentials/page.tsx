@@ -33,6 +33,7 @@ import {
   type Credential, type CredentialSecret, type TotpCode, type BackupCodes,
 } from '@/lib/credential';
 import type { Settings } from '@/lib/settings';
+import EmptyState from '@/components/EmptyState';
 
 // 설정의 pwAutoHide(10s|30s|1m|none) → ms. none/누락 시 null(자동 숨김 안 함)
 function pwAutoHideMs(v: string | undefined): number | null {
@@ -251,7 +252,7 @@ export default function CredentialsPage() {
 
         {/* 모바일 카드 */}
         <div className="hidden max-md:flex flex-col gap-2.5 p-3">
-          {paged.length === 0 && <div className="text-center text-muted py-7">저장된 계정이 없습니다.</div>}
+          {paged.length === 0 && <EmptyState message="저장된 계정이 없습니다." />}
           {paged.map((c) => (
             <div className="border border-border rounded-lg p-3.5 bg-background cursor-pointer" key={c.id} onClick={() => setDetail(c)}>
               <div className="flex items-center gap-2.5">

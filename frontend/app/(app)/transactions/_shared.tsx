@@ -24,7 +24,6 @@ export const TXCARD_TOP = 'flex justify-between items-baseline gap-2.5';
 export const TXCARD_TITLE = 'font-semibold text-[0.95rem] break-all';
 export const TXCARD_AMT = 'font-bold text-base whitespace-nowrap [font-family:var(--font-mono)]';
 export const TXCARD_SUB = 'mt-2 text-[0.78rem] text-secondary flex flex-wrap items-center gap-1.5';
-export const TXCARD_EMPTY = 'text-center text-muted py-7';
 
 export const AMT_COLOR: Record<TransactionType, string> = {
   income: 'text-accent',

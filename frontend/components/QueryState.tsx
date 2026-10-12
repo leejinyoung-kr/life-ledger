@@ -3,14 +3,17 @@
 import QueryError from './QueryError';
 
 // 페이지 한가운데에 표시하는 공통 "불러오는 중..." 텍스트.
+// size: md 는 페이지 전체, sm 은 모달 · 카드 안
 export function PageLoading({
   message = '불러오는 중...',
+  size = 'md',
   className = '',
 }: {
   message?: string;
+  size?: 'md' | 'sm';
   className?: string;
 }) {
-  return <div className={`text-center py-16 text-muted text-sm ${className}`}>{message}</div>;
+  return <div className={`text-center text-muted ${size === 'sm' ? 'py-6 text-[0.84rem]' : 'py-16 text-sm'} ${className}`.trim()}>{message}</div>;
 }
 
 interface QueryLike {

@@ -21,6 +21,7 @@ import SearchInput from '@/components/ui/SearchInput';
 import IconButton from '@/components/ui/IconButton';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { Card } from '@/components/ui/Card';
+import EmptyState from '@/components/EmptyState';
 import {
   IconFolderPlus, IconUpload, IconFolder, IconTrash,
   IconDoc, IconImage, IconClose,
@@ -373,7 +374,7 @@ export default function FilesPage() {
           {/* 파일 섹션 */}
           <div className={SECTION}><IconDoc width={16} height={16} />파일</div>
           {filteredFiles.length === 0 ? (
-            <div className="text-center py-10 text-muted text-sm">파일이 없습니다.</div>
+            <EmptyState size="lg" message="파일이 없습니다." />
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
               {filteredFiles.map((file) => (

@@ -146,7 +146,7 @@ export default function SubscriptionsPage() {
 
       {/* 구독 카드 그리드 (도메인 특성상 카드형 유지) */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4 mb-7">
-        {paged.length === 0 && <EmptyState message="등록된 구독이 없습니다." className="text-[0.82rem] text-secondary mb-3" />}
+        {paged.length === 0 && <EmptyState size="sm" message="등록된 구독이 없습니다." className="mb-3" />}
         {paged.map((sub) => {
           const dd = daysUntil(sub.nextPaymentDate);
           return (

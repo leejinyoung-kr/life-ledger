@@ -257,7 +257,7 @@ export default function CalendarPage() {
           <Card>
             <CardHeader><CardTitle>다가오는 일정</CardTitle></CardHeader>
             <CardBody compact>
-              {upcoming.length === 0 && <EmptyState message="다가오는 일정이 없습니다." className="py-2.5 text-muted text-[0.84rem]" />}
+              {upcoming.length === 0 && <EmptyState size="sm" message="다가오는 일정이 없습니다." />}
               {upcoming.map((u) => {
                 const [, m, d] = u.date.split('-');
                 return (

@@ -170,7 +170,7 @@ export default function NotificationsPage() {
             </span>
           </div>
         )}
-        {paged.length === 0 && <EmptyState message="알림이 없습니다." className="text-secondary text-center py-5" />}
+        {paged.length === 0 && <EmptyState size="sm" message="알림이 없습니다." />}
         {paged.map((n) => (
           <div
             key={n.id}

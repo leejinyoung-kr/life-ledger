@@ -21,6 +21,7 @@ import { useApiQuery, useInvalidate } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { clearVaultToken } from '@/lib/vault';
 import { relativeTime } from '@/lib/notification';
+import { PageLoading } from '@/components/QueryState';
 import {
   RISK_CATEGORY_ICON, SEVERITY_BADGE, STAT_META, DEVICE_ICON, SCORE_COLOR, ACCESS_ACTION_META,
   type SecuritySummary, type SecurityRisk, type LoginSession,
@@ -236,7 +237,7 @@ export default function SecurityPage() {
               <Button className="ml-auto" variant="ghost" size="sm" onClick={() => setRunBreach(true)}>검사 실행</Button>
             </div>
           ) : breachQuery.isFetching ? (
-            <div className="text-[0.82rem] text-muted py-2">검사 중... (외부 DB 대조)</div>
+            <PageLoading size="sm" message="검사 중... (외부 DB 대조)" />
           ) : breachQuery.data ? (
             breachQuery.data.breachedCount === 0 ? (
               <div className="text-[0.82rem] text-accent py-1">✓ 검사한 {breachQuery.data.checked}건 모두 유출 이력이 없습니다.</div>

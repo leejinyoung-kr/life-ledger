@@ -29,6 +29,8 @@ import {
 } from '@/components/icons';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
+import EmptyState from '@/components/EmptyState';
+import { PageLoading } from '@/components/QueryState';
 import {
   ENV_TABS, ENV_DOT, ENV_GROUPS, groupVars, toEnvText, toEnvExample,
   type EnvKind, type EnvProject, type EnvVar, type ExportVar, type EnvDiff, type EnvVarHistoryEntry,
@@ -275,7 +277,7 @@ export default function EnvsPage() {
             <Badge tone="neutral">{projects.length}개</Badge>
           </div>
           <div className="p-2">
-            {projects.length === 0 && <p className="text-center text-muted py-5 text-[0.84rem]">프로젝트가 없습니다.</p>}
+            {projects.length === 0 && <EmptyState size="sm" message="프로젝트가 없습니다." />}
             {projects.map((p) => {
               const active = p.id === selectedId;
               return (
@@ -424,7 +426,7 @@ export default function EnvsPage() {
             </div>
           </div>
         ) : (
-          <div className="text-center text-muted py-16">프로젝트를 선택하거나 추가하세요.</div>
+          <EmptyState size="lg" message="프로젝트를 선택하거나 추가하세요." />
         )}
       </div>
 
@@ -439,7 +441,7 @@ export default function EnvsPage() {
           </select>
         </div>
         {!diff ? (
-          <div className="py-6 text-center text-muted text-[0.84rem]">비교 중...</div>
+          <PageLoading size="sm" message="비교 중..." />
         ) : diff.identical ? (
           <div className="py-6 text-center text-accent text-[0.875rem]">두 환경의 변수가 동일합니다.</div>
         ) : (
@@ -710,9 +712,9 @@ function HistoryModal({ envVar, onClose, onRolledBack, confirm }: {
   return (
     <Modal open={!!envVar} onClose={onClose} title={`변경 이력 — ${envVar.key}`} footer={<Button variant="ghost" onClick={onClose}>닫기</Button>}>
       {loading ? (
-        <div className="py-6 text-center text-muted text-[0.84rem]">불러오는 중...</div>
+        <PageLoading size="sm" />
       ) : list.length === 0 ? (
-        <div className="py-6 text-center text-muted text-[0.84rem]">변경 이력이 없습니다. 값을 수정하면 이전 값이 여기에 쌓입니다.</div>
+        <EmptyState size="sm" message="변경 이력이 없습니다. 값을 수정하면 이전 값이 여기에 쌓입니다." />
       ) : (
         <div className="flex flex-col gap-2">
           {list.map((h) => (
