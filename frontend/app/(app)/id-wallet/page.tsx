@@ -253,10 +253,10 @@ function IdModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 'a
         </select>
       </Field>
       <Field label="명칭" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 대한민국 여권" value={name} onChange={(e) => { setName(e.target.value); clearError('name'); }} />
+        <input type="text" className="input" placeholder="예: 대한민국 여권" value={name} onChange={(e) => { setName(e.target.value); clearError('name'); }} />
       </Field>
       <Field label={isEdit ? '번호 (변경 시에만 입력)' : '번호'} required={!isEdit} error={errors.number}>
-        <input type="text" className={`input input-mono${errors.number ? ' is-invalid' : ''}`} placeholder={isEdit ? '비워두면 기존 번호 유지' : '문서 번호'} value={number} onChange={(e) => { setNumber(e.target.value); clearError('number'); }} />
+        <input type="text" className="input input-mono" placeholder={isEdit ? '비워두면 기존 번호 유지' : '문서 번호'} value={number} onChange={(e) => { setNumber(e.target.value); clearError('number'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="발급일 (선택)"><input type="date" className="input" aria-label="발급일" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} /></Field>

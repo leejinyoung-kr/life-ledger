@@ -16,6 +16,7 @@ import ErrorBanner from '@/components/ErrorBanner';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
+import SearchInput from '@/components/ui/SearchInput';
 import IconButton from '@/components/ui/IconButton';
 import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
@@ -24,7 +25,7 @@ import { useFormErrors } from '@/lib/useFormErrors';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import {
-  IconSearch, IconEdit, IconTrash, IconClose, IconCopy, IconEye,
+  IconEdit, IconTrash, IconClose, IconCopy, IconEye,
 } from '@/components/icons';
 import { api, apiDownload } from '@/lib/api';
 import {
@@ -200,10 +201,7 @@ export default function CredentialsPage() {
             </select>
           </div>
           <div className="flex gap-2 flex-1">
-            <div className="relative flex-1 min-w-0">
-              <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-              <input className="input pl-icon w-full" type="text" placeholder="서비스명, URL, 아이디 검색..." value={pendingQuery} onChange={(e) => setPendingQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} aria-label="계정 검색" />
-            </div>
+            <SearchInput label="계정 검색" className="flex-1 min-w-0" placeholder="서비스명, URL, 아이디 검색..." value={pendingQuery} onChange={(e) => setPendingQuery(e.target.value)} onEnter={handleSearch} />
             <Button onClick={handleSearch}>검색</Button>
           </div>
         </div>
@@ -540,7 +538,7 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 
       footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} saveLabel="저장 (암호화)" />}
     >
       <Field label="서비스명" required error={errors.serviceName}>
-        <input type="text" className={`input${errors.serviceName ? ' is-invalid' : ''}`} placeholder="예: GitHub" value={serviceName} onChange={(e) => { setServiceName(e.target.value); clearError('serviceName'); }} />
+        <input type="text" className="input" placeholder="예: GitHub" value={serviceName} onChange={(e) => { setServiceName(e.target.value); clearError('serviceName'); }} />
       </Field>
       <Field label="URL"><input type="url" className="input" placeholder="https://github.com" value={url} onChange={(e) => setUrl(e.target.value)} /></Field>
       <Field label="카테고리" required>
@@ -549,11 +547,11 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 
         </select>
       </Field>
       <Field label="아이디" required error={errors.username}>
-        <input type="text" className={`input${errors.username ? ' is-invalid' : ''}`} placeholder="아이디 또는 이메일" value={username} onChange={(e) => { setUsername(e.target.value); clearError('username'); }} />
+        <input type="text" className="input" placeholder="아이디 또는 이메일" value={username} onChange={(e) => { setUsername(e.target.value); clearError('username'); }} />
       </Field>
       <Field label={isEdit ? '비밀번호 (변경 시에만 입력)' : '비밀번호'} required={!isEdit} error={errors.pw}>
         <div className="flex gap-2">
-          <input type="text" className={`input${errors.pw ? ' is-invalid' : ''}`} placeholder={isEdit ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearError('pw'); }} />
+          <input type="text" className="input" placeholder={isEdit ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearError('pw'); }} />
           <Button variant="ghost" className="whitespace-nowrap" onClick={() => { setPw(generatePassword()); clearError('pw'); }}>생성</Button>
         </div>
         {pw && (

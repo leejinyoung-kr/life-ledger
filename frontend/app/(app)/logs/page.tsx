@@ -4,10 +4,11 @@ import { useState, useMemo } from 'react';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import Button from '@/components/ui/Button';
+import SearchInput from '@/components/ui/SearchInput';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
-import { IconClock, IconCaret, IconSearch } from '@/components/icons';
+import { IconClock, IconCaret } from '@/components/icons';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { usePagination } from '@/lib/usePagination';
@@ -206,18 +207,7 @@ export default function LogsPage() {
             ))}
           </select>
           <div className="flex gap-2 flex-1">
-            <div className="relative flex-1 min-w-0">
-              <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-              <input
-                className="input pl-icon w-full"
-                type="text"
-                placeholder="메시지 검색..."
-                value={pendingQ}
-                onChange={(e) => setPendingQ(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                aria-label="메시지 검색"
-              />
-            </div>
+            <SearchInput label="메시지 검색" className="flex-1 min-w-0" placeholder="메시지 검색..." value={pendingQ} onChange={(e) => setPendingQ(e.target.value)} onEnter={handleSearch} />
             <Button onClick={handleSearch}>조회</Button>
           </div>
           <Button variant="ghost" className="w-full sm:w-auto" onClick={handleReset}>초기화</Button>

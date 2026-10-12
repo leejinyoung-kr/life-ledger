@@ -21,9 +21,10 @@ import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
+import SearchInput from '@/components/ui/SearchInput';
 import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
-import { IconRepeat, IconAlertTriangle, IconSearch } from '@/components/icons';
+import { IconRepeat, IconAlertTriangle } from '@/components/icons';
 import { api } from '@/lib/api';
 import { won, usd, dotDate, daysUntil, localDate } from '@/lib/finance';
 import {
@@ -132,10 +133,7 @@ export default function SubscriptionsPage() {
       {/* 검색 필터 — PC: 카드 박스, 모바일: 스타일 없음 */}
       <div className="md:bg-surface md:border md:border-border md:rounded-(--radius) md:px-4 md:py-3 mb-2">
         <div className="flex gap-2">
-          <div className="relative flex-1 min-w-0">
-            <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-            <input className="input pl-icon w-full" type="text" placeholder="서비스명, 카테고리 검색..." value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} aria-label="구독 검색" />
-          </div>
+          <SearchInput label="구독 검색" className="flex-1 min-w-0" placeholder="서비스명, 카테고리 검색..." value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} onEnter={handleSearch} />
           <Button onClick={handleSearch}>검색</Button>
         </div>
       </div>
@@ -260,7 +258,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
       footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}
     >
       <Field label="서비스명" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 넷플릭스" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
+        <input type="text" className="input" placeholder="예: 넷플릭스" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
       </Field>
       <Field label="카테고리" required>
         <select className="input" aria-label="카테고리" value={category} onChange={(ev) => setCategory(ev.target.value)}>
@@ -269,7 +267,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="금액" required error={errors.amount}>
-          <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
+          <input type="number" className="input" placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
         </Field>
         <Field label="통화" required>
           <select className="input" aria-label="통화" value={currency} onChange={(ev) => setCurrency(ev.target.value as 'KRW' | 'USD')}>
@@ -284,7 +282,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
           </select>
         </Field>
         <Field label="다음 결제일" required error={errors.nextPaymentDate}>
-          <input type="date" className={`input${errors.nextPaymentDate ? ' is-invalid' : ''}`} aria-label="다음 결제일" value={nextPaymentDate} onChange={(ev) => { setNextPaymentDate(ev.target.value); clearError('nextPaymentDate'); }} />
+          <input type="date" className="input" aria-label="다음 결제일" value={nextPaymentDate} onChange={(ev) => { setNextPaymentDate(ev.target.value); clearError('nextPaymentDate'); }} />
         </Field>
       </div>
       <Field label="상태">

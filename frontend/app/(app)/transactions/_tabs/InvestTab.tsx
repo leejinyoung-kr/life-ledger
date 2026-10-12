@@ -5,10 +5,11 @@ import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
+import SearchInput from '@/components/ui/SearchInput';
 import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
-import { IconTrendUp, IconWon, IconChart, IconSearch } from '@/components/icons';
+import { IconTrendUp, IconWon, IconChart } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
@@ -289,10 +290,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
             </select>
           </div>
           <div className="flex gap-2 items-center flex-1">
-            <div className="relative flex-1 min-w-0">
-              <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-              <input className="input pl-icon w-full" type="text" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && handleSearch()} aria-label="종목명 검색" />
-            </div>
+            <SearchInput label="종목명 검색" className="flex-1 min-w-0" placeholder="종목명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onEnter={handleSearch} />
             <Button onClick={handleSearch}>조회</Button>
           </div>
           <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
@@ -521,10 +519,10 @@ function TradeModal({ state, accountMap, onClose, onSaved }: { state: TradeState
   return (
     <Modal open={state.open} onClose={onClose} title={`${t?.name ?? ''} ${isBuy ? '매수' : '매도'}`} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label={isBuy ? '수량' : `수량 — 보유 ${t?.quantity ?? 0}개 이내`} required error={errors.quantity}>
-        <input type="number" className={`input${errors.quantity ? ' is-invalid' : ''}`} placeholder="0" value={quantity} onChange={(ev) => { setQuantity(ev.target.value); clearError('quantity'); }} />
+        <input type="number" className="input" placeholder="0" value={quantity} onChange={(ev) => { setQuantity(ev.target.value); clearError('quantity'); }} />
       </Field>
       <Field label={t?.symbol ? `단가 (${isForeign ? '$' : '원'}) — 시세조회로 자동입력, 수정 가능` : `단가 (${isForeign ? '$' : '원'})`} required error={errors.price}>
-        <input type="number" className={`input${errors.price ? ' is-invalid' : ''}`} placeholder={priceLoading ? '조회 중...' : '0'} value={price} onChange={(ev) => { setPrice(ev.target.value); clearError('price'); }} />
+        <input type="number" className="input" placeholder={priceLoading ? '조회 중...' : '0'} value={price} onChange={(ev) => { setPrice(ev.target.value); clearError('price'); }} />
       </Field>
       {amount > 0 && (
         <div className="text-[0.82rem] text-muted">
@@ -678,7 +676,7 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
         </select>
       </Field>
       <Field label="종목명" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 삼성전자" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
+        <input type="text" className="input" placeholder="예: 삼성전자" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
       </Field>
       <Field label="유형" required>
         <select className="input" value={type} onChange={(ev) => setType(ev.target.value as InvestmentType)}>
@@ -688,7 +686,7 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="종목코드/티커 (선택)" error={errors.symbol}>
-          <input type="text" className={`input${errors.symbol ? ' is-invalid' : ''}`} placeholder="국내: 005930, 해외: AAPL" value={symbol} onChange={(ev) => { setSymbol(ev.target.value); clearError('symbol'); }} />
+          <input type="text" className="input" placeholder="국내: 005930, 해외: AAPL" value={symbol} onChange={(ev) => { setSymbol(ev.target.value); clearError('symbol'); }} />
         </Field>
         <Field label="보유수량 (선택)">
           <input type="number" className="input" placeholder="시세조회에 사용" value={quantity} onChange={(ev) => setQuantity(ev.target.value)} />
@@ -696,10 +694,10 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
       </div>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label={`투자원금 (${isForeign ? '달러 $' : '원'})`} required error={errors.principal}>
-          <input type="number" className={`input${errors.principal ? ' is-invalid' : ''}`} placeholder="0" value={principal} onChange={(ev) => { setPrincipal(ev.target.value); clearError('principal'); }} />
+          <input type="number" className="input" placeholder="0" value={principal} onChange={(ev) => { setPrincipal(ev.target.value); clearError('principal'); }} />
         </Field>
         <Field label={`현재 평가금액 (${isForeign ? '달러 $' : '원'})`} required error={errors.currentValue}>
-          <input type="number" className={`input${errors.currentValue ? ' is-invalid' : ''}`} placeholder="매수 당일엔 투자원금과 동일" value={currentValue} onChange={(ev) => { setCurrentValue(ev.target.value); clearError('currentValue'); }} />
+          <input type="number" className="input" placeholder="매수 당일엔 투자원금과 동일" value={currentValue} onChange={(ev) => { setCurrentValue(ev.target.value); clearError('currentValue'); }} />
         </Field>
       </div>
       <div className="bg-background border border-border rounded-[var(--radius-md)] p-3 -mt-1 mb-1">
@@ -710,7 +708,7 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
             <option value="rate">수익률(%)</option>
           </select>
           <input
-            type="number" className={`input${errors.profitHelper ? ' is-invalid' : ''}`}
+            type="number" className="input" aria-invalid={!!errors.profitHelper}
             placeholder={profitHelperMode === 'amount' ? '예: 19000 (손실은 음수)' : '예: 5.1 (손실은 음수)'}
             value={profitHelperValue} onChange={(ev) => { setProfitHelperValue(ev.target.value); clearError('profitHelper'); }}
           />
@@ -785,14 +783,14 @@ function AccountModal({ state, onClose, onSaved }: { state: AccountModalState; o
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '투자 계좌 수정' : '투자 계좌 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="계좌명" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: ISA, 일반위탁" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
+        <input type="text" className="input" placeholder="예: ISA, 일반위탁" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="원화 예수금 (원)"><input type="number" className="input" placeholder="0" value={cashBalance} onChange={(ev) => setCashBalance(ev.target.value)} /></Field>
         <Field label="달러 예수금 ($)"><input type="number" className="input" placeholder="0" value={cashBalanceUsd} onChange={(ev) => setCashBalanceUsd(ev.target.value)} /></Field>
       </div>
       <Field label={isEdit ? '계좌번호 (변경 시에만 입력)' : '계좌번호'} required={!isEdit} error={errors.accountNumber}>
-        <input type="text" className={`input${errors.accountNumber ? ' is-invalid' : ''}`} placeholder={isEdit ? '비워두면 기존 번호 유지' : '동일 계좌명 다중 보유 시 구분용'} value={accountNumber} onChange={(ev) => { setAccountNumber(ev.target.value); clearError('accountNumber'); }} />
+        <input type="text" className="input" placeholder={isEdit ? '비워두면 기존 번호 유지' : '동일 계좌명 다중 보유 시 구분용'} value={accountNumber} onChange={(ev) => { setAccountNumber(ev.target.value); clearError('accountNumber'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="가입일 (선택, ISA 등)"><input type="date" className="input" aria-label="가입일" value={startDate} onChange={(ev) => setStartDate(ev.target.value)} /></Field>
@@ -860,7 +858,7 @@ function ExchangeModal({ state, onClose, onSaved }: { state: ExchangeModalState;
       </Field>
       <Field label={`${fromLabel} 환전 금액 (보유 ${direction === 'krw_to_usd' ? won(available) : `$${available.toLocaleString('en-US')}`})`} required error={errors.amount}>
         <input
-          type="number" className={`input${errors.amount ? ' is-invalid' : ''}`}
+          type="number" className="input"
           placeholder={direction === 'krw_to_usd' ? '예: 1000000' : '예: 100'}
           value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }}
         />
@@ -962,7 +960,7 @@ function RecurringInvestmentModal({ state, onClose, onSaved }: { state: Recurrin
       </Field>
       <div className="text-[0.78rem] text-muted -mt-1">종목코드/티커 기준으로 회차를 계산해, 그 시점 실시간 시세로 자동 매수합니다.</div>
       <Field label="시작일" required error={errors.startDate}>
-        <input type="date" className={`input${errors.startDate ? ' is-invalid' : ''}`} value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
+        <input type="date" className="input" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="반복 주기" required>
@@ -1008,11 +1006,11 @@ function RecurringInvestmentModal({ state, onClose, onSaved }: { state: Recurrin
       </Field>
       {recurringMode === 'amount' ? (
         <Field label={`회차당 매수금액 (${isForeign ? '달러 $' : '원'})`} required error={errors.recurringAmount}>
-          <input type="number" className={`input${errors.recurringAmount ? ' is-invalid' : ''}`} placeholder="0" value={recurringAmount} onChange={(ev) => { setRecurringAmount(ev.target.value); clearError('recurringAmount'); }} />
+          <input type="number" className="input" placeholder="0" value={recurringAmount} onChange={(ev) => { setRecurringAmount(ev.target.value); clearError('recurringAmount'); }} />
         </Field>
       ) : (
         <Field label="회차당 매수수량 (주)" required error={errors.recurringQuantity}>
-          <input type="number" className={`input${errors.recurringQuantity ? ' is-invalid' : ''}`} placeholder="0" value={recurringQuantity} onChange={(ev) => { setRecurringQuantity(ev.target.value); clearError('recurringQuantity'); }} />
+          <input type="number" className="input" placeholder="0" value={recurringQuantity} onChange={(ev) => { setRecurringQuantity(ev.target.value); clearError('recurringQuantity'); }} />
         </Field>
       )}
       {recurringCycle !== 'weekly' && recurringCycle !== 'daily' && (

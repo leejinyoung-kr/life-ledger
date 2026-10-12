@@ -5,12 +5,13 @@ import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
+import SearchInput from '@/components/ui/SearchInput';
 import Badge from '@/components/ui/Badge';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
-  IconWon, IconBank, IconChart, IconSearch, IconStar,
+  IconWon, IconBank, IconChart, IconStar,
 } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
@@ -363,10 +364,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
             </select>
           </div>
           <div className="flex gap-2 flex-1">
-            <div className="relative flex-1 min-w-0">
-              <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-              <input className="input pl-icon w-full" type="text" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && handleSearch()} aria-label="내역 검색" />
-            </div>
+            <SearchInput label="내역 검색" className="flex-1 min-w-0" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} onEnter={handleSearch} />
             <Button onClick={handleSearch}>조회</Button>
           </div>
           <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
@@ -581,7 +579,7 @@ function FavoriteFormModal({ state, categories, bankCats, payMethodCats, onClose
         </select>
       </Field>
       <Field label="내역" required error={errors.title}>
-        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} aria-label="내역" placeholder="예: GS칼텍스 강남점" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
+        <input type="text" className="input" aria-label="내역" placeholder="예: GS칼텍스 강남점" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="대분류" required>
@@ -596,7 +594,7 @@ function FavoriteFormModal({ state, categories, bankCats, payMethodCats, onClose
         </Field>
       </div>
       <Field label="기본 금액 (원)" required error={errors.amount}>
-        <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} aria-label="기본 금액" placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
+        <input type="number" className="input" aria-label="기본 금액" placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
       </Field>
       <Field label={type === 'income' ? '입금 은행' : '결제수단'} required>
         <select className="input" aria-label={type === 'income' ? '입금 은행' : '결제수단'} value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
@@ -794,10 +792,10 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
         </select>
       </Field>
       <Field label="날짜" required error={errors.date}>
-        <input type="date" className={`input${errors.date ? ' is-invalid' : ''}`} aria-label="날짜" value={date} onChange={(ev) => { setDate(ev.target.value); clearError('date'); }} />
+        <input type="date" className="input" aria-label="날짜" value={date} onChange={(ev) => { setDate(ev.target.value); clearError('date'); }} />
       </Field>
       <Field label="내역" required error={errors.title}>
-        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 스타벅스" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
+        <input type="text" className="input" placeholder="예: 스타벅스" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="대분류" required>
@@ -812,7 +810,7 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
         </Field>
       </div>
       <Field label="금액 (원)" required error={errors.amount}>
-        <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
+        <input type="number" className="input" placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
       </Field>
       {type === 'transfer' && (
         <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
@@ -985,7 +983,7 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
         </select>
       </Field>
       <Field label="내역" required error={errors.title}>
-        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 월세" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
+        <input type="text" className="input" placeholder="예: 월세" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="대분류" required>
@@ -1000,7 +998,7 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
         </Field>
       </div>
       <Field label="금액 (원)" required error={errors.amount}>
-        <input type="number" className={`input${errors.amount ? ' is-invalid' : ''}`} placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
+        <input type="number" className="input" placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
       </Field>
       {type === 'transfer' && (
         <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
@@ -1043,7 +1041,7 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
       <div className="flex flex-col gap-3 p-3.5 bg-surface border border-border rounded-(--radius)">
         <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
           <Field label="시작일" required error={errors.startDate}>
-            <input type="date" className={`input${errors.startDate ? ' is-invalid' : ''}`} value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
+            <input type="date" className="input" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
           </Field>
           <Field label="반복 주기" required>
             <select className="input" value={recurringCycle} onChange={(ev) => setRecurringCycle(ev.target.value as RecurringCycle)}>

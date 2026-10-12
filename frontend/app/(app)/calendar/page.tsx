@@ -425,11 +425,11 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
   return (
     <Modal open={state.open} onClose={onClose} title="일정 추가" footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="제목" required error={errors.title}>
-        <input type="text" className={`input${errors.title ? ' is-invalid' : ''}`} placeholder="예: 보험 갱신" value={title} onChange={(e) => { setTitle(e.target.value); clearError('title'); }} />
+        <input type="text" className="input" placeholder="예: 보험 갱신" value={title} onChange={(e) => { setTitle(e.target.value); clearError('title'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="날짜" required error={errors.date}>
-          <input type="date" className={`input${errors.date ? ' is-invalid' : ''}`} aria-label="날짜" value={date} onChange={(e) => { setDate(e.target.value); clearError('date'); }} />
+          <input type="date" className="input" aria-label="날짜" value={date} onChange={(e) => { setDate(e.target.value); clearError('date'); }} />
         </Field>
         <Field label="유형" required>
           <select className="input" aria-label="유형" value={type} onChange={(e) => setType(e.target.value as EvType)}>

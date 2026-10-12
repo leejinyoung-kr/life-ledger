@@ -17,11 +17,12 @@ import QueryState from '@/components/QueryState';
 import Modal from '@/components/Modal';
 import { useConfirm } from '@/components/ConfirmModal';
 import Button, { buttonClasses } from '@/components/ui/Button';
+import SearchInput from '@/components/ui/SearchInput';
 import IconButton from '@/components/ui/IconButton';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import {
   IconFolderPlus, IconUpload, IconFolder, IconTrash,
-  IconDoc, IconImage, IconClose, IconSearch,
+  IconDoc, IconImage, IconClose,
 } from '@/components/icons';
 
 // ── 타입 ────────────────────────────────────────────────────────────────────
@@ -302,10 +303,7 @@ export default function FilesPage() {
 
       {/* 검색 + 필터 */}
       <div className="flex items-center gap-2.5 mb-4 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <IconSearch className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted w-[15px] h-[15px] pointer-events-none" />
-          <input className="input pl-icon" type="text" placeholder="파일/폴더명 검색..." value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSearch()} aria-label="파일 검색" />
-        </div>
+        <SearchInput label="파일 검색" className="flex-1 min-w-[200px]" placeholder="파일/폴더명 검색..." value={pendingSearch} onChange={(e) => setPendingSearch(e.target.value)} onEnter={handleSearch} />
         <Button onClick={handleSearch}>검색</Button>
         <span className="text-muted ml-auto text-[0.82rem]">
           폴더 {filteredFolders.length} · 파일 {filteredFiles.length}

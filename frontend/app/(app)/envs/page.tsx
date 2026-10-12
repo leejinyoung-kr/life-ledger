@@ -17,13 +17,14 @@ import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
+import SearchInput from '@/components/ui/SearchInput';
 import IconButton from '@/components/ui/IconButton';
 import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { TOOLBAR_DIVIDER } from '@/components/ui/styles';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
-  IconCode, IconEdit, IconCopy, IconEye, IconTrash, IconSearch, IconClock,
+  IconCode, IconEdit, IconCopy, IconEye, IconTrash, IconClock,
 } from '@/components/icons';
 import { api } from '@/lib/api';
 import {
@@ -329,10 +330,7 @@ export default function EnvsPage() {
 
               {/* 변수 검색 + 위치 필터 */}
               <div className="px-4 py-2.5 border-b border-border bg-surface flex items-center gap-2.5 flex-wrap">
-                <div className="relative max-w-72 flex-1 min-w-40">
-                  <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-                  <input className="input pl-icon" type="text" placeholder="KEY 검색..." value={pendingVarSearch} onChange={(e) => setPendingVarSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleVarSearch()} aria-label="변수 검색" />
-                </div>
+                <SearchInput label="변수 검색" className="max-w-72 flex-1 min-w-40" placeholder="KEY 검색..." value={pendingVarSearch} onChange={(e) => setPendingVarSearch(e.target.value)} onEnter={handleVarSearch} />
                 <select className="input w-auto max-w-52" aria-label="위치 필터" value={pendingLocationFilter} onChange={(e) => setPendingLocationFilter(e.target.value)}>
                   <option value="">모든 위치</option>
                   {locations.map((l) => <option key={l} value={l}>{l}</option>)}
@@ -559,7 +557,7 @@ function ProjectModal({ state, onClose, onSaved }: { state: { open: boolean; mod
   return (
     <Modal open={state.open} onClose={onClose} title={isEdit ? '프로젝트 수정' : '프로젝트 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="프로젝트명" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: my-project" value={name} onChange={(e) => { setName(e.target.value); clearError('name'); }} />
+        <input type="text" className="input" placeholder="예: my-project" value={name} onChange={(e) => { setName(e.target.value); clearError('name'); }} />
       </Field>
       <Field label="설명 (선택)"><input type="text" className="input" placeholder="프로젝트 간단 설명" value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
     </Modal>
@@ -639,10 +637,10 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
         <input type="text" className="input" list="env-locations" placeholder="예: backend/.env" value={location} onChange={(e) => setLocation(e.target.value)} />
       </Field>
       <Field label="KEY" required error={errors.key}>
-        <input type="text" className={`input input-mono${errors.key ? ' is-invalid' : ''}`} placeholder="예: DATABASE_URL" value={key} onChange={(e) => { setKey(e.target.value); clearError('key'); }} />
+        <input type="text" className="input input-mono" placeholder="예: DATABASE_URL" value={key} onChange={(e) => { setKey(e.target.value); clearError('key'); }} />
       </Field>
       <Field label={isEdit ? 'VALUE (변경 시에만 입력)' : 'VALUE'} required={!isEdit} error={errors.value}>
-        <input type="text" className={`input input-mono${errors.value ? ' is-invalid' : ''}`} placeholder={isEdit ? '비워두면 기존 값 유지' : '값 입력'} value={value} onChange={(e) => { setValue(e.target.value); clearError('value'); }} />
+        <input type="text" className="input input-mono" placeholder={isEdit ? '비워두면 기존 값 유지' : '값 입력'} value={value} onChange={(e) => { setValue(e.target.value); clearError('value'); }} />
       </Field>
       {isEdit && editing ? (
         <Field label="적용 환경">

@@ -140,8 +140,9 @@
 .page-body { padding: 32px; width: 100%; }
 
 /* ── Form Validation ── */
-.input.is-invalid { border-color: #F04438 !important; }
-.input.is-invalid:focus { border-color: #F04438 !important; box-shadow: 0 0 0 3px rgba(240,68,56,0.12) !important; }
+/* Field 에 error 가 있으면 (data-invalid) 안의 입력칸이 빨개진다. Field 밖 입력칸은 aria-invalid 로 */
+[data-invalid] .input, .input[aria-invalid="true"] { border-color: #F04438 !important; }
+[data-invalid] .input:focus, .input[aria-invalid="true"]:focus { border-color: #F04438 !important; box-shadow: 0 0 0 3px rgba(240,68,56,0.12) !important; }
 
 /* ── Card ── */
 .card { background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }

@@ -5,9 +5,10 @@ import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
+import SearchInput from '@/components/ui/SearchInput';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
-import { IconBank, IconWon, IconTrendUp, IconAlertTriangle, IconSearch } from '@/components/icons';
+import { IconBank, IconWon, IconTrendUp, IconAlertTriangle } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { useFormErrors } from '@/lib/useFormErrors';
 import { api } from '@/lib/api';
@@ -115,10 +116,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
             {savingCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
           </select>
           <div className="flex gap-2 flex-1">
-            <div className="relative flex-1 min-w-0">
-              <IconSearch className="absolute left-2.75 top-1/2 -translate-y-1/2 text-muted w-3.75 h-3.75 pointer-events-none" />
-              <input className="input pl-icon w-full" type="text" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onKeyDown={(ev) => ev.key === 'Enter' && handleSearch()} aria-label="상품명 검색" />
-            </div>
+            <SearchInput label="상품명 검색" className="flex-1 min-w-0" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onEnter={handleSearch} />
             <Button onClick={handleSearch}>조회</Button>
           </div>
           <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
@@ -316,7 +314,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '예적금 수정' : '예적금 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
       <Field label="은행/기관" required error={errors.bank}>
-        <select className={`input${errors.bank ? ' is-invalid' : ''}`} aria-label="은행/기관" value={bank} onChange={(ev) => { setBank(ev.target.value); clearError('bank'); }}>
+        <select className="input" aria-label="은행/기관" value={bank} onChange={(ev) => { setBank(ev.target.value); clearError('bank'); }}>
           <option value="" disabled>은행/기관 선택</option>
           {/* 기존 자유텍스트 값이 목록에 없으면 그대로 옵션으로 노출 */}
           {bank && !bankCats.some((b) => b.label === bank) && <option value={bank}>{bank}</option>}
@@ -324,7 +322,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
         </select>
       </Field>
       <Field label="상품명" required error={errors.name}>
-        <input type="text" className={`input${errors.name ? ' is-invalid' : ''}`} placeholder="예: 26주 적금" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
+        <input type="text" className="input" placeholder="예: 26주 적금" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
       </Field>
       <Field label="유형" required>
         <select className="input" value={type} onChange={(ev) => setType(ev.target.value as SavingType)}>
@@ -339,7 +337,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
       </div>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Field label="가입일" required error={errors.startDate}>
-          <input type="date" className={`input${errors.startDate ? ' is-invalid' : ''}`} aria-label="가입일" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
+          <input type="date" className="input" aria-label="가입일" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
         </Field>
         <Field label="만기일"><input type="date" className="input" aria-label="만기일" value={maturityDate} onChange={(ev) => setMaturityDate(ev.target.value)} /></Field>
       </div>

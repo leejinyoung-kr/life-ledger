@@ -6,10 +6,10 @@
 import type { ReactNode } from 'react';
 import Button from './Button';
 
-// 라벨 + 입력요소 (label 로 감싸 접근성 이름 연결)
+// 라벨 + 입력요소 (label 로 감싸 접근성 이름 연결). error 가 있으면 안의 .input 이 빨간 테두리가 된다
 export function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
   return (
-    <label className="flex flex-col gap-1.5">
+    <label className="flex flex-col gap-1.5" data-invalid={error ? '' : undefined}>
       <span className="text-[0.8rem] font-medium text-secondary flex items-center gap-0.5">
         {label}{required && <span className="text-danger font-bold text-[0.85rem] leading-none">*</span>}
       </span>
