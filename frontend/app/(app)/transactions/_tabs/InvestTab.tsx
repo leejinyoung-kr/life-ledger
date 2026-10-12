@@ -714,7 +714,7 @@ function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState;
           <input type="number" className="input" placeholder="매수 당일엔 투자원금과 동일" value={currentValue} onChange={(ev) => { setCurrentValue(ev.target.value); clearError('currentValue'); }} />
         </Field>
       </div>
-      <div className="bg-background border border-border rounded-[var(--radius-md)] p-3 -mt-1 mb-1">
+      <div className="bg-background border border-border rounded-md p-3 -mt-1 mb-1">
         <div className="text-[0.78rem] text-secondary mb-1.5">이미 투자중인 종목이라 투자원금을 모를 때 — 현재 평가금액과 수익을 입력하면 투자원금을 계산해줍니다.</div>
         <div className="flex gap-2 items-start max-md:flex-wrap">
           <select className="input w-auto" value={profitHelperMode} onChange={(ev) => setProfitHelperMode(ev.target.value as 'amount' | 'rate')}>

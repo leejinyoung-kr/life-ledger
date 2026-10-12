@@ -209,6 +209,23 @@ docker compose exec backend npx prisma migrate deploy
 
 코드 주석·커밋 메시지·DB 컬럼 코멘트는 루트 `develop/CLAUDE.md` 공통 규칙을 따른다. 이 프로젝트에만 있는 것:
 
+- **프론트 공통 요소** (`frontend/`): 새 화면은 아래 요소만 쓴다. 모자라면 날 것으로 만들지 말고 요소를 보강한다. **className 은 배치용(flex-1 · w-full · margin)으로만, 모양은 variant · size prop** — clsx · tailwind-merge 가 없어 className 으로 기본 스타일을 덮어쓰지 않는다. `frontend/__tests__/ui-conventions.test.ts` 가 소스를 검사해 어기면 테스트가 실패한다.
+
+  | 용도 | 요소 |
+  | --- | --- |
+  | 페이지 제목 (h1 · 부제목 · 우측 버튼) | `components/PageHeader` — 페이지에서 h1 을 직접 쓰지 않는다 |
+  | 버튼 / 아이콘 버튼 | `ui/Button` (`variant` · `size` · `loading`) / `ui/IconButton` (`label` 필수, `variant` · `size`) |
+  | 검색 입력 | `ui/SearchInput` (`onEnter`) |
+  | 입력 그룹 · 오류 | `ui/Field` — `error` 가 있으면 안의 `.input` 이 자동으로 빨개진다. `is-invalid` 를 손으로 붙이지 않는다 (Field 밖은 `aria-invalid`) |
+  | 탭 | 밑줄 · 세로 `ui/Tabs`, 알약 · 묶음 `ui/Segmented` (`role="tablist"`) |
+  | 카드 / 배지 / 토글 | `ui/Card`(`clip` · `hover` · `onClick`) / `ui/Badge`(`tone` · `size`) / `ui/Toggle` |
+  | 모달 | `Modal`(`size` · `subtitle` · `headerAction` · `footer`) · `ConfirmModal`(확인 · 입력이 붙는 확인은 `children` · `layer`) |
+  | 빈 상태 · 로딩 · 오류 | `EmptyState`(`size`) · `QueryState` / `PageLoading`(`size`) · `ErrorBanner` · `QueryError`, 테이블 빈 행은 `TableEmptyRow` |
+  | 조회 조건 박스 / 엑셀 버튼 줄 | `FilterPanel` / `ExcelToolbar` |
+  | 체크박스 | `<input type="checkbox" className="checkbox">` |
+
+  모서리 · 그림자는 `rounded-ui`(8px) · `rounded-panel`(14px) · `shadow-card` · `shadow-raised` · `shadow-overlay` 토큰 유틸을 쓴다 (`rounded-[var(--radius)]` 같은 표기 금지). `rounded-lg` 는 Tailwind 기본 8px 이라 14px 이 아니다. 색은 `text-danger` · `border-accent/30` 처럼 토큰 + 투명도로 쓰고 hex · rgba 를 직접 적지 않는다.
+
 - **보관함 암호화**: `backend/.env` 의 `CRYPTO_KEYS`(`<키ID>:<32자 이상 시크릿>` 콤마 구분, 첫 번째가 현재 키) 필수. 이 값을 잃으면 보관함 데이터 복구 불가 — 서버 밖에도 보관. 암호문은 `v2:<키ID>:...` 이고 `cipherContext(필드, 사용자 id)`(`src/crypto/crypto-fields.ts`)를 AAD 로 묶어, 다른 필드·다른 사용자 행으로 옮기면 풀리지 않는다. **키 교체**: 새 키를 맨 앞에 추가 → 배포(부팅 시 현재 키가 아닌 암호문 자동 재암호화) → 이전 키 제거 → 배포. `CREDENTIAL_SECRET` 은 이전 포맷(v1) 읽기 전용이라 재암호화가 끝나면 비운다. 이전 키로 된 암호문이 남았는데 키를 빼면 배포 전 점검(`node dist/crypto/crypto-check.js`, 전체 복호화)과 부팅이 막는다. 암호문 컬럼을 추가하면 `ENCRYPTED_COLUMNS` 에도 추가 — `crypto-fields.spec.ts` 가 schema.prisma 와 대조해 강제. 재암호화는 raw SQL(compare-and-swap)이라 `updated_at` 을 건드리지 않는다. **암호문 컬럼에 평문을 쓰면 저장되지 않는다** — `PrismaService` 가 `encryptedFields`(core-security/prisma) 쓰기 가드를 걸어 `EncryptedFieldError` 로 막는다(목록은 `ENCRYPTED_COLUMNS` 에서 자동 생성). 읽을 때 자동 복호화는 하지 않는다 — 열람은 잠금·감사 로그를 거치는 명시적 행위로 남긴다. 재암호화·점검의 raw SQL 경로는 가드를 거치지 않는다.
 
 - **인증 전제**: `JWT_SECRET`(access)·`JWT_REFRESH_SECRET`(refresh 쿠키)·`JWT_VAULT_SECRET`(보관함 잠금해제 토큰)은 **서로 다른** 32자 이상 랜덤값이어야 한다 — 누락·중복·예시값이면 부팅 실패. access 토큰은 `iss`/`aud` = `doc-nexus` 로 발급·검증한다(`auth/jwt.constants.ts`). refresh 시크릿을 바꾸면 전 기기 재로그인, vault 시크릿을 바꾸면 보관함 재잠금. `ALLOWED_EMAILS` 는 필수(비면 부팅 실패) — 목록 밖 계정은 구글·이메일 코드 로그인 모두 거부.
