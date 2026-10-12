@@ -289,6 +289,8 @@ Base URL: `http://localhost:8000/api/v1`
 | DELETE | /files/:id | 파일 삭제 (공유 오브젝트 보호) |
 | POST | /files/folders | 폴더 생성 |
 | DELETE | /files/folders/:id | 폴더 삭제 (하위 재귀 soft delete + 남은 파일이 가리키지 않는 B2 오브젝트 삭제, 응답 `purgedObjects`) |
+| GET | /files/clear/summary?folderId= | 비우기 전 요약 — 지울 `folderCount`·`fileCount`·`totalBytes`, 신원 지갑 사본이라 남길 `keptLinked` |
+| DELETE | /files/clear?folderId= | 비우기 — 폴더(없으면 보관함 전체) 안의 하위 폴더·파일을 한 트랜잭션으로 soft delete + 남는 데 없는 B2 오브젝트 삭제. 비우는 폴더 자신과, 신원 지갑 사본 파일·그 파일이 든 폴더는 남긴다. 응답 `deletedFiles`·`deletedFolders`·`keptLinked`·`purgedObjects` |
 
 ## AI
 

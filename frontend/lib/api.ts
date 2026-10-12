@@ -191,8 +191,9 @@ export function apiUploadProgress<T>(
   });
 }
 
-// 인증(+ 잠금해제 토큰)을 붙여 바이너리(blob)를 받아 파일 다운로드를 트리거한다. 401 은 refresh, 423 은 잠금해제 모달 후 1회 재시도
-export async function apiDownload(path: string, filename: string, retried = false): Promise<void> {
+// 인증(+ 잠금해제 토큰)을 붙여 바이너리(blob)를 받아 파일 다운로드를 트리거한다. 401 은 refresh, 423 은 잠금해제 모달 후 1회 재시도.
+// onProgress 를 주면 지금까지 받은 바이트 수를 알려 준다 (다 받은 뒤에야 저장되므로 큰 ZIP 은 진행률이 필요하다)
+export async function apiDownload(path: string, filename: string, retried = false, onProgress?: (received: number) => void): Promise<void> {
   const token = getToken();
   const vault = getVaultToken();
   const res = await fetch(`${API_BASE}${path}`, {
@@ -203,12 +204,12 @@ export async function apiDownload(path: string, filename: string, retried = fals
   });
 
   if (res.status === 401) {
-    if (!retried && (await tryRefresh())) return apiDownload(path, filename, true);
+    if (!retried && (await tryRefresh())) return apiDownload(path, filename, true, onProgress);
     toLogin();
     throw new Error('인증이 필요합니다.');
   }
   if (res.status === 423) {
-    if (!retried && (await requestVaultUnlock())) return apiDownload(path, filename, true);
+    if (!retried && (await requestVaultUnlock())) return apiDownload(path, filename, true, onProgress);
     const body = (await res.json().catch(() => null)) as { message?: string } | null;
     throw new Error(body?.message ?? '보관함이 잠겨 있습니다.');
   }
@@ -217,13 +218,28 @@ export async function apiDownload(path: string, filename: string, retried = fals
     throw new Error(body?.message ?? `요청 실패 (${res.status})`);
   }
 
-  const blob = await res.blob();
+  const blob = onProgress && res.body ? await readWithProgress(res.body, onProgress) : await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// 응답 본문을 조각마다 받은 크기를 알리며 끝까지 읽어 Blob 으로 모은다
+async function readWithProgress(body: ReadableStream<Uint8Array>, onProgress: (received: number) => void): Promise<Blob> {
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.byteLength;
+    onProgress(received);
+  }
+  return new Blob(chunks as BlobPart[]);
 }
 
 // multipart 파일 업로드 후 바이너리(blob) 응답을 받아 파일 다운로드를 트리거한다 (변환 등 stateless 처리용)
@@ -292,7 +308,7 @@ export async function apiLogout(): Promise<void> {
 export const api = {
   get: <T>(path: string) => apiFetch<T>(path),
   upload: <T>(path: string, file: File, field?: string) => apiUpload<T>(path, file, field),
-  download: (path: string, filename: string) => apiDownload(path, filename),
+  download: (path: string, filename: string, onProgress?: (received: number) => void) => apiDownload(path, filename, false, onProgress),
   uploadDownload: (path: string, file: File, filename: string, field?: string) =>
     apiUploadDownload(path, file, filename, field),
   logout: () => apiLogout(),

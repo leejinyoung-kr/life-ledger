@@ -84,3 +84,10 @@ export function zipPaths(
   }
   return out;
 }
+
+// 남길 파일이 든 폴더와 그 위 폴더들 — 비우기에서 사본 파일을 남길 때 그 경로의 폴더도 같이 남긴다
+export function ancestorIds(byId: Map<number, FolderNode>, folderIds: (number | null)[]): Set<number> {
+  const out = new Set<number>();
+  for (const id of folderIds) for (const c of folderPath(byId, id)) out.add(c.id);
+  return out;
+}

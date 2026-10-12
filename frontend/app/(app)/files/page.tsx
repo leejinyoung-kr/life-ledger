@@ -17,7 +17,7 @@ import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import QueryState from '@/components/QueryState';
 import Modal from '@/components/Modal';
-import { useConfirm } from '@/components/ConfirmModal';
+import ConfirmModal, { useConfirm } from '@/components/ConfirmModal';
 import Button, { buttonClasses } from '@/components/ui/Button';
 import SearchInput from '@/components/ui/SearchInput';
 import Segmented from '@/components/ui/Segmented';
@@ -74,6 +74,17 @@ interface ZipSummary {
   maxBytes: number;
 }
 
+// 비우기 전 요약
+interface ClearSummary {
+  folderCount: number;
+  fileCount: number;
+  totalBytes: number;
+  keptLinked: number;
+}
+
+// 비우기 확인에서 그대로 입력해야 하는 낱말 (실수로 누르는 것 막기)
+const CLEAR_WORD = '비우기';
+
 type SearchScope = 'all' | 'here';
 
 // ── 유틸 ────────────────────────────────────────────────────────────────────
@@ -117,6 +128,12 @@ export default function FilesPage() {
   // 검색 범위 — 전체(모든 폴더, 서버 검색) / 현재 폴더(지금 목록에서 거르기)
   const [scope, setScope] = useState<SearchScope>('all');
   const [zipping, setZipping] = useState(false);
+  // ZIP 받는 진행 — 받은 바이트 / 원본 합계(대략 ZIP 크기). 첫 바이트 전에는 null
+  const [zipProgress, setZipProgress] = useState<{ received: number; total: number } | null>(null);
+  // 비우기 — 요약을 받으면 확인 창을 띄운다
+  const [clearPlan, setClearPlan] = useState<ClearSummary | null>(null);
+  const [clearWord, setClearWord] = useState('');
+  const [clearing, setClearing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
@@ -276,12 +293,49 @@ export default function FilesPage() {
       }
       const locked = s.skippedLocked ? ` 잠긴 파일 ${s.skippedLocked}개는 빠집니다(마스터 잠금을 해제하면 함께 받아요).` : '';
       if (!await confirm(`${where ? `"${where}" 폴더` : '보관함 전체'}의 파일 ${s.fileCount}개(${formatBytes(s.totalBytes)})를 ZIP 으로 받을까요?${locked}`, 'primary')) return;
-      await api.download(`/files/zip${qs}`, `${where ?? '파일보관함'}_${localDate()}.zip`);
+      await api.download(`/files/zip${qs}`, `${where ?? '파일보관함'}_${localDate()}.zip`, (received) => setZipProgress({ received, total: s.totalBytes }));
       notify.success('ZIP 을 받았습니다.');
     } catch (e) {
       notify.error((e as Error).message || 'ZIP 다운로드에 실패했습니다.');
     } finally {
       setZipping(false);
+      setZipProgress(null);
+    }
+  }
+
+  // 지금 폴더(루트면 보관함 전체) 비우기 준비 — 지울 개수·용량을 받아 확인 창을 띄운다
+  async function handleClearAsk() {
+    const qs = currentFolderId !== undefined ? `?folderId=${currentFolderId}` : '';
+    setClearing(true);
+    try {
+      const s = await api.get<ClearSummary>(`/files/clear/summary${qs}`);
+      if (s.fileCount === 0 && s.folderCount === 0) {
+        notify.error(s.keptLinked ? '신원 지갑 사본 파일만 있어 지울 것이 없습니다.' : '지울 파일이 없습니다.');
+        return;
+      }
+      setClearWord('');
+      setClearPlan(s);
+    } catch (e) {
+      notify.error((e as Error).message || '비우기 준비에 실패했습니다.');
+    } finally {
+      setClearing(false);
+    }
+  }
+
+  // 비우기 실행
+  async function handleClear() {
+    const qs = currentFolderId !== undefined ? `?folderId=${currentFolderId}` : '';
+    setClearing(true);
+    try {
+      const r = await api.del<{ deletedFiles: number; deletedFolders: number; keptLinked: number }>(`/files/clear${qs}`);
+      const kept = r.keptLinked ? ` 신원 지갑 사본 ${r.keptLinked}개는 남겼습니다.` : '';
+      notify.success(`폴더 ${r.deletedFolders}개 · 파일 ${r.deletedFiles}개를 지웠습니다.${kept}`);
+      setClearPlan(null);
+      reload();
+    } catch (e) {
+      notify.error((e as Error).message || '비우기에 실패했습니다.');
+    } finally {
+      setClearing(false);
     }
   }
 
@@ -398,8 +452,11 @@ export default function FilesPage() {
         {currentFolderId === undefined && (
           <span className="text-border text-[0.82rem] ml-1">— 루트</span>
         )}
-        <Button variant="ghost" size="sm" className="ml-auto" loading={zipping} loadingLabel="ZIP 준비 중…" onClick={handleDownloadZip}>
+        <Button variant="ghost" size="sm" className="ml-auto" loading={zipping} loadingLabel={zipProgress ? `ZIP 받는 중 ${formatBytes(zipProgress.received)} / 약 ${formatBytes(zipProgress.total)}` : 'ZIP 준비 중…'} onClick={handleDownloadZip}>
           <IconDownload />{currentFolderId === undefined ? '전체 다운로드' : '이 폴더 다운로드'}
+        </Button>
+        <Button variant="danger" size="sm" loading={clearing && !clearPlan} loadingLabel="확인 중…" onClick={handleClearAsk}>
+          <IconTrash />{currentFolderId === undefined ? '전체 비우기' : '이 폴더 비우기'}
         </Button>
       </div>
 
@@ -524,6 +581,27 @@ export default function FilesPage() {
       <ViewerModal file={viewer} onClose={() => setViewer(null)} onDownload={handleDownloadFile} />
 
       {confirmElement}
+      <ConfirmModal
+        open={clearPlan !== null}
+        title={currentFolderId === undefined ? '보관함 전체 비우기' : `"${data.breadcrumb.at(-1)?.name ?? ''}" 폴더 비우기`}
+        message={clearPlan ? `폴더 ${clearPlan.folderCount}개 · 파일 ${clearPlan.fileCount}개(${formatBytes(clearPlan.totalBytes)})를 지웁니다. 되돌릴 수 없어요.${clearPlan.keptLinked ? ` 신원 지갑 사본 ${clearPlan.keptLinked}개와 그 파일이 든 폴더는 남깁니다.` : ''} 계속하려면 "${CLEAR_WORD}"를 입력하세요.` : ''}
+        confirmLabel="비우기"
+        confirmDisabled={clearWord.trim() !== CLEAR_WORD}
+        loading={clearing}
+        loadingLabel="지우는 중…"
+        onConfirm={handleClear}
+        onCancel={() => setClearPlan(null)}
+      >
+        <input
+          className="input text-center"
+          autoFocus
+          value={clearWord}
+          placeholder={CLEAR_WORD}
+          aria-label="확인 낱말"
+          onChange={(e) => setClearWord(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && clearWord.trim() === CLEAR_WORD) handleClear(); }}
+        />
+      </ConfirmModal>
     </AppShell>
   );
 }

@@ -327,4 +327,52 @@ describe('FileService', () => {
       expect(() => s.assertZippable({ entries: one, totalBytes: 10, skippedLocked: 0 })).not.toThrow();
     });
   });
+  describe('clear — 비우기', () => {
+    const file = (id: number, folder_id: number | null, size = 100) => ({ id, folder_id, object_key: `k${id}`, size: BigInt(size) });
+
+    beforeEach(() => {
+      // 보험(1) > 2026(2), 사진(3) — 사본 파일 12 가 2026 안에 있다
+      prisma.storageFolder.findMany.mockResolvedValue([
+        { id: 1, name: '보험', parent_id: null },
+        { id: 2, name: '2026', parent_id: 1 },
+        { id: 3, name: '사진', parent_id: null },
+      ]);
+      prisma.identityCard = { findMany: jest.fn().mockResolvedValue([{ file_id: 12 }]) };
+    });
+
+    it('보관함 전체를 비우면 사본 파일과 그 경로 폴더만 남긴다', async () => {
+      prisma.storageFile.findMany.mockResolvedValueOnce([file(10, 1), file(11, 3), file(12, 2), file(13, null)]);
+      const plan = await svc().planClear(1, undefined);
+      expect(plan.fileIds).toEqual([10, 11, 13]);
+      expect(plan.folderIds).toEqual([3]);
+      expect(plan.totalBytes).toBe(300);
+      expect(plan.keptLinked).toBe(1);
+    });
+
+    it('폴더를 비우면 그 폴더 자신은 남기고 하위만 지운다', async () => {
+      prisma.storageFolder.findFirst.mockResolvedValue({ id: 1, name: '보험', parent_id: null });
+      prisma.identityCard.findMany.mockResolvedValue([]);
+      prisma.storageFile.findMany.mockResolvedValueOnce([file(10, 1), file(12, 2)]);
+      const plan = await svc().planClear(1, 1);
+      expect(prisma.storageFile.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ folder_id: { in: [1, 2] } }) }));
+      expect(plan.fileIds).toEqual([10, 12]);
+      expect(plan.folderIds).toEqual([2]);
+    });
+
+    it('한 트랜잭션으로 지우고 남는 데 없는 B2 오브젝트를 지운다', async () => {
+      prisma.storageFile.findMany
+        .mockResolvedValueOnce([file(10, 1), file(11, 3), file(12, 2)])
+        .mockResolvedValueOnce([]); // 지운 뒤 k10·k11 을 쓰는 파일 없음
+      sendMock.mockClear();
+
+      const res = await svc().clear(1, undefined);
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(prisma.storageFile.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: [10, 11] } }) }));
+      expect(prisma.storageFolder.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: [3] } }) }));
+      const deletes = sendMock.mock.calls.map((c) => c[0]).filter((cmd: any) => cmd.__type === 'Delete');
+      expect(deletes.map((d: any) => d.input.Key)).toEqual(['k10', 'k11']);
+      expect(res).toEqual({ deletedFiles: 2, deletedFolders: 1, keptLinked: 1, purgedObjects: 2 });
+    });
+  });
 });

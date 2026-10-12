@@ -7,7 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
 import { SystemLogService } from '../system-log/system-log.service';
-import { folderPath, subtreeIds, zipPaths, type FolderNode } from './file-path.util';
+import { ancestorIds, folderPath, subtreeIds, zipPaths, type FolderNode } from './file-path.util';
 
 // 전체 검색 결과 상한 (폴더·파일 각각)
 const SEARCH_LIMIT = 200;
@@ -424,6 +424,60 @@ export class FileService {
     return { id: folderId, purgedObjects: purged };
   }
 
+  // 비우기에서 지울 것 — 폴더(없으면 보관함 전체) 안의 하위 폴더·파일 전부. 신원 지갑 사본 파일과 그 파일이 든 폴더는 남긴다
+  async planClear(userId: number, folderId: number | undefined) {
+    if (folderId) await this.findOwnedFolder(userId, folderId);
+    const folders = await this.prisma.storageFolder.findMany({
+      where: { user_id: userId, deleted_at: null },
+      select: { id: true, name: true, parent_id: true },
+    });
+    const scope = folderId ? subtreeIds(folders, folderId) : null;
+    const [files, linked] = await Promise.all([
+      this.prisma.storageFile.findMany({
+        where: { user_id: userId, deleted_at: null, ...(scope ? { folder_id: { in: [...scope] } } : {}) },
+        select: { id: true, folder_id: true, object_key: true, size: true },
+      }),
+      this.prisma.identityCard.findMany({
+        where: { user_id: userId, deleted_at: null, file_id: { not: null } },
+        select: { file_id: true },
+      }),
+    ]);
+    const linkedIds = new Set(linked.map((c) => c.file_id));
+    const kept = files.filter((f) => linkedIds.has(f.id));
+    const removed = files.filter((f) => !linkedIds.has(f.id));
+    const keepFolders = ancestorIds(new Map(folders.map((f) => [f.id, f])), kept.map((f) => f.folder_id));
+    // 비우는 폴더 자신은 남기고 그 아래만 지운다
+    const removedFolderIds = folders
+      .map((f) => f.id)
+      .filter((id) => (scope ? scope.has(id) && id !== folderId : true) && !keepFolders.has(id));
+
+    return {
+      fileIds: removed.map((f) => f.id),
+      folderIds: removedFolderIds,
+      objectKeys: removed.map((f) => f.object_key),
+      totalBytes: removed.reduce((sum, f) => sum + Number(f.size), 0),
+      keptLinked: kept.length,
+    };
+  }
+
+  // 비우기 — planClear 의 폴더·파일을 한 트랜잭션으로 soft delete 하고, 남는 데 없는 B2 오브젝트를 지운다
+  async clear(userId: number, folderId: number | undefined) {
+    const plan = await this.planClear(userId, folderId);
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.storageFile.updateMany({
+        where: { user_id: userId, id: { in: plan.fileIds }, deleted_at: null },
+        data: { deleted_at: now },
+      }),
+      this.prisma.storageFolder.updateMany({
+        where: { user_id: userId, id: { in: plan.folderIds }, deleted_at: null },
+        data: { deleted_at: now },
+      }),
+    ]);
+    const purged = await this.deleteUnreferencedObjects(userId, plan.objectKeys);
+    return { deletedFiles: plan.fileIds.length, deletedFolders: plan.folderIds.length, keptLinked: plan.keptLinked, purgedObjects: purged };
+  }
+
   // 남은(미삭제) 파일이 하나도 가리키지 않는 오브젝트만 B2 에서 지운다 — 하나가 실패해도 나머지는 계속, 실패는 시스템 로그로
   private async deleteUnreferencedObjects(userId: number, keys: string[]): Promise<number> {
     const unique = [...new Set(keys)];
@@ -440,7 +494,7 @@ export class FileService {
         await this.storage.deleteObject(key);
         purged++;
       } catch (e) {
-        this.sysLog.error({ userId, category: 'file', message: `폴더 삭제 후 B2 오브젝트 삭제 실패 — key: ${key}`, metadata: { objectKey: key, error: (e as Error).message } });
+        this.sysLog.error({ userId, category: 'file', message: `삭제 후 B2 오브젝트 삭제 실패 — key: ${key}`, metadata: { objectKey: key, error: (e as Error).message } });
       }
     }
     return purged;

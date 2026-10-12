@@ -89,6 +89,19 @@ export class FileController {
     }
   }
 
+  // 비우기 전 요약 — 지울 폴더·파일 수와 용량, 신원 지갑 사본이라 남길 파일 수
+  @Get('clear/summary')
+  async clearSummary(@CurrentUser() user: AuthUser, @Query('folderId') folderId?: string) {
+    const plan = await this.service.planClear(user.id, folderId ? Number(folderId) : undefined);
+    return { folderCount: plan.folderIds.length, fileCount: plan.fileIds.length, totalBytes: plan.totalBytes, keptLinked: plan.keptLinked };
+  }
+
+  // 비우기 — 폴더(없으면 보관함 전체) 안의 하위 폴더·파일을 한 번에 지운다. 신원 지갑 사본 파일은 남긴다
+  @Delete('clear')
+  clear(@CurrentUser() user: AuthUser, @Query('folderId') folderId?: string) {
+    return this.service.clear(user.id, folderId ? Number(folderId) : undefined);
+  }
+
   // 마스터 잠금이 꺼져 있거나 유효한 잠금 해제 토큰이 있는지 (잠김이면 false — 예외를 던지지 않는다)
   private async isUnlocked(userId: number, vaultToken?: string): Promise<boolean> {
     try {
