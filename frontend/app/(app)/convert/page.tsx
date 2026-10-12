@@ -202,8 +202,8 @@ export default function ConvertPage() {
             )}
 
             {/* 실행 */}
-            <Button onClick={handleRun} disabled={!file || uploading} className="w-full">
-              {uploading ? '변환 중…' : '변환하기'}
+            <Button onClick={handleRun} disabled={!file} loading={uploading} loadingLabel="변환 중…" className="w-full">
+              변환하기
             </Button>
           </CardBody>
         </Card>

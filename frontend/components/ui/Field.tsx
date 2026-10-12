@@ -24,7 +24,7 @@ export function ModalFooter({ onClose, onSave, saving, saveLabel = '저장', sav
   return (
     <>
       <Button variant="ghost" onClick={onClose} disabled={saving}>취소</Button>
-      <Button onClick={onSave} disabled={saving || saveDisabled}>{saving ? '저장 중...' : saveLabel}</Button>
+      <Button onClick={onSave} disabled={saveDisabled} loading={saving} loadingLabel="저장 중...">{saveLabel}</Button>
     </>
   );
 }

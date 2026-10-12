@@ -505,8 +505,8 @@ export default function SettingsPage() {
                     {keyCheck.modelAvailable ? '정상' : keyCheck.ok ? '모델 접근 불가' : '연결 실패'}
                   </Badge>
                 )}
-                <Button variant="ghost" disabled={!s.openaiApiKeySet || keyCheckBusy} onClick={handleVerifyApiKey}>
-                  {keyCheckBusy ? '확인 중...' : '연결 확인'}
+                <Button variant="ghost" disabled={!s.openaiApiKeySet} loading={keyCheckBusy} loadingLabel="확인 중..." onClick={handleVerifyApiKey}>
+                  연결 확인
                 </Button>
               </Row>
               <Row label="크레딧 잔액" desc="OpenAI는 잔액 조회 API를 제공하지 않습니다. 사용량·잔액은 OpenAI 대시보드에서 확인하세요." stack>

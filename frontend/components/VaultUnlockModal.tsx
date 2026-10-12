@@ -7,8 +7,8 @@
  * 마스터 비번 검증(/security/vault/unlock) 성공 시 토큰을 저장한 뒤 원요청을 재시도한다.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import Button from './ui/Button';
+import ConfirmModal from './ConfirmModal';
+import ErrorBanner from './ErrorBanner';
 import { api } from '@/lib/api';
 import { registerVaultUnlock, setVaultToken } from '@/lib/vault';
 
@@ -59,30 +59,31 @@ export default function VaultUnlockModal() {
 
   if (!open) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 bg-[rgba(0,0,0,0.52)] backdrop-blur-[3px] z-[400] flex items-center justify-center p-6 [animation:fadeIn_0.2s_ease]" role="presentation">
-      <div className="bg-background border border-border rounded-2xl shadow-[var(--shadow-lg)] w-full max-w-[360px] px-6 pt-8 pb-6 flex flex-col items-center gap-[18px] text-center [animation:slideUp_0.25s_ease]" role="dialog" aria-modal="true">
-        <div className="w-[60px] h-[60px] rounded-full flex items-center justify-center shrink-0 bg-accent-dim text-accent text-[28px]">🔒</div>
-        <div>
-          <p className="text-[1rem] font-bold text-primary mb-1">보관함 잠금</p>
-          <p className="text-[0.85rem] text-secondary leading-[1.6] [word-break:keep-all]">민감 정보를 보려면 마스터 비밀번호를 입력하세요.</p>
-        </div>
-        <input
-          className="input w-full text-center"
-          type="password"
-          autoFocus
-          value={password}
-          placeholder="마스터 비밀번호"
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-        />
-        {error && <p className="text-[0.78rem] text-danger -mt-2">⚠️ {error}</p>}
-        <div className="flex gap-2 w-full">
-          <Button variant="ghost" className="flex-1" onClick={() => finish(false)} disabled={busy}>취소</Button>
-          <Button className="flex-1" onClick={submit} disabled={busy || !password}>{busy ? '확인 중...' : '잠금 해제'}</Button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+  return (
+    <ConfirmModal
+      open
+      layer="top"
+      variant="primary"
+      icon={<span className="text-[28px]">🔒</span>}
+      title="보관함 잠금"
+      message="민감 정보를 보려면 마스터 비밀번호를 입력하세요."
+      confirmLabel="잠금 해제"
+      loading={busy}
+      loadingLabel="확인 중..."
+      confirmDisabled={!password}
+      onConfirm={submit}
+      onCancel={() => finish(false)}
+    >
+      <input
+        className="input text-center"
+        type="password"
+        autoFocus
+        value={password}
+        placeholder="마스터 비밀번호"
+        onChange={(e) => setPassword(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+      />
+      <ErrorBanner message={error} className="-mt-2" />
+    </ConfirmModal>
   );
 }

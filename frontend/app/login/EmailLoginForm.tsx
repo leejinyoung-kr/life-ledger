@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setAccessToken } from '@/lib/api';
+import Button from '@/components/ui/Button';
 
 export default function EmailLoginForm({ apiBase }: { apiBase: string }) {
   const router = useRouter();
@@ -79,7 +80,7 @@ export default function EmailLoginForm({ apiBase }: { apiBase: string }) {
   return (
     <div className="mt-1">
       {error && (
-        <p className="text-[0.76rem] text-[#dc2626] mb-2 break-keep" role="alert">{error}</p>
+        <p className="text-[0.76rem] text-danger mb-2 break-keep" role="alert">{error}</p>
       )}
       {info && step === 'code' && (
         <p className="text-[0.76rem] text-secondary mb-2 break-keep">{info}</p>
@@ -94,15 +95,11 @@ export default function EmailLoginForm({ apiBase }: { apiBase: string }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="이메일 주소"
-            className="w-full p-3 bg-background border border-border rounded-[var(--radius)] text-primary text-[0.875rem] outline-none transition-all focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-dim)]"
+            className="input input-lg"
           />
-          <button
-            type="submit"
-            disabled={busy || !email.trim()}
-            className="w-full p-3 bg-accent text-white rounded-[var(--radius)] text-[0.875rem] font-medium cursor-pointer transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {busy ? '발송 중...' : '인증코드 받기'}
-          </button>
+          <Button type="submit" size="lg" className="w-full" disabled={!email.trim()} loading={busy} loadingLabel="발송 중...">
+            인증코드 받기
+          </Button>
         </form>
       ) : (
         <form onSubmit={verifyCode} className="flex flex-col gap-2.5">
@@ -115,15 +112,11 @@ export default function EmailLoginForm({ apiBase }: { apiBase: string }) {
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             placeholder="6자리 인증코드"
-            className="w-full p-3 bg-background border border-border rounded-[var(--radius)] text-primary text-[1rem] tracking-[0.3em] text-center font-mono outline-none transition-all focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-dim)]"
+            className="input input-lg text-[1rem] tracking-[0.3em] text-center font-mono"
           />
-          <button
-            type="submit"
-            disabled={busy || code.length !== 6}
-            className="w-full p-3 bg-accent text-white rounded-[var(--radius)] text-[0.875rem] font-medium cursor-pointer transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {busy ? '확인 중...' : '로그인'}
-          </button>
+          <Button type="submit" size="lg" className="w-full" disabled={code.length !== 6} loading={busy} loadingLabel="확인 중...">
+            로그인
+          </Button>
           <button
             type="button"
             onClick={() => { setStep('email'); setCode(''); setError(null); setInfo(null); }}

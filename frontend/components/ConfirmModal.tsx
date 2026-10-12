@@ -5,7 +5,7 @@
  * window.confirm() 대체 — createPortal로 body에 렌더해 z-index 문제를 방지하며
  * 백드롭 fade-in + 박스 slide-up 애니메이션을 적용한다.
  */
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { IconAlertCircle, IconCheck } from './icons';
 import Button from './ui/Button';
@@ -18,6 +18,18 @@ interface ConfirmModalProps {
   cancelLabel?: string;
   /** danger: 삭제·해지 등 파괴적 액션 / primary: 복원·저장 등 */
   variant?: 'danger' | 'primary';
+  /** 메시지 위 굵은 제목 */
+  title?: string;
+  /** 기본 아이콘(경고/체크) 대신 쓸 아이콘 */
+  icon?: ReactNode;
+  /** 메시지 아래 추가 내용 (입력칸 · 오류 문구 등) */
+  children?: ReactNode;
+  /** 다른 모달 위에 한 겹 더 띄울 때 */
+  layer?: 'confirm' | 'top';
+  confirmDisabled?: boolean;
+  /** 진행 중이면 확인은 loadingLabel 로 바뀌고 취소는 막힌다 */
+  loading?: boolean;
+  loadingLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -28,6 +40,13 @@ export default function ConfirmModal({
   confirmLabel = '확인',
   cancelLabel = '취소',
   variant = 'danger',
+  title,
+  icon,
+  children,
+  layer = 'confirm',
+  confirmDisabled,
+  loading,
+  loadingLabel,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -36,7 +55,7 @@ export default function ConfirmModal({
   // createPortal — body에 직접 마운트해 모달 위에도 정상 표시
   return createPortal(
     <div
-      className="fixed inset-0 bg-[rgba(0,0,0,0.52)] backdrop-blur-[3px] z-[300] flex items-center justify-center p-6 [animation:fadeIn_0.2s_ease]"
+      className={`fixed inset-0 bg-[rgba(0,0,0,0.52)] backdrop-blur-[3px] ${layer === 'top' ? 'z-[400]' : 'z-[300]'} flex items-center justify-center p-6 [animation:fadeIn_0.2s_ease]`}
       role="presentation"
     >
       <div
@@ -47,18 +66,22 @@ export default function ConfirmModal({
       >
         {/* 아이콘 */}
         <div className={`w-[60px] h-[60px] rounded-full flex items-center justify-center shrink-0 ${variant === 'danger' ? 'bg-danger-dim text-danger' : 'bg-accent-dim text-accent'}`}>
-          {variant === 'danger'
+          {icon ?? (variant === 'danger'
             ? <IconAlertCircle width={28} height={28} />
-            : <IconCheck width={28} height={28} />}
+            : <IconCheck width={28} height={28} />)}
         </div>
 
         {/* 메시지 */}
-        <p id="cm-msg" className="text-[0.9rem] text-secondary leading-[1.65] [word-break:keep-all]">{message}</p>
+        <div>
+          {title && <p className="text-[1rem] font-bold text-primary mb-1">{title}</p>}
+          <p id="cm-msg" className="text-[0.9rem] text-secondary leading-[1.65] [word-break:keep-all]">{message}</p>
+        </div>
+        {children}
 
         {/* 버튼 */}
         <div className="flex gap-2 w-full">
-          <Button variant="ghost" className="flex-1" onClick={onCancel}>{cancelLabel}</Button>
-          <Button variant={variant === 'danger' ? 'solid-danger' : 'primary'} className="flex-1" onClick={onConfirm}>
+          <Button variant="ghost" className="flex-1" onClick={onCancel} disabled={loading}>{cancelLabel}</Button>
+          <Button variant={variant === 'danger' ? 'solid-danger' : 'primary'} className="flex-1" onClick={onConfirm} disabled={confirmDisabled} loading={loading} loadingLabel={loadingLabel}>
             {confirmLabel}
           </Button>
         </div>
