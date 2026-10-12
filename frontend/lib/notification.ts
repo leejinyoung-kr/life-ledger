@@ -17,13 +17,6 @@ export interface Noti {
   occurredAt: string; // ISO
 }
 
-// tone → notif-type-icon CSS 클래스 (info 는 muted 스타일 재사용)
-export const TONE_CLASS: Record<NotiTone, string> = {
-  warning: 'warning',
-  success: 'success',
-  info: 'muted',
-};
-
 // 필터 탭 (kind 로 필터링)
 export const NOTI_TABS: { label: string; kind: 'all' | NotiGroup }[] = [
   { label: '전체', kind: 'all' },

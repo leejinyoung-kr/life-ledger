@@ -80,13 +80,6 @@ export const STATUS_LABEL: Record<SubscriptionStatus, string> = {
   paused: '일시정지',
 };
 
-// 상태 → 배지 클래스
-export const STATUS_BADGE: Record<SubscriptionStatus, string> = {
-  active: 'badge-success',
-  trial: 'badge-warning',
-  paused: 'badge-neutral',
-};
-
 export const SUB_PAY_METHODS = ['신한카드', '카카오페이', '쿠페이', '해외결제', '계좌이체'];
 
 export const SUB_CURRENCY_LABEL: Record<'KRW' | 'USD', string> = {

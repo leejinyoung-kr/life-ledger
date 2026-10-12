@@ -94,12 +94,12 @@ export const RISK_CATEGORY_ICON: Record<RiskCategory, string> = {
   breach: '🚨',
 };
 
-// 심각도 → 배지(라벨/클래스) + 아이콘 톤
-export const SEVERITY_BADGE: Record<RiskSeverity, { label: string; cls: string; tone: string }> = {
-  critical: { label: '심각', cls: 'badge-danger', tone: 'danger' },
-  danger: { label: '위험', cls: 'badge-danger', tone: 'danger' },
-  warning: { label: '주의', cls: 'badge-warning', tone: 'warning' },
-  info: { label: '권장', cls: 'badge-blue', tone: 'blue' },
+// 심각도 → 배지(라벨) + 아이콘 톤
+export const SEVERITY_BADGE: Record<RiskSeverity, { label: string; tone: string }> = {
+  critical: { label: '심각', tone: 'danger' },
+  danger: { label: '위험', tone: 'danger' },
+  warning: { label: '주의', tone: 'warning' },
+  info: { label: '권장', tone: 'blue' },
 };
 
 // 요약 STATS 4칸 메타 (카테고리코드 → 카드 표시)
