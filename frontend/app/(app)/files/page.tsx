@@ -490,7 +490,7 @@ function ViewerModal({
   );
 
   return (
-    <Modal open={!!file} onClose={onClose} title={file.name} className="max-w-[860px]" header={header} footer={
+    <Modal open={!!file} onClose={onClose} title={file.name} size="lg" header={header} footer={
       <span className="text-[0.78rem] text-muted">{formatBytes(file.size)} · {file.mimeType}</span>
     }>
       <div className="bg-elevated flex items-center justify-center min-h-[400px] rounded-[var(--radius)] -m-6 overflow-hidden">

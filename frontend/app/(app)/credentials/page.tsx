@@ -25,7 +25,7 @@ import { useFormErrors } from '@/lib/useFormErrors';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import {
-  IconEdit, IconTrash, IconClose, IconCopy, IconEye,
+  IconEdit, IconTrash, IconCopy, IconEye,
 } from '@/components/icons';
 import { api, apiDownload } from '@/lib/api';
 import {
@@ -368,26 +368,14 @@ function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelete }: { cred: Cr
   const pw = secret?.password ?? '';
   const maskedPw = '•'.repeat(Math.min(pw.length || 8, 16));
 
-  const header = (
-    <div className="flex items-center gap-3.5 px-6 pt-5 pb-4 border-b border-border">
-      <div className="flex-1">
-        <div className="[font-family:var(--font-display)] text-base font-bold text-primary">{cred.name}</div>
-        <div className="text-[0.78rem] text-muted mt-0.5">{cred.url ?? '—'}</div>
-      </div>
-      <Badge tone="neutral">{cred.category}</Badge>
-      <IconButton label="닫기" variant="bordered" size="lg" onClick={onClose}>
-        <IconClose width={16} height={16} />
-      </IconButton>
-    </div>
-  );
-
   return (
     <Modal
       open={!!cred}
       onClose={onClose}
       title={cred.name}
-      className="max-w-110"
-      header={header}
+      subtitle={cred.url ?? '—'}
+      headerAction={<Badge tone="neutral">{cred.category}</Badge>}
+      size="sm"
       footer={
         <>
           <Button variant="danger" className="mr-auto" onClick={onDelete}>삭제</Button>

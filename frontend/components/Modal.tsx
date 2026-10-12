@@ -18,11 +18,17 @@ interface ModalProps {
   footer?: ReactNode;
   /** 기본 헤더(제목+닫기) 대신 렌더링할 커스텀 헤더 */
   header?: ReactNode;
-  /** 모달 박스 추가 className (예: 좁은 상세 모달) */
-  className?: string;
+  /** 기본 헤더의 제목 아래 보조 문구 */
+  subtitle?: string;
+  /** 기본 헤더에서 닫기 버튼 왼쪽에 놓는 요소 (배지 등) */
+  headerAction?: ReactNode;
+  /** 박스 너비: sm 440px · md 480px(기본) · lg 860px */
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export default function Modal({ open, title, onClose, children, footer, header, className }: ModalProps) {
+const SIZE = { sm: 'max-w-110', md: 'max-w-[480px]', lg: 'max-w-[860px]' } as const;
+
+export default function Modal({ open, title, onClose, children, footer, header, subtitle, headerAction, size = 'md' }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   // onClose 는 부모에서 매 렌더마다 새로 생성되는 인라인 함수일 수 있어 ref 로 최신값만 참조
   // (deps 에 그대로 넣으면 입력창 타이핑마다 effect 가 재실행되어 포커스가 되돌아감)
@@ -94,14 +100,18 @@ export default function Modal({ open, title, onClose, children, footer, header, 
     >
       <div
         ref={dialogRef}
-        className={`bg-background border border-border rounded-2xl w-full max-w-[480px] shadow-[var(--shadow-lg)] max-h-[calc(100vh-48px)] flex flex-col ${open ? '[animation:slideUp_0.25s_ease]' : ''} ${className ?? ''}`}
+        className={`bg-background border border-border rounded-2xl w-full ${SIZE[size]} shadow-[var(--shadow-lg)] max-h-[calc(100vh-48px)] flex flex-col ${open ? '[animation:slideUp_0.25s_ease]' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
         {header ?? (
-          <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border">
-            <span className="[font-family:var(--font-display)] text-base font-bold text-primary">{title}</span>
+          <div className="flex items-center gap-3.5 px-6 pt-5 pb-4 border-b border-border">
+            <div className="flex-1 min-w-0">
+              <div className="[font-family:var(--font-display)] text-base font-bold text-primary">{title}</div>
+              {subtitle && <div className="text-[0.78rem] text-muted mt-0.5">{subtitle}</div>}
+            </div>
+            {headerAction}
             <IconButton label="닫기" variant="bordered" size="lg" onClick={onClose}>
               <IconClose width={16} height={16} />
             </IconButton>
