@@ -25,6 +25,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { notify } from '@/lib/toast';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -253,10 +254,7 @@ export default function CodesPage() {
 
   return (
     <AppShell activePath="/codes" topbarLabel="코드 관리">
-      <div className="mb-7">
-        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">코드 관리</h1>
-        <p className="text-sm text-secondary mt-1.5">선택박스 항목을 도메인별로 관리합니다. 드래그로 순서를 변경할 수 있습니다.</p>
-      </div>
+      <PageHeader title="코드 관리" description="선택박스 항목을 도메인별로 관리합니다. 드래그로 순서를 변경할 수 있습니다." />
 
       {/* 도메인 탭 — 모바일은 가로 스크롤, 데스크탑은 줄바꿈 */}
       <div className="flex gap-1.5 mb-4 max-md:overflow-x-auto max-md:flex-nowrap max-md:pb-1.5 md:flex-wrap">

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import Button from '@/components/ui/Button';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import ErrorBanner from '@/components/ErrorBanner';
@@ -144,13 +145,11 @@ export default function LogsPage() {
 
   return (
     <AppShell activePath="/logs" topbarLabel="시스템 로그">
-      <div className="mb-7">
-        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary flex items-center gap-2.5">
-          <IconClock className="w-6 h-6 text-accent shrink-0" />
-          시스템 로그
-        </h1>
-        <p className="text-sm text-secondary mt-1.5">크론 실행, 반복매수, 오류 이력을 확인합니다.</p>
-      </div>
+      <PageHeader
+        title="시스템 로그"
+        icon={<IconClock className="w-6 h-6 text-accent shrink-0" />}
+        description="크론 실행, 반복매수, 오류 이력을 확인합니다."
+      />
 
       {/* 레벨 탭 — 클릭 즉시 반영 */}
       <div className="flex gap-1.5 mb-3">

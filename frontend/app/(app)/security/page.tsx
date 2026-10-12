@@ -8,6 +8,7 @@
  */
 import { useState, type CSSProperties } from 'react';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import { useConfirm } from '@/components/ConfirmModal';
 import StatCard from '@/components/StatCard';
@@ -80,10 +81,7 @@ export default function SecurityPage() {
 
   return (
     <AppShell activePath="/security" topbarLabel="보안 센터">
-      <div className="mb-7">
-        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">보안 센터</h1>
-        <p className="text-sm text-secondary mt-1.5">계정·시크릿의 보안 상태를 점검하고 위험 요소를 관리합니다.</p>
-      </div>
+      <PageHeader title="보안 센터" description="계정·시크릿의 보안 상태를 점검하고 위험 요소를 관리합니다." />
 
       <ErrorBanner message={error} />
 

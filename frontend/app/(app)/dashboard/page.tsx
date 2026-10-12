@@ -4,6 +4,7 @@ import { useMemo, type ReactNode } from 'react';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import QueryError from '@/components/QueryError';
 import StatCard from '@/components/StatCard';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
@@ -102,10 +103,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell activePath="/dashboard" topbarLabel="대시보드">
-      <div className="mb-7">
-        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">대시보드</h1>
-        <p className="text-sm text-secondary mt-1.5">이번 달 지출 현황과 최근 활동을 확인하세요.</p>
-      </div>
+      <PageHeader title="대시보드" description="이번 달 지출 현황과 최근 활동을 확인하세요." />
 
       {(summaryQuery.isError || forecastQuery.isError || deadlinesQuery.isError) && (
         <QueryError

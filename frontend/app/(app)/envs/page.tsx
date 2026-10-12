@@ -13,6 +13,7 @@ import { useFormErrors } from '@/lib/useFormErrors';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
@@ -245,13 +246,15 @@ export default function EnvsPage() {
 
   return (
     <AppShell activePath="/envs" topbarLabel="ENV 보관함">
-      <div className="mb-7">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">ENV 보관함</h1>
-          <Button onClick={() => setProjectModal({ open: true, mode: 'add', editing: null })}>프로젝트 추가</Button>
-        </div>
-        <p className="text-sm text-secondary mt-1.5 break-keep">프로젝트별 환경변수를 암호화하여 관리합니다. (AES-256-GCM)</p>
-      </div>
+      <PageHeader
+
+        title="ENV 보관함"
+
+        description="프로젝트별 환경변수를 암호화하여 관리합니다. (AES-256-GCM)"
+
+        actions={<Button onClick={() => setProjectModal({ open: true, mode: 'add', editing: null })}>프로젝트 추가</Button>}
+
+      />
 
       <ErrorBanner message={error} className="mb-4" />
 

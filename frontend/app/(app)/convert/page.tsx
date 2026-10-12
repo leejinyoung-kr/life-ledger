@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import Image from 'next/image';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import Button from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { IconImage, IconFileBlank, IconUpload, IconClose } from '@/components/icons';
@@ -109,10 +110,7 @@ export default function ConvertPage() {
 
   return (
     <AppShell activePath="/convert" topbarLabel="파일 변환">
-      <div className="mb-7">
-        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">파일 변환</h1>
-        <p className="text-sm text-secondary mt-1.5">이미지와 PDF를 서로 변환합니다. 파일은 변환에만 쓰이고 서버에 저장되지 않습니다.</p>
-      </div>
+      <PageHeader title="파일 변환" description="이미지와 PDF를 서로 변환합니다. 파일은 변환에만 쓰이고 서버에 저장되지 않습니다." />
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-6 items-start">
         <Card>

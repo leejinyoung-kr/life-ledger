@@ -11,6 +11,7 @@ import { notify, copyToClipboard } from '@/lib/toast';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Modal from '@/components/Modal';
@@ -155,13 +156,15 @@ export default function CredentialsPage() {
 
   return (
     <AppShell activePath="/credentials" topbarLabel="계정 보관함">
-      <div className="mb-7">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">계정 보관함</h1>
-          <Button onClick={() => setEdit({ open: true, mode: 'add', editing: null })}>계정 추가</Button>
-        </div>
-        <p className="text-sm text-secondary mt-1.5 break-keep">행을 클릭하면 상세 정보를 확인할 수 있습니다. (AES-256-GCM 암호화)</p>
-      </div>
+      <PageHeader
+
+        title="계정 보관함"
+
+        description="행을 클릭하면 상세 정보를 확인할 수 있습니다. (AES-256-GCM 암호화)"
+
+        actions={<Button onClick={() => setEdit({ open: true, mode: 'add', editing: null })}>계정 추가</Button>}
+
+      />
 
       <ErrorBanner message={error} className="mb-4" />
 

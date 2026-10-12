@@ -12,6 +12,7 @@ import { eulreul } from '@/lib/korean';
 import { useApiQuery, useInvalidate } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
@@ -90,13 +91,15 @@ export default function IdWalletPage() {
 
   return (
     <AppShell activePath="/id-wallet" topbarLabel="신원 지갑">
-      <div className="mb-7">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">신원 지갑</h1>
-          <Button onClick={() => setModal({ open: true, mode: 'add', editing: null })}>신분증 추가</Button>
-        </div>
-        <p className="text-sm text-secondary mt-1.5 break-keep">신분증·여권·자격증을 안전하게 보관하고 만료일을 추적합니다. (AES-256-GCM)</p>
-      </div>
+      <PageHeader
+
+        title="신원 지갑"
+
+        description="신분증·여권·자격증을 안전하게 보관하고 만료일을 추적합니다. (AES-256-GCM)"
+
+        actions={<Button onClick={() => setModal({ open: true, mode: 'add', editing: null })}>신분증 추가</Button>}
+
+      />
 
       <ErrorBanner message={error} className="mb-4" />
 

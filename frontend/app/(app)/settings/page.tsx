@@ -14,6 +14,7 @@ import { eulreul } from '@/lib/korean';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import QueryError from '@/components/QueryError';
 import { PageLoading } from '@/components/QueryState';
@@ -287,7 +288,7 @@ export default function SettingsPage() {
   if (!s) {
     return (
       <AppShell activePath="/settings" topbarLabel="설정">
-        <div className="mb-7"><h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">설정</h1></div>
+        <PageHeader title="설정" />
         {settingsQuery.isError
           ? <QueryError message={error ?? undefined} onRetry={settingsQuery.refetch} />
           : <PageLoading className="py-0! text-left! text-[0.82rem] text-secondary" />}
@@ -344,10 +345,7 @@ export default function SettingsPage() {
 
   return (
     <AppShell activePath="/settings" topbarLabel="설정">
-      <div className="mb-7">
-        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">설정</h1>
-        <p className="text-sm text-secondary mt-1.5">계정, 보안, 대시보드 위젯 등을 관리합니다.</p>
-      </div>
+      <PageHeader title="설정" description="계정, 보안, 대시보드 위젯 등을 관리합니다." />
 
       <ErrorBanner message={error} />
 

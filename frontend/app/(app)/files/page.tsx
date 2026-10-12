@@ -12,6 +12,7 @@ import { useApiQuery, useInvalidate } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { clickable } from '@/lib/a11y';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import QueryState from '@/components/QueryState';
 import Modal from '@/components/Modal';
 import { useConfirm } from '@/components/ConfirmModal';
@@ -220,9 +221,10 @@ export default function FilesPage() {
 
   return (
     <AppShell activePath="/files" topbarLabel="파일 보관함">
-      <div className="mb-7">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">파일 보관함</h1>
+      <PageHeader
+        title="파일 보관함"
+        description="폴더를 생성하여 파일을 정리하거나, 바로 업로드할 수 있습니다."
+        actions={
           <div className="flex items-center gap-2 shrink-0">
             <Button variant="ghost" onClick={() => setFolderModal(true)}>폴더 생성</Button>
             <label className={buttonClasses('primary') + (uploading ? ' opacity-60 pointer-events-none' : '')}>
@@ -230,9 +232,8 @@ export default function FilesPage() {
               <input ref={fileInputRef} type="file" multiple hidden onChange={(e) => handleFiles(e.target.files)} />
             </label>
           </div>
-        </div>
-        <p className="text-sm text-secondary mt-1.5 break-keep">폴더를 생성하여 파일을 정리하거나, 바로 업로드할 수 있습니다.</p>
-      </div>
+        }
+      />
 
       {/* 스토리지 사용량 */}
       <div className="mb-5">

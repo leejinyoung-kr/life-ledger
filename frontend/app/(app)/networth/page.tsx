@@ -1,6 +1,7 @@
 'use client';
 
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import StatCard from '@/components/StatCard';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
@@ -49,10 +50,7 @@ export default function NetworthPage() {
 
   return (
     <AppShell activePath="/networth" topbarLabel="자산 종합">
-      <div className="mb-7">
-        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">자산 종합</h1>
-        <p className="text-sm text-secondary mt-1.5">현금·예적금·투자를 합산해 순자산을 추적합니다.</p>
-      </div>
+      <PageHeader title="자산 종합" description="현금·예적금·투자를 합산해 순자산을 추적합니다." />
 
       <ErrorBanner message={error} />
 

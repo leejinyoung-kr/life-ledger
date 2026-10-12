@@ -12,6 +12,7 @@ import { notify } from '@/lib/toast';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import Pagination, { LimitSelect } from '@/components/Pagination';
@@ -127,12 +128,10 @@ export default function NotificationsPage() {
 
   return (
     <AppShell activePath="/notifications" topbarLabel="알림">
-      <div className="mb-7">
-        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">알림</h1>
-        <p className="text-sm text-secondary mt-1.5">
-          {unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개가 있습니다.` : '모든 알림을 읽었습니다.'}
-        </p>
-      </div>
+      <PageHeader
+        title="알림"
+        description={unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개가 있습니다.` : '모든 알림을 읽었습니다.'}
+      />
 
       <ErrorBanner message={error} />
 

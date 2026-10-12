@@ -14,6 +14,7 @@ import { useApiQuery, useInvalidate } from '@/lib/query';
 import { useFormErrors } from '@/lib/useFormErrors';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
 import Modal from '@/components/Modal';
@@ -166,13 +167,11 @@ export default function CalendarPage() {
 
   return (
     <AppShell activePath="/calendar" topbarLabel="캘린더">
-      <div className="mb-7">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">캘린더</h1>
-          <Button onClick={() => setAddModal({ open: true })}>일정 추가</Button>
-        </div>
-        <p className="text-sm text-secondary mt-1.5 break-keep">구독 결제·예적금 만기·서류 만료·할일·메모를 한 곳에서 봅니다.</p>
-      </div>
+      <PageHeader
+        title="캘린더"
+        description="구독 결제·예적금 만기·서류 만료·할일·메모를 한 곳에서 봅니다."
+        actions={<Button onClick={() => setAddModal({ open: true })}>일정 추가</Button>}
+      />
 
       <p className="text-[0.8rem] text-muted bg-surface border border-border-subtle rounded-(--radius) px-3.5 py-2 mb-5">
         ◈ 표시 항목(구독·예적금·신원지갑·할일)은 연동된 데이터입니다. 수정은 각 페이지에서, 삭제 시 원본에서도 삭제됩니다. 날짜를 클릭하면 그 날에 바로 일정을 추가할 수 있습니다.

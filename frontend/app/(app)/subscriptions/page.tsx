@@ -13,6 +13,7 @@ import { useFormErrors } from '@/lib/useFormErrors';
 import { usePagination } from '@/lib/usePagination';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import StatCard from '@/components/StatCard';
@@ -98,13 +99,11 @@ export default function SubscriptionsPage() {
 
   return (
     <AppShell activePath="/subscriptions" topbarLabel="구독 관리">
-      <div className="mb-7">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">구독 관리</h1>
-          <Button onClick={() => setModal({ open: true, mode: 'add' })}>구독 추가</Button>
-        </div>
-        <p className="text-sm text-secondary mt-1.5 break-keep">정기 결제를 한눈에 — 결제 예정일·연 환산을 추적합니다.</p>
-      </div>
+      <PageHeader
+        title="구독 관리"
+        description="정기 결제를 한눈에 — 결제 예정일·연 환산을 추적합니다."
+        actions={<Button onClick={() => setModal({ open: true, mode: 'add' })}>구독 추가</Button>}
+      />
 
       <ErrorBanner message={error} />
 

@@ -8,6 +8,7 @@
  */
 import { useState } from 'react';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
@@ -54,10 +55,7 @@ export default function AiReportPage() {
 
   return (
     <AppShell activePath="/ai-report" topbarLabel="AI 리포트">
-      <div className="mb-7">
-        <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">AI 리포트</h1>
-        <p className="text-sm text-secondary mt-1.5">가계부 데이터를 분석하여 소비 패턴과 절약 인사이트를 제공합니다. 매월 자동 생성 여부는 설정 &gt; 알림에서 켤 수 있습니다.</p>
-      </div>
+      <PageHeader title="AI 리포트" description="가계부 데이터를 분석하여 소비 패턴과 절약 인사이트를 제공합니다. 매월 자동 생성 여부는 설정 &gt; 알림에서 켤 수 있습니다." />
 
       {/* 새 리포트 생성 박스 */}
       <div className="border border-dashed border-border rounded-[var(--radius-lg)] px-6 py-12 flex flex-col items-center gap-4 text-center mb-7 transition-all hover:border-accent hover:bg-accent-dim [&>svg]:text-accent">

@@ -3,6 +3,7 @@
 import { Suspense, useMemo, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AppShell from '@/components/AppShell';
+import PageHeader from '@/components/PageHeader';
 import Button from '@/components/ui/Button';
 import {
   IconWon, IconBank, IconTrendUp,
@@ -58,16 +59,16 @@ function TransactionsPageInner() {
 
   return (
     <AppShell activePath="/transactions" topbarLabel="자산 관리">
-      <div className="mb-7">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="[font-family:var(--font-display)] text-[1.55rem] font-bold tracking-[-0.03em] text-primary">자산 관리</h1>
+      <PageHeader
+        title="자산 관리"
+        description="수입/지출, 예적금, 투자를 한 곳에서 관리하세요."
+        actions={
           <Button className="shrink-0" onClick={handleOpenAddModal}>
             <span className="hidden md:inline">{ADD_LABELS[tab]}</span>
             <span className="md:hidden">추가</span>
           </Button>
-        </div>
-        <p className="text-sm text-secondary mt-1.5 break-keep">수입/지출, 예적금, 투자를 한 곳에서 관리하세요.</p>
-      </div>
+        }
+      />
 
       <div className="flex items-center gap-2 border-b border-border mb-6">
         <div className="flex gap-0 overflow-x-auto flex-1 min-w-0 scrollbar-none">
