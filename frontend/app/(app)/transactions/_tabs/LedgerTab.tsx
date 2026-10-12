@@ -23,6 +23,7 @@ import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import EmptyState from '@/components/EmptyState';
 import ErrorBanner from '@/components/ErrorBanner';
+import TableEmptyRow from '@/components/TableEmptyRow';
 import {
   TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
   won, signedWon, dotDate, localDate,
@@ -410,7 +411,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
               </tr>
             </thead>
             <tbody>
-              {pagedRows.length === 0 && <tr><td colSpan={10} className="td-center td-muted">내역이 없습니다.</td></tr>}
+              {pagedRows.length === 0 && <TableEmptyRow colSpan={10} message="내역이 없습니다." />}
               {pagedRows.map((row, i) => (
                 <tr key={row.id}>
                   <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" /></td>
@@ -1087,8 +1088,8 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
             </div>
           </Field>
         )}
-        <label className="flex items-center gap-2 text-[0.875rem] font-medium text-primary cursor-pointer select-none [&_input]:w-4 [&_input]:h-4 [&_input]:accent-accent [&_input]:cursor-pointer">
-          <input type="checkbox" checked={active} onChange={(ev) => setActive(ev.target.checked)} />
+        <label className="flex items-center gap-2 text-[0.875rem] font-medium text-primary cursor-pointer select-none">
+          <input type="checkbox" className="checkbox" checked={active} onChange={(ev) => setActive(ev.target.checked)} />
           활성 (일시정지하면 새 회차를 생성하지 않음)
         </label>
       </div>

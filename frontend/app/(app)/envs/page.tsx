@@ -662,7 +662,7 @@ function VarModal({ state, projectId, currentEnv, onClose, onSaved }: { state: {
           <div className="flex gap-3 flex-wrap">
             {ENV_TABS.map((t) => (
               <label key={t.key} className="flex items-center gap-1.5 text-[0.855rem] cursor-pointer">
-                <input type="checkbox" className="accent-accent" checked={envs.includes(t.key)} onChange={() => handleToggleEnv(t.key)} /> {t.label}
+                <input type="checkbox" className="checkbox" checked={envs.includes(t.key)} onChange={() => handleToggleEnv(t.key)} /> {t.label}
               </label>
             ))}
           </div>

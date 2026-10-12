@@ -21,6 +21,7 @@ import { qk } from '@/lib/queryKeys';
 import { Card } from '@/components/ui/Card';
 import { PageLoading } from '@/components/QueryState';
 import EmptyState from '@/components/EmptyState';
+import TableEmptyRow from '@/components/TableEmptyRow';
 import {
   INVEST_TYPE_LABEL, won, usd, dotDate, daysUntil, localDate, recurringRuleSummary, WEEKDAY_LABEL,
   type Category, type Investment, type InvestmentAccount, type InvestmentSummary, type InvestmentType,
@@ -359,7 +360,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && <tr><td colSpan={11} className="td-center td-muted">투자 항목이 없습니다.</td></tr>}
+              {paged.length === 0 && <TableEmptyRow colSpan={11} message="투자 항목이 없습니다." />}
               {paged.map((row) => {
                 const recurringSchedule = scheduleByInvestmentId.get(row.id);
                 const recurring = recurringSchedule ? recurringBuyLabel(recurringSchedule, row.type === 'foreign_stock' || row.type === 'foreign_etf') : null;
@@ -1034,8 +1035,8 @@ function RecurringInvestmentModal({ state, onClose, onSaved }: { state: Recurrin
           </div>
         </Field>
       )}
-      <label className="flex items-center gap-2 text-[0.875rem] font-medium text-primary cursor-pointer select-none [&_input]:w-4 [&_input]:h-4 [&_input]:accent-accent [&_input]:cursor-pointer">
-        <input type="checkbox" checked={active} onChange={(ev) => setActive(ev.target.checked)} />
+      <label className="flex items-center gap-2 text-[0.875rem] font-medium text-primary cursor-pointer select-none">
+        <input type="checkbox" className="checkbox" checked={active} onChange={(ev) => setActive(ev.target.checked)} />
         활성 (일시정지하면 새 회차를 매수하지 않음)
       </label>
     </Modal>

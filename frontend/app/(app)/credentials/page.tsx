@@ -34,6 +34,7 @@ import {
 } from '@/lib/credential';
 import type { Settings } from '@/lib/settings';
 import EmptyState from '@/components/EmptyState';
+import TableEmptyRow from '@/components/TableEmptyRow';
 
 // 설정의 pwAutoHide(10s|30s|1m|none) → ms. none/누락 시 null(자동 숨김 안 함)
 function pwAutoHideMs(v: string | undefined): number | null {
@@ -227,7 +228,7 @@ export default function CredentialsPage() {
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && <tr><td colSpan={6} className="td-center td-muted">저장된 계정이 없습니다.</td></tr>}
+              {paged.length === 0 && <TableEmptyRow colSpan={6} message="저장된 계정이 없습니다." />}
               {paged.map((c) => (
                 <tr key={c.id} className="cursor-pointer" onClick={() => setDetail(c)}>
                   <td className="td-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" /></td>

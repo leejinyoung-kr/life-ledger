@@ -439,7 +439,7 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
       </div>
       <div className="-mt-1">
         <label className="flex items-center gap-1.5 text-[0.84rem] text-secondary cursor-pointer">
-          <input type="checkbox" checked={isLunar} onChange={(e) => handleLunarToggle(e.target.checked)} />
+          <input type="checkbox" className="checkbox" checked={isLunar} onChange={(e) => handleLunarToggle(e.target.checked)} />
           🌙 음력 날짜로 반복
         </label>
       </div>

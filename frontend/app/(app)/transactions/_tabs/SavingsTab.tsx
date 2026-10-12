@@ -18,6 +18,7 @@ import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { Card } from '@/components/ui/Card';
 import EmptyState from '@/components/EmptyState';
+import TableEmptyRow from '@/components/TableEmptyRow';
 import {
   SAVING_TYPE_LABEL, won, dotDate, daysUntil, calcMaturityAmount,
   type Category, type Saving, type SavingSummary, type SavingType,
@@ -162,7 +163,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && <tr><td colSpan={13} className="td-center td-muted">예적금 내역이 없습니다.</td></tr>}
+              {paged.length === 0 && <TableEmptyRow colSpan={13} message="예적금 내역이 없습니다." />}
               {paged.map((c, i) => {
                 const dleft = daysUntil(c.maturityDate);
                 const near = dleft !== null && dleft >= 0 && dleft <= 30;
