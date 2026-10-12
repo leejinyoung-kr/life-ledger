@@ -1,10 +1,34 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { StorageService } from '@leejinyoung-kr/core-storage';
 import { createHash, randomUUID } from 'crypto';
+import { Readable, type Writable } from 'stream';
+import type { ReadableStream as WebReadableStream } from 'stream/web';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
 import { SystemLogService } from '../system-log/system-log.service';
+import { folderPath, subtreeIds, zipPaths, type FolderNode } from './file-path.util';
+
+// 전체 검색 결과 상한 (폴더·파일 각각)
+const SEARCH_LIMIT = 200;
+// 폴더째 업로드에서 받는 상대 경로 깊이 상한
+const MAX_FOLDER_DEPTH = 20;
+// ZIP 한 번에 받을 수 있는 원본 합계 — 브라우저가 받은 ZIP 을 메모리(blob)에 담아 저장하므로 크게 두지 않는다
+export const ZIP_MAX_BYTES = 2 * 1024 ** 3;
+
+// ZIP 에 담을 파일 한 개
+export interface ZipEntry {
+  path: string;
+  name: string;
+  objectKey: string;
+  mimeType: string;
+  createdAt: Date;
+}
+
+// 이미 압축된 형식은 다시 압축하지 않고 그대로 담는다 (홈서버 CPU 절약)
+function isPrecompressed(mime: string): boolean {
+  return /^(image|video|audio)\//.test(mime) || /zip|compressed|pdf/.test(mime);
+}
 
 @Injectable()
 export class FileService {
@@ -56,6 +80,149 @@ export class FileService {
     };
   }
 
+  // 이름으로 모든 폴더를 검색 — 폴더·파일 각각 최대 SEARCH_LIMIT 건, 위치(루트 → 들어 있는 폴더)를 함께 준다
+  async search(userId: number, rawQ: string) {
+    const q = rawQ.trim().normalize('NFC');
+    if (!q) return { folders: [], files: [], truncated: false };
+
+    const [allFolders, files] = await Promise.all([
+      this.prisma.storageFolder.findMany({
+        where: { user_id: userId, deleted_at: null },
+        select: { id: true, name: true, parent_id: true, created_at: true },
+      }),
+      this.prisma.storageFile.findMany({
+        where: { user_id: userId, deleted_at: null, name: { contains: q } },
+        orderBy: { created_at: 'desc' },
+        take: SEARCH_LIMIT + 1,
+      }),
+    ]);
+    const byId = new Map<number, FolderNode>(allFolders.map((f) => [f.id, f]));
+    const lower = q.toLowerCase();
+    const matched = allFolders.filter((f) => f.name.normalize('NFC').toLowerCase().includes(lower));
+    const folders = matched.slice(0, SEARCH_LIMIT);
+
+    const fileCounts = folders.length
+      ? await this.prisma.storageFile.groupBy({
+        by: ['folder_id'],
+        where: { user_id: userId, deleted_at: null, folder_id: { in: folders.map((f) => f.id) } },
+        _count: { _all: true },
+      })
+      : [];
+    const fileCountOf = new Map(fileCounts.map((c) => [c.folder_id, c._count._all]));
+    const childCountOf = new Map<number, number>();
+    for (const f of allFolders) if (f.parent_id !== null) childCountOf.set(f.parent_id, (childCountOf.get(f.parent_id) ?? 0) + 1);
+
+    return {
+      folders: folders.map((f) => ({
+        id: f.id,
+        name: f.name,
+        parentId: f.parent_id,
+        fileCount: fileCountOf.get(f.id) ?? 0,
+        childFolderCount: childCountOf.get(f.id) ?? 0,
+        createdAt: f.created_at.toISOString(),
+        path: folderPath(byId, f.parent_id),
+      })),
+      files: files.slice(0, SEARCH_LIMIT).map((f) => ({
+        id: f.id,
+        name: f.name,
+        size: Number(f.size),
+        mimeType: f.mime_type,
+        folderId: f.folder_id,
+        createdAt: f.created_at.toISOString(),
+        path: folderPath(byId, f.folder_id),
+      })),
+      truncated: matched.length > SEARCH_LIMIT || files.length > SEARCH_LIMIT,
+    };
+  }
+
+  // ZIP 으로 받을 파일 목록 — 폴더(없으면 보관함 전체)와 그 하위 전부. 신원 지갑 사본은 잠금이 풀렸을 때만 담는다
+  async planZip(userId: number, folderId: number | undefined, unlocked: boolean) {
+    const root = folderId ? await this.findOwnedFolder(userId, folderId) : null;
+    const folders = await this.prisma.storageFolder.findMany({
+      where: { user_id: userId, deleted_at: null },
+      select: { id: true, name: true, parent_id: true },
+    });
+    const scope = folderId ? [...subtreeIds(folders, folderId)] : null;
+    const [files, linked] = await Promise.all([
+      this.prisma.storageFile.findMany({
+        where: { user_id: userId, deleted_at: null, ...(scope ? { folder_id: { in: scope } } : {}) },
+        orderBy: { created_at: 'asc' },
+      }),
+      this.prisma.identityCard.findMany({
+        where: { user_id: userId, deleted_at: null, file_id: { not: null } },
+        select: { file_id: true },
+      }),
+    ]);
+    const lockedIds = new Set(linked.map((c) => c.file_id));
+    const included = unlocked ? files : files.filter((f) => !lockedIds.has(f.id));
+    const paths = zipPaths(new Map(folders.map((f) => [f.id, f])), folderId ?? null, included);
+
+    return {
+      rootName: root?.name ?? null,
+      entries: included.map<ZipEntry>((f) => ({
+        path: paths.get(f.id)!,
+        name: f.name,
+        objectKey: f.object_key,
+        mimeType: f.mime_type,
+        createdAt: f.created_at,
+      })),
+      totalBytes: included.reduce((sum, f) => sum + Number(f.size), 0),
+      skippedLocked: files.length - included.length,
+    };
+  }
+
+  // ZIP 을 바로 흘려보낸다 — B2 오브젝트를 하나씩 받아 압축해 넘기므로 서버 메모리에 쌓이지 않는다.
+  // 받는 쪽이 끊으면 남은 파일은 받지 않고 멈춘다
+  async streamZip(userId: number, entries: ZipEntry[], out: Writable): Promise<void> {
+    // archiver 8 은 ESM 전용이라 쓸 때만 불러온다 (jest 가 모듈을 읽다 깨지지 않게)
+    const { ZipArchive } = await import('archiver');
+    const archive = new ZipArchive({ zlib: { level: 6 } });
+    let closed = false;
+    out.on('close', () => {
+      closed = true;
+      archive.abort();
+    });
+    const failed = new Promise<never>((_, reject) => archive.on('error', reject));
+    failed.catch(() => undefined);
+    archive.pipe(out);
+
+    try {
+      for (const e of entries) {
+        if (closed) return;
+        const url = await this.storage.getDownloadUrl(e.objectKey, e.name, e.mimeType, 'attachment');
+        const res = await fetch(url);
+        if (!res.ok || !res.body) throw new Error(`스토리지 응답 ${res.status} (${e.path})`);
+        const added = new Promise((resolve) => archive.once('entry', resolve));
+        archive.append(Readable.fromWeb(res.body as WebReadableStream<Uint8Array>), {
+          name: e.path,
+          date: e.createdAt,
+          store: isPrecompressed(e.mimeType),
+        });
+        await Promise.race([added, failed]);
+      }
+      if (!closed) await Promise.race([archive.finalize(), failed]);
+    } catch (err) {
+      if (closed) return;
+      this.sysLog.error({
+        userId,
+        category: 'file',
+        message: 'ZIP 다운로드 실패',
+        metadata: { error: (err as Error).message, files: entries.length },
+      });
+      throw err;
+    }
+  }
+
+  // ZIP 계획이 받을 수 있는 크기인지 — 비었거나 상한을 넘으면 400
+  assertZippable(plan: { entries: ZipEntry[]; totalBytes: number; skippedLocked: number }) {
+    if (plan.entries.length === 0) {
+      throw new BadRequestException(plan.skippedLocked ? '잠긴 파일만 있습니다. 마스터 잠금을 해제한 뒤 받으세요.' : '받을 파일이 없습니다.');
+    }
+    if (plan.totalBytes > ZIP_MAX_BYTES) {
+      throw new BadRequestException('한 번에 받을 수 있는 용량(2GB)을 넘습니다. 하위 폴더별로 나눠 받으세요.');
+    }
+  }
+
   // 루트까지 올라가며 브레드크럼 배열 생성
   private async buildBreadcrumb(userId: number, folderId: number) {
     const crumbs: { id: number; name: string }[] = [];
@@ -75,10 +242,12 @@ export class FileService {
 
   // 파일 업로드 — MIME 화이트리스트 검증 + SHA-256 중복 제거 후 B2 저장·DB 기록.
   // 동일 내용(해시 일치) 파일이 이미 있으면 B2 재업로드 없이 기존 오브젝트를 가리키는 메타만 추가한다.
-  async upload(userId: number, file: Express.Multer.File, folderId?: number) {
+  // relDir 가 있으면(폴더째 업로드) folderId 아래에 그 경로의 폴더를 찾거나 만들어 그 안에 넣는다
+  async upload(userId: number, file: Express.Multer.File, folderId?: number, relDir?: string) {
     this.storage.validateUpload(file);
 
     if (folderId) await this.findOwnedFolder(userId, folderId);
+    if (relDir) folderId = await this.ensureFolderPath(userId, folderId ?? null, relDir);
 
     // multer가 원본 파일명을 latin1로 디코딩하므로 한글 등 비ASCII 파일명은 utf8로 재해석.
     // NFC 정규화는 맥에서 올린 이름(NFD, 자모 분리) 대비 — 저장 형태가 갈리면 목록 검색(name.includes)이 못 찾는다
@@ -204,6 +373,26 @@ export class FileService {
     return { id: fileId };
   }
 
+  // "보험/2026" 같은 상대 경로를 parentId 아래에 한 칸씩 찾거나 만들고 마지막 폴더 id 를 돌려준다 (폴더째 업로드용).
+  // 같은 이름 폴더가 이미 있으면 그 폴더를 쓴다 — 업로드는 프론트가 한 파일씩 차례로 보내므로 동시에 같은 폴더를 만들 일은 없다
+  async ensureFolderPath(userId: number, parentId: number | null, relDir: string): Promise<number | undefined> {
+    const segments = relDir.split('/').map((s) => s.normalize('NFC').trim()).filter(Boolean);
+    if (segments.length > MAX_FOLDER_DEPTH) throw new BadRequestException(`폴더는 ${MAX_FOLDER_DEPTH}단계까지만 올릴 수 있습니다.`);
+    let current = parentId;
+    for (const name of segments) {
+      if (name.length > 200) throw new BadRequestException('폴더 이름이 너무 깁니다 (200자).');
+      const found = await this.prisma.storageFolder.findFirst({
+        where: { user_id: userId, parent_id: current, name, deleted_at: null },
+        orderBy: { id: 'asc' },
+        select: { id: true },
+      });
+      current = found
+        ? found.id
+        : (await this.prisma.storageFolder.create({ data: { user_id: userId, parent_id: current, name }, select: { id: true } })).id;
+    }
+    return current ?? undefined;
+  }
+
   // 폴더 생성 (parentId 없으면 루트에 생성)
   async createFolder(userId: number, dto: CreateFolderDto) {
     if (dto.parentId) await this.findOwnedFolder(userId, dto.parentId);
@@ -226,15 +415,39 @@ export class FileService {
     };
   }
 
-  // 폴더 삭제 — 하위 폴더/파일 재귀 soft delete
+  // 폴더 삭제 — 하위 폴더/파일 재귀 soft delete 후, 더 이상 아무 파일도 가리키지 않는 B2 오브젝트를 지운다.
+  // (예전에는 B2 오브젝트를 남겨 폴더를 지우고 같은 파일을 다시 올리면 B2 에 두 벌이 쌓였다)
   async removeFolder(userId: number, folderId: number) {
     await this.findOwnedFolder(userId, folderId);
-    await this.deleteFolderRecursive(userId, folderId);
-    return { id: folderId };
+    const keys = await this.deleteFolderRecursive(userId, folderId);
+    const purged = await this.deleteUnreferencedObjects(userId, keys);
+    return { id: folderId, purgedObjects: purged };
   }
 
-  // BFS로 하위 폴더 id 전부 수집 후, 폴더·파일 soft delete를 단일 트랜잭션으로 일괄 처리
-  private async deleteFolderRecursive(userId: number, folderId: number) {
+  // 남은(미삭제) 파일이 하나도 가리키지 않는 오브젝트만 B2 에서 지운다 — 하나가 실패해도 나머지는 계속, 실패는 시스템 로그로
+  private async deleteUnreferencedObjects(userId: number, keys: string[]): Promise<number> {
+    const unique = [...new Set(keys)];
+    if (unique.length === 0) return 0;
+    const live = await this.prisma.storageFile.findMany({
+      where: { object_key: { in: unique }, deleted_at: null },
+      select: { object_key: true },
+    });
+    const stillUsed = new Set(live.map((f) => f.object_key));
+    let purged = 0;
+    for (const key of unique) {
+      if (stillUsed.has(key)) continue;
+      try {
+        await this.storage.deleteObject(key);
+        purged++;
+      } catch (e) {
+        this.sysLog.error({ userId, category: 'file', message: `폴더 삭제 후 B2 오브젝트 삭제 실패 — key: ${key}`, metadata: { objectKey: key, error: (e as Error).message } });
+      }
+    }
+    return purged;
+  }
+
+  // BFS로 하위 폴더 id 전부 수집 후, 폴더·파일 soft delete를 단일 트랜잭션으로 일괄 처리. 지운 파일들의 오브젝트 키를 돌려준다
+  private async deleteFolderRecursive(userId: number, folderId: number): Promise<string[]> {
     const ids = [folderId];
     const queue = [folderId];
 
@@ -250,6 +463,11 @@ export class FileService {
       }
     }
 
+    const files = await this.prisma.storageFile.findMany({
+      where: { user_id: userId, folder_id: { in: ids }, deleted_at: null },
+      select: { object_key: true },
+    });
+
     const now = new Date();
     await this.prisma.$transaction([
       this.prisma.storageFile.updateMany({
@@ -261,6 +479,7 @@ export class FileService {
         data: { deleted_at: now },
       }),
     ]);
+    return files.map((f) => f.object_key);
   }
 
   private async findOwnedFile(userId: number, fileId: number) {

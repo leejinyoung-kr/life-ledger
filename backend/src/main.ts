@@ -48,8 +48,9 @@ async function bootstrap() {
   app.enableCors({
     origin: env.CORS_ORIGINS,
     credentials: true,
-    // 변환 결과 다운로드 시 프론트가 실제 파일명(확장자 포함)을 읽을 수 있도록 노출
-    exposedHeaders: ['Content-Disposition'],
+    // 변환 결과 다운로드 시 프론트가 실제 파일명(확장자 포함)을 읽을 수 있도록 노출.
+    // X-Skipped-Locked 는 파일 보관함 ZIP 에서 잠겨서 빠진 파일 수
+    exposedHeaders: ['Content-Disposition', 'X-Skipped-Locked'],
   });
 
   app.useGlobalPipes(

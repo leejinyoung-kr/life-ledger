@@ -9,7 +9,7 @@
 기능 목록:
 
 - 자격증명 관리 (계정·신원 번호·ENV 값 AES-256-GCM 암호화 저장) — **구현 완료**
-- 파일 보관함 (Backblaze B2 — 폴더·업로드·presigned·MIME/매직바이트 검증·SHA-256 중복제거) — **구현 완료**
+- 파일 보관함 (Backblaze B2 — 폴더·업로드·presigned·MIME/매직바이트 검증·SHA-256 중복제거·전체 검색·폴더/전체 ZIP 다운로드) — **구현 완료**
 - 자산 현황 (현금·예적금·투자 순자산 요약·월별 추이·현금흐름 예측) — 구현 완료
 - 캘린더 (일정 + 구독결제·예적금만기·투자계좌만기(ISA 등)·신원만료 가상 이벤트 연동) / 구독 — 구현 완료
 - 보안 코어 (마스터 잠금·접근 감사 로그·보안점수 추이·비번 회전·2FA 백업코드·강도 통계) — 구현 완료
@@ -214,7 +214,7 @@ docker compose exec backend npx prisma migrate deploy
   | 용도 | 요소 |
   | --- | --- |
   | 페이지 제목 (h1 · 부제목 · 우측 버튼) | `components/PageHeader` — 페이지에서 h1 을 직접 쓰지 않는다 |
-  | 버튼 / 아이콘 버튼 | `ui/Button` (`variant` · `size` · `loading`) / `ui/IconButton` (`label` 필수, `variant` · `size`) |
+  | 버튼 / 아이콘 버튼 | `ui/Button` (`variant` · `size` · `loading`, 글줄 안 링크는 `variant="link" size="inline"`) / `ui/IconButton` (`label` 필수, `variant` · `size`) |
   | 검색 입력 | `ui/SearchInput` (`onEnter`) |
   | 입력 그룹 · 오류 | `ui/Field` — `error` 가 있으면 안의 `.input` 이 자동으로 빨개진다. `is-invalid` 를 손으로 붙이지 않는다 (Field 밖은 `aria-invalid`) |
   | 탭 | 밑줄 · 세로 `ui/Tabs`, 알약 · 묶음 `ui/Segmented` (`role="tablist"`) |

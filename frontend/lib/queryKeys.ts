@@ -46,7 +46,11 @@ export const qk = {
   assets: { all: ['assets'] as const, networth: () => ['assets', 'networth'] as const },
   calendar: { all: ['calendar'] as const, list: (month?: string) => ['calendar', month ?? null] as const },
   notifications: { all: ['notifications'] as const, list: (params?: unknown) => ['notifications', 'list', params ?? null] as const, unread: () => ['notifications', 'unread'] as const },
-  files: { all: ['files'] as const, list: (folderId?: number) => ['files', folderId ?? 'root'] as const },
+  files: {
+    all: ['files'] as const,
+    list: (folderId?: number) => ['files', folderId ?? 'root'] as const,
+    search: (q: string) => ['files', 'search', q] as const,
+  },
   security: {
     all: ['security'] as const,
     summary: () => ['security', 'summary'] as const,

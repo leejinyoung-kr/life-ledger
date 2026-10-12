@@ -280,12 +280,15 @@ Base URL: `http://localhost:8000/api/v1`
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | /files?folderId= | 폴더 내용 (브레드크럼·하위폴더·파일·사용량) |
-| POST | /files/upload?folderId= | 업로드 (multipart `file`, 50MB — multer 단계에서 끊음, MIME 화이트리스트 + SHA-256 중복제거) |
+| GET | /files/search?q= | 모든 폴더에서 이름 검색 (폴더·파일 각각 최대 200건, 항목마다 `path` = 루트 → 들어 있는 폴더, 넘치면 `truncated: true`) |
+| GET | /files/zip/summary?folderId= | ZIP 으로 받기 전 요약 — `fileCount`·`totalBytes`·`skippedLocked`(잠겨서 빠질 신원 지갑 사본 수)·`maxBytes`(2GB) |
+| GET | /files/zip?folderId= | 폴더(없으면 보관함 전체)를 하위 폴더까지 ZIP 하나로 (폴더 구조 유지, 같은 경로는 `이름 (2).확장자`). B2 오브젝트를 하나씩 받아 바로 흘려보낸다(archiver, 사진·영상·PDF 는 압축 없이). 신원 지갑 사본은 `x-vault-token` 으로 잠금이 풀렸을 때만 담고 뺀 수는 `X-Skipped-Locked` 헤더. 비었거나 2GB 초과면 400 |
+| POST | /files/upload?folderId=&path= | 업로드 (multipart `file`, 50MB — multer 단계에서 끊음, MIME 화이트리스트 + SHA-256 중복제거). `path`(예: `보험/2026`)를 주면 folderId 아래에 그 폴더들을 찾거나 만들어 넣는다 — 폴더째 업로드(같은 이름 폴더는 합쳐짐, 20단계까지) |
 | GET | /files/:id/url?disposition= | presigned URL 발급 (5분, inline=미리보기). 신원 지갑 사본으로 연결된 파일은 마스터 잠금 시 `x-vault-token` 필요. 응답 파일명은 `filename*=UTF-8''…` + ASCII 대체 이름(NFC) — 프론트의 `a.download` 는 다른 origin 이라 무시됨 |
 | PATCH | /files/:id/move | 파일 폴더 이동 |
 | DELETE | /files/:id | 파일 삭제 (공유 오브젝트 보호) |
 | POST | /files/folders | 폴더 생성 |
-| DELETE | /files/folders/:id | 폴더 삭제 (하위 재귀 soft delete) |
+| DELETE | /files/folders/:id | 폴더 삭제 (하위 재귀 soft delete + 남은 파일이 가리키지 않는 B2 오브젝트 삭제, 응답 `purgedObjects`) |
 
 ## AI
 

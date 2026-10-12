@@ -45,6 +45,7 @@ describe('FileService', () => {
         update: jest.fn(),
         count: jest.fn().mockResolvedValue(0),
         updateMany: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
       },
       storageFolder: {
         findFirst: jest.fn(),
@@ -222,6 +223,108 @@ describe('FileService', () => {
         expect.objectContaining({ where: expect.objectContaining({ id: { in: [1, 2, 3, 4] } }) }),
       );
       expect([fileOp, folderOp]).toHaveLength(2);
+    });
+
+    it('지운 파일의 B2 오브젝트는 다른 파일이 같이 쓰지 않을 때만 지운다', async () => {
+      prisma.storageFolder.findFirst.mockResolvedValue({ id: 1, user_id: 1, deleted_at: null });
+      prisma.storageFolder.findMany.mockResolvedValue([]);
+      prisma.storageFile.findMany
+        .mockResolvedValueOnce([{ object_key: 'k1' }, { object_key: 'k2' }, { object_key: 'k1' }]) // 폴더 안 파일
+        .mockResolvedValueOnce([{ object_key: 'k2' }]); // 지운 뒤에도 k2 는 다른 폴더 파일이 쓴다
+      sendMock.mockClear();
+
+      const res = await svc().removeFolder(1, 1);
+
+      const deletes = sendMock.mock.calls.map((c) => c[0]).filter((cmd: any) => cmd.__type === 'Delete');
+      expect(deletes.map((d: any) => d.input.Key)).toEqual(['k1']);
+      expect(res).toEqual({ id: 1, purgedObjects: 1 });
+    });
+  });
+
+  describe('ensureFolderPath — 폴더째 업로드', () => {
+    it('있는 폴더는 그대로 쓰고 없는 칸만 만든다', async () => {
+      prisma.storageFolder.findFirst
+        .mockResolvedValueOnce({ id: 7 }) // 보험 — 이미 있음
+        .mockResolvedValueOnce(null); // 2026 — 없음
+      prisma.storageFolder.create.mockResolvedValue({ id: 8 });
+
+      const id = await svc().ensureFolderPath(1, null, '보험/ 2026 /');
+
+      expect(id).toBe(8);
+      expect(prisma.storageFolder.findFirst).toHaveBeenNthCalledWith(1, expect.objectContaining({ where: expect.objectContaining({ parent_id: null, name: '보험' }) }));
+      expect(prisma.storageFolder.create).toHaveBeenCalledWith(expect.objectContaining({ data: { user_id: 1, parent_id: 7, name: '2026' } }));
+    });
+
+    it('너무 깊은 경로는 거부한다', async () => {
+      await expect(svc().ensureFolderPath(1, null, Array(21).fill('a').join('/'))).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+  describe('search — 모든 폴더에서 찾기', () => {
+    it('파일·폴더를 위치(루트 → 들어 있는 폴더)와 함께 돌려준다', async () => {
+      prisma.storageFolder.findMany.mockResolvedValue([
+        { id: 1, name: '보험', parent_id: null, created_at: new Date() },
+        { id: 2, name: '보험 영수증', parent_id: 1, created_at: new Date() },
+      ]);
+      prisma.storageFile.findMany = jest.fn().mockResolvedValue([
+        { id: 9, name: '보험증권.pdf', size: BigInt(10), mime_type: 'application/pdf', folder_id: 2, created_at: new Date() },
+      ]);
+      prisma.storageFile.groupBy = jest.fn().mockResolvedValue([{ folder_id: 2, _count: { _all: 1 } }]);
+
+      const res = await svc().search(1, ' 보험 ');
+
+      expect(prisma.storageFile.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ name: { contains: '보험' } }) }));
+      expect(res.files[0].path.map((c: any) => c.name)).toEqual(['보험', '보험 영수증']);
+      expect(res.folders.map((f: any) => [f.name, f.path.map((c: any) => c.name), f.fileCount, f.childFolderCount])).toEqual([
+        ['보험', [], 0, 1],
+        ['보험 영수증', ['보험'], 1, 0],
+      ]);
+      expect(res.truncated).toBe(false);
+    });
+
+    it('빈 검색어는 조회하지 않는다', async () => {
+      expect(await svc().search(1, '   ')).toEqual({ folders: [], files: [], truncated: false });
+      expect(prisma.storageFolder.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('planZip — ZIP 으로 받을 파일', () => {
+    const file = (id: number, folder_id: number | null, size = 100) =>
+      ({ id, name: `f${id}.pdf`, size: BigInt(size), mime_type: 'application/pdf', folder_id, object_key: `k${id}`, created_at: new Date() });
+
+    beforeEach(() => {
+      prisma.storageFolder.findMany.mockResolvedValue([
+        { id: 1, name: '보험', parent_id: null },
+        { id: 2, name: '2026', parent_id: 1 },
+        { id: 3, name: '사진', parent_id: null },
+      ]);
+      prisma.storageFile.findMany = jest.fn().mockResolvedValue([file(10, 1), file(11, 2), file(12, 2)]);
+      prisma.identityCard = { findMany: jest.fn().mockResolvedValue([{ file_id: 12 }]) };
+    });
+
+    it('폴더를 고르면 그 폴더와 하위 폴더만, 경로는 그 폴더 기준', async () => {
+      prisma.storageFolder.findFirst.mockResolvedValue({ id: 1, name: '보험', parent_id: null });
+      const plan = await svc().planZip(1, 1, true);
+      expect(prisma.storageFile.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ folder_id: { in: [1, 2] } }) }));
+      expect(plan.rootName).toBe('보험');
+      expect(plan.entries.map((e) => e.path)).toEqual(['f10.pdf', '2026/f11.pdf', '2026/f12.pdf']);
+      expect(plan.totalBytes).toBe(300);
+      expect(plan.skippedLocked).toBe(0);
+    });
+
+    it('잠금이 안 풀렸으면 신원 지갑 사본은 빼고 센다', async () => {
+      const plan = await svc().planZip(1, undefined, false);
+      expect(plan.rootName).toBeNull();
+      expect(plan.entries.map((e) => e.path)).toEqual(['보험/f10.pdf', '보험/2026/f11.pdf']);
+      expect(plan.skippedLocked).toBe(1);
+    });
+
+    it('assertZippable 은 비었거나 2GB 를 넘으면 거부한다', () => {
+      const s = svc();
+      expect(() => s.assertZippable({ entries: [], totalBytes: 0, skippedLocked: 0 })).toThrow('받을 파일이 없습니다');
+      expect(() => s.assertZippable({ entries: [], totalBytes: 0, skippedLocked: 2 })).toThrow('잠긴 파일만');
+      const one = [{ path: 'a', name: 'a', objectKey: 'k', mimeType: 'text/plain', createdAt: new Date() }];
+      expect(() => s.assertZippable({ entries: one, totalBytes: 3 * 1024 ** 3, skippedLocked: 0 })).toThrow(BadRequestException);
+      expect(() => s.assertZippable({ entries: one, totalBytes: 10, skippedLocked: 0 })).not.toThrow();
     });
   });
 });

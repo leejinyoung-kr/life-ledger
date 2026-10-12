@@ -1,12 +1,13 @@
 /**
  * 공통 버튼 (Tailwind).
- * variant(primary/ghost/danger/solid-danger) + size(md/sm/lg). href 를 주면 <a> 로 렌더된다.
+ * variant(primary/ghost/danger/solid-danger/link) + size(md/sm/lg/inline). href 를 주면 <a> 로 렌더된다.
+ * link + inline 은 글줄 안에 들어가는 링크 모양(브레드크럼 · 위치 표시)이다.
  * loading 이면 비활성화되고 children 대신 loadingLabel 을 보여준다.
  */
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
 
-type Variant = 'primary' | 'ghost' | 'danger' | 'solid-danger';
-type Size = 'md' | 'sm' | 'lg';
+type Variant = 'primary' | 'ghost' | 'danger' | 'solid-danger' | 'link';
+type Size = 'md' | 'sm' | 'lg' | 'inline';
 
 const BASE =
   'inline-flex items-center justify-center gap-1.5 rounded-ui font-semibold whitespace-nowrap transition-all cursor-pointer [&_svg]:w-[15px] [&_svg]:h-[15px] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none';
@@ -16,12 +17,14 @@ const VARIANT: Record<Variant, string> = {
   ghost: 'bg-transparent text-secondary border border-border font-medium hover:bg-surface hover:text-primary',
   danger: 'bg-danger-dim text-danger hover:bg-danger/15',
   'solid-danger': 'bg-danger text-white border border-danger font-semibold hover:bg-danger-dark hover:border-danger-dark',
+  link: 'bg-transparent text-accent font-medium hover:opacity-70',
 };
 
 const SIZE: Record<Size, string> = {
   md: 'px-4 py-2 text-[0.855rem]',
   sm: 'px-2.5 py-[5px] text-[0.78rem]',
   lg: 'px-4 py-3 text-[0.875rem]',
+  inline: 'p-0 text-[length:inherit]',
 };
 
 // variant/size → 클래스 문자열 (다른 컴포넌트에서 a 태그 등에 직접 쓸 때 재사용)
