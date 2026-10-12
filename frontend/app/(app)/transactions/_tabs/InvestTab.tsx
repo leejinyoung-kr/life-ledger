@@ -5,6 +5,7 @@ import StatCard from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
+import Segmented from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
 import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
@@ -302,9 +303,14 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
           <span className="text-[0.78rem] text-secondary">총 {total}건</span>
           <div className="flex items-center gap-2">
             {hasForeign && (
-              <div className="hidden md:inline-flex rounded-md border border-border divide-x divide-border overflow-hidden text-[0.76rem] font-medium">
-                <button className={`px-2.5 py-1 transition-colors ${currency === 'USD' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`} onClick={() => setCurrency('USD')}>$ USD</button>
-                <button className={`px-2.5 py-1 transition-colors ${currency === 'KRW' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`} onClick={() => setCurrency('KRW')}>₩ KRW</button>
+              <div className="hidden md:block">
+                <Segmented
+                  label="통화"
+                  variant="joined"
+                  value={currency}
+                  onChange={setCurrency}
+                  items={[{ value: 'USD', label: '$ USD' }, { value: 'KRW', label: '₩ KRW' }]}
+                />
               </div>
             )}
             <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
@@ -313,10 +319,13 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
         </div>
         {hasForeign && (
           <div className="flex justify-end mt-1.5 md:hidden">
-            <div className="inline-flex rounded-md border border-border divide-x divide-border overflow-hidden text-[0.76rem] font-medium">
-              <button className={`px-2.5 py-1 transition-colors ${currency === 'USD' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`} onClick={() => setCurrency('USD')}>$ USD</button>
-              <button className={`px-2.5 py-1 transition-colors ${currency === 'KRW' ? 'bg-primary text-background' : 'bg-background text-muted hover:text-primary'}`} onClick={() => setCurrency('KRW')}>₩ KRW</button>
-            </div>
+            <Segmented
+              label="통화"
+              variant="joined"
+              value={currency}
+              onChange={setCurrency}
+              items={[{ value: 'USD', label: '$ USD' }, { value: 'KRW', label: '₩ KRW' }]}
+            />
           </div>
         )}
       </div>

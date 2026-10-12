@@ -1,10 +1,11 @@
 'use client';
 
-import { Suspense, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import Button from '@/components/ui/Button';
+import Tabs from '@/components/ui/Tabs';
 import {
   IconWon, IconBank, IconTrendUp,
 } from '@/components/icons';
@@ -21,18 +22,6 @@ const ADD_LABELS: Record<TabId, string> = {
   savings: '예적금 추가',
   invest: '투자 항목 추가',
 };
-
-function Tab({ active, onClick, icon, children }: { active: boolean; onClick: () => void; icon: ReactNode; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      className={`px-5 py-2.5 text-[0.875rem] cursor-pointer border-b-2 -mb-px transition-all flex items-center gap-1.75 whitespace-nowrap shrink-0 [&_svg]:w-3.75 [&_svg]:h-3.75 max-md:px-3 max-md:text-[0.82rem] ${active ? 'text-accent border-accent font-semibold' : 'text-muted border-transparent font-medium hover:text-primary'}`}
-      onClick={onClick}
-    >
-      {icon}{children}
-    </button>
-  );
-}
 
 function TransactionsPageInner() {
   const searchParams = useSearchParams();
@@ -70,12 +59,18 @@ function TransactionsPageInner() {
         }
       />
 
-      <div className="flex items-center gap-2 border-b border-border mb-6">
-        <div className="flex gap-0 overflow-x-auto flex-1 min-w-0 scrollbar-none">
-          <Tab active={tab === 'ledger'} onClick={() => setTab('ledger')} icon={<IconWon />}>수입 / 지출</Tab>
-          <Tab active={tab === 'savings'} onClick={() => setTab('savings')} icon={<IconBank />}>예적금</Tab>
-          <Tab active={tab === 'invest'} onClick={() => setTab('invest')} icon={<IconTrendUp />}>투자</Tab>
-        </div>
+      <div className="border-b border-border mb-6">
+        <Tabs
+          label="자산 관리"
+          size="md"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { value: 'ledger', label: '수입 / 지출', icon: <IconWon /> },
+            { value: 'savings', label: '예적금', icon: <IconBank /> },
+            { value: 'invest', label: '투자', icon: <IconTrendUp /> },
+          ]}
+        />
       </div>
 
       {tab === 'ledger' && <LedgerTab categories={txCats} bankCats={bankCats} payMethodCats={payMethodCats} addTrigger={addTrigger.ledger} />}

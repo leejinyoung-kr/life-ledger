@@ -11,6 +11,7 @@ import Image from 'next/image';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import Button from '@/components/ui/Button';
+import Segmented from '@/components/ui/Segmented';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { IconImage, IconFileBlank, IconUpload, IconClose } from '@/components/icons';
 import { notify } from '@/lib/toast';
@@ -140,22 +141,13 @@ export default function ConvertPage() {
             {dir === 'pdf-to-image' && (
               <div className="flex items-center gap-3">
                 <span className="text-[0.85rem] font-medium text-secondary">출력 형식</span>
-                <div className="flex gap-2">
-                  {(['png', 'jpg'] as ImageFormat[]).map((f) => (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setFormat(f)}
-                      className={`px-3 py-1.5 rounded-[var(--radius)] text-[0.82rem] font-semibold border transition-colors ${
-                        format === f
-                          ? 'bg-accent-dim text-accent border-accent'
-                          : 'bg-transparent text-secondary border-border hover:bg-surface hover:text-primary'
-                      }`}
-                    >
-                      {f.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
+                <Segmented
+                  label="출력 형식"
+                  variant="soft"
+                  value={format}
+                  onChange={setFormat}
+                  items={(['png', 'jpg'] as ImageFormat[]).map((f) => ({ value: f, label: f.toUpperCase() }))}
+                />
               </div>
             )}
 

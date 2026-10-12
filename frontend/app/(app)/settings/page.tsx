@@ -15,6 +15,7 @@ import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
+import Tabs from '@/components/ui/Tabs';
 import ErrorBanner from '@/components/ErrorBanner';
 import QueryError from '@/components/QueryError';
 import { PageLoading } from '@/components/QueryState';
@@ -352,11 +353,14 @@ export default function SettingsPage() {
       <div className="grid grid-cols-[192px_1fr] gap-7 items-start max-md:grid-cols-1">
         {/* 탭 네비 */}
         <div className="relative max-md:static">
-          <div className="bg-background border border-border rounded-lg p-2.5 flex flex-col gap-0.5 sticky top-[calc(var(--header-h)+28px)] shadow-(--shadow-sm) max-md:static max-md:flex-row max-md:flex-nowrap max-md:overflow-x-auto max-md:scrollbar-none">
-            {TABS.map((t) => (
-              <button key={t.id} type="button" className={`px-3 py-2 rounded-(--radius) text-[0.855rem] cursor-pointer transition-all font-medium text-left whitespace-nowrap shrink-0 ${tab === t.id ? 'bg-accent-dim text-accent font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`} onClick={() => setTab(t.id)}>{t.label}</button>
-            ))}
-          </div>
+          <Tabs
+            label="설정"
+            variant="vertical"
+            className="sticky top-[calc(var(--header-h)+28px)] max-md:static"
+            value={tab}
+            onChange={setTab}
+            items={TABS.map((t) => ({ value: t.id, label: t.label }))}
+          />
           <div className="hidden max-md:block absolute top-0 right-0 bottom-0 w-6 rounded-r-lg bg-linear-to-l from-background to-transparent pointer-events-none" />
         </div>
 

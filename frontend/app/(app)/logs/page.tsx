@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import Button from '@/components/ui/Button';
+import Segmented from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import ErrorBanner from '@/components/ErrorBanner';
@@ -153,18 +154,14 @@ export default function LogsPage() {
       />
 
       {/* 레벨 탭 — 클릭 즉시 반영 */}
-      <div className="flex gap-1.5 mb-3">
-        {(['all', 'info', 'warn', 'error'] as const).map((l) => (
-          <Button
-            key={l}
-            size="sm"
-            variant={level === l ? 'primary' : 'ghost'}
-            onClick={() => { setLevel(l); setPage(1); }}
-          >
-            {l === 'all' ? '전체' : LEVEL_LABEL[l as LogLevel]}
-          </Button>
-        ))}
-      </div>
+      <Segmented
+        label="로그 레벨"
+        size="xs"
+        className="mb-3"
+        value={level}
+        onChange={(l) => { setLevel(l); setPage(1); }}
+        items={(['all', 'info', 'warn', 'error'] as const).map((l) => ({ value: l, label: l === 'all' ? '전체' : LEVEL_LABEL[l] }))}
+      />
 
       {/* 필터박스 — 조회 버튼으로 반영 */}
       <div className="bg-surface border border-border rounded-lg px-5 py-4 flex flex-col gap-3 mb-4">

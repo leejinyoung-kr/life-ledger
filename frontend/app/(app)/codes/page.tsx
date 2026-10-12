@@ -29,6 +29,7 @@ import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
+import Segmented from '@/components/ui/Segmented';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { IconDrag, IconPlus } from '@/components/icons';
 import { api } from '@/lib/api';
@@ -257,18 +258,13 @@ export default function CodesPage() {
       <PageHeader title="코드 관리" description="선택박스 항목을 도메인별로 관리합니다. 드래그로 순서를 변경할 수 있습니다." />
 
       {/* 도메인 탭 — 모바일은 가로 스크롤, 데스크탑은 줄바꿈 */}
-      <div className="flex gap-1.5 mb-4 max-md:overflow-x-auto max-md:flex-nowrap max-md:pb-1.5 md:flex-wrap">
-        {DOMAINS.map((d) => (
-          <button
-            key={d.key}
-            type="button"
-            className={`px-3.5 py-1.5 rounded-[var(--radius)] border text-[0.82rem] cursor-pointer transition-all whitespace-nowrap shrink-0 ${domain === d.key ? 'bg-accent border-accent text-white font-semibold' : 'bg-background border-border text-secondary hover:bg-surface hover:text-primary'}`}
-            onClick={() => setDomain(d.key)}
-          >
-            {d.label}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        label="도메인"
+        className="mb-4 max-md:overflow-x-auto max-md:flex-nowrap max-md:pb-1.5 md:flex-wrap"
+        value={domain}
+        onChange={setDomain}
+        items={DOMAINS.map((d) => ({ value: d.key, label: d.label }))}
+      />
 
       <Card>
         {/* 카드 헤더 — 모바일은 세로로 쌓고 버튼은 우측 정렬 */}

@@ -19,6 +19,7 @@ import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import SearchInput from '@/components/ui/SearchInput';
 import IconButton from '@/components/ui/IconButton';
+import Tabs from '@/components/ui/Tabs';
 import Badge from '@/components/ui/Badge';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { TOOLBAR_DIVIDER } from '@/components/ui/styles';
@@ -317,14 +318,21 @@ export default function EnvsPage() {
             {/* 환경 탭 + 변수 테이블 + 전체 복사 바 */}
             <div className="bg-background border border-border rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]">
               <div className="relative border-b border-border bg-surface">
-                <div className="flex px-4 overflow-x-auto scrollbar-none">
-                  {ENV_TABS.map((t) => (
-                    <button type="button" key={t.key} className={`px-4 py-2 text-[0.82rem] font-medium cursor-pointer border-b-2 -mb-px transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${env === t.key ? 'text-accent border-accent font-semibold' : 'text-muted border-transparent hover:text-secondary'}`} onClick={() => setEnv(t.key)}>
-                      <span className={`w-[7px] h-[7px] rounded-full ${ENV_DOT[t.key]}`} />{t.label}
-                      <span className="text-[0.7rem] text-muted">{project.counts[t.key]}</span>
-                    </button>
-                  ))}
-                </div>
+                <Tabs
+                  label="환경"
+                  className="px-4"
+                  value={env}
+                  onChange={setEnv}
+                  items={ENV_TABS.map((t) => ({
+                    value: t.key,
+                    label: (
+                      <>
+                        <span className={`w-[7px] h-[7px] rounded-full ${ENV_DOT[t.key]}`} />{t.label}
+                        <span className="text-[0.7rem] text-muted">{project.counts[t.key]}</span>
+                      </>
+                    ),
+                  }))}
+                />
                 <div className="hidden max-md:block absolute top-0 right-0 bottom-0 w-6 bg-linear-to-l from-surface to-transparent pointer-events-none" />
               </div>
 

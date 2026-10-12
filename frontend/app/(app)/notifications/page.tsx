@@ -15,6 +15,7 @@ import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
+import Segmented from '@/components/ui/Segmented';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
@@ -137,13 +138,14 @@ export default function NotificationsPage() {
 
       {/* 필터 탭 + 선택삭제/전체삭제/모두읽음 + 페이지당 항목 수 */}
       <div className="flex items-center justify-between gap-2.5 mb-5 max-md:flex-wrap">
-        <div className="flex gap-1 flex-wrap">
-          {NOTI_TABS.map((t) => (
-            <Button key={t.kind} variant={tab === t.kind ? 'primary' : 'ghost'} onClick={() => handleChangeTab(t.kind)}>
-              {t.label}
-            </Button>
-          ))}
-        </div>
+        <Segmented
+          label="알림 구분"
+          size="md"
+          className="gap-1 flex-wrap"
+          value={tab}
+          onChange={handleChangeTab}
+          items={NOTI_TABS.map((t) => ({ value: t.kind, label: t.label }))}
+        />
         <div className="flex items-center gap-2 flex-wrap justify-end max-md:w-full">
           <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <Button variant="ghost" onClick={handleRemoveAll}>전체삭제</Button>
