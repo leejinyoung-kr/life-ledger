@@ -3,19 +3,17 @@
 ## 이 프로젝트가 무엇인가
 
 개인 문서·자산·계정 통합 보안 관리 플랫폼.
-민감한 자격증명(계정, ENV, 신원 문서)을 AES-256-GCM 암호화로 저장하고, Google OAuth 또는 이메일 인증코드(`ALLOWED_EMAILS` 화이트리스트)로만 접근한다.
+민감한 자격증명(계정 비밀번호 · 2FA 시크릿)을 AES-256-GCM 암호화로 저장하고, Google OAuth 또는 이메일 인증코드(`ALLOWED_EMAILS` 화이트리스트)로만 접근한다.
 전 엔드포인트는 전역 JWT 가드로 보호되며, 로그인(`@Public()`)만 예외다.
 
 기능 목록:
 
-- 자격증명 관리 (계정·신원 번호·ENV 값 AES-256-GCM 암호화 저장) — **구현 완료**
+- 자격증명 관리 (계정 비밀번호·TOTP·백업코드 AES-256-GCM 암호화 저장) — **구현 완료**
 - 파일 보관함 (Backblaze B2 — 폴더·업로드·presigned·MIME/매직바이트 검증·SHA-256 중복제거·전체 검색·폴더/전체 ZIP 다운로드·폴더째 업로드·비우기) — **구현 완료**
 - 자산 현황 (현금·예적금·투자 순자산 요약·월별 추이·현금흐름 예측) — 구현 완료
-- 캘린더 (일정 + 구독결제·예적금만기·투자계좌만기(ISA 등)·신원만료 가상 이벤트 연동) / 구독 — 구현 완료
-- 보안 코어 (마스터 잠금·접근 감사 로그·보안점수 추이·비번 회전·2FA 백업코드·강도 통계) — 구현 완료
-- 외부 연동 (HIBP 유출 비밀번호 검사) — 구현 완료
+- 캘린더 (일정 + 구독결제·예적금만기·투자계좌만기(ISA 등) 가상 이벤트 연동) / 구독 — 구현 완료
+- 보안 (로그인 기기/세션·마스터 잠금·접근 감사 로그·비번 회전 알림·2FA 백업코드) — 구현 완료
 - 통합 검색 / 데이터 내보내기(JSON·ZIP)·가져오기(계정 JSON 복원) — 구현 완료
-- AI 리포트 (사용자별 OpenAI 키 — 가계부 분석·절약 인사이트) — 구현 완료
 
 ---
 
@@ -36,25 +34,21 @@ doc-nexus/
 │       ├── subscription/  # 구독 서비스
 │       ├── asset/         # 순자산 요약/추이 (현금+예적금+투자 집계, 전용 테이블 없음)
 │       ├── notification/  # 알림
-│       ├── calendar/      # 캘린더 (실제 일정(양력/음력) + 구독/예적금/투자계좌만기/신원/공휴일 가상 이벤트 연동)
+│       ├── calendar/      # 캘린더 (실제 일정(양력/음력) + 구독/예적금/투자계좌만기/공휴일 가상 이벤트 연동)
 │       ├── holiday/       # 공휴일·대체공휴일 (공공데이터포털 특일 정보 API 연동 + 연 단위 캐싱)
-│       ├── security/      # 보안센터 + 마스터 잠금(VaultService/VaultGuard) + 유출검사·강도통계
+│       ├── security/      # 로그인 세션 + 마스터 잠금(VaultService/VaultGuard) + 열람 기록 조회
 │       ├── access-log/    # 보관함 접근 감사 로그 (전역)
 │       ├── settings/      # 사용자 설정
 │       ├── category/      # 카테고리 관리
-│       ├── search/        # 통합 검색 (거래·계정·신원·ENV)
+│       ├── search/        # 통합 검색 (거래·계정)
 │       ├── dashboard/     # 대시보드 요약 + 현금흐름 예측 + 통합 D-day
-│       ├── identity/      # 신원 지갑 (번호 AES 암호화 + 사본 이미지 fileId)
 │       ├── credential/    # 계정 보관함 (비번·TOTP·백업코드 AES + 엑셀)
-│       ├── env/           # ENV 보관함 (값 AES + 변경 이력/롤백)
 │       ├── file/          # 파일 보관함 (Backblaze B2)
 │       ├── export/        # 데이터 내보내기 (계정 JSON·전체 ZIP)
 │       ├── import/        # 데이터 가져오기 (계정 JSON 복원)
-│       ├── maintenance/   # 예약 작업 @Job(core-jobs) (알림·보안점수 스냅샷·순자산 스냅샷·DB 백업·투자 현재가 갱신·구독 결제일 갱신·소프트삭제 항목 자동정리) + 실행 기록 저장소(job_run)
-│       ├── ai/            # AI 리포트 (사용자별 OpenAI 키)
+│       ├── maintenance/   # 예약 작업 @Job(core-jobs) (알림·순자산 스냅샷·DB 백업·투자 현재가 갱신·구독 결제일 갱신·공휴일 사전 캐싱·소프트삭제 항목 자동정리) + 실행 기록 저장소(job_run)
 │       ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
 │       ├── push/          # 웹 푸시 구독/발송 (VAPID) + 발송 아웃박스 저장소·채널(outbox_message)
-│       ├── convert/       # 이미지↔PDF 변환
 │       ├── system-log/    # 시스템 로그 (크론·투자 갱신 등 백그라운드 작업 실행 기록, 90일 경과 시 자동 삭제)
 │       ├── meta/          # GET /_meta 수집기 — 예약 작업 마지막 성공·아웃박스 적체·켜진 알림 채널(core-common MetaModule)
 │       ├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
@@ -75,31 +69,24 @@ doc-nexus/
 | Investment | user_id, type, principal, current_value, purchase_date | 구현 완료 |
 | Subscription | user_id, name, amount, cycle, status, next_payment_date, billing_day(원래 결제일) | 구현 완료 |
 | NetWorthSnapshot | user_id, month, total_assets, total_debt(부동산/부채 기능 제거 이후 항상 0), cash_total(현금 스냅샷 캐시) | 구현 완료 |
-| UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, categories/widgets(JSON), menu_order | 구현 완료 |
+| UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, categories(JSON) | 구현 완료 |
 | Notification | user_id, group, tone, title, description, source, read_at | 구현 완료 |
 | CalendarEvent | user_id, date, type(pay/due/exp/task), title, is_lunar/lunar_month/lunar_day/lunar_leap, recur_freq, recur_until | 구현 완료 |
 | Holiday | date, name, is_substitute, year (전 사용자 공용 캐시, user_id 없음) | 구현 완료 |
-| SecurityRisk | user_id, category, severity, title, resolved | 구현 완료 |
 | LoginSession | user_id, device, device_type, location, is_current, revoked_at | 구현 완료 |
 | Category | user_id, domain, code, label, parent_code(2계층), sort_order, is_active | 구현 완료 |
-| IdentityCard | user_id, type, name, number_enc(암호문), file_id(사본), issue/expire_date | 구현 완료 |
 | Credential | user_id, name, category, username, password_enc, totp_enc, backup_codes_enc, password_changed_at | 구현 완료 |
-| EnvProject | user_id, name, description | 구현 완료 |
-| EnvVar | user_id, project_id, env, group, location(env 파일 위치), key, value_enc(암호문) | 구현 완료 |
-| EnvVarHistory | env_var_id, user_id, value_enc(이전값 암호문) | 구현 완료 |
 | StorageFolder | user_id, parent_id(무한중첩), name | 구현 완료 |
 | StorageFile | user_id, folder_id, object_key(B2), name, size, mime_type, hash(SHA-256) | 구현 완료 |
 | AccessLog | user_id, action, target_type/id/name, ip, user_agent | 구현 완료 |
-| SecurityScoreSnapshot | user_id, date, score, reuse/weak/no2fa | 구현 완료 |
 | PushSubscription | user_id, endpoint, p256dh, auth (웹 푸시 구독) | 구현 완료 |
-| AiUsageLog | user_id, model, source, prompt/completion/total_tokens, cost_usd (OpenAI 호출별 토큰·비용) | 구현 완료 |
 | RefreshToken | user_id, session_id, jti, expires_at, revoked_at (refresh 토큰 화이트리스트, rotation/로그아웃/세션revoke 시 폐기) | 구현 완료 |
 | EmailLoginCode | email, code_hash(SHA-256), expires_at, consumed_at, attempts (이메일 인증코드 로그인, 화이트리스트 대조) | 구현 완료 |
 | SystemLog | user_id(nullable, FK 아님), level(info/warn/error), category, message, metadata(JSON) — 크론·투자갱신 등 백그라운드 작업 로그, 90일 경과 시 자동 삭제 | 구현 완료 |
 | JobRun | job, triggered_by(schedule/manual), status(running/succeeded/failed), started_at, lease_until, finished_at, summary, error, running_key(유니크 — 동시 실행 방지) — 예약 작업 실행 기록(core-jobs), 90일 경과 시 자동 삭제 | 구현 완료 |
 | OutboxMessage | channel, payload(JSON), idempotency_key(유니크 — `noti:<알림 id>`), status(pending/sending/sent/failed), attempts, max_attempts, available_at, claimed_until, last_error, sent_at — 알림 발송 아웃박스(core-notification). 알림 행과 **같은 트랜잭션**에 적재되므로 롤백되면 발송도 없다. 끝난 행(sent/failed)은 90일 경과 시 자동 삭제 | 구현 완료 |
 
-> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 33개 테이블
+> DB: MariaDB, 문자셋: utf8mb4_unicode_ci · 총 25개 테이블
 > 상세 스키마: [docs/erd.md](docs/erd.md)
 
 ---
@@ -117,8 +104,6 @@ doc-nexus/
 | Rate-limit | `@nestjs/throttler` (reveal/totp/복호화·vault unlock 엄격 제한) |
 | 암호화 | AES-256-GCM (`CRYPTO_KEYS` 키링 + 필드·사용자 문맥(AAD), 보관함 민감필드) / 마스터 잠금은 scrypt 해시 |
 | 스토리지 | Backblaze B2 (`@aws-sdk/client-s3`, presigned) |
-| 유출검사 | HaveIBeenPwned Pwned Passwords (k-anonymity) |
-| AI | OpenAI API (사용자별 키·모델, 설정에서 입력) |
 | 패키지 매니저 | pnpm (모노레포) |
 
 ---
@@ -134,24 +119,22 @@ doc-nexus/
 | Frontend — 구독 관리 | 구현 완료 |
 | Frontend — 캘린더 | 구현 완료 |
 | Frontend — 알림 | 구현 완료 |
-| Frontend — 보안 | 구현 완료 |
-| Frontend — 설정 | 구현 완료 |
-| Frontend — 자격증명 / ENV / 신원지갑 | 구현 완료 (백엔드 연동) |
+| Frontend — 보안 (로그인 기기·보안 설정·최근 열람) | 구현 완료 |
+| Frontend — 설정 (프로필·데이터) | 구현 완료 |
+| Frontend — 자격증명 | 구현 완료 (백엔드 연동) |
 | Frontend — 파일 보관함 | 구현 완료 (B2 연동) |
-| Frontend — AI 리포트 | 구현 완료 (백엔드 연동) |
 | Frontend — 시스템 로그 | 구현 완료 (백엔드 연동) |
 | Frontend — React Query 전환 | 전 페이지·공통 컴포넌트 완료 |
 | Backend — Google OAuth + JWT (전역 가드 + Rate-limit) | 구현 완료 |
 | Backend — 가계부/구독/자산/캘린더 | 구현 완료 |
 | Backend — 알림/보안/설정/통합검색/대시보드 | 구현 완료 |
-| Backend — 보관함 (신원/계정/ENV, AES 암호화) | 구현 완료 |
-| Backend — 마스터 잠금·접근로그·보안점수추이·유출검사·강도통계 | 구현 완료 |
+| Backend — 계정 보관함 (AES 암호화) | 구현 완료 |
+| Backend — 마스터 잠금·접근로그·세션 | 구현 완료 |
 | Backend — 파일 보관함 (Backblaze B2) | 구현 완료 |
 | Backend — 데이터 내보내기/가져오기 (JSON·ZIP·복원) | 구현 완료 |
 | Backend — 현금흐름 예측·통합 D-day | 구현 완료 |
-| Backend — AI 리포트 (OpenAI, 사용자별 키) | 구현 완료 |
 | Backend — 시스템 로그 / 순자산 월간 스냅샷 / 투자 현재가 자동 갱신 | 구현 완료 |
-| DB | 33개 테이블 구현 완료 |
+| DB | 25개 테이블 구현 완료 |
 
 ---
 
@@ -246,5 +229,6 @@ docker compose exec backend npx prisma migrate deploy
 - [docs/architecture.md](docs/architecture.md) — 구조·모듈
 - [docs/erd.md](docs/erd.md) — DB 엔티티 정의
 - [docs/api.md](docs/api.md) — API 명세
+- [docs/public-release-plan.md](docs/public-release-plan.md) — 공개 준비(포트폴리오) 계획 — 1단계 기능 정리는 `develop` 브랜치에서 진행
 - [docs/category-migration.md](docs/category-migration.md) — 카테고리 2계층 구조 + 엑셀→앱 매칭표(실데이터 마이그레이션용)
 - [docs/archive/](docs/archive/) — 끝난 작업의 설계·계획 문서

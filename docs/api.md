@@ -134,14 +134,14 @@ Base URL: `http://localhost:8000/api/v1`
 | DELETE | /notifications/bulk | 선택 일괄 삭제 |
 | DELETE | /notifications | 전체 삭제 |
 
-> 알림 자동생성 크론(매일 9시): 예적금·투자계좌 만기(D-30/14/7/1)·구독결제/체험종료(D-7/3/1)·신원만료(D-60/30/14/7/1)·비번회전(90일 경과 후 30일 간격 재알림). `notif_maturity`·`notif_deadline` 설정으로 게이팅.
+> 알림 자동생성 크론(매일 9시): 예적금·투자계좌 만기(D-30/14/7/1)·구독결제/체험종료(D-7/3/1)·비번회전(90일 경과 후 30일 간격 재알림). `notif_maturity` 설정으로 게이팅.
 > 캘린더 자체는 별도 알림 크론이 없다 — 대시보드 "다가오는 일정" 위젯으로 노출.
 
 ## 캘린더
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /calendar | 이벤트 목록 (실제 + 구독결제·예적금만기·투자계좌만기(ISA 등)·신원만료·공휴일 가상 이벤트) |
+| GET | /calendar | 이벤트 목록 (실제 + 구독결제·예적금만기·투자계좌만기(ISA 등)·공휴일 가상 이벤트) |
 | GET | /calendar/upcoming | 다가오는 이벤트 |
 | POST | /calendar | 이벤트 생성 (양력/음력, 음력은 매년 반복만 지원) |
 | PUT | /calendar/:id | 이벤트 수정 |
@@ -153,22 +153,17 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /security/summary | 보안 요약 (실시간 분석 — 점수·카테고리 건수) |
-| GET | /security/risks | 위험 목록 (계정별 reuse/weak/no2fa + credentialId 딥링크) |
 | GET | /security/sessions | 로그인 세션 목록 |
 | POST | /security/sessions/:id/revoke | 세션 단건 차단 |
 | POST | /security/sessions/revoke-all | 전체 세션 차단 |
-| GET | /security/score-trend?days= | 보안 점수 추이 (일별 스냅샷) |
 | GET | /security/access-logs?limit= | 최근 보관함 열람 기록 |
-| GET | /security/strength-stats | 비밀번호 강도 분포 (강함/보통/취약) |
-| GET | /security/breach-check | 유출 비밀번호 검사 (HIBP k-anonymity, throttle 6/분) |
 | GET | /security/vault | 마스터 잠금 상태 |
 | POST | /security/vault/setup | 마스터 잠금 설정 (비번 8자 이상, scrypt 해시). 이미 켜져 있으면 `x-vault-token` 필요 |
 | POST | /security/vault/disable | 마스터 잠금 해제 (현재 비번 확인) |
 | POST | /security/vault/unlock | 잠금 해제 — vault 토큰 발급 (throttle 5/분) |
 
-> **마스터 잠금**: 켜지면 reveal/totp/백업코드/신원/ENV 열람, 계정 엑셀·데이터 내보내기(`/credentials/export`, `/export/*`), 신원 사본 파일 URL, 잠금 재설정, 계정 삭제 시 `x-vault-token` 헤더 필요(없으면 423 + `code:VAULT_LOCKED`). 자동잠금 = 토큰 만료.
-> **Rate-limit**(`@nestjs/throttler`): 전역 120/분, reveal·totp·신원·ENV·백업코드 20/분, vault unlock 5/분.
+> **마스터 잠금**: 켜지면 reveal/totp/백업코드 열람, 계정 엑셀·데이터 내보내기(`/credentials/export`, `/export/*`), 잠금 재설정, 계정 삭제 시 `x-vault-token` 헤더 필요(없으면 423 + `code:VAULT_LOCKED`). 자동잠금 = 토큰 만료.
+> **Rate-limit**(`@nestjs/throttler`): 전역 120/분, reveal·totp·백업코드 20/분, vault unlock 5/분.
 
 ## 설정
 
@@ -177,7 +172,7 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /settings | 사용자 설정 조회 |
 | PUT | /settings | 사용자 설정 수정 |
 
-> soft delete된 항목(가계부/예적금/투자/구독/캘린더/계정/신원/ENV)은 30일 경과 시 자동 영구삭제 크론(매일 3시)이 정리한다. 별도 복원 UI는 없다.
+> soft delete된 항목(가계부/예적금/투자/구독/캘린더/계정)은 30일 경과 시 자동 영구삭제 크론(매일 3시)이 정리한다. 별도 복원 UI는 없다.
 
 ## 카테고리 관리
 
@@ -195,7 +190,7 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /search?q= | 거래·계정·신원·ENV 통합 검색 (타입별 최대 5건, 암호화 컬럼 제외) |
+| GET | /search?q= | 거래·계정 통합 검색 (타입별 최대 5건, 암호화 컬럼 제외) |
 
 ## 대시보드
 
@@ -203,19 +198,7 @@ Base URL: `http://localhost:8000/api/v1`
 | --- | --- | --- |
 | GET | /dashboard/summary | 요약 — 이번 달 수입/지출·순자산·활성구독 + 최근 거래·다가오는 일정 |
 | GET | /dashboard/cashflow-forecast | 현금흐름 예측 — 활성 구독 + 반복 지출거래 월 환산·합산 |
-| GET | /dashboard/deadlines | 통합 D-day — 신원만료·예적금만기·투자계좌만기(ISA 등)·구독결제 임박순 |
-
-## 신원 지갑
-
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| GET | /identities | 신원 문서 목록 (번호는 마스킹) |
-| GET | /identities/:id/reveal | 번호 원문 복호화 |
-| POST | /identities | 신원 문서 추가 (번호 AES 암호화, `fileId` 로 사본 연결) |
-| PUT | /identities/:id | 수정 (`number` 전달 시 재암호화, `fileId` 로 사본 변경/해제) |
-| DELETE | /identities/:id | 삭제 (soft delete) |
-
-> `type`: passport / idcard / license / cert / etc · 사본 이미지는 파일 보관함(B2) 업로드 후 `fileId` 연결, 조회는 `/files/:id/url?disposition=inline`
+| GET | /dashboard/deadlines | 통합 D-day — 예적금만기·투자계좌만기(ISA 등)·구독결제 임박순 |
 
 ## 계정 보관함
 
@@ -237,35 +220,12 @@ Base URL: `http://localhost:8000/api/v1`
 
 > reveal/totp/backup-codes 는 마스터 잠금 시 `x-vault-token` 필요 + 분당 20회 제한.
 
-## ENV 보관함
-
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| GET | /env-projects | 프로젝트 목록 (환경별 변수 개수 포함) |
-| POST | /env-projects | 프로젝트 추가 |
-| PUT | /env-projects/:id | 프로젝트 수정 |
-| DELETE | /env-projects/:id | 프로젝트 삭제 (하위 변수 포함 soft delete) |
-| GET | /env-projects/:id/vars?env=&location= | 환경별 변수 목록 (값 마스킹, location 지정 시 해당 위치만) |
-| GET | /env-projects/:id/locations | 프로젝트에서 이미 쓰인 위치 목록 (자동완성용) |
-| GET | /env-projects/:id/diff?base=&target= | 두 환경 비교 (누락·값 불일치) |
-| GET | /env-projects/:id/export?env=&location= | 환경 변수 원문 내보내기 (.env 복사/다운로드용, location 지정 시 해당 위치만) |
-| POST | /env-projects/:id/vars | 변수 추가 (선택 환경마다 생성, 값 AES 암호화) |
-| POST | /env-projects/:id/bulk | .env 텍스트 일괄 파싱 저장 |
-| GET | /env-vars/:id/reveal | 변수 값 원문 복호화 (감사 로그 기록) |
-| GET | /env-vars/:id/history | 값 변경 이력 (마스킹) |
-| POST | /env-vars/:id/rollback/:historyId | 이력 값으로 롤백 |
-| PUT | /env-vars/:id | 변수 수정 (`value` 변경 시 재암호화 + 이전값 이력 적재) |
-| DELETE | /env-vars/bulk | 선택 일괄 삭제 |
-| DELETE | /env-vars/:id | 변수 삭제 (soft delete) |
-
-> `env`: dev / prod
-
 ## 데이터 내보내기
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | /export/credentials | 계정 JSON 백업 (비번/TOTP 암호문 보존) |
-| GET | /export/backup | 전체 데이터 ZIP (도메인별 JSON. 설정의 `master_lock_hash`·`openai_api_key` 는 제외) |
+| GET | /export/backup | 전체 데이터 ZIP (도메인별 JSON. 설정의 `master_lock_hash` 는 제외) |
 
 > 두 엔드포인트 모두 VaultGuard(마스터 잠금) 대상이다. 암호화 컬럼은 평문으로 풀지 않고 암호문(`v2:<키ID>:...`)으로 내보낸다. 계정 JSON 백업은 사용자 id 대신 **계정 이메일 문맥**으로 다시 감싸, DB 를 다시 만들어 id 가 바뀌어도 같은 계정이면 복원된다(다른 계정으로는 복원 불가). 어느 쪽이든 이 서버에 해당 키가 남아 있는 동안만 복호화된다.
 
@@ -281,23 +241,16 @@ Base URL: `http://localhost:8000/api/v1`
 | --- | --- | --- |
 | GET | /files?folderId= | 폴더 내용 (브레드크럼·하위폴더·파일·사용량) |
 | GET | /files/search?q= | 모든 폴더에서 이름 검색 (폴더·파일 각각 최대 200건, 항목마다 `path` = 루트 → 들어 있는 폴더, 넘치면 `truncated: true`) |
-| GET | /files/zip/summary?folderId= | ZIP 으로 받기 전 요약 — `fileCount`·`totalBytes`·`skippedLocked`(잠겨서 빠질 신원 지갑 사본 수)·`maxBytes`(2GB) |
-| GET | /files/zip?folderId= | 폴더(없으면 보관함 전체)를 하위 폴더까지 ZIP 하나로 (폴더 구조 유지, 같은 경로는 `이름 (2).확장자`). B2 오브젝트를 하나씩 받아 바로 흘려보낸다(archiver, 사진·영상·PDF 는 압축 없이). 신원 지갑 사본은 `x-vault-token` 으로 잠금이 풀렸을 때만 담고 뺀 수는 `X-Skipped-Locked` 헤더. 비었거나 2GB 초과면 400 |
+| GET | /files/zip/summary?folderId= | ZIP 으로 받기 전 요약 — `fileCount`·`totalBytes`·`maxBytes`(2GB) |
+| GET | /files/zip?folderId= | 폴더(없으면 보관함 전체)를 하위 폴더까지 ZIP 하나로 (폴더 구조 유지, 같은 경로는 `이름 (2).확장자`). B2 오브젝트를 하나씩 받아 바로 흘려보낸다(archiver, 사진·영상·PDF 는 압축 없이). 비었거나 2GB 초과면 400 |
 | POST | /files/upload?folderId=&path= | 업로드 (multipart `file`, 50MB — multer 단계에서 끊음, MIME 화이트리스트 + SHA-256 중복제거). `path`(예: `보험/2026`)를 주면 folderId 아래에 그 폴더들을 찾거나 만들어 넣는다 — 폴더째 업로드(같은 이름 폴더는 합쳐짐, 20단계까지) |
-| GET | /files/:id/url?disposition= | presigned URL 발급 (5분, inline=미리보기). 신원 지갑 사본으로 연결된 파일은 마스터 잠금 시 `x-vault-token` 필요. 응답 파일명은 `filename*=UTF-8''…` + ASCII 대체 이름(NFC) — 프론트의 `a.download` 는 다른 origin 이라 무시됨 |
+| GET | /files/:id/url?disposition= | presigned URL 발급 (5분, inline=미리보기). 응답 파일명은 `filename*=UTF-8''…` + ASCII 대체 이름(NFC) — 프론트의 `a.download` 는 다른 origin 이라 무시됨 |
 | PATCH | /files/:id/move | 파일 폴더 이동 |
 | DELETE | /files/:id | 파일 삭제 (공유 오브젝트 보호) |
 | POST | /files/folders | 폴더 생성 |
 | DELETE | /files/folders/:id | 폴더 삭제 (하위 재귀 soft delete + 남은 파일이 가리키지 않는 B2 오브젝트 삭제, 응답 `purgedObjects`) |
-| GET | /files/clear/summary?folderId= | 비우기 전 요약 — 지울 `folderCount`·`fileCount`·`totalBytes`, 신원 지갑 사본이라 남길 `keptLinked` |
-| DELETE | /files/clear?folderId= | 비우기 — 폴더(없으면 보관함 전체) 안의 하위 폴더·파일을 한 트랜잭션으로 soft delete + 남는 데 없는 B2 오브젝트 삭제. 비우는 폴더 자신과, 신원 지갑 사본 파일·그 파일이 든 폴더는 남긴다. 응답 `deletedFiles`·`deletedFolders`·`keptLinked`·`purgedObjects` |
-
-## AI
-
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| GET | /ai/reports | 저장된 AI 리포트 목록 조회 |
-| POST | /ai/reports | 기간별 가계부 분석 → AI 리포트 생성·저장 |
+| GET | /files/clear/summary?folderId= | 비우기 전 요약 — 지울 `folderCount`·`fileCount`·`totalBytes` |
+| DELETE | /files/clear?folderId= | 비우기 — 폴더(없으면 보관함 전체) 안의 하위 폴더·파일을 한 트랜잭션으로 soft delete + 남는 데 없는 B2 오브젝트 삭제. 비우는 폴더 자신은 남긴다. 응답 `deletedFiles`·`deletedFolders`·`purgedObjects` |
 
 ## 웹 푸시
 
@@ -310,18 +263,11 @@ Base URL: `http://localhost:8000/api/v1`
 
 > VAPID 키 미설정 시 푸시 발송은 비활성(앱 내 알림은 정상 동작).
 
-## 파일 변환
-
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| POST | /convert/image-to-pdf | 이미지 → PDF 변환 |
-| POST | /convert/pdf-to-image | PDF → 이미지 변환 |
-
 ## 시스템 로그
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | /system-logs?level=&category=&from=&to=&q=&page=&limit= | 크론/투자갱신 등 백그라운드 작업 실행 로그 목록 (본인 + 사용자 없는 전역 작업 로그만, 레벨·카테고리·기간·메시지 검색 + 페이지네이션, `limit` 1~100) |
 
-> `level`: info / warn / error · `category`: recurring_buy / recurring_tx / cron / asset / file / security / ai
+> `level`: info / warn / error · `category`: recurring_buy / recurring_tx / cron / asset / file / security / notification
 > 조회 전용(읽기 API만 존재) — 기록은 `SystemLogService.info/warn/error`를 각 서비스·크론이 직접 호출해 적재하며 실패해도 호출부 로직에 영향 없음(fire-and-forget). 90일 경과 항목은 소프트삭제 자동정리 크론(매일 03:00)이 함께 정리.

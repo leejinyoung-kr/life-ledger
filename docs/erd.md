@@ -1,9 +1,9 @@
 # DocNexus — ERD
 
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
-> 마이그레이션: `20260713000000_init`(전 도메인 통합) + `20260715104820_add_recurring_schedule` · `20260715105206_drop_legacy_recurring_columns` · `20260731121236_remove_note_task_calendar` · `20260801140000_restore_calendar_remove_goal` · `20260801225151_add_calendar_lunar` · `20260801233607_add_holiday_and_show_holidays` · `20260822225654_remove_trash_and_asset_realestate_debt`(휴지통 기능 삭제 + Asset 테이블/부동산·부채 제거)
+> 마이그레이션: `20260713000000_init`(전 도메인 통합) + `20260715104820_add_recurring_schedule` · `20260715105206_drop_legacy_recurring_columns` · `20260731121236_remove_note_task_calendar` · `20260801140000_restore_calendar_remove_goal` · `20260801225151_add_calendar_lunar` · `20260801233607_add_holiday_and_show_holidays` · `20260822225654_remove_trash_and_asset_realestate_debt`(휴지통 기능 삭제 + Asset 테이블/부동산·부채 제거) · `20261013141800_remove_env_identity_ai_security_score_features`(공개 준비 1단계: ENV 보관함·신원 지갑·AI 리포트·보안 점수 테이블과 관련 컬럼·enum 값 제거)
 
-## 테이블 목록 (31)
+## 테이블 목록 (25)
 
 | 테이블 | 설명 |
 | --- | --- |
@@ -20,21 +20,13 @@
 | Notification | 알림 |
 | CalendarEvent | 캘린더 일정 (양력/음력, 매년 음력 반복 지원) |
 | Holiday | 공휴일·대체공휴일 (전 사용자 공용 캐시, 공공데이터포털 특일 정보 API 연동) |
-| SecurityRisk | 보안 위험 (시드/표시용) |
 | LoginSession | 로그인 세션 |
 | Category | 카테고리 (도메인별, 가계부는 대분류→소분류 2계층) |
-| IdentityCard | 신원 지갑 (번호 AES + 사본 fileId) |
 | Credential | 계정 보관함 (비번·TOTP·백업코드 AES) |
-| EnvProject | ENV 프로젝트 |
-| EnvVar | ENV 변수 (값 AES) |
-| EnvVarHistory | ENV 변수 값 변경 이력 (롤백) |
 | StorageFolder | 파일 보관함 폴더 (무한 중첩) |
 | StorageFile | 파일 메타 (B2 object_key·SHA-256 hash) |
 | AccessLog | 보관함 접근 감사 로그 |
-| SecurityScoreSnapshot | 보안 점수 일별 스냅샷 |
-| AiReport | AI 리포트 (가계부 분석·소비 패턴·절약 인사이트) |
 | PushSubscription | 웹 푸시 구독 (endpoint·p256dh·auth) |
-| AiUsageLog | AI 사용량 로그 (OpenAI 호출별 모델·토큰·비용 — 잔액 API 부재 대체) |
 | RefreshToken | 갱신 토큰 화이트리스트 (jti, rotation/로그아웃/세션revoke 시 폐기) |
 | EmailLoginCode | 이메일 인증코드 로그인 (code_hash, expires_at, attempts) |
 | SystemLog | 시스템 로그 (크론·투자 현재가 갱신 등 백그라운드 작업 실행 기록, 90일 경과 시 자동 삭제) |
@@ -46,29 +38,26 @@
 ```text
 User 1 ─── N (Transaction, Saving, InvestmentAccount, Investment, Subscription, NetWorthSnapshot,
               Notification, CalendarEvent,
-              SecurityRisk, LoginSession, Category, IdentityCard, Credential,
-              EnvProject, EnvVar, StorageFolder, StorageFile, AccessLog, SecurityScoreSnapshot, AiReport, RefreshToken,
+              LoginSession, Category, Credential,
+              StorageFolder, StorageFile, AccessLog, RefreshToken,
               TransactionFavorite)
 User 1 ─── 1 UserSettings
 User 1 ─── N RecurringSchedule
 RecurringSchedule 1 ─── N Transaction(recurring_schedule_id, 자동 생성 회차)
 Investment 1 ─── N RecurringSchedule(investment_id, kind=investment 전용)
 InvestmentAccount 1 ─── N Investment(account_id)
-EnvProject     1 ─── N EnvVar
-EnvVar         1 ─── N EnvVarHistory
 StorageFolder  1 ─── N StorageFolder(parent_id, 자기참조) · N StorageFile
-StorageFile    1 ─── N IdentityCard(file_id, 사본 이미지)
 LoginSession   1 ─── N RefreshToken(session_id)
 ```
 
 ## 암호화 (보관함)
 
 민감 필드는 AES-256-GCM 암호문(`v2:<키ID>:ivHex:tagHex:cipherHex`)으로 저장. 목록은 마스킹, 원문은 reveal 엔드포인트로만 제공.
-키는 `CRYPTO_KEYS` 키링(키ID 마다 HKDF-SHA256 파생, 첫 번째 키로 암호화). AAD 는 `<모델>.<컬럼>:<user_id>` — 다른 필드·다른 사용자 행으로 옮긴 암호문은 복호화되지 않는다(`env_var_history` 는 `env_var` 와 같은 문맥).
+키는 `CRYPTO_KEYS` 키링(키ID 마다 HKDF-SHA256 파생, 첫 번째 키로 암호화). AAD 는 `<모델>.<컬럼>:<user_id>` — 다른 필드·다른 사용자 행으로 옮긴 암호문은 복호화되지 않는다.
 이전 포맷 `v1:ivHex:tagHex:cipherHex`(`CREDENTIAL_SECRET` sha256, AAD 없음)는 부팅 시 v2 로 재암호화된다. 암호문 컬럼 목록은 `backend/src/crypto/crypto-fields.ts`.
 마스터 잠금 비번은 별도 scrypt 해시(`saltHex:hashHex`).
 
-- `IdentityCard.number_enc` · `Credential.password_enc`·`totp_enc`·`backup_codes_enc` · `EnvVar.value_enc` · `EnvVarHistory.value_enc`
+- `Credential.password_enc`·`totp_enc`·`backup_codes_enc` · `InvestmentAccount.account_number_enc`
 
 ## 도메인별 요약
 
@@ -88,31 +77,24 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ### 설정 — UserSettings (1:1)
 
-- 알림: `notif_monthly`·`notif_upload`·`notif_maturity`·`notif_deadline`
+- 알림: `notif_upload`·`notif_maturity`·`notif_deadline`(지금 이 값으로 보내는 알림은 없음)
 - 캘린더: `show_holidays`(공휴일·대체공휴일 표시 여부)
 - 보안: `session_expiry`, `pw_auto_hide`, `master_lock_enabled`·`master_lock_hash`(scrypt)·`master_lock_timeout`
-- API: `openai_api_key`, `openai_model`
-- JSON: `categories`[{emoji,name}], `widgets`[{id,on}](순서=표시순서), `menu_order`(사이드바 1차 메뉴 순서)
+- JSON: `categories`[{emoji,name}]
 
-### 보관함 — IdentityCard / Credential / EnvProject / EnvVar / EnvVarHistory
+### 보관함 — Credential
 
-- `IdentityCard` — `type`(passport/idcard/license/cert/etc), `number_enc`, `file_id`(StorageFile FK, 사본 이미지), `issue/expire_date`
 - `Credential` — `category`, `username`, `password_enc`, `totp_enc?`, `backup_codes_enc?`(JSON 배열 암호문), `password_changed_at`(90일 회전 알림용)
-- `EnvProject` — `name`, `description`
-- `EnvVar` — `env`(dev/prod), `group`, `location`(env 파일 위치, 예: backend/.env), `key`, `value_enc`
-- `EnvVarHistory` — `value_enc` 변경 시 이전값 1건 적재(변수당 20건 유지) → diff/롤백
 
 ### 파일 보관함 — StorageFolder / StorageFile
 
 - `StorageFolder` — `parent_id` 자기참조로 무한 중첩
 - `StorageFile` — `object_key`(B2: `users/{userId}/{uuid}/{filename}`), `size`, `mime_type`, `hash`(SHA-256, 중복제거). soft delete 시 같은 object_key 참조 없을 때만 B2 삭제
 
-### 보안 — SecurityRisk / LoginSession / AccessLog / SecurityScoreSnapshot
+### 보안 — LoginSession / AccessLog
 
-- `SecurityRisk` — `category`(reuse/weak/no2fa/breach), `severity`, `resolved` (실시간 분석은 별도, 이 테이블은 시드/표시용)
 - `LoginSession` — `device`, `device_type`, `location`, `is_current`, `status`, `revoked_at` (새 기기 로그인 감지 시 기록)
-- `AccessLog` — `action`(cred_reveal/cred_totp/cred_backup/identity_reveal/env_reveal/backup_codes_generate/vault_unlock/vault_disable/session_revoke/data_export), `target_type`(credential/identity/env/security/account), `target_id/name`, `ip`, `user_agent`
-- `SecurityScoreSnapshot` — `date`(YYYY-MM-DD), `score`, `reuse/weak/no2fa` — 크론이 매일 1건 적재 → 추이 차트
+- `AccessLog` — `action`(cred_reveal/cred_totp/cred_backup/backup_codes_generate/vault_unlock/vault_disable/session_revoke/data_export), `target_type`(credential/security/account), `target_id/name`, `ip`, `user_agent`
 
 ### 카테고리 — Category
 
@@ -130,7 +112,7 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ### 시스템 로그 — SystemLog
 
-- `level`(info/warn/error), `category`(recurring_buy/recurring_tx/cron/asset/file/security/ai), `message`, `metadata`(JSON, 선택)
+- `level`(info/warn/error), `category`(recurring_buy/recurring_tx/cron/asset/file/security/notification), `message`, `metadata`(JSON, 선택)
 - `user_id` 는 FK 관계 없이 참조용 int만 저장(전체 사용자 집계 이벤트는 null) — 사용자 삭제 시 별도 정리 불필요
 - 기록: `SystemLogService.info/warn/error`(fire-and-forget, 실패해도 호출부에 영향 없음) · 조회: `/system-logs` (`/logs` 화면)
 - 90일 경과 항목은 `trash-cron.service.ts`가 매일 정리

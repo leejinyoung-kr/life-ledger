@@ -1,0 +1,130 @@
+# 공개 준비 계획 (포트폴리오용)
+
+> 작성 2026-10-13. 회사 지원 때 개인 프로젝트로 내기 위해 doc-nexus 를 공개용으로 다듬는다.
+> 끝나면 `docs/archive/` 로 옮긴다.
+
+## 목표
+
+- 면접관이 **사이트에 바로 들어가 둘러보고**(데모 계정), **GitHub 를 브라우저로 훑어보는** 상황에 맞춘다. 클론·실행까지는 가정하지 않는다.
+- 실제로 쓰는 기능만 남기고, 이름·디자인을 지금 용도에 맞게 바꾼다.
+- 운영 데이터(실제 계정·자산)는 데모와 완전히 분리한다.
+
+## 정해진 것 (2026-10-13)
+
+| 항목 | 결정 |
+| --- | --- |
+| 뺄 화면 | ENV 보관함 (safe-box 로 옮김) · 신원 지갑 · 파일 변환 · AI 리포트 |
+| 보안 센터 | '보안' 화면 하나로 줄인다 — 로그인 기기/세션 + 마스터 잠금 켜기/끄기 · 세션 만료 · 비밀번호 자동 숨김(설정 보안 탭에서 옮김) + 최근 열람 기록 |
+| 설정 | 프로필 · 데이터 탭만 남긴다. 보안 탭(→ 보안 화면으로) · API 키 탭 · 위젯 설정 탭 삭제 |
+| 마스터 잠금 | 유지 — 계정 보관함 열람 · 백업 · 계정 삭제가 이 잠금을 쓴다. 지금은 설정하지 않은 상태 |
+| 사이드바 메뉴 순서 편집 | 삭제 — 순서 고정 (`menu_order` 컬럼도 정리) |
+| 대시보드 | 남기고 같이 정리한다 — 위젯 켜기/끄기 대신 고정 레이아웃, AI 요약 · 신원 만료 제거 |
+| 파일 보관함 | 유지 (사용 중) |
+| 남는 화면 (12) | 대시보드 · 자산 관리 · 구독 관리 · 자산 종합 · 계정 보관함 · 파일 보관함 · 캘린더 · 보안 · 알림 · 시스템 로그 · 코드 관리 · 설정 |
+| 데모 | 운영 인스턴스에 더미 계정을 넣지 않고, 별도 인스턴스로 띄운다 |
+| young-core | 공개한다 (암호화 · 인증 핵심 코드가 거기 있다). npmjs 배포는 하지 않는다 |
+| 이름 | **`life-ledger`** (생활 장부) |
+| 공개 방식 | **이 레포를 그대로 공개** — 아래 |
+| 디자인 | 다른 프로젝트처럼 기획서(`docs/planning.md`) → Claude 디자인 → 시안을 `docs/design/` 에 둔다 |
+
+### 공개 방식: 이 레포를 그대로 공개 (공개용 레포를 따로 두지 않는다)
+
+- 이유: 앞으로도 계속 고쳐 쓸 앱이라 레포가 둘이면 공개 쪽이 금방 낡는다. 커밋 317개(2026-10-13)는 실제로 운영하며 고쳐 온 기록이라 그 자체로 보여 줄 거리다.
+- 이력: `.env` · 키 파일이 커밋된 적은 없다 (파일 이름 기준 확인, 2026-10-13). 공개 직전에 gitleaks 로 전체 이력 내용을 검사한다.
+- self-hosted runner 조건 — 공개 레포는 누구나 fork 해서 PR 을 열 수 있고, PR 의 워크플로는 PR 쪽 파일로 돈다:
+  - 레포 설정 Actions → "Fork pull request workflows" 를 **모든 외부 기여자 승인 필요**로 둔다 (공개 전에 먼저).
+  - 배포 워크플로는 지금처럼 `push`(main) · `workflow_dispatch` 에서만 돈다. `pull_request` 트리거를 넣지 않는다.
+- 커밋 작성자 이메일이 공개된다 — 지난 커밋 이메일이 무엇인지 공개 전에 확인한다.
+
+## 단계
+
+### 0. 준비
+
+- 태그 `before-public` — 지우는 기능(AI 리포트 등)을 나중에 다시 꺼내 볼 수 있게.
+- 운영 DB 덤프 → 홈서버 `~/backups/2026-10-xx/` (지울 테이블이 있으므로).
+- 지우기 전 데이터 확인 (HeidiSQL, `docnexus`):
+
+  ```sql
+  -- ENV 는 safe-box 로 옮겼는지 — 남은 행 수
+  SELECT (SELECT COUNT(*) FROM env_project) AS env_projects, (SELECT COUNT(*) FROM env_var) AS env_vars;
+  -- 신원 지갑 — 사본 파일이 붙은 행 (기능을 빼면 사본은 잠금 없는 일반 파일로 남는다)
+  SELECT id, type, name, file_id, expire_date FROM identity_card;
+  -- 지울 enum 값을 쓰는 행
+  SELECT action, COUNT(*) FROM access_log WHERE action IN ('env_reveal', 'identity_reveal') GROUP BY action;
+  SELECT domain, COUNT(*) FROM category WHERE domain IN ('env_group', 'id_type') GROUP BY domain;
+  ```
+
+### 1. 기능 정리
+
+화면 · API · DB 를 같이 지운다. 대상과 엮인 곳은 아래와 같다 (2026-10-13 조사).
+
+| 기능 | 지울 것 | 같이 고칠 곳 |
+| --- | --- | --- |
+| 파일 변환 | `convert/` (FE · BE), 패키지 `sharp` · `pdf-lib` · `pdf-to-img`, FE `uploadDownload` | 사이드바 |
+| ENV 보관함 | `envs/` · `env/`, 모델 `EnvProject` · `EnvVar` · `EnvVarHistory`, enum `EnvKind` | `crypto-fields.ts`(+spec) · 검색 · 백업 ZIP · 휴지통 크론 · access_log `env_reveal` · 코드 관리 `env_group` 탭 · 시드 |
+| 신원 지갑 | `id-wallet/` · `identity/`, 모델 `IdentityCard`, enum `IdentityType` | `crypto-fields.ts`(+spec) · 캘린더 가상 일정 · 대시보드 마감 목록 · 만료 알림 크론 · 파일 보관함의 사본 분기(+spec) · 검색 · 백업 · 휴지통 · 코드 관리 `id_type` 탭 · 시드 |
+| AI 리포트 | `ai-report/` · `ai/` · `ai-report-cron`, 모델 `AiReport` · `AiUsageLog`, 컬럼 `openai_api_key` · `openai_model` · `notif_monthly`, 패키지 `openai`, 상단 AI 배지 | `crypto-fields.ts`(+spec) · `crypto-audit.service.spec.ts`(테스트 대상 컬럼 교체) · 설정 서비스 · DTO · 백업 omit · 시스템 로그 `ai` 카테고리 · 시드 |
+| 보안 센터 축소 | 점수 · 추이 · 위험 요소 · 강도 · 유출 검사 API, `security-snapshot` 크론, 모델 `SecurityRisk` · `SecurityScoreSnapshot` | 계정 삭제 · 백업 · 시드. **vault 라우트 · `VaultService` · `VaultGuard` 는 남긴다** |
+| 설정 탭 · 위젯 | API 키 · 위젯 설정 탭, 컬럼 `widgets` · `menu_order` | `settings.defaults.ts` · `vault.service.ts` 의 `DEFAULT_WIDGETS` import(+spec) · 대시보드 `wMap` · 사이드바 `normalizeMenuOrder` |
+
+- enum 값(`AccessAction` · `CategoryDomain`)을 줄이는 마이그레이션은 그 값을 쓰는 행을 먼저 지우는 SQL 을 앞에 넣는다.
+- 규모: 화면 16 → 12, 백엔드 모듈 33 → 29, 모델 33 → 25, 예약 작업 11 → 9.
+- 문서 갱신: `CLAUDE.md` · `docs/architecture.md` · `docs/erd.md` · `docs/api.md`.
+
+#### 1단계 진행 상황 (2026-10-13, `develop` 브랜치 — 로컬 커밋만, push 전)
+
+기능마다 커밋 하나로 지웠다. 모델 · enum 삭제는 기능 커밋마다 `schema.prisma` 에서 같이 하고(테스트 · 타입체크가 커밋마다 맞도록), 마이그레이션 SQL 은 마지막에 한 번에 만들었다.
+
+| 단계 | 상태 | 비고 |
+| --- | --- | --- |
+| 파일 변환 제거 | 완료 | `sharp` · `pdf-lib` · `pdf-to-img` 의존성 제거 |
+| ENV 보관함 제거 | 완료 | |
+| 신원 지갑 제거 | 완료 | 파일 보관함의 사본 분기는 ZIP 잠금 제외 · 비우기 보존 · URL 잠금까지 전부 뺐다. 알림 설정의 '만료·마감 임박' 토글은 보낼 알림이 없어 화면에서 뺐다(`notif_deadline` 컬럼은 남김) |
+| AI 리포트 제거 | 완료 | `openai` 의존성 제거. `crypto-audit` 테스트는 credential 컬럼으로 교체 — 평문 레거시(`legacyPlaintext`) 경로는 쓰는 컬럼이 없어졌지만 코드는 남김 |
+| 보안 센터 축소 | 완료 | /security = 로그인 기기/세션 · 보안 설정(`SecuritySettings`) · 최근 열람. 설정의 보안 탭 삭제 |
+| 설정 위젯 탭 · 메뉴 순서 · 대시보드 고정 | 완료 | 저장된 계정 수 카드는 항상 표시 |
+| DB 마이그레이션 | SQL 작성 완료, **미적용** | `20261013141800_remove_env_identity_ai_security_score_features` — 로컬 DB(13306)가 꺼져 있어 적용 · 확인은 아직. 앞쪽에 `access_log` · `category` 의 지울 enum 값 행 DELETE 가 들어 있다 |
+| 문서 갱신 | 완료 | `CLAUDE.md` · `architecture.md` · `erd.md` · `api.md` |
+
+실제 규모: 화면 16 → 12, 테이블 33 → 25, 예약 작업 10 → 8(`ai-monthly-report` · `security-snapshot` 삭제).
+
+남은 일: `pnpm install`(lockfile 갱신) → 로컬 DB 에서 `prisma migrate dev` 로 적용 확인 → 화면 확인 → 운영 반영 전 `develop` → `main` 머지 순서 결정.
+
+### 2. 이름 변경
+
+- 범위: GitHub 레포 이름(옛 주소는 자동 리다이렉트), 로컬 · 홈서버 폴더(`~/apps/<새 이름>`), runner 이름, compose 프로젝트 · 컨테이너, 화면 · 메일 · Swagger 제목, PWA(`sw.js`), 백업 파일 접두사, JWT `iss`/`aud`, Tailscale 사이드카 호스트명, 워크스페이스 `CLAUDE.md`.
+- 그대로 두는 것: DB 이름 · 사용자 `docnexus`, B2 버킷 — 바꿔도 얻는 게 없고 덤프 · 복원 위험만 있다.
+- 영향:
+  - 암호문 문맥(AAD)은 `필드:사용자id` 라 앱 이름과 무관하다 — 보관함 데이터는 그대로 풀린다.
+  - JWT `iss`/`aud` 가 바뀌면 모든 기기가 한 번 다시 로그인한다.
+  - 호스트명이 바뀌면 Google OAuth 리디렉션 URI 를 **사용자가** Google Cloud 콘솔에서 고쳐야 한다. 웹 푸시도 기기마다 다시 구독해야 한다.
+
+### 3. 보안 화면 개편
+
+- '보안' 화면 하나로: 로그인 기기/세션 · 마스터 잠금 · 세션 만료 · 비밀번호 자동 숨김 · 최근 열람 기록.
+- 면접 소재: 비밀번호를 열어 보려면 잠금을 다시 풀어야 하고(`VaultGuard`), 그 열람이 감사 로그로 남는다.
+
+### 4. 디자인 개편
+
+- 기획서 `docs/planning.md`(남는 12개 화면 · 화면마다 다루는 데이터 · 자주 쓰는 정도 · 디자인 방향)를 쓴다 — 1단계와 같이 진행해도 된다.
+- 기획서 + 현재 화면 캡처(로컬 · 샘플 데이터)를 Claude 디자인에 넣어 시안을 뽑는다 → `docs/design/` 에 시안 + 점검 문서(career-notes `ledger-review.md` 처럼).
+- 시안을 확정한 뒤 공통 요소(`ui/*`) → 화면 순서로 바꾼다.
+- 대시보드는 이때 고정 레이아웃으로 다시 잡는다.
+- 공통 요소 규칙과 `ui-conventions.test.ts` 는 그대로 지킨다.
+
+### 5. 데모 인스턴스
+
+- 같은 홈서버에 따로 띄운다: DB `<이름>_demo`(전용 사용자), 파일 저장소 분리(별도 버킷이나 접두사 + 용량 제한), 앱 전용 Tailscale 사이드카(호스트명 따로, Funnel 켬).
+- 로그인 화면의 "데모로 둘러보기" 버튼 — `DEMO_MODE=true` 일 때만 열리는 로그인 경로. 운영 인스턴스에서는 라우트 자체가 없게 한다.
+- 샘플 데이터: 기존 `prisma/seeds` 를 데모용으로 다듬고, 매일 새벽 초기화한다.
+- 메일 · 웹 푸시 발송은 끈다.
+
+### 6. 공개
+
+- 방식(A/B) 결정 → 비밀값 · 내부 정보 검사(gitleaks, tailnet 주소, 홈서버 경로, 화이트리스트).
+- README: 한 줄 소개 · 데모 링크 · 화면 캡처 · 구조도 · 기술 선택 이유 · 트러블슈팅. 소재:
+  - 필드 + 사용자 문맥(AAD)으로 묶은 AES-256-GCM, 키 교체와 부팅 시 재암호화, 배포 전 전체 복호화 점검
+  - 알림 + 푸시 아웃박스 (한 트랜잭션)
+  - 예약 작업 실행 기록 · 겹침 방지 (core-jobs)
+  - 홈서버 배포 16~30분 → 4분 (2026-10-13, Dockerfile `chown -R` 원인 분석)
+- young-core 공개.
