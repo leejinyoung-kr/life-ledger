@@ -2,13 +2,12 @@
 
 /**
  * 설정 페이지.
- * 좌측 탭(프로필/보안/위젯/데이터)으로 분기하며,
+ * 좌측 탭(프로필/위젯/데이터)으로 분기하며,
  * 토글·위젯 드래그 정렬을 지원한다. 데이터는 백엔드 API(/settings)와 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(Button/Badge/Toggle).
  */
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
 import { notify } from '@/lib/toast';
 import { eulreul } from '@/lib/korean';
 import { useApiQuery } from '@/lib/query';
@@ -25,32 +24,20 @@ import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
 import { IconWon, IconClock, IconZap, IconLock, IconDrag } from '@/components/icons';
 import { api, apiDownload, setAccessToken } from '@/lib/api';
-import { clearVaultToken } from '@/lib/vault';
 import { isPushSupported, fetchPushStatus, getCurrentSubscription, enablePush, disablePush, sendTestPush } from '@/lib/push';
 import {
-  SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS,
   MENU_ITEMS, DEFAULT_MENU_ORDER, normalizeMenuOrder,
   type Settings, type WidgetPref,
 } from '@/lib/settings';
-import type { VaultStatus } from '@/lib/security';
-import { Card } from '@/components/ui/Card';
-
-// 자동잠금 시간 옵션 (분)
-const VAULT_TIMEOUT_OPTIONS = [
-  { value: 0, label: '수동 잠금만' },
-  { value: 5, label: '5분' },
-  { value: 15, label: '15분' },
-  { value: 30, label: '30분' },
-  { value: 60, label: '1시간' },
-];
+import { SettingGroup, SettingRow } from '@/components/SettingGroup';
+import { useSettingsPatch } from '@/lib/useSettingsPatch';
 
 // 메뉴 key → 라벨
 const MENU_LABEL: Record<string, string> = Object.fromEntries(MENU_ITEMS.map((m) => [m.key, m.label]));
 
-type TabId = 'profile' | 'security' | 'widgets' | 'data';
+type TabId = 'profile' | 'widgets' | 'data';
 const TABS: { id: TabId; label: string }[] = [
   { id: 'profile', label: '프로필' },
-  { id: 'security', label: '보안' },
   { id: 'widgets', label: '위젯 설정' },
   { id: 'data', label: '데이터' },
 ];
@@ -78,15 +65,9 @@ export default function SettingsPage() {
   const router = useRouter();
   const { confirm, confirmElement } = useConfirm();
   const [tab, setTab] = useState<TabId>('profile');
-  const qc = useQueryClient();
   const settingsQuery = useApiQuery<Settings>(qk.settings.detail(), '/settings');
   const s = settingsQuery.data ?? null;
   const error = settingsQuery.error?.message ?? null;
-  // 마스터 잠금
-  const [vault, setVault] = useState<VaultStatus | null>(null);
-  const [vaultPw, setVaultPw] = useState('');
-  const [vaultTimeout, setVaultTimeout] = useState(5);
-  const [vaultSaving, setVaultSaving] = useState(false);
 
   // 계정 보관함 JSON 백업 복원 (export 역방향) — 같은 계정 + 백업에 쓰인 암호화 키가 서버에 남아 있어야 복원된다
   async function handleImportCredentials(e: React.ChangeEvent<HTMLInputElement>) {
@@ -200,56 +181,7 @@ export default function SettingsPage() {
   }, [settingsQuery.data]);
 
   // 부분 저장 — 변경 필드만 PUT, 응답으로 서버 상태 동기화
-  // successMsg: null이면 알림 없음, 생략 시 기본 문구
-  const patch = useCallback(async (partial: Record<string, unknown>, successMsg?: string | null) => {
-    try {
-      const data = await api.put<Settings>('/settings', partial);
-      qc.setQueryData(qk.settings.detail(), data); // 캐시 즉시 갱신
-      if (successMsg !== null) notify.success(successMsg ?? '저장됐습니다.');
-      return data;
-    } catch (e) {
-      notify.error('저장에 실패했습니다.');
-      throw e;
-    }
-  }, [qc]);
-
-  // 마스터 잠금 상태 로드 (보안 탭 진입 시)
-  const loadVault = useCallback(async () => {
-    try {
-      const v = await api.get<VaultStatus>('/security/vault');
-      setVault(v);
-      setVaultTimeout(v.timeoutMin);
-    } catch { /* 무시 */ }
-  }, []);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- 보안 탭 진입 시 잠금 상태 조회
-  useEffect(() => { if (tab === 'security') loadVault(); }, [tab, loadVault]);
-
-  // 마스터 잠금 설정/변경
-  async function handleSetupVault() {
-    if (!vaultPw || vaultSaving) return;
-    setVaultSaving(true);
-    try {
-      await api.post('/security/vault/setup', { password: vaultPw, timeoutMin: vaultTimeout });
-      setVaultPw('');
-      notify.success('마스터 잠금을 설정했습니다.');
-      loadVault();
-    } catch (e) { notify.error((e as Error).message); }
-    finally { setVaultSaving(false); }
-  }
-
-  // 마스터 잠금 해제(비활성화) — 현재 비번 확인
-  async function handleDisableVault() {
-    if (!vaultPw || vaultSaving) return;
-    setVaultSaving(true);
-    try {
-      await api.post('/security/vault/disable', { password: vaultPw });
-      setVaultPw('');
-      clearVaultToken();
-      notify.success('마스터 잠금을 해제했습니다.');
-      loadVault();
-    } catch (e) { notify.error((e as Error).message); }
-    finally { setVaultSaving(false); }
-  }
+  const patch = useSettingsPatch();
 
   if (!s) {
     return (
@@ -309,7 +241,7 @@ export default function SettingsPage() {
 
   return (
     <AppShell activePath="/settings" topbarLabel="설정">
-      <PageHeader title="설정" description="계정, 보안, 대시보드 위젯 등을 관리합니다." />
+      <PageHeader title="설정" description="계정, 알림, 대시보드 위젯 등을 관리합니다." />
 
       <ErrorBanner message={error} />
 
@@ -331,7 +263,7 @@ export default function SettingsPage() {
           {/* ── 프로필 ── */}
           {tab === 'profile' && (
             <>
-              <Group title="내 계정">
+              <SettingGroup title="내 계정">
                 <div className="flex items-center gap-5 p-5">
                   <div className="w-15 h-15 rounded-full bg-accent-dim border-2 border-accent flex items-center justify-center [font-family:var(--font-display)] text-[1.4rem] font-extrabold text-accent shrink-0">{(s.displayName || s.user.name || '?').charAt(0)}</div>
                   <div>
@@ -350,10 +282,10 @@ export default function SettingsPage() {
                     <Button onClick={() => patch({ displayName })}>저장</Button>
                   </div>
                 </div>
-              </Group>
-              <Group title="알림">
+              </SettingGroup>
+              <SettingGroup title="알림">
                 {pushSupported && (
-                  <Row
+                  <SettingRow
                     label="푸시 알림 (이 기기)"
                     desc={
                       pushServerReady
@@ -369,77 +301,22 @@ export default function SettingsPage() {
                       )}
                       <Toggle on={pushOn} onToggle={handleTogglePush} disabled={!pushServerReady || pushBusy} />
                     </div>
-                  </Row>
+                  </SettingRow>
                 )}
-                <Row label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
+                <SettingRow label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
                   <Toggle on={s.notifMaturity} onToggle={() => handleToggleNotif('notifMaturity')} />
-                </Row>
-                <Row label="파일 업로드 완료 알림" desc="파일 업로드 시 알림 표시">
+                </SettingRow>
+                <SettingRow label="파일 업로드 완료 알림" desc="파일 업로드 시 알림 표시">
                   <Toggle on={s.notifUpload} onToggle={() => handleToggleNotif('notifUpload')} />
-                </Row>
-              </Group>
+                </SettingRow>
+              </SettingGroup>
             </>
-          )}
-
-          {/* ── 보안 ── */}
-          {tab === 'security' && (
-            <Group title="암호화 설정">
-              <Row label="암호화 방식" desc="계정 보관함 비밀번호 암호화 알고리즘">
-                <Badge tone="success">AES-256-GCM</Badge>
-              </Row>
-              <Row label="세션 자동 만료" desc="비활성 시간 후 자동 로그아웃">
-                <select className="input w-auto" aria-label="세션 자동 만료" value={s.sessionExpiry} onChange={(e) => patch({ sessionExpiry: e.target.value })}>
-                  {SESSION_EXPIRY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </Row>
-              <Row label="비밀번호 자동 숨김" desc="계정 상세 모달에서 PW 표시 후 자동 숨김 시간">
-                <select className="input w-auto" aria-label="비밀번호 자동 숨김" value={s.pwAutoHide} onChange={(e) => patch({ pwAutoHide: e.target.value })}>
-                  {PW_AUTO_HIDE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </Row>
-
-              {/* 마스터 잠금 — Google 로그인 외 보관함 2차 잠금 */}
-              <div className="flex flex-col gap-2.5 px-5 py-3.5 border-t border-border-subtle sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[0.875rem] font-medium text-primary">보관함 마스터 잠금</span>
-                    <Badge tone={vault?.enabled ? 'success' : 'warning'}>{vault?.enabled ? '사용 중' : '미설정'}</Badge>
-                  </div>
-                  <div className="text-[0.78rem] text-muted break-keep">
-                    켜두면 비밀번호을 열람할 때마다 마스터 비밀번호가 필요합니다.
-                  </div>
-                  {vault?.enabled && (
-                    <div className="text-[0.74rem] text-muted mt-1">자동잠금: {vault.timeoutMin > 0 ? `${vault.timeoutMin}분` : '수동'} · 변경하려면 해제 후 다시 설정하세요.</div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:shrink-0">
-                  <input
-                    type="password"
-                    className="input sm:w-56"
-                    placeholder={vault?.enabled ? '현재 마스터 비밀번호' : '새 마스터 비밀번호 (8자 이상)'}
-                    value={vaultPw}
-                    onChange={(e) => setVaultPw(e.target.value)}
-                    aria-label="마스터 비밀번호"
-                  />
-                  <div className="flex items-center gap-1.5">
-                    {!vault?.enabled && (
-                      <select className="input w-auto" aria-label="자동잠금 시간" value={vaultTimeout} onChange={(e) => setVaultTimeout(Number(e.target.value))}>
-                        {VAULT_TIMEOUT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
-                    )}
-                    {vault?.enabled
-                      ? <Button variant="danger" disabled={vaultSaving || !vaultPw} onClick={handleDisableVault}>잠금 해제</Button>
-                      : <Button disabled={vaultSaving || !vaultPw} onClick={handleSetupVault}>잠금 설정</Button>}
-                  </div>
-                </div>
-              </div>
-            </Group>
           )}
 
           {/* ── 위젯 설정 ── */}
           {tab === 'widgets' && (
             <>
-              <Group title="대시보드 위젯 표시 설정">
+              <SettingGroup title="대시보드 위젯 표시 설정">
                 <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">표시할 위젯을 켜고 끌 수 있습니다.</p>
                 {widgets.map((w) => {
                   const meta = WIDGET_META[w.id];
@@ -458,16 +335,16 @@ export default function SettingsPage() {
                     </div>
                   );
                 })}
-              </Group>
+              </SettingGroup>
 
-              <Group title="위젯 미리보기">
+              <SettingGroup title="위젯 미리보기">
                 <div className="px-5 py-4">
                   <WidgetPreview widgets={widgets} />
                 </div>
                 <div className="px-5 pt-2 pb-3 text-[0.82rem] text-muted">토글 변경 시 대시보드에 즉시 반영됩니다.</div>
-              </Group>
+              </SettingGroup>
 
-              <Group title="사이드바 메뉴 순서">
+              <SettingGroup title="사이드바 메뉴 순서">
                 <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">1차 메뉴(그룹)의 표시 순서를 드래그로 변경합니다. 저장 시 사이드바에 즉시 반영됩니다.</p>
                 {menuOrder.map((key) => (
                   <div
@@ -482,7 +359,7 @@ export default function SettingsPage() {
                     <div className="flex-1 text-[0.875rem] font-medium text-primary">{MENU_LABEL[key] ?? key}</div>
                   </div>
                 ))}
-              </Group>
+              </SettingGroup>
 
               <div className="flex justify-end gap-2">
                 <Button variant="ghost" onClick={handleResetMenuOrder}>초기화</Button>
@@ -494,34 +371,34 @@ export default function SettingsPage() {
           {/* ── 데이터 ── */}
           {tab === 'data' && (
             <>
-              <Group title="데이터 내보내기">
-                <Row label="가계부 데이터" desc="전체 거래 내역을 엑셀(.xlsx)로 다운로드">
+              <SettingGroup title="데이터 내보내기">
+                <SettingRow label="가계부 데이터" desc="전체 거래 내역을 엑셀(.xlsx)로 다운로드">
                   <Button variant="ghost" onClick={() => exportData('/transactions/export', '가계부.xlsx')}>엑셀 다운로드</Button>
-                </Row>
-                <Row label="계정 보관함" desc="암호화된 JSON 형태로 백업 (같은 계정으로만 복원)">
+                </SettingRow>
+                <SettingRow label="계정 보관함" desc="암호화된 JSON 형태로 백업 (같은 계정으로만 복원)">
                   <Button variant="ghost" onClick={() => exportData('/export/credentials', '계정백업.json')}>JSON 백업</Button>
-                </Row>
-                <Row label="전체 백업" desc="모든 데이터·메모를 ZIP으로 다운로드">
+                </SettingRow>
+                <SettingRow label="전체 백업" desc="모든 데이터·메모를 ZIP으로 다운로드">
                   <Button variant="ghost" onClick={() => exportData('/export/backup', 'docnexus-백업.zip')}>ZIP 다운로드</Button>
-                </Row>
-              </Group>
+                </SettingRow>
+              </SettingGroup>
 
-              <Group title="데이터 가져오기">
-                <Row label="계정 보관함 복원" desc="JSON 백업을 현재 보관함에 추가 (같은 계정의 백업만 · 덮어쓰지 않음)">
+              <SettingGroup title="데이터 가져오기">
+                <SettingRow label="계정 보관함 복원" desc="JSON 백업을 현재 보관함에 추가 (같은 계정의 백업만 · 덮어쓰지 않음)">
                   <label className="excel-btn upload">
                     JSON 복원
                     <input type="file" accept=".json,application/json" hidden onChange={handleImportCredentials} />
                   </label>
-                </Row>
-                <Row label="가계부 가져오기" desc="거래 내역 엑셀(.xlsx)은 가계부 페이지에서 업로드합니다.">
+                </SettingRow>
+                <SettingRow label="가계부 가져오기" desc="거래 내역 엑셀(.xlsx)은 가계부 페이지에서 업로드합니다.">
                   <Button variant="ghost" href="/transactions">가계부로 이동</Button>
-                </Row>
-              </Group>
+                </SettingRow>
+              </SettingGroup>
               <div className="bg-background border border-danger/20 rounded-panel overflow-hidden shadow-card">
                 <div className="px-5 py-3.5 border-b border-danger/15 [font-family:var(--font-display)] font-bold text-[0.875rem] text-danger bg-danger-dim">위험 구역</div>
-                <Row labelClass="danger" label="계정 삭제" desc="모든 데이터가 영구 삭제됩니다. 되돌릴 수 없습니다.">
+                <SettingRow labelClass="danger" label="계정 삭제" desc="모든 데이터가 영구 삭제됩니다. 되돌릴 수 없습니다.">
                   <Button variant="danger" onClick={handleDeleteAccount}>계정 삭제</Button>
-                </Row>
+                </SettingRow>
               </div>
             </>
           )}
@@ -529,30 +406,6 @@ export default function SettingsPage() {
       </div>
       {confirmElement}
     </AppShell>
-  );
-}
-
-// 설정 그룹 (헤더 + 행 묶음)
-function Group({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <Card clip>
-      <div className="px-5 py-3.5 border-b border-border [font-family:var(--font-display)] font-bold text-[0.875rem] text-primary bg-surface">{title}</div>
-      {children}
-    </Card>
-  );
-}
-
-// 설정 행 (라벨/설명 + 우측 컨트롤)
-// stack: 컨트롤이 select/button 등으로 넓어 모바일에서 라벨과 줄바꿈이 필요한 행에만 true (기본은 토글류처럼 한 줄 유지)
-function Row({ label, desc, labelClass, stack, children }: { label: string; desc?: string; labelClass?: string; stack?: boolean; children: ReactNode }) {
-  return (
-    <div className={`flex px-5 py-3.5 border-b border-border-subtle last:border-b-0 gap-6 ${stack ? 'flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between' : 'items-center justify-between'}`}>
-      <div className={stack ? 'min-w-0' : 'flex-1 min-w-0'}>
-        <div className={`text-[0.875rem] font-medium ${labelClass === 'danger' ? 'text-danger' : 'text-primary'}`}>{label}</div>
-        {desc && <div className="text-[0.78rem] text-muted mt-0.5 break-keep">{desc}</div>}
-      </div>
-      <div className={`flex items-center gap-2.5 ${stack ? 'sm:shrink-0' : 'shrink-0'}`}>{children}</div>
-    </div>
   );
 }
 

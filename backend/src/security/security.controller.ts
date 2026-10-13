@@ -20,7 +20,7 @@ import { VaultService } from './vault.service';
 import { VaultGuard } from './vault.guard';
 import { SetupVaultDto, VaultPasswordDto } from './dto/vault.dto';
 
-@ApiTags('보안 센터')
+@ApiTags('보안')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('security')
@@ -30,18 +30,6 @@ export class SecurityController {
     private readonly accessLog: AccessLogService,
     private readonly vault: VaultService,
   ) {}
-
-  // 요약 (점수 + 카테고리별 건수)
-  @Get('summary')
-  summary(@CurrentUser() user: AuthUser) {
-    return this.service.summary(user.id);
-  }
-
-  // 위험 요소 목록
-  @Get('risks')
-  risks(@CurrentUser() user: AuthUser) {
-    return this.service.risks(user.id);
-  }
 
   // 로그인 세션 목록
   @Get('sessions')
@@ -64,25 +52,6 @@ export class SecurityController {
     @Client() client: ClientInfo,
   ) {
     return this.service.revokeSession(user.id, id, client);
-  }
-
-  // 보안 점수 추이 (최근 days 일)
-  @Get('score-trend')
-  scoreTrend(@CurrentUser() user: AuthUser, @Query('days') days?: string) {
-    return this.service.scoreTrend(user.id, days ? Number(days) : 30);
-  }
-
-  // 비밀번호 강도 분포 통계
-  @Get('strength-stats')
-  strengthStats(@CurrentUser() user: AuthUser) {
-    return this.service.strengthStats(user.id);
-  }
-
-  // 유출 비밀번호 검사 (HIBP) — 외부 API 호출이라 분당 6회로 제한
-  @Get('breach-check')
-  @Throttle({ default: { limit: 6, ttl: 60000 } })
-  breachCheck(@CurrentUser() user: AuthUser) {
-    return this.service.breachCheck(user.id);
   }
 
   // 최근 보관함 열람 기록

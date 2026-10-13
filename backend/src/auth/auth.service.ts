@@ -298,7 +298,7 @@ export class AuthService {
           group: 'system',
           tone: 'warning',
           title: '새 기기에서 로그인',
-          description: `${device} (${location}) 에서 로그인되었습니다. 본인이 아니라면 보안 센터에서 세션을 로그아웃하세요.`,
+          description: `${device} (${location}) 에서 로그인되었습니다. 본인이 아니라면 보안 화면에서 세션을 로그아웃하세요.`,
           source: '보안',
         },
         { url: '/security', body: `${device} (${location}) 에서 로그인되었습니다.` },
@@ -374,7 +374,6 @@ export class AuthService {
       this.prisma.userSettings.deleteMany(w),
       this.prisma.notification.deleteMany(w),
       this.prisma.calendarEvent.deleteMany(w),
-      this.prisma.securityRisk.deleteMany(w),
       this.prisma.loginSession.deleteMany(w),
       // category 는 전역 공용 — 특정 유저 삭제로 지우지 않음 (created_by 만 남고 데이터 보존)
       this.prisma.user.delete({ where: { id: userId } }),

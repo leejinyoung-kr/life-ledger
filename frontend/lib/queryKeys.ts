@@ -41,13 +41,8 @@ export const qk = {
   },
   security: {
     all: ['security'] as const,
-    summary: () => ['security', 'summary'] as const,
-    risks: () => ['security', 'risks'] as const,
     sessions: () => ['security', 'sessions'] as const,
-    scoreTrend: (days: number) => ['security', 'score-trend', days] as const,
     accessLogs: (limit: number) => ['security', 'access-logs', limit] as const,
-    strengthStats: () => ['security', 'strength-stats'] as const,
-    breach: () => ['security', 'breach'] as const,
     vault: () => ['security', 'vault'] as const,
   },
   categories: { all: ['categories'] as const },
