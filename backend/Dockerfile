@@ -30,6 +30,12 @@ ENV TZ=Asia/Seoul
 RUN apk add --no-cache mariadb-client tzdata \
     && cp /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone
+# 앱이 쓰는 곳은 백업 폴더뿐이라 그 폴더만 app 소유로 두고, 나머지(node_modules·dist)는 root 소유 읽기 전용.
+# COPY 앞에 두어 캐시되게 한다 — COPY 뒤에서 chown -R /app 을 하면 node_modules 전체가 새 레이어로
+# 다시 쓰여 홈서버 배포가 매번 10분 넘게 늘었다 (2026-10-13)
+RUN addgroup -S app && adduser -S app -G app \
+    && mkdir -p /app/backend/backups \
+    && chown app:app /app/backend/backups
 # test 스테이지는 build와 독립적이라 BuildKit이 병렬로 실행한다.
 # 아래 COPY는 산출물이 필요해서가 아니라 test 스테이지를 빌드 그래프에 강제로 포함시켜(=반드시 통과해야 진행되도록) 넣은 것.
 COPY --from=test /app/backend/package.json /tmp/.test-ok
@@ -39,11 +45,7 @@ COPY --from=build /app/backend/package.json ./backend/package.json
 COPY --from=build /app/backend/prisma.config.ts ./backend/prisma.config.ts
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/prisma ./backend/prisma
-
-RUN addgroup -S app && adduser -S app -G app \
-    && mkdir -p /app/backend/backups \
-    && chown -R app:app /app \
-    && rm -f /tmp/.test-ok
+RUN rm -f /tmp/.test-ok
 USER app
 
 # 빌드된 커밋 — /_meta 가 "지금 도는 것이 어느 코드인지" 보여준다.
