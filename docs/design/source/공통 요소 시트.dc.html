@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/classical-3356c73a-14f3-43d6-8597-4ce3e69b8976/styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<script src="_ds/classical-3356c73a-14f3-43d6-8597-4ce3e69b8976/_ds_bundle.js"></script>
+<script src="theme.js"></script>
+<script src="icons.js"></script>
+<style>body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;word-break:keep-all} a{color:var(--ll-accent-ink)} a:hover{color:var(--color-accent)}</style>
+</helmet>
+<div style="max-width:1240px; margin:0 auto; padding:40px 40px 120px; display:flex; flex-direction:column; gap:56px; font-size:14px; line-height:1.55">
+
+  <header style="display:flex; align-items:flex-end; justify-content:space-between; gap:24px; flex-wrap:wrap; border-bottom:1px solid var(--ll-line); padding-bottom:20px">
+    <div style="display:flex; flex-direction:column; gap:6px">
+      <div style="font-size:12px; letter-spacing:.08em; color:var(--ll-accent-ink)">LifeLedger 디자인 개편 · 2026-10-13</div>
+      <div style="font-family:var(--font-heading); font-weight:400; font-size:44px; line-height:1.1">공통 요소 시트</div>
+      <div style="color:var(--ll-muted); max-width:640px; text-wrap:pretty">기획서 §4 단위 그대로. 화면은 이 요소만으로 조립한다. 맨 앞은 정한 토큰, 그다음 요소별 모든 변형.</div>
+    </div>
+    <div style="display:flex; gap:8px">
+      <button class="btn btn-secondary" onClick="{{ toggleDark }}"><ll-icon name="{{ themeIcon }}"></ll-icon>{{ themeLabel }}</button>
+    </div>
+  </header>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">00</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">토큰</span></div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%,520px),1fr)); gap:32px">
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <div style="font-family:var(--font-heading); font-weight:600; font-size:18px">색 — 바탕과 강조</div>
+        <table class="table" style="font-size:13px">
+          <thead><tr><th>역할</th><th>변수</th><th style="text-align:right">라이트</th><th style="text-align:right">다크</th></tr></thead>
+          <tbody>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; border:1px solid var(--ll-line); background:var(--color-bg)"></span>바탕</span></td><td style="color:var(--ll-muted)">--color-bg</td><td style="text-align:right; font-variant-numeric:tabular-nums">#F3F2F2</td><td style="text-align:right; font-variant-numeric:tabular-nums">#191816</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; border:1px solid var(--ll-line); background:var(--ll-raised)"></span>떠 있는 면 (창·메뉴)</span></td><td style="color:var(--ll-muted)">--ll-raised</td><td style="text-align:right; font-variant-numeric:tabular-nums">#FAF9F8</td><td style="text-align:right; font-variant-numeric:tabular-nums">#23211F</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; background:var(--color-text)"></span>글자</span></td><td style="color:var(--ll-muted)">--color-text</td><td style="text-align:right; font-variant-numeric:tabular-nums">#201F1D</td><td style="text-align:right; font-variant-numeric:tabular-nums">#EBE7E1</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; background:var(--ll-muted)"></span>보조 글자</span></td><td style="color:var(--ll-muted)">--ll-muted</td><td style="text-align:right; font-variant-numeric:tabular-nums">#5F5B58</td><td style="text-align:right; font-variant-numeric:tabular-nums">#AAA49D</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:2px; background:var(--ll-line)"></span>선 (머리카락 선)</span></td><td style="color:var(--ll-muted)">--ll-line</td><td style="text-align:right; font-variant-numeric:tabular-nums">글자 15%</td><td style="text-align:right; font-variant-numeric:tabular-nums">글자 14%</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; background:var(--color-accent)"></span>강조 (선·아이콘·선택)</span></td><td style="color:var(--ll-muted)">--color-accent</td><td style="text-align:right; font-variant-numeric:tabular-nums">#B68235</td><td style="text-align:right; font-variant-numeric:tabular-nums">#D2A15A</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; background:var(--ll-accent-ink)"></span>강조 글자 (본문 크기)</span></td><td style="color:var(--ll-muted)">--ll-accent-ink</td><td style="text-align:right; font-variant-numeric:tabular-nums">#7D5411</td><td style="text-align:right; font-variant-numeric:tabular-nums">#E6C08A</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:12.5px; color:var(--ll-muted); text-wrap:pretty">강조색은 금빛 하나. 메뉴 선택·탭 밑줄·주 버튼 테두리·포커스 고리·링크에만 쓰고, <b style="font-weight:600; color:var(--color-text)">돈에는 절대 쓰지 않는다</b>. 넓은 면을 칠하지 않고 선으로 쓴다.</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <div style="font-family:var(--font-heading); font-weight:600; font-size:18px">색 — 돈 색 규칙</div>
+        <table class="table" style="font-size:13px">
+          <thead><tr><th>뜻</th><th>표기</th><th style="text-align:right">라이트</th><th style="text-align:right">다크</th></tr></thead>
+          <tbody>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; background:var(--ll-in)"></span>수입</span></td><td style="color:var(--ll-in); font-variant-numeric:tabular-nums">+₩35,000</td><td style="text-align:right; font-variant-numeric:tabular-nums">#2F6A4C</td><td style="text-align:right; font-variant-numeric:tabular-nums">#7FB896</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; background:var(--ll-out)"></span>지출</span></td><td style="color:var(--ll-out); font-variant-numeric:tabular-nums">−₩45,000</td><td style="text-align:right; font-variant-numeric:tabular-nums">#A3412E</td><td style="text-align:right; font-variant-numeric:tabular-nums">#E48C78</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; background:var(--ll-move)"></span>자산이동</span></td><td style="color:var(--ll-move); font-variant-numeric:tabular-nums">⇄ ₩300,000</td><td style="text-align:right; font-variant-numeric:tabular-nums">#47607E</td><td style="text-align:right; font-variant-numeric:tabular-nums">#9DB1CC</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; background:var(--ll-in)"></span>늘어남</span></td><td style="color:var(--ll-in); font-variant-numeric:tabular-nums">▲ ₩14,198,800 · 21%</td><td colspan="2" style="text-align:right; color:var(--ll-muted)">수입 색 + ▲</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; background:var(--ll-out)"></span>줄어듦</span></td><td style="color:var(--ll-out); font-variant-numeric:tabular-nums">▼ ₩240,000 · 13.3%</td><td colspan="2" style="text-align:right; color:var(--ll-muted)">지출 색 + ▼</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; border:1px solid var(--ll-line)"></span>그 밖의 금액</span></td><td style="font-variant-numeric:tabular-nums">₩81,798,800</td><td colspan="2" style="text-align:right; color:var(--ll-muted)">글자색 (잔액·원금·한도)</td></tr>
+            <tr><td><span style="display:inline-flex; align-items:center; gap:8px"><span style="width:14px; height:14px; background:var(--ll-warn)"></span>경고 · 임박</span></td><td style="color:var(--ll-warn)">D-3 · 미확인</td><td style="text-align:right; font-variant-numeric:tabular-nums">#A65A12</td><td style="text-align:right; font-variant-numeric:tabular-nums">#E3A463</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:12.5px; color:var(--ll-muted); text-wrap:pretty">색만으로 뜻을 전하지 않는다 — 언제나 부호(+ − ⇄ ▲ ▼)가 같이 간다. 성공 배지는 수입 색, 위험은 지출 색, 파랑 배지는 자산이동 색을 같이 쓴다. 차트 막대도 같은 규칙(지출 막대 = 지출 색).</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <div style="font-family:var(--font-heading); font-weight:600; font-size:18px">글꼴</div>
+        <table class="table" style="font-size:13px">
+          <thead><tr><th>쓰임</th><th>글꼴</th><th style="text-align:right">크기 / 굵기</th></tr></thead>
+          <tbody>
+            <tr><td>화면 제목 h1</td><td style="font-family:var(--font-heading); font-size:24px; font-weight:600">가계부 Ledger</td><td style="text-align:right; font-variant-numeric:tabular-nums">30 / 600</td></tr>
+            <tr><td>묶음 제목 h2</td><td style="font-family:var(--font-heading); font-size:18px; font-weight:600">다가오는 날짜</td><td style="text-align:right; font-variant-numeric:tabular-nums">19 / 600</td></tr>
+            <tr><td>본문 · 표</td><td>헬스장 회비 · 신한카드</td><td style="text-align:right; font-variant-numeric:tabular-nums">14 · 표 13.5 / 400</td></tr>
+            <tr><td>보조 · 이름표</td><td style="font-size:12px; color:var(--ll-muted)">2026.10.10 · 매월 10일</td><td style="text-align:right; font-variant-numeric:tabular-nums">12 / 400</td></tr>
+            <tr><td>큰 숫자</td><td style="font-size:26px; font-variant-numeric:tabular-nums; letter-spacing:-.01em">₩81,798,800</td><td style="text-align:right; font-variant-numeric:tabular-nums">26–40 / 400</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:12.5px; color:var(--ll-muted); text-wrap:pretty">제목 Cormorant Garamond + <b style="font-weight:600; color:var(--color-text)">Noto Serif KR</b>, 본문 Lora + Noto Serif KR. 한글은 명조로 통일해 장부 인상을 낸다. 숫자는 본문 글꼴의 고정폭 숫자(<code>tabular-nums</code>)로, 표·카드에서 언제나 오른쪽 정렬. 숫자 전용 글꼴은 두지 않는다. 고딕이 필요하면 Pretendard 로 바꾸는 대안을 시안 Tweaks 에 두었다.</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px">
+        <div style="font-family:var(--font-heading); font-weight:600; font-size:18px">간격 · 모서리 · 그림자 · 폭</div>
+        <table class="table" style="font-size:13px">
+          <thead><tr><th>항목</th><th style="text-align:right">값</th><th>쓰임</th></tr></thead>
+          <tbody>
+            <tr><td>간격 --space-1…8</td><td style="text-align:right; font-variant-numeric:tabular-nums">4.6 · 9.2 · 13.8 · 18.4 · 27.6 · 36.8</td><td style="color:var(--ll-muted)">본문 4 단위 반올림 4·8·12·16·24·32·40 으로 구현</td></tr>
+            <tr><td>모서리 sm · md · lg</td><td style="text-align:right; font-variant-numeric:tabular-nums">2 · 4 · 7 px</td><td style="color:var(--ll-muted)">배지 · 입력/버튼/카드 · 창</td></tr>
+            <tr><td>그림자 sm</td><td style="text-align:right"><span style="display:inline-block; width:40px; height:16px; background:var(--ll-raised); box-shadow:var(--shadow-sm)"></span></td><td style="color:var(--ll-muted)">휴대폰 아래 메뉴</td></tr>
+            <tr><td>그림자 md</td><td style="text-align:right"><span style="display:inline-block; width:40px; height:16px; background:var(--ll-raised); box-shadow:var(--shadow-md)"></span></td><td style="color:var(--ll-muted)">펼침 메뉴 · 토스트</td></tr>
+            <tr><td>그림자 lg</td><td style="text-align:right"><span style="display:inline-block; width:40px; height:16px; background:var(--ll-raised); box-shadow:var(--shadow-lg)"></span></td><td style="color:var(--ll-muted)">모달 · 통합 검색 (카드에는 그림자 없음)</td></tr>
+            <tr><td>사이드바 · 머리</td><td style="text-align:right; font-variant-numeric:tabular-nums">232 · 56 px</td><td style="color:var(--ll-muted)">본문 최대 1200, 좌우 여백 32</td></tr>
+            <tr><td>휴대폰</td><td style="text-align:right; font-variant-numeric:tabular-nums">390 · 아래 메뉴 60</td><td style="color:var(--ll-muted)">누르는 곳 최소 44 × 44, 여백 16</td></tr>
+            <tr><td>표 행 높이</td><td style="text-align:right; font-variant-numeric:tabular-nums">44 · 촘촘 36</td><td style="color:var(--ll-muted)">머리 행 36, 행 사이 머리카락 선</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">01</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">아이콘</span><span style="color:var(--ll-muted); font-size:13px">Lucide 한 세트 · 선 1.6 · 16/18/20px · currentColor. 이모지는 쓰지 않는다.</span></div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(104px,1fr)); border-top:1px solid var(--ll-line-soft); border-left:1px solid var(--ll-line-soft)">
+      <sc-for list="{{ icons }}" as="ic" hint-placeholder-count="24">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 6px; border-right:1px solid var(--ll-line-soft); border-bottom:1px solid var(--ll-line-soft)"><ll-icon name="{{ ic }}" size="20"></ll-icon><span style="font-size:11px; color:var(--ll-muted)">{{ ic }}</span></div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">02</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">버튼 Button · IconButton</span></div>
+    <div style="display:grid; grid-template-columns:120px repeat(3, max-content) 1fr; gap:16px 28px; align-items:center; overflow-x:auto">
+      <span></span><span style="font-size:12px; color:var(--ll-muted)">sm · 30</span><span style="font-size:12px; color:var(--ll-muted)">md · 36</span><span style="font-size:12px; color:var(--ll-muted)">lg · 44</span><span style="font-size:12px; color:var(--ll-muted)">쓰임</span>
+
+      <span style="font-size:13px">primary</span>
+      <button class="btn btn-primary" style="padding:5px 10px; font-size:13px; min-height:30px">항목 추가</button>
+      <button class="btn btn-primary" style="min-height:36px"><ll-icon name="plus"></ll-icon>항목 추가</button>
+      <button class="btn btn-primary" style="padding:11px 20px; font-size:15px; min-height:44px">저장 (암호화)</button>
+      <span style="font-size:12.5px; color:var(--ll-muted)">화면당 하나. 금빛 테두리, 채우지 않는다.</span>
+
+      <span style="font-size:13px">ghost</span>
+      <button class="btn btn-secondary" style="padding:5px 10px; font-size:13px; min-height:30px">초기화</button>
+      <button class="btn btn-secondary" style="min-height:36px"><ll-icon name="download"></ll-icon>내려받기</button>
+      <button class="btn btn-secondary" style="padding:11px 20px; font-size:15px; min-height:44px">닫기</button>
+      <span style="font-size:12.5px; color:var(--ll-muted)">보조 동작 · 취소. 머리카락 테두리.</span>
+
+      <span style="font-size:13px">danger</span>
+      <button class="btn btn-secondary" style="padding:5px 10px; font-size:13px; min-height:30px; color:var(--ll-out); border-color:var(--ll-out)" style-hover="background:var(--ll-out-tint)">선택삭제</button>
+      <button class="btn btn-secondary" style="min-height:36px; color:var(--ll-out); border-color:var(--ll-out)" style-hover="background:var(--ll-out-tint)"><ll-icon name="trash"></ll-icon>삭제</button>
+      <button class="btn btn-secondary" style="padding:11px 20px; font-size:15px; min-height:44px; color:var(--ll-out); border-color:var(--ll-out)" style-hover="background:var(--ll-out-tint)">전체 로그아웃</button>
+      <span style="font-size:12.5px; color:var(--ll-muted)">삭제로 가는 첫 단계. 누르면 확인 창.</span>
+
+      <span style="font-size:13px">solid-danger</span>
+      <button class="btn" style="padding:5px 10px; font-size:13px; min-height:30px; background:var(--ll-out); color:var(--ll-on-solid); border-color:var(--ll-out)" style-hover="filter:brightness(.92)">삭제</button>
+      <button class="btn" style="min-height:36px; background:var(--ll-out); color:var(--ll-on-solid); border-color:var(--ll-out)" style-hover="filter:brightness(.92)">삭제하기</button>
+      <button class="btn" style="padding:11px 20px; font-size:15px; min-height:44px; background:var(--ll-out); color:var(--ll-on-solid); border-color:var(--ll-out)" style-hover="filter:brightness(.92)">계정 삭제</button>
+      <span style="font-size:12.5px; color:var(--ll-muted)">확인 창 안의 마지막 단계에서만. 앱에서 유일한 채운 버튼.</span>
+
+      <span style="font-size:13px">link</span>
+      <button class="btn" style="padding:0; font-size:13px; color:var(--ll-accent-ink); text-decoration:underline; text-underline-offset:3px">전체 보기</button>
+      <button class="btn" style="padding:0; color:var(--ll-accent-ink); text-decoration:underline; text-underline-offset:3px">이메일로 로그인</button>
+      <button class="btn" style="padding:0; font-size:15px; color:var(--ll-accent-ink); text-decoration:underline; text-underline-offset:3px">캘린더에서 보기</button>
+      <span style="font-size:12.5px; color:var(--ll-muted)">문장 속 이동. inline 크기는 둘레 글자를 따른다.</span>
+
+      <span style="font-size:13px">로딩 · 비활성</span>
+      <button class="btn btn-primary" style="padding:5px 10px; font-size:13px; min-height:30px" disabled=""><ll-icon name="loader" spin="" size="14"></ll-icon>조회 중</button>
+      <button class="btn btn-primary" style="min-height:36px; opacity:.7; cursor:progress"><ll-icon name="loader" spin=""></ll-icon>저장 중…</button>
+      <button class="btn btn-secondary" style="padding:11px 20px; font-size:15px; min-height:44px" disabled="">선택삭제</button>
+      <span style="font-size:12.5px; color:var(--ll-muted)">로딩은 글자 앞 돌림 + 폭 유지. 비활성은 45%.</span>
+
+      <span style="font-size:13px">IconButton</span>
+      <div style="display:flex; gap:4px"><button class="btn btn-icon" style="width:30px; height:30px; color:var(--ll-muted)" style-hover="background:var(--ll-hover); color:var(--color-text)" title="복사"><ll-icon name="copy"></ll-icon></button><button class="btn btn-icon" style="width:30px; height:30px; color:var(--ll-muted)" style-hover="background:var(--ll-hover); color:var(--color-text)" title="수정"><ll-icon name="pencil"></ll-icon></button><button class="btn btn-icon" style="width:30px; height:30px; color:var(--ll-muted)" style-hover="background:var(--ll-out-tint); color:var(--ll-out)" title="삭제"><ll-icon name="trash"></ll-icon></button></div>
+      <div style="display:flex; gap:4px"><button class="btn btn-icon" style="color:var(--ll-muted)" style-hover="background:var(--ll-hover); color:var(--color-text)"><ll-icon name="more" size="18"></ll-icon></button><button class="btn btn-icon btn-secondary"><ll-icon name="x" size="18"></ll-icon></button></div>
+      <div style="display:flex; gap:4px"><button class="btn btn-icon" style="width:44px; height:44px; color:var(--ll-muted)" style-hover="background:var(--ll-hover)"><ll-icon name="search" size="20"></ll-icon></button><button class="btn btn-icon" style="width:44px; height:44px; color:var(--ll-muted)" style-hover="background:var(--ll-hover)"><ll-icon name="bell" size="20"></ll-icon></button></div>
+      <span style="font-size:12.5px; color:var(--ll-muted)">표 관리 열은 테두리 없는 sm. 휴대폰은 lg(44).</span>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">03</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">입력 Field · SearchInput · Toggle · 체크박스</span></div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%,260px),1fr)); gap:28px 32px">
+      <div class="field" style="display:flex; flex-direction:column; gap:6px">
+        <label style="margin:0; font-size:12.5px; color:var(--ll-muted)">서비스명 <span style="color:var(--ll-out)">*</span></label>
+        <input class="input" placeholder="예: GitHub" style="min-height:40px">
+        <span style="font-size:12px; color:var(--ll-faint)">필수 — 이름표 뒤 지출 색 별표</span>
+      </div>
+      <div class="field" style="display:flex; flex-direction:column; gap:6px">
+        <label style="margin:0; font-size:12.5px; color:var(--ll-muted)">금액 <span style="color:var(--ll-out)">*</span></label>
+        <div style="position:relative"><input class="input" value="45,0000" style="min-height:40px; border-color:var(--ll-out); text-align:right; font-variant-numeric:tabular-nums; padding-right:28px"><span style="position:absolute; right:10px; top:10px; color:var(--ll-muted)">원</span></div>
+        <span style="font-size:12px; color:var(--ll-out); display:flex; gap:6px; align-items:center"><ll-icon name="alert-circle" size="13"></ll-icon>숫자만 입력할 수 있습니다.</span>
+      </div>
+      <div class="field" style="display:flex; flex-direction:column; gap:6px">
+        <label style="margin:0; font-size:12.5px; color:var(--ll-muted)">카테고리</label>
+        <div style="position:relative"><select class="input" style="min-height:40px; appearance:none; padding-right:32px"><option>식비 › 카페·간식</option></select><ll-icon name="chevron-down" style="position:absolute; right:10px; top:12px; color:var(--ll-muted); pointer-events:none"></ll-icon></div>
+        <span style="font-size:12px; color:var(--ll-faint)">대 › 소분류 2단은 한 칸에</span>
+      </div>
+      <div class="field" style="display:flex; flex-direction:column; gap:6px">
+        <label style="margin:0; font-size:12.5px; color:var(--ll-muted)">검색 SearchInput</label>
+        <div style="position:relative"><ll-icon name="search" style="position:absolute; left:11px; top:12px; color:var(--ll-muted)"></ll-icon><input class="input" placeholder="서비스명, URL, 아이디" style="min-height:40px; padding-left:34px"></div>
+        <span style="font-size:12px; color:var(--ll-faint)">Enter 로 조회. 모든 화면 같은 모양</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px">
+        <span style="font-size:12.5px; color:var(--ll-muted)">Toggle</span>
+        <div style="display:flex; align-items:center; gap:10px"><span style="width:36px; height:20px; border-radius:10px; border:1px solid var(--color-accent); background:var(--ll-accent-tint); position:relative; flex:none"><span style="position:absolute; top:3px; left:19px; width:12px; height:12px; border-radius:50%; background:var(--color-accent)"></span></span><span>만기·결제 임박 알림</span></div>
+        <div style="display:flex; align-items:center; gap:10px"><span style="width:36px; height:20px; border-radius:10px; border:1px solid var(--ll-line); position:relative; flex:none"><span style="position:absolute; top:3px; left:3px; width:12px; height:12px; border-radius:50%; background:var(--ll-faint)"></span></span><span>파일 업로드 완료 알림</span></div>
+        <div style="display:flex; align-items:center; gap:10px; opacity:.45"><span style="width:36px; height:20px; border-radius:10px; border:1px solid var(--ll-line); position:relative; flex:none"><span style="position:absolute; top:3px; left:3px; width:12px; height:12px; border-radius:50%; background:var(--ll-faint)"></span></span><span>푸시 알림 (비활성)</span></div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:14px">
+        <span style="font-size:12.5px; color:var(--ll-muted)">체크박스</span>
+        <div style="display:flex; align-items:center; gap:10px"><span style="width:16px; height:16px; border:1px solid var(--ll-line); border-radius:2px; flex:none"></span><span>선택 안 함</span></div>
+        <div style="display:flex; align-items:center; gap:10px"><span style="width:16px; height:16px; border:1px solid var(--color-accent); border-radius:2px; color:var(--ll-accent-ink); display:grid; place-items:center; flex:none"><ll-icon name="check" size="12" stroke="2.4"></ll-icon></span><span>선택</span></div>
+        <div style="display:flex; align-items:center; gap:10px"><span style="width:16px; height:16px; border:1px solid var(--color-accent); border-radius:2px; color:var(--ll-accent-ink); display:grid; place-items:center; flex:none"><ll-icon name="minus" size="12" stroke="2.4"></ll-icon></span><span>일부 선택 (머리 행)</span></div>
+      </div>
+      <div class="field" style="display:flex; flex-direction:column; gap:6px">
+        <label style="margin:0; font-size:12.5px; color:var(--ll-muted)">비밀번호 <span style="color:var(--ll-out)">*</span></label>
+        <div style="display:flex; gap:8px"><div style="position:relative; flex:1"><input class="input" type="password" value="Kx9#vQ2!mT7p" style="min-height:40px; padding-right:36px; letter-spacing:.1em"><ll-icon name="eye" style="position:absolute; right:11px; top:12px; color:var(--ll-muted)"></ll-icon></div><button class="btn btn-secondary" style="min-height:40px"><ll-icon name="refresh"></ll-icon>생성</button></div>
+        <div style="display:flex; gap:3px"><span style="flex:1; height:3px; background:var(--ll-in)"></span><span style="flex:1; height:3px; background:var(--ll-in)"></span><span style="flex:1; height:3px; background:var(--ll-in)"></span><span style="flex:1; height:3px; background:var(--ll-bar)"></span></div>
+        <span style="font-size:12px; color:var(--ll-muted)">강도 강함 · 기본 가림</span>
+      </div>
+      <div class="field" style="display:flex; flex-direction:column; gap:6px">
+        <label style="margin:0; font-size:12.5px; color:var(--ll-muted)">메모 <span style="color:var(--ll-faint)">(선택)</span></label>
+        <textarea class="input" placeholder="추가 정보" style="min-height:72px"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">04</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">배지 Badge</span></div>
+    <div style="display:flex; flex-wrap:wrap; gap:28px; align-items:center">
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px; line-height:1; padding:4px 7px; border-radius:2px; color:var(--ll-in); background:var(--ll-in-tint); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ll-in) 35%, transparent)">활성</span><span style="font-size:11px; color:var(--ll-muted)">success</span></div>
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px; line-height:1; padding:4px 7px; border-radius:2px; color:var(--ll-warn); background:var(--ll-warn-tint); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ll-warn) 35%, transparent)">체험 · D-3</span><span style="font-size:11px; color:var(--ll-muted)">warning</span></div>
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px; line-height:1; padding:4px 7px; border-radius:2px; color:var(--ll-out); background:var(--ll-out-tint); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ll-out) 35%, transparent)">오류</span><span style="font-size:11px; color:var(--ll-muted)">danger</span></div>
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px; line-height:1; padding:4px 7px; border-radius:2px; color:var(--ll-muted); box-shadow:inset 0 0 0 1px var(--ll-line)">일시정지</span><span style="font-size:11px; color:var(--ll-muted)">neutral</span></div>
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start"><span style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px; line-height:1; padding:4px 7px; border-radius:2px; color:var(--ll-move); background:var(--ll-move-tint); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--ll-move) 35%, transparent)">정보</span><span style="font-size:11px; color:var(--ll-muted)">blue</span></div>
+      <div style="width:1px; align-self:stretch; background:var(--ll-line)"></div>
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start"><span style="display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; font-size:11px; border-radius:9px; color:var(--ll-on-solid); background:var(--ll-out); font-variant-numeric:tabular-nums">5</span><span style="font-size:11px; color:var(--ll-muted)">개수 (종·메뉴)</span></div>
+      <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start"><span style="font-size:12.5px; color:var(--ll-muted)">카페·간식</span><span style="font-size:11px; color:var(--ll-muted)">카테고리 — 배지 아님, 보조 글자</span></div>
+    </div>
+    <div style="font-size:12.5px; color:var(--ll-muted)">배지는 상태에만 쓴다. 표의 카테고리 · 유형 같은 분류는 글자(유형은 부호 색)로 둬서 표가 알록달록해지지 않게 한다.</div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">05</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">카드 Card · 숫자 카드 StatCard</span></div>
+    <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:1px; background:var(--ll-line); border:1px solid var(--ll-line); border-radius:4px; overflow:hidden">
+      <div style="background:var(--color-bg); padding:16px 18px; display:flex; flex-direction:column; gap:4px"><span style="font-size:12.5px; color:var(--ll-muted); display:flex; align-items:center; gap:6px"><ll-icon name="arrow-down" size="13" style="color:var(--ll-in)"></ll-icon>수입</span><span style="font-size:26px; font-variant-numeric:tabular-nums; color:var(--ll-in); letter-spacing:-.01em">₩35,000</span><span style="font-size:12px; color:var(--ll-muted)">이번 달 합계</span></div>
+      <div style="background:var(--color-bg); padding:16px 18px; display:flex; flex-direction:column; gap:4px"><span style="font-size:12.5px; color:var(--ll-muted); display:flex; align-items:center; gap:6px"><ll-icon name="arrow-up" size="13" style="color:var(--ll-out)"></ll-icon>지출</span><span style="font-size:26px; font-variant-numeric:tabular-nums; color:var(--ll-out); letter-spacing:-.01em">₩334,200</span><span style="font-size:12px; color:var(--ll-muted)">이번 달 합계</span></div>
+      <div style="background:var(--color-bg); padding:16px 18px; display:flex; flex-direction:column; gap:4px"><span style="font-size:12.5px; color:var(--ll-muted); display:flex; align-items:center; gap:6px"><ll-icon name="transfer" size="13" style="color:var(--ll-move)"></ll-icon>자산이동</span><span style="font-size:26px; font-variant-numeric:tabular-nums; color:var(--ll-move); letter-spacing:-.01em">₩0</span><span style="font-size:12px; color:var(--ll-muted)">실소비에서 제외</span></div>
+      <div style="background:var(--color-bg); padding:16px 18px; display:flex; flex-direction:column; gap:4px"><span style="font-size:12.5px; color:var(--ll-muted); display:flex; align-items:center; gap:6px"><ll-icon name="pie" size="13"></ll-icon>순자산</span><span style="font-size:26px; font-variant-numeric:tabular-nums; letter-spacing:-.01em">₩81,798,800</span><span style="font-size:12px; color:var(--ll-in); font-variant-numeric:tabular-nums">▲ ₩14,198,800 · 21% 지난달 대비</span></div>
+    </div>
+    <div style="font-size:12.5px; color:var(--ll-muted); text-wrap:pretty">숫자 카드는 따로 떠 있는 상자 대신 <b style="font-weight:600; color:var(--color-text)">머리카락 선으로 나눈 한 줄 띠</b>. 색 4가지 = 수입 · 지출 · 자산이동 · 기본(글자색). 변화(오름 · 내림)는 아래 줄에 ▲▼ + 돈 색. 휴대폰에서는 2열, 홀수면 마지막 칸이 두 칸을 차지한다.</div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%,320px),1fr)); gap:24px">
+      <div style="border:1px solid var(--ll-line); border-radius:4px; display:flex; flex-direction:column">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border-bottom:1px solid var(--ll-line-soft)"><span style="font-family:var(--font-heading); font-weight:600; font-size:19px">최근 활동</span><button class="btn" style="padding:0; font-size:13px; color:var(--ll-accent-ink); text-decoration:underline; text-underline-offset:3px">가계부</button></div>
+        <div style="padding:14px 18px; color:var(--ll-muted); font-size:13px">Card — 머리(제목 · 오른쪽 링크/버튼) + 몸통. 바탕은 비우고 테두리만. 그림자 없음.</div>
+      </div>
+      <div style="border:1px solid var(--color-accent); border-radius:4px; display:flex; flex-direction:column; cursor:pointer">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border-bottom:1px solid var(--ll-line-soft)"><span style="font-family:var(--font-heading); font-weight:600; font-size:19px">호버</span><ll-icon name="chevron-right" style="color:var(--ll-accent-ink)"></ll-icon></div>
+        <div style="padding:14px 18px; color:var(--ll-muted); font-size:13px">누를 수 있는 카드는 호버 때 테두리만 금빛으로.</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">06</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">탭 Tabs · Segmented</span></div>
+    <div style="display:flex; flex-direction:column; gap:28px">
+      <div style="display:flex; flex-direction:column; gap:8px"><span style="font-size:12px; color:var(--ll-muted)">밑줄 — 화면 안 큰 구역 전환</span>
+        <div style="display:flex; gap:24px; border-bottom:1px solid var(--ll-line)">
+          <span style="padding:10px 0; margin-bottom:-1px; border-bottom:2px solid var(--color-accent); display:flex; gap:7px; align-items:center"><ll-icon name="wallet"></ll-icon>수입 / 지출</span>
+          <span style="padding:10px 0; color:var(--ll-muted); display:flex; gap:7px; align-items:center"><ll-icon name="bank"></ll-icon>예적금</span>
+          <span style="padding:10px 0; color:var(--ll-muted); display:flex; gap:7px; align-items:center"><ll-icon name="trend-up"></ll-icon>투자</span>
+        </div></div>
+      <div style="display:flex; flex-wrap:wrap; gap:40px">
+        <div style="display:flex; flex-direction:column; gap:8px"><span style="font-size:12px; color:var(--ll-muted)">알약 — 목록 거르기 (개수 포함)</span>
+          <div style="display:flex; gap:6px; flex-wrap:wrap">
+            <span style="padding:5px 12px; border-radius:999px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); background:var(--ll-accent-tint); font-size:13px">전체 <span style="font-variant-numeric:tabular-nums">19</span></span>
+            <span style="padding:5px 12px; border-radius:999px; border:1px solid var(--ll-line); font-size:13px; color:var(--ll-muted)">정보 <span style="font-variant-numeric:tabular-nums">17</span></span>
+            <span style="padding:5px 12px; border-radius:999px; border:1px solid var(--ll-line); font-size:13px; color:var(--ll-muted)">경고 <span style="font-variant-numeric:tabular-nums">1</span></span>
+            <span style="padding:5px 12px; border-radius:999px; border:1px solid var(--ll-line); font-size:13px; color:var(--ll-out)">오류 <span style="font-variant-numeric:tabular-nums">1</span></span>
+          </div></div>
+        <div style="display:flex; flex-direction:column; gap:8px"><span style="font-size:12px; color:var(--ll-muted)">묶음 Segmented — 값 고르기</span>
+          <div style="display:inline-flex; border:1px solid var(--ll-line); border-radius:4px; overflow:hidden; font-size:13px">
+            <span style="padding:6px 12px; box-shadow:inset 0 0 0 1px var(--color-accent); color:var(--ll-accent-ink)">1개월</span><span style="padding:6px 12px; border-left:1px solid var(--ll-line)">2개월</span><span style="padding:6px 12px; border-left:1px solid var(--ll-line)">3개월</span>
+          </div></div>
+        <div style="display:flex; flex-direction:column; gap:8px"><span style="font-size:12px; color:var(--ll-muted)">세로 — 쓰지 않음</span><span style="font-size:13px; color:var(--ll-muted); max-width:260px">설정의 세로 탭(2개)은 한 페이지 묶음으로 바꿔서 없앤다.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">07</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">조회 조건 FilterPanel · 엑셀 줄 · 합계 줄</span></div>
+    <div style="display:flex; flex-direction:column; gap:0; border-top:1px solid var(--ll-line); border-bottom:1px solid var(--ll-line)">
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:12px 0">
+        <div style="display:flex; align-items:center; gap:6px"><input class="input" value="2026-09-13" style="width:128px; min-height:36px; font-variant-numeric:tabular-nums"><span style="color:var(--ll-muted)">~</span><input class="input" value="2026-10-13" style="width:128px; min-height:36px; font-variant-numeric:tabular-nums"></div>
+        <div style="display:inline-flex; border:1px solid var(--ll-line); border-radius:4px; overflow:hidden; font-size:13px"><span style="padding:7px 10px; box-shadow:inset 0 0 0 1px var(--color-accent); color:var(--ll-accent-ink)">1개월</span><span style="padding:7px 10px; border-left:1px solid var(--ll-line)">2개월</span><span style="padding:7px 10px; border-left:1px solid var(--ll-line)">3개월</span></div>
+        <select class="input" style="width:auto; min-height:36px"><option>전체 유형</option></select>
+        <select class="input" style="width:auto; min-height:36px"><option>전체 카테고리</option></select>
+        <div style="position:relative; flex:1 1 200px"><ll-icon name="search" style="position:absolute; left:11px; top:10px; color:var(--ll-muted)"></ll-icon><input class="input" placeholder="내역 검색" style="min-height:36px; padding-left:34px"></div>
+        <button class="btn btn-primary" style="min-height:36px">조회</button>
+        <button class="btn" style="min-height:36px; color:var(--ll-muted)" style-hover="background:var(--ll-hover)">초기화</button>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; padding:10px 0; border-top:1px solid var(--ll-line-soft); font-size:13px">
+        <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:baseline; font-variant-numeric:tabular-nums"><span>총 <b style="font-weight:600">25</b>건</span><span style="color:var(--ll-in)">수입 +₩3,735,000</span><span style="color:var(--ll-out)">지출 −₩1,152,700</span></div>
+        <div style="display:flex; gap:4px; align-items:center"><span style="color:var(--ll-muted); font-size:12px; margin-right:4px">엑셀</span><button class="btn" style="padding:5px 8px; font-size:13px" style-hover="background:var(--ll-hover)">양식</button><button class="btn" style="padding:5px 8px; font-size:13px" style-hover="background:var(--ll-hover)"><ll-icon name="upload" size="14"></ll-icon>올리기</button><button class="btn" style="padding:5px 8px; font-size:13px" style-hover="background:var(--ll-hover)"><ll-icon name="download" size="14"></ll-icon>내려받기</button></div>
+      </div>
+    </div>
+    <div style="font-size:12.5px; color:var(--ll-muted); text-wrap:pretty">모든 목록 화면이 같은 조회 줄을 쓴다(구독 · 계정 · 파일의 따로 만든 검색 상자 + '검색' 버튼은 없앤다). 바탕 상자 없이 위아래 선만. 엑셀 줄은 합계 줄 오른쪽 작은 글자 버튼으로 내려 무게를 줄인다. 휴대폰은 검색 한 칸 + '조건' 버튼 → 아래 시트.</div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">08</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">표 Table · 휴대폰 카드형 · 페이지 번호</span></div>
+    <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:flex-start">
+      <div style="flex:1 1 640px; min-width:0; display:flex; flex-direction:column; gap:0; overflow-x:auto">
+        <div style="min-width:560px"><div style="display:grid; grid-template-columns:34px 70px minmax(100px,1.4fr) minmax(70px,1fr) minmax(70px,1fr) minmax(80px,1fr) 76px; gap:8px; height:36px; align-items:center; padding-left:8px; border-bottom:1px solid var(--ll-line); color:var(--ll-muted); font-size:12px"><span style="display:inline-block; width:15px; height:15px; border:1px solid var(--ll-line); border-radius:2px"></span><span>날짜</span><span>내역</span><span>카테고리</span><span>결제수단</span><span style="text-align:right">금액</span><span></span></div>
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="4"><div style="display:grid; grid-template-columns:34px 70px minmax(100px,1.4fr) minmax(70px,1fr) minmax(70px,1fr) minmax(80px,1fr) 76px; gap:8px; min-height:44px; align-items:center; padding-left:8px; border-bottom:1px solid var(--ll-line-soft); font-size:13.5px" style-hover="background:var(--ll-hover)"><span style="display:inline-block; width:15px; height:15px; border:1px solid var(--ll-line); border-radius:2px"></span><span style="font-variant-numeric:tabular-nums; color:var(--ll-muted)">{{ r.date }}</span><span>{{ r.name }}</span><span style="color:var(--ll-muted)">{{ r.cat }}</span><span style="color:var(--ll-muted)">{{ r.pay }}</span><span style="text-align:right; font-variant-numeric:tabular-nums; color:{{ r.color }}">{{ r.amt }}</span><span style="text-align:right; color:var(--ll-muted)"><ll-icon name="pencil" style="padding:7px"></ll-icon><ll-icon name="more" style="padding:7px"></ll-icon></span></div></sc-for></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; flex-wrap:wrap">
+          <div style="display:flex; align-items:center; gap:2px; font-variant-numeric:tabular-nums; font-size:13px">
+            <span style="width:32px; height:32px; display:grid; place-items:center; color:var(--ll-faint)"><ll-icon name="chevron-left"></ll-icon></span>
+            <span style="width:32px; height:32px; display:grid; place-items:center; border-bottom:2px solid var(--color-accent); color:var(--ll-accent-ink)">1</span>
+            <span style="width:32px; height:32px; display:grid; place-items:center">2</span>
+            <span style="width:32px; height:32px; display:grid; place-items:center">3</span>
+            <span style="width:32px; height:32px; display:grid; place-items:center"><ll-icon name="chevron-right"></ll-icon></span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ll-muted)">한 쪽에<div style="display:inline-flex; border:1px solid var(--ll-line); border-radius:4px; overflow:hidden"><span style="padding:4px 9px; box-shadow:inset 0 0 0 1px var(--color-accent); color:var(--ll-accent-ink)">10</span><span style="padding:4px 9px; border-left:1px solid var(--ll-line)">20</span><span style="padding:4px 9px; border-left:1px solid var(--ll-line)">30</span></div>개</div>
+        </div>
+        <div style="font-size:12.5px; color:var(--ll-muted); text-wrap:pretty">머리 행 12px 보조 글자, 굵게 하지 않음. 줄무늬 없이 행 사이 선만. 금액 열은 맨 오른쪽 가까이, 오른쪽 정렬 · 고정폭. 번호 열은 없앤다(정렬이 날짜로 충분). 관리 열은 자주 쓰는 하나 + 더보기 메뉴(복사 · 삭제).</div>
+      </div>
+      <div style="width:390px; flex:none; border:1px solid var(--ll-line); border-radius:7px; overflow:hidden">
+        <div style="padding:8px 16px; font-size:11.5px; color:var(--ll-muted); border-bottom:1px solid var(--ll-line)">휴대폰 390 — 같은 데이터</div>
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="4">
+          <div style="display:flex; align-items:center; gap:12px; padding:12px 16px; min-height:60px; border-bottom:1px solid var(--ll-line-soft)">
+            <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px"><span style="font-size:14.5px">{{ r.name }}</span><span style="font-size:12px; color:var(--ll-muted)">{{ r.cat }} · {{ r.pay }}</span></div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px"><span style="font-size:14.5px; font-variant-numeric:tabular-nums; color:{{ r.color }}">{{ r.amt }}</span><span style="font-size:12px; color:var(--ll-muted); font-variant-numeric:tabular-nums">{{ r.date }}</span></div>
+          </div>
+        </sc-for>
+        <div style="display:flex; justify-content:center; padding:10px; font-size:13px; color:var(--ll-accent-ink)">더 보기 (15건)</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">09</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">모달 Modal · ConfirmModal</span><span style="color:var(--ll-muted); font-size:13px">Esc · X 로만 닫힘. 바깥 클릭 무시.</span></div>
+    <div style="background:var(--ll-backdrop); border-radius:7px; padding:32px; display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start">
+      <div style="width:360px; max-width:100%; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:7px; box-shadow:var(--shadow-lg); display:flex; flex-direction:column">
+        <div style="padding:18px 20px 6px; display:flex; flex-direction:column; gap:6px"><span style="font-family:var(--font-heading); font-weight:600; font-size:20px">이 항목을 삭제할까요?</span><span style="font-size:13.5px; color:var(--ll-muted); text-wrap:pretty">'헬스장 회비 −₩45,000 (2026.10.10)' 을 삭제합니다. 되돌릴 수 없습니다.</span></div>
+        <div style="padding:16px 20px; display:flex; justify-content:flex-end; gap:8px"><button class="btn btn-secondary">취소</button><button class="btn" style="background:var(--ll-out); color:var(--ll-on-solid); border-color:var(--ll-out)">삭제</button></div>
+        <div style="padding:0 20px 12px; font-size:11px; color:var(--ll-faint)">sm · 확인 — 위험</div>
+      </div>
+      <div style="width:360px; max-width:100%; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:7px; box-shadow:var(--shadow-lg); display:flex; flex-direction:column">
+        <div style="padding:18px 20px 6px; display:flex; flex-direction:column; gap:6px"><span style="font-family:var(--font-heading); font-weight:600; font-size:20px">평문이 포함된 파일입니다</span><span style="font-size:13.5px; color:var(--ll-muted); text-wrap:pretty">내려받는 엑셀에는 비밀번호가 암호화되지 않은 채 들어갑니다. 계속하려면 <b style="font-weight:600; color:var(--color-text)">내려받기</b>를 입력하세요.</span></div>
+        <div style="padding:10px 20px 0"><input class="input" placeholder="내려받기" style="min-height:40px"></div>
+        <div style="padding:16px 20px; display:flex; justify-content:flex-end; gap:8px"><button class="btn btn-secondary">취소</button><button class="btn btn-primary" disabled="">내려받기</button></div>
+        <div style="padding:0 20px 12px; font-size:11px; color:var(--ll-faint)">sm · 입력 붙는 확인</div>
+      </div>
+      <div style="width:340px; max-width:100%; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:7px; box-shadow:var(--shadow-lg); display:flex; flex-direction:column">
+        <div style="padding:18px 20px 6px; display:flex; flex-direction:column; gap:6px"><span style="display:flex; gap:8px; align-items:center; font-family:var(--font-heading); font-weight:600; font-size:20px"><ll-icon name="lock" size="18" style="color:var(--color-accent)"></ll-icon>보관함이 잠겨 있습니다</span><span style="font-size:13.5px; color:var(--ll-muted)">마스터 비밀번호를 입력하면 하던 열람을 이어서 합니다.</span></div>
+        <div style="padding:10px 20px 0"><input class="input" type="password" placeholder="마스터 비밀번호" style="min-height:40px"></div>
+        <div style="padding:16px 20px; display:flex; justify-content:flex-end; gap:8px"><button class="btn btn-secondary">취소</button><button class="btn btn-primary"><ll-icon name="lock-open"></ll-icon>잠금 풀기</button></div>
+        <div style="padding:0 20px 12px; font-size:11px; color:var(--ll-faint)">sm · 일반 (보관함 잠금 풀기)</div>
+      </div>
+      <div style="width:520px; max-width:100%; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:7px; box-shadow:var(--shadow-lg); display:flex; flex-direction:column">
+        <div style="padding:16px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft)"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-family:var(--font-heading); font-weight:600; font-size:20px">항목 추가</span><span style="font-size:12.5px; color:var(--ll-muted)">부제목 — 오늘 2026.10.13 으로 채워짐</span></div><button class="btn btn-icon btn-secondary" style="width:32px; height:32px"><ll-icon name="x"></ll-icon></button></div>
+        <div style="padding:18px 20px; display:flex; flex-direction:column; gap:10px; color:var(--ll-muted); font-size:13px"><div style="height:40px; border:1px dashed var(--ll-line); border-radius:4px; display:grid; place-items:center">몸통 — 묶음 단위로 나눈 입력</div><div style="height:40px; border:1px dashed var(--ll-line); border-radius:4px; display:grid; place-items:center">긴 창은 몸통만 스크롤, 머리 · 바닥 고정</div></div>
+        <div style="padding:14px 20px; display:flex; justify-content:space-between; gap:8px; border-top:1px solid var(--ll-line-soft)"><button class="btn" style="color:var(--ll-out)" style-hover="background:var(--ll-out-tint)">삭제</button><div style="display:flex; gap:8px"><button class="btn btn-secondary">취소</button><button class="btn btn-primary">저장</button></div></div>
+        <div style="padding:0 20px 12px; font-size:11px; color:var(--ll-faint)">md 520 · 머리(제목 · 부제목 · X) / 몸통 / 바닥(왼쪽 위험 · 오른쪽 취소 · 주 버튼). lg 는 720 — 투자 항목 추가 · 자동이체 설정. 휴대폰에서는 모두 아래에서 올라오는 시트(폭 100%).</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">10</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">빈 상태 · 로딩 · 오류 · 안내</span></div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%,340px),1fr)); gap:24px">
+      <div style="border:1px dashed var(--ll-line); border-radius:4px; padding:36px 20px; display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center">
+        <ll-icon name="inbox" size="28" stroke="1.2" style="color:var(--ll-faint)"></ll-icon>
+        <span style="font-family:var(--font-heading); font-weight:600; font-size:18px">파일이 없습니다</span>
+        <span style="font-size:13px; color:var(--ll-muted)">끌어다 놓거나 업로드 버튼으로 올리세요.</span>
+        <button class="btn btn-primary" style="margin-top:4px"><ll-icon name="upload"></ll-icon>파일 업로드</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px">
+        <div style="display:flex; flex-direction:column; gap:8px"><div style="height:12px; width:60%; background:var(--ll-line-soft); border-radius:2px"></div><div style="height:12px; width:85%; background:var(--ll-line-soft); border-radius:2px"></div><div style="height:12px; width:40%; background:var(--ll-line-soft); border-radius:2px"></div><span style="font-size:11.5px; color:var(--ll-faint)">로딩 — 자리 막대(움직임 없음)</span></div>
+        <div style="display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border-top:2px solid var(--ll-out); background:var(--ll-out-tint); font-size:13px"><ll-icon name="alert-circle" style="color:var(--ll-out); margin-top:2px"></ll-icon><div style="flex:1">불러오지 못했습니다. 연결을 확인하세요.</div><button class="btn" style="padding:0; font-size:13px; color:var(--ll-out); text-decoration:underline; text-underline-offset:3px">다시 시도</button></div>
+        <span style="font-size:11.5px; color:var(--ll-faint)">QueryError · ErrorBanner — 위쪽 선 2px + 옅은 바탕</span>
+        <div style="display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border-top:2px solid var(--ll-warn); background:var(--ll-warn-tint); font-size:13px"><ll-icon name="alert" style="color:var(--ll-warn); margin-top:2px"></ll-icon><div style="flex:1"><b style="font-weight:600">Disney+ 무료 체험이 3일 뒤 끝납니다.</b> 2026.10.16 부터 월 ₩9,900 자동 결제.</div><button class="btn btn-secondary" style="padding:4px 10px; font-size:13px">지금 해지</button></div>
+        <span style="font-size:11.5px; color:var(--ll-faint)">경고 상자 — 같은 모양, 경고 색</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:20px">
+    <div style="display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--ll-line); padding-bottom:10px"><span style="font-variant-numeric:tabular-nums; color:var(--color-accent); font-family:var(--font-heading); font-size:22px">11</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px">페이지 머리 PageHeader · 설정 묶음 SettingGroup</span></div>
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; padding-bottom:16px; border-bottom:1px solid var(--ll-line)">
+      <div style="display:flex; flex-direction:column; gap:4px"><span style="font-family:var(--font-heading); font-weight:600; font-size:30px; line-height:1.15">계정 보관함</span><span style="font-size:13.5px; color:var(--ll-muted)">행을 누르면 상세 정보를 확인할 수 있습니다.</span></div>
+      <div style="display:flex; gap:8px"><button class="btn btn-secondary"><ll-icon name="lock"></ll-icon>지금 잠그기</button><button class="btn btn-primary"><ll-icon name="plus"></ll-icon>계정 추가</button></div>
+    </div>
+    <div style="border:1px solid var(--ll-line); border-radius:4px; max-width:760px">
+      <div style="padding:14px 18px; border-bottom:1px solid var(--ll-line-soft); font-family:var(--font-heading); font-weight:600; font-size:19px">알림</div>
+      <div style="display:flex; align-items:center; gap:16px; padding:14px 18px; border-bottom:1px solid var(--ll-line-soft)"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span>만기·결제 임박 알림</span><span style="font-size:12.5px; color:var(--ll-muted)">예적금 만기 · 구독 결제/체험 종료 임박 시 알림</span></div><span style="width:36px; height:20px; border-radius:10px; border:1px solid var(--color-accent); background:var(--ll-accent-tint); position:relative; flex:none"><span style="position:absolute; top:3px; left:19px; width:12px; height:12px; border-radius:50%; background:var(--color-accent)"></span></span></div>
+      <div style="display:flex; align-items:center; gap:16px; padding:14px 18px"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span>세션 자동 만료</span><span style="font-size:12.5px; color:var(--ll-muted)">비활성 시간 후 자동 로그아웃</span></div><select class="input" style="width:auto; min-height:36px"><option>7일</option></select></div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#f3f2f2"/><rect x="30" y="30" width="40" height="40" fill="none" stroke="#b68235" stroke-width="3"/><text x="50" y="58" font-family="Georgia,serif" font-size="20" text-anchor="middle" fill="#201f1d">UI</text></svg></template>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { dark: false };
+  componentDidUpdate(_, ps) { if (ps.dark !== this.state.dark) window.LLTheme && window.LLTheme.apply(this.state.dark, 'serif'); }
+  renderVals() {
+    if (this._dk !== this.state.dark) { this._dk = this.state.dark; window.LLTheme && window.LLTheme.apply(this.state.dark, 'serif'); }
+    const out = 'var(--ll-out)', inc = 'var(--ll-in)', mv = 'var(--ll-move)';
+    return {
+      toggleDark: () => this.setState(s => ({ dark: !s.dark })),
+      themeIcon: this.state.dark ? 'sun' : 'moon',
+      themeLabel: this.state.dark ? '라이트로 보기' : '다크로 보기',
+      icons: window.LL_ICON_NAMES || [],
+      rows: [
+        { date: '10.10', name: '헬스장 회비', cat: '운동', pay: '신한카드', amt: '−45,000', color: out },
+        { date: '10.09', name: '중고거래 판매', cat: '부수입', pay: '토스뱅크', amt: '+35,000', color: inc },
+        { date: '10.08', name: '적금 납입', cat: '저축', pay: '카카오뱅크', amt: '⇄ 100,000', color: mv },
+        { date: '10.07', name: '카페 디저트', cat: '카페·간식', pay: '카카오페이', amt: '−14,300', color: out },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
