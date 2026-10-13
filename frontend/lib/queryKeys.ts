@@ -19,14 +19,6 @@ export const qk = {
     list: (params?: unknown) => ['credentials', 'list', params ?? null] as const,
     backupCodes: (id: number) => ['credentials', id, 'backup-codes'] as const,
   },
-  env: {
-    all: ['env'] as const,
-    projects: () => ['env', 'projects'] as const,
-    vars: (projectId: number, env: string, location?: string) => ['env', 'vars', projectId, env, location ?? null] as const,
-    locations: (projectId: number) => ['env', 'locations', projectId] as const,
-    history: (varId: number) => ['env', 'history', varId] as const,
-    diff: (projectId: number, base: string, target: string) => ['env', 'diff', projectId, base, target] as const,
-  },
   identity: {
     all: ['identity'] as const,
     list: () => ['identity', 'list'] as const,

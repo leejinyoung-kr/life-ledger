@@ -31,19 +31,6 @@ export class TrashCronService {
       try { trash += (await del()).count; } catch (e) { failures.push(`${table}: ${(e as Error).message}`); }
     }
 
-    // ENV: 변수(FK) 먼저 정리 후 프로젝트 — 만료 프로젝트의 잔여 변수까지 제거
-    try {
-      trash += (await this.prisma.envVar.deleteMany({ where })).count;
-      const oldProjects = await this.prisma.envProject.findMany({ where, select: { id: true } });
-      const ids = oldProjects.map((p) => p.id);
-      if (ids.length) {
-        await this.prisma.envVar.deleteMany({ where: { project_id: { in: ids } } });
-        trash += (await this.prisma.envProject.deleteMany({ where: { id: { in: ids } } })).count;
-      }
-    } catch (e) {
-      failures.push(`env: ${(e as Error).message}`);
-    }
-
     // 시스템 로그·작업 실행 기록 90일 경과분 — 실행 중인 기록은 lease 마감 대상이라 남긴다
     const logCutoff = new Date(Date.now() - 90 * DAY_MS);
     let logs = 0;

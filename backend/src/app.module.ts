@@ -23,7 +23,6 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { CryptoModule } from '@leejinyoung-kr/core-security';
 import { IdentityModule } from './identity/identity.module';
 import { CredentialModule } from './credential/credential.module';
-import { EnvModule } from './env/env.module';
 import { ExportModule } from './export/export.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { FileModule } from './file/file.module';
@@ -81,7 +80,6 @@ import { env } from './config/env';
     CryptoAuditModule,
     IdentityModule,
     CredentialModule,
-    EnvModule,
     ExportModule,
     MaintenanceModule,
     FileModule,

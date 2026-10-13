@@ -11,7 +11,7 @@ import { qk } from '@/lib/queryKeys';
 import { normalizeMenuOrder, type Settings } from '@/lib/settings';
 import {
   IconLogo, IconGrid, IconChart, IconWon, IconRepeat, IconPie, IconFolder,
-  IconLock, IconCode, IconIdCard, IconDoc, IconCalendar,
+  IconLock, IconIdCard, IconDoc, IconCalendar,
   IconCube, IconSettings, IconShield, IconBell,
   IconCaret, IconLogout, IconBars, IconClock,
 } from './icons';
@@ -51,7 +51,6 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <IconFolder className={GROUP_IC} />,
     children: [
       { label: '계정 보관함', href: '/credentials', icon: <IconLock /> },
-      { label: 'ENV 보관함', href: '/envs', icon: <IconCode /> },
       { label: '파일 보관함', href: '/files', icon: <IconFolder /> },
       { label: '신원 지갑', href: '/id-wallet', icon: <IconIdCard /> },
     ],

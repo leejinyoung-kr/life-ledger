@@ -129,7 +129,7 @@ export default function SecurityPage() {
             <div className="flex-1">
               <div className="text-[0.82rem] text-secondary leading-relaxed [word-break:keep-all]">
                 {vault?.enabled
-                  ? `비밀번호·신원번호·ENV 값 열람 시 마스터 비밀번호가 필요합니다. 자동잠금 ${vault.timeoutMin > 0 ? `${vault.timeoutMin}분` : '수동'}.`
+                  ? `비밀번호·신원번호 열람 시 마스터 비밀번호가 필요합니다. 자동잠금 ${vault.timeoutMin > 0 ? `${vault.timeoutMin}분` : '수동'}.`
                   : 'Google 로그인만으로 모든 민감정보가 열람됩니다. 마스터 잠금으로 2차 보호를 권장합니다.'}
               </div>
             </div>

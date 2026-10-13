@@ -17,9 +17,6 @@ export const ENCRYPTED_COLUMNS = [
     column: 'number_enc',
     field: 'identityCard.number_enc',
   },
-  { table: 'env_var', column: 'value_enc', field: 'envVar.value_enc' },
-  // 이력은 변수 값 암호문을 그대로 옮겨 담고(값 변경 시) 롤백 때 되돌려 놓는다 — 그래서 변수와 같은 문맥을 쓴다
-  { table: 'env_var_history', column: 'value_enc', field: 'envVar.value_enc' },
   {
     table: 'investment_account',
     column: 'account_number_enc',

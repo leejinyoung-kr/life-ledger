@@ -114,14 +114,6 @@ const SEED: Record<CategoryDomain, { code: string; label: string; parent?: strin
     { code: 'cert',        label: '자격증' },
     { code: 'etc',         label: '기타' },
   ],
-  env_group: [
-    { code: 'database', label: 'Database' },
-    { code: 'auth',     label: 'Auth' },
-    { code: 'storage',  label: 'Storage' },
-    { code: 'api_keys', label: 'API Keys' },
-    { code: 'app',      label: 'App' },
-    { code: 'etc',      label: '기타' },
-  ],
 };
 
 @Injectable()

@@ -44,8 +44,7 @@ type Domain =
   | 'saving'
   | 'bank'
   | 'credential_cat'
-  | 'id_type'
-  | 'env_group';
+  | 'id_type';
 
 const DOMAINS: { key: Domain; label: string; desc: string }[] = [
   { key: 'transaction',    label: '가계부 카테고리', desc: '수입/지출 내역의 카테고리' },
@@ -57,7 +56,6 @@ const DOMAINS: { key: Domain; label: string; desc: string }[] = [
   { key: 'bank',           label: '은행/기관',        desc: '예적금·계좌의 은행/금융기관' },
   { key: 'credential_cat', label: '계정 카테고리',    desc: '개발·금융·소셜 등' },
   { key: 'id_type',        label: '신원지갑 종류',    desc: '여권·주민등록증·자격증 등' },
-  { key: 'env_group',      label: 'ENV 그룹',         desc: 'Database·Auth·Storage 등' },
 ];
 
 interface CodeItem {

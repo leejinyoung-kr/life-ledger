@@ -5,7 +5,7 @@ import type { ClientInfo } from '@leejinyoung-kr/core-logging';
 
 // 로그 기록 대상 (열람한 보관함 레코드)
 export interface AccessTarget {
-  type: 'credential' | 'identity' | 'env' | 'security' | 'account';
+  type: 'credential' | 'identity' | 'security' | 'account';
   id: number;
   name: string;
 }

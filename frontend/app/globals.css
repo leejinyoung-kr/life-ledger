@@ -279,22 +279,6 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 /* 추가/수정 모달 — 비밀번호 강도 */
 .input-mono { font-family: var(--font-mono); }
 
-/* 변수 테이블 */
-.env-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
-.env-table thead th { text-align: left; padding: 9px 16px; font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--bg-surface); }
-.env-table tbody tr { border-bottom: 1px solid var(--border-subtle); transition: background var(--ease); }
-.env-table tbody tr:last-child { border-bottom: none; }
-.env-table tbody tr:hover { background: var(--bg-surface); }
-.env-table td { padding: 10px 16px; vertical-align: middle; }
-.env-th-key { width: 38%; }
-.env-th-action { width: 100px; text-align: center; }
-.env-key { font-family: var(--font-mono); font-size: .82rem; font-weight: 500; color: var(--accent); }
-.env-value-wrap { display: flex; align-items: center; gap: 8px; }
-.env-value { font-family: var(--font-mono); font-size: .82rem; color: var(--text-primary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
-.env-value.masked { letter-spacing: .2em; color: var(--text-muted); }
-.env-group-label { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); padding: 8px 16px 4px; background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); }
-.env-empty { text-align: center; padding: 32px; color: var(--text-muted); font-size: .855rem; }
-
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ════════════════════════════════════════

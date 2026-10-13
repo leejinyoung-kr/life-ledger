@@ -450,7 +450,7 @@ export default function SettingsPage() {
                     <Badge tone={vault?.enabled ? 'success' : 'warning'}>{vault?.enabled ? '사용 중' : '미설정'}</Badge>
                   </div>
                   <div className="text-[0.78rem] text-muted break-keep">
-                    켜두면 비밀번호·신원번호·ENV 값을 열람할 때마다 마스터 비밀번호가 필요합니다.
+                    켜두면 비밀번호·신원번호을 열람할 때마다 마스터 비밀번호가 필요합니다.
                   </div>
                   {vault?.enabled && (
                     <div className="text-[0.74rem] text-muted mt-1">자동잠금: {vault.timeoutMin > 0 ? `${vault.timeoutMin}분` : '수동'} · 변경하려면 해제 후 다시 설정하세요.</div>

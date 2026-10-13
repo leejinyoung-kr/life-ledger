@@ -127,13 +127,6 @@ const CATEGORIES: CatSeed[] = [
   { domain: 'id_type', code: 'cert',        label: '자격증' },
   { domain: 'id_type', code: 'etc',         label: '기타' },
 
-  // ── ENV 그룹 ─────────────────────────────
-  { domain: 'env_group', code: 'database', label: 'Database' },
-  { domain: 'env_group', code: 'auth',     label: 'Auth' },
-  { domain: 'env_group', code: 'storage',  label: 'Storage' },
-  { domain: 'env_group', code: 'api_keys', label: 'API Keys' },
-  { domain: 'env_group', code: 'app',      label: 'App' },
-  { domain: 'env_group', code: 'etc',      label: '기타' },
 ];
 
 // 카테고리 시드 — 전역 공용(user 무관). 기존 전체 삭제 후 재삽입 (idempotent)

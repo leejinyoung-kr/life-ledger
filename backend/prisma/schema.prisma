@@ -30,8 +30,6 @@ model User {
   loginSessions      LoginSession[]
   identityCards      IdentityCard[]
   credentials        Credential[]
-  envProjects        EnvProject[]
-  envVars            EnvVar[]
   storageFolders     StorageFolder[]
   storageFiles       StorageFile[]
   accessLogs         AccessLog[]
@@ -532,7 +530,7 @@ enum SessionStatus {
   @@map("session_status")
 }
 
-/// 카테고리 도메인: transaction(가계부) | subscription(구독) | asset(자산) | investment(투자) | saving(예적금) | pay_method(결제수단) | credential_cat(계정 카테고리) | id_type(신원지갑 종류) | env_group(ENV 그룹)
+/// 카테고리 도메인: transaction(가계부) | subscription(구독) | asset(자산) | investment(투자) | saving(예적금) | pay_method(결제수단) | credential_cat(계정 카테고리) | id_type(신원지갑 종류)
 enum CategoryDomain {
   transaction
   subscription
@@ -543,7 +541,6 @@ enum CategoryDomain {
   bank
   credential_cat
   id_type
-  env_group
 
   @@map("category_domain")
 }
@@ -676,31 +673,6 @@ model Credential {
   @@map("credential")
 }
 
-/// ENV 환경 종류: dev(development) | prod(production)
-enum EnvKind {
-  dev
-  prod
-
-  @@map("env_kind")
-}
-
-/// ENV 프로젝트 (ENV 보관함 페이지) — 환경변수 묶음 단위
-model EnvProject {
-  id          Int       @id @default(autoincrement())
-  user_id     Int /// user.id FK
-  name        String    @db.VarChar(100)
-  description String?   @db.VarChar(300)
-  deleted_at  DateTime?
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @updatedAt
-
-  user User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  vars EnvVar[]
-
-  @@index([user_id])
-  @@map("env_project")
-}
-
 /// 파일 보관함 폴더 — parent_id 로 무한 중첩 지원
 model StorageFolder {
   id         Int       @id @default(autoincrement())
@@ -745,45 +717,7 @@ model StorageFile {
   @@map("storage_file")
 }
 
-/// ENV 변수 (ENV 보관함 페이지) — 값(value)은 AES-256-GCM 암호화 저장
-model EnvVar {
-  id         Int       @id @default(autoincrement())
-  user_id    Int /// user.id FK
-  project_id Int /// env_project.id FK
-  env        EnvKind
-  group      String?   @db.VarChar(50)
-  location   String?   @db.VarChar(150) /// env 파일 위치 (예: backend/.env, frontend/.env.local)
-  key        String    @db.VarChar(150)
-  value_enc  String    @db.Text /// 값(암호문)
-  memo       String?   @db.VarChar(300)
-  deleted_at DateTime?
-  created_at DateTime  @default(now())
-  updated_at DateTime  @updatedAt
-
-  user    User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  project EnvProject      @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  history EnvVarHistory[]
-
-  @@index([user_id])
-  @@index([project_id, env])
-  @@map("env_var")
-}
-
-/// ENV 변수 값 변경 이력 (버전이력/롤백) — 값 변경 시 이전 암호문을 1건씩 적재
-model EnvVarHistory {
-  id         Int      @id @default(autoincrement())
-  env_var_id Int /// env_var.id FK
-  user_id    Int /// user.id FK (소유자 확인용)
-  value_enc  String   @db.Text /// 이전 값(암호문)
-  created_at DateTime @default(now())
-
-  envVar EnvVar @relation(fields: [env_var_id], references: [id], onDelete: Cascade)
-
-  @@index([env_var_id, created_at])
-  @@map("env_var_history")
-}
-
-/// 보관함 열람 동작: cred_reveal(계정 비번/2FA) | cred_totp(TOTP 코드) | cred_backup(백업코드) | identity_reveal(신원번호) | env_reveal(ENV 값)
+/// 보관함 열람 동작: cred_reveal(계정 비번/2FA) | cred_totp(TOTP 코드) | cred_backup(백업코드) | identity_reveal(신원번호)
 /// | backup_codes_generate(백업코드 생성) | vault_unlock(보관함 잠금해제) | vault_disable(보관함 잠금 해제설정)
 /// | session_revoke(세션 강제로그아웃) | data_export(전체 데이터 export)
 enum AccessAction {
@@ -791,7 +725,6 @@ enum AccessAction {
   cred_totp
   cred_backup
   identity_reveal
-  env_reveal
   backup_codes_generate
   vault_unlock
   vault_disable
