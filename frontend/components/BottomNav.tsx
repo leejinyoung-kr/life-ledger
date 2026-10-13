@@ -12,7 +12,7 @@ interface BottomNavProps {
 
 const NAV_ITEMS = [
   { label: '홈', href: '/dashboard', Icon: IconGrid },
-  { label: '자산', href: '/transactions', Icon: IconWon },
+  { label: '가계부', href: '/transactions', Icon: IconWon },
   { label: '보관함', href: '/files', Icon: IconFolder },
 ];
 

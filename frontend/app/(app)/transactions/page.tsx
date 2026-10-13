@@ -47,9 +47,9 @@ function TransactionsPageInner() {
   }
 
   return (
-    <AppShell activePath="/transactions" topbarLabel="자산 관리">
+    <AppShell activePath="/transactions" topbarLabel="가계부">
       <PageHeader
-        title="자산 관리"
+        title="가계부"
         description="수입/지출, 예적금, 투자를 한 곳에서 관리하세요."
         actions={
           <Button className="shrink-0" onClick={handleOpenAddModal}>
@@ -61,7 +61,7 @@ function TransactionsPageInner() {
 
       <div className="border-b border-border mb-6">
         <Tabs
-          label="자산 관리"
+          label="가계부"
           size="md"
           value={tab}
           onChange={setTab}
