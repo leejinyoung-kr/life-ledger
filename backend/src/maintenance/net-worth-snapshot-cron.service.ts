@@ -3,12 +3,13 @@ import { Job } from '@leejinyoung-kr/core-jobs';
 import { PrismaService } from '../prisma/prisma.service';
 import { AssetService } from '../asset/asset.service';
 import { SystemLogService } from '../system-log/system-log.service';
+import { kstMonthStr } from '../common/kst-date';
 import { finishPerUser } from './job-result';
 
-// 매주 월요일 새벽 1시 — 전월 순자산(총자산/총부채)·현금 총액을 스냅샷으로 저장해 추이 차트와
-// 자산 요약 API의 델타 계산 기준점(cash_total)으로 쓴다. upsert라 같은 달엔 실행할 때마다 덮어쓰며,
-// 월 단위가 아닌 주 단위로 재실행하는 이유는 전월(마감된 달)의 뒤늦은 거래 수정 반영 주기를
-// 최대 한 달에서 최대 일주일로 줄이기 위함 — 언제 돌든 "직전 달"을 다시 통째로 재계산하므로 자연 치유됨.
+// 매일 새벽 1시 — 어제가 속한 달(YYYY-MM)의 순자산·현금 총액을 스냅샷으로 저장해 추이 차트와
+// 자산 요약 API의 전월 대비·델타 계산 기준점(cash_total)으로 쓴다. upsert라 같은 달엔 매일 덮어쓰므로
+// 그 달의 마지막 저장(다음 달 1일 새벽)이 곧 월말 값이 된다. 예적금·투자는 이력이 없어 "지금 값"만
+// 찍을 수 있으니, 이름표는 반드시 값을 찍은 시점의 달이어야 한다(2026-10 이전엔 지난달 이름에 이번 달 값을 덮어썼다).
 @Injectable()
 export class NetWorthSnapshotCronService {
   private readonly logger = new Logger(NetWorthSnapshotCronService.name);
@@ -19,20 +20,18 @@ export class NetWorthSnapshotCronService {
     private sysLog: SystemLogService,
   ) {}
 
-  @Job({ name: 'net-worth-snapshot', cron: '0 1 * * 1', leaseMs: 10 * 60_000 })
+  @Job({ name: 'net-worth-snapshot', cron: '0 1 * * *', leaseMs: 10 * 60_000 })
   async snapshotMonthly(): Promise<string> {
     const users = await this.prisma.user.findMany({ select: { id: true } });
 
-    // 실행 시점 기준 전월(YYYY-MM)을 스냅샷 키로 사용 — 매주 재계산되므로 이번 달 안에서는 항상 같은 키
-    const now = new Date();
-    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const month = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
+    // 새벽 1시 값 ≈ 어제 끝 값 — 1일 새벽 실행이 지난달 월말 값을 확정한다
+    const month = kstMonthStr(new Date(Date.now() - 24 * 60 * 60_000));
 
     let ok = 0;
     for (const u of users) {
       try {
         const summary = await this.assetService.summary(u.id);
-        // cash_total은 summary()의 델타 계산 기준점이 되므로 전체 재집계로 정확히 저장 — 지난달치 뒤늦은 수정도 여기서 자연 치유됨
+        // cash_total은 summary()의 델타 계산 기준점이 되므로 전체 재집계로 정확히 저장 — 뒤늦은 거래 수정도 여기서 자연 치유됨
         // total_debt: 부채(자산관리) 기능 제거 이후로는 항상 0 — 과거 스냅샷의 기록값은 그대로 유지
         const cashTotal = await this.assetService.cashTotalForSnapshot(u.id, month);
         await this.prisma.netWorthSnapshot.upsert({

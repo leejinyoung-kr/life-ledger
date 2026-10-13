@@ -120,8 +120,8 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /assets/summary | 순자산 요약 (현금+예적금+투자 집계) |
-| GET | /assets/trend | 순자산 추이 (NetWorthSnapshot) |
+| GET | /assets/summary | 순자산 요약 (현금+예적금+투자 집계, 현금 = 수입 − 지출 − 자산이동). 전월 대비(`changeAmount` · `changeRate`)는 직전 월말 스냅샷 기준, 없으면 null |
+| GET | /assets/trend | 순자산 추이 — 지난 5개월 월말 스냅샷 + 이번 달 지금 값(`current: true`, 요약 숫자와 같다) |
 
 ## 알림
 
@@ -196,7 +196,7 @@ Base URL: `http://localhost:8000/api/v1`
 
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
-| GET | /dashboard/summary | 요약 — 이번 달 수입/지출·순자산·활성구독 + 최근 거래·다가오는 일정 |
+| GET | /dashboard/summary | 요약 — 이번 달 수입/지출·순자산·활성구독(`activeSubs` = 결제 중 + 체험, `trialSubs` = 그중 체험) + 최근 거래·다가오는 일정 |
 | GET | /dashboard/cashflow-forecast | 현금흐름 예측 — 활성 구독 + 반복 지출거래 월 환산·합산 |
 | GET | /dashboard/deadlines | 통합 D-day — 예적금만기·투자계좌만기(ISA 등)·구독결제 임박순 |
 

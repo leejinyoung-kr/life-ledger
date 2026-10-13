@@ -22,8 +22,8 @@ export interface ByTypeItem {
 export interface NetWorthSummary {
   totalAssets: number;
   netWorth: number;
-  changeAmount: number;
-  changeRate: number;
+  changeAmount: number | null; // 직전 월말 스냅샷이 없으면 null
+  changeRate: number | null;
   allocation: AllocationItem[];
   byType: ByTypeItem[];
 }

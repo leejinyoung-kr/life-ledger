@@ -35,7 +35,8 @@ export default function NetworthPage() {
   const error = (summaryQuery.error ?? trendQuery.error)?.message ?? null;
 
   const maxTrend = Math.max(1, ...trend.map((t) => t.netWorth));
-  const up = (summary?.changeAmount ?? 0) >= 0;
+  const change = summary?.changeAmount ?? null;
+  const up = (change ?? 0) >= 0;
 
   // 유형별 카드 — byType 항목에 카드 메타(아이콘/톤/라벨) 결합
   const cards = (summary?.byType ?? []).map((b) => {
@@ -61,9 +62,11 @@ export default function NetworthPage() {
             <div className="flex-1 min-w-[200px]">
               <div className="text-[0.8rem] text-secondary font-semibold uppercase tracking-[0.06em] mb-2">총 순자산</div>
               <div className="[font-family:var(--font-display)] text-[2.6rem] font-extrabold tracking-[-0.04em] text-primary leading-none">{won(summary.netWorth)}</div>
-              <div className="mt-2.5 text-[0.875rem] text-accent font-semibold">
-                {up ? '▲' : '▼'} {won(summary.changeAmount)} ({summary.changeRate}%) 지난달 대비
-              </div>
+              {change !== null && (
+                <div className={`mt-2.5 text-[0.875rem] font-semibold ${up ? 'text-accent' : 'text-danger'}`}>
+                  {up ? '▲' : '▼'} {won(Math.abs(change))} ({Math.abs(summary.changeRate ?? 0)}%) 지난달 말 대비
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-center md:justify-start gap-7 flex-wrap">
               <div

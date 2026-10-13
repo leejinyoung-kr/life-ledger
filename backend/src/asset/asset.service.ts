@@ -21,19 +21,16 @@ export class AssetService {
     return new Date(Date.UTC(y, m, 1));
   }
 
-  // 현금 흐름 합계(수입-지출) — dateFilter 지정 시 해당 구간만. 월말 스냅샷 저장·실시간 델타 계산에 공용 사용
+  // 현금 흐름 합계(수입 - 지출 - 자산이동) — dateFilter 지정 시 해당 구간만. 월말 스냅샷 저장·실시간 델타 계산에 공용 사용
+  // 자산이동은 예적금 잔액·투자 예수금으로 옮겨 가 그쪽에서 세므로 현금에서 뺀다(가계부 잔액과 같은 식)
   private async cashFlowSum(userId: number, dateFilter?: Prisma.DateTimeFilter): Promise<number> {
-    const where = (type: TransactionType): Prisma.TransactionWhereInput => ({
-      user_id: userId,
-      deleted_at: null,
-      type,
-      ...(dateFilter ? { date: dateFilter } : {}),
+    const rows = await this.prisma.transaction.groupBy({
+      by: ['type'],
+      where: { user_id: userId, deleted_at: null, ...(dateFilter ? { date: dateFilter } : {}) },
+      _sum: { amount: true },
     });
-    const [incAgg, expAgg] = await Promise.all([
-      this.prisma.transaction.aggregate({ where: where('income'), _sum: { amount: true } }),
-      this.prisma.transaction.aggregate({ where: where('expense'), _sum: { amount: true } }),
-    ]);
-    return (incAgg._sum.amount?.toNumber() ?? 0) - (expAgg._sum.amount?.toNumber() ?? 0);
+    const sumOf = (type: TransactionType) => rows.find((r) => r.type === type)?._sum.amount?.toNumber() ?? 0;
+    return sumOf('income') - sumOf('expense') - sumOf('transfer');
   }
 
   // 특정 월 말 기준 누적 현금 총액 — 월간 순자산 스냅샷 저장용(NetWorthSnapshotCronService)
@@ -42,7 +39,7 @@ export class AssetService {
   }
 
   // 요약 — 총자산/순자산 + 전월 대비 증감 + 도넛 구성 + 유형별 집계
-  // 예적금 → Saving.balance, 투자 → Investment.current_value, 현금 → 수입-지출
+  // 예적금 → Saving.balance, 투자 → Investment.current_value + 예수금, 현금 → 수입 - 지출 - 자산이동
   async summary(userId: number) {
     // 서로 의존성 없는 조회는 한 번에 병렬 실행 (TiDB Cloud 왕복 지연 누적 방지)
     const [savings, investments, investmentAccounts, prevSnap] =
@@ -116,9 +113,10 @@ export class AssetService {
       { type: 'investment' as SummaryType, amount: investTotal, count: investments.length, avgRate: null },
     ].filter((b) => b.amount > 0 || b.count > 0);
 
-    // 전월 대비 증감 — 과거 스냅샷은 부채 추적 종료 이전 기록일 수 있어 total_debt를 그대로 반영해 비교
-    let changeAmount = 0;
-    let changeRate = 0;
+    // 전월 대비 증감(직전 월말 스냅샷 기준) — 스냅샷이 없으면 null(비교 대상 없음)
+    // 과거 스냅샷은 부채 추적 종료 이전 기록일 수 있어 total_debt를 그대로 반영해 비교
+    let changeAmount: number | null = null;
+    let changeRate: number | null = null;
     if (prevSnap) {
       const prevNet = prevSnap.total_assets.toNumber() - prevSnap.total_debt.toNumber();
       changeAmount = netWorth - prevNet;
@@ -128,21 +126,26 @@ export class AssetService {
     return { totalAssets, netWorth, changeAmount, changeRate, allocation, byType };
   }
 
-  // 순자산 추이 — 최근 6개월 스냅샷 (월 오름차순)
+  // 순자산 추이 — 지난 5개월 월말 스냅샷 + 이번 달(지금 값, 요약 숫자와 같다), 월 오름차순
   async trend(userId: number) {
-    const snaps = await this.prisma.netWorthSnapshot.findMany({
-      where: { user_id: userId },
-      orderBy: { month: 'desc' },
-      take: 6,
-    });
-    const latest = snaps[0]?.month;
-    return snaps
-      .reverse()
-      .map((s) => ({
+    const month = kstMonthStr();
+    const [snaps, live] = await Promise.all([
+      this.prisma.netWorthSnapshot.findMany({
+        where: { user_id: userId, month: { lt: month } },
+        orderBy: { month: 'desc' },
+        take: 5,
+      }),
+      this.summary(userId),
+    ]);
+    const label = (m: string) => `${Number(m.slice(5))}월`;
+    return [
+      ...snaps.reverse().map((s) => ({
         month: s.month,
-        label: `${Number(s.month.slice(5))}월`,
+        label: label(s.month),
         netWorth: s.total_assets.toNumber() - s.total_debt.toNumber(),
-        current: s.month === latest,
-      }));
+        current: false,
+      })),
+      { month, label: label(month), netWorth: live.netWorth, current: true },
+    ];
   }
 }
