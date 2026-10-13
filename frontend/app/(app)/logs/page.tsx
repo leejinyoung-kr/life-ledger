@@ -51,6 +51,38 @@ const LEVEL_LABEL: Record<LogLevel, string> = {
   error: '오류',
 };
 
+// 로그 상세(metadata) 키 → 화면 이름. 목록에 없는 키는 그대로 보인다
+const META_LABEL: Record<string, string> = {
+  total: '대상 수',
+  ok: '성공',
+  failed: '실패',
+  updated: '갱신',
+  error: '오류',
+  dbError: 'DB 오류',
+  b2Error: 'B2 오류',
+  runId: '실행 번호',
+  month: '월',
+  period: '회차',
+  periods: '회차',
+  investmentId: '투자 번호',
+  symbol: '종목 코드',
+  type: '종류',
+  quantity: '수량',
+  amountKrw: '원화 금액',
+  required: '필요 금액',
+  currency: '통화',
+  usdAmount: '달러 금액',
+  scheduleId: '자동이체 번호',
+  transactionId: '거래 번호',
+  title: '제목',
+  amount: '금액',
+  reason: '사유',
+  objectKey: '파일 키',
+  files: '파일 수',
+  outboxId: '발송 번호',
+  attempts: '시도 횟수',
+};
+
 function monthsAgo(n: number): string {
   const d = new Date();
   d.setMonth(d.getMonth() - n);
@@ -272,13 +304,13 @@ export default function LogsPage() {
                 <div className="px-4 pb-4 bg-surface">
                   <div className="border border-border rounded-ui p-3.5 flex flex-col gap-1.5 text-[0.8rem]">
                     <div className="flex gap-3 pb-1.5 mb-1 border-b border-border">
-                      <span className="text-muted w-22 shrink-0">timestamp</span>
+                      <span className="text-muted w-22 shrink-0">시각</span>
                       <span className="text-secondary dark:text-primary font-mono">{full}</span>
                     </div>
                     {log.metadata && Object.entries(log.metadata).map(([k, v]) => (
                       <div key={k} className="flex gap-3">
-                        <span className="text-muted w-22 shrink-0">{k}</span>
-                        <span className="text-primary break-all font-mono">{String(v)}</span>
+                        <span className="text-muted w-22 shrink-0">{META_LABEL[k] ?? k}</span>
+                        <span className="text-primary break-all font-mono">{Array.isArray(v) ? v.join(', ') : String(v)}</span>
                       </div>
                     ))}
                   </div>
