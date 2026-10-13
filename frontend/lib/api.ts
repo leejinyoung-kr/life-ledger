@@ -242,59 +242,6 @@ async function readWithProgress(body: ReadableStream<Uint8Array>, onProgress: (r
   return new Blob(chunks as BlobPart[]);
 }
 
-// multipart 파일 업로드 후 바이너리(blob) 응답을 받아 파일 다운로드를 트리거한다 (변환 등 stateless 처리용)
-export async function apiUploadDownload(
-  path: string,
-  file: File,
-  filename: string,
-  field = 'file',
-  retried = false,
-): Promise<void> {
-  const token = getToken();
-  const form = new FormData();
-  form.append(field, file);
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'POST',
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: form,
-  });
-
-  if (res.status === 401) {
-    if (!retried && (await tryRefresh())) return apiUploadDownload(path, file, filename, field, true);
-    toLogin();
-    throw new Error('인증이 필요합니다.');
-  }
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(body?.message ?? `요청 실패 (${res.status})`);
-  }
-
-  // 서버가 Content-Disposition 으로 실제 결과 파일명(확장자 포함)을 주면 그것을 우선 — 멀티페이지 ZIP 등 결과 형식을 미리 알 수 없는 경우 대비
-  const serverName = parseContentDispositionFilename(res.headers.get('content-disposition'));
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = serverName ?? filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// Content-Disposition 헤더에서 filename*=UTF-8''... (RFC 5987) 또는 filename="..." 추출
-function parseContentDispositionFilename(header: string | null): string | null {
-  if (!header) return null;
-  const star = /filename\*=UTF-8''([^;]+)/i.exec(header);
-  if (star) {
-    try {
-      return decodeURIComponent(star[1]);
-    } catch {
-      // 디코딩 실패 시 plain filename 으로 폴백
-    }
-  }
-  const plain = /filename="([^"]+)"/i.exec(header);
-  return plain ? plain[1] : null;
-}
-
 // 로그아웃 — 서버 refresh 쿠키 제거 + 메모리 access 토큰 제거
 export async function apiLogout(): Promise<void> {
   try {
@@ -309,8 +256,6 @@ export const api = {
   get: <T>(path: string) => apiFetch<T>(path),
   upload: <T>(path: string, file: File, field?: string) => apiUpload<T>(path, file, field),
   download: (path: string, filename: string, onProgress?: (received: number) => void) => apiDownload(path, filename, false, onProgress),
-  uploadDownload: (path: string, file: File, filename: string, field?: string) =>
-    apiUploadDownload(path, file, filename, field),
   logout: () => apiLogout(),
   post: <T>(path: string, body: unknown) =>
     apiFetch<T>(path, { method: 'POST', body: JSON.stringify(body) }),

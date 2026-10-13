@@ -13,7 +13,7 @@ import {
   IconLogo, IconGrid, IconChart, IconWon, IconRepeat, IconPie, IconFolder,
   IconLock, IconCode, IconIdCard, IconDoc, IconCalendar,
   IconCube, IconSettings, IconShield, IconBell,
-  IconCaret, IconLogout, IconBars, IconImage, IconClock,
+  IconCaret, IconLogout, IconBars, IconClock,
 } from './icons';
 
 interface NavLeaf {
@@ -62,7 +62,6 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <IconDoc className={GROUP_IC} />,
     children: [
       { label: '캘린더', href: '/calendar', icon: <IconCalendar /> },
-      { label: '파일 변환', href: '/convert', icon: <IconImage /> },
     ],
   },
   {
