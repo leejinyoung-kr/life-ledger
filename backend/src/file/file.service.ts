@@ -7,7 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
 import { SystemLogService } from '../system-log/system-log.service';
-import { ancestorIds, folderPath, subtreeIds, zipPaths, type FolderNode } from './file-path.util';
+import { folderPath, subtreeIds, zipPaths, type FolderNode } from './file-path.util';
 
 // 전체 검색 결과 상한 (폴더·파일 각각)
 const SEARCH_LIMIT = 200;
@@ -135,39 +135,30 @@ export class FileService {
     };
   }
 
-  // ZIP 으로 받을 파일 목록 — 폴더(없으면 보관함 전체)와 그 하위 전부. 신원 지갑 사본은 잠금이 풀렸을 때만 담는다
-  async planZip(userId: number, folderId: number | undefined, unlocked: boolean) {
+  // ZIP 으로 받을 파일 목록 — 폴더(없으면 보관함 전체)와 그 하위 전부
+  async planZip(userId: number, folderId: number | undefined) {
     const root = folderId ? await this.findOwnedFolder(userId, folderId) : null;
     const folders = await this.prisma.storageFolder.findMany({
       where: { user_id: userId, deleted_at: null },
       select: { id: true, name: true, parent_id: true },
     });
     const scope = folderId ? [...subtreeIds(folders, folderId)] : null;
-    const [files, linked] = await Promise.all([
-      this.prisma.storageFile.findMany({
-        where: { user_id: userId, deleted_at: null, ...(scope ? { folder_id: { in: scope } } : {}) },
-        orderBy: { created_at: 'asc' },
-      }),
-      this.prisma.identityCard.findMany({
-        where: { user_id: userId, deleted_at: null, file_id: { not: null } },
-        select: { file_id: true },
-      }),
-    ]);
-    const lockedIds = new Set(linked.map((c) => c.file_id));
-    const included = unlocked ? files : files.filter((f) => !lockedIds.has(f.id));
-    const paths = zipPaths(new Map(folders.map((f) => [f.id, f])), folderId ?? null, included);
+    const files = await this.prisma.storageFile.findMany({
+      where: { user_id: userId, deleted_at: null, ...(scope ? { folder_id: { in: scope } } : {}) },
+      orderBy: { created_at: 'asc' },
+    });
+    const paths = zipPaths(new Map(folders.map((f) => [f.id, f])), folderId ?? null, files);
 
     return {
       rootName: root?.name ?? null,
-      entries: included.map<ZipEntry>((f) => ({
+      entries: files.map<ZipEntry>((f) => ({
         path: paths.get(f.id)!,
         name: f.name,
         objectKey: f.object_key,
         mimeType: f.mime_type,
         createdAt: f.created_at,
       })),
-      totalBytes: included.reduce((sum, f) => sum + Number(f.size), 0),
-      skippedLocked: files.length - included.length,
+      totalBytes: files.reduce((sum, f) => sum + Number(f.size), 0),
     };
   }
 
@@ -214,9 +205,9 @@ export class FileService {
   }
 
   // ZIP 계획이 받을 수 있는 크기인지 — 비었거나 상한을 넘으면 400
-  assertZippable(plan: { entries: ZipEntry[]; totalBytes: number; skippedLocked: number }) {
+  assertZippable(plan: { entries: ZipEntry[]; totalBytes: number }) {
     if (plan.entries.length === 0) {
-      throw new BadRequestException(plan.skippedLocked ? '잠긴 파일만 있습니다. 마스터 잠금을 해제한 뒤 받으세요.' : '받을 파일이 없습니다.');
+      throw new BadRequestException('받을 파일이 없습니다.');
     }
     if (plan.totalBytes > ZIP_MAX_BYTES) {
       throw new BadRequestException('한 번에 받을 수 있는 용량(2GB)을 넘습니다. 하위 폴더별로 나눠 받으세요.');
@@ -326,14 +317,6 @@ export class FileService {
   // disposition: 'attachment'면 다운로드, 'inline'이면 브라우저 내 미리보기
   // text/html·image/svg+xml 등 inline 렌더링 시 XSS 위험이 있는 형식은 attachment 로 강제 전환
   // 파일명은 core-storage 가 filename*(UTF-8, NFC) + ASCII 대체 이름으로 싣는다 — 프론트의 a.download 는 B2 가 다른 origin 이라 무시된다
-  // 이 파일이 본인 신원 지갑 카드의 사본으로 연결돼 있는지 (마스터 잠금 대상 판별)
-  async isIdentityAttachment(userId: number, fileId: number): Promise<boolean> {
-    const linked = await this.prisma.identityCard.count({
-      where: { user_id: userId, file_id: fileId, deleted_at: null },
-    });
-    return linked > 0;
-  }
-
   async getDownloadUrl(userId: number, fileId: number, disposition: 'attachment' | 'inline' = 'attachment') {
     const file = await this.findOwnedFile(userId, fileId);
     const url = await this.storage.getDownloadUrl(file.object_key, file.name, file.mime_type, disposition);
@@ -424,7 +407,7 @@ export class FileService {
     return { id: folderId, purgedObjects: purged };
   }
 
-  // 비우기에서 지울 것 — 폴더(없으면 보관함 전체) 안의 하위 폴더·파일 전부. 신원 지갑 사본 파일과 그 파일이 든 폴더는 남긴다
+  // 비우기에서 지울 것 — 폴더(없으면 보관함 전체) 안의 하위 폴더·파일 전부
   async planClear(userId: number, folderId: number | undefined) {
     if (folderId) await this.findOwnedFolder(userId, folderId);
     const folders = await this.prisma.storageFolder.findMany({
@@ -432,31 +415,20 @@ export class FileService {
       select: { id: true, name: true, parent_id: true },
     });
     const scope = folderId ? subtreeIds(folders, folderId) : null;
-    const [files, linked] = await Promise.all([
-      this.prisma.storageFile.findMany({
-        where: { user_id: userId, deleted_at: null, ...(scope ? { folder_id: { in: [...scope] } } : {}) },
-        select: { id: true, folder_id: true, object_key: true, size: true },
-      }),
-      this.prisma.identityCard.findMany({
-        where: { user_id: userId, deleted_at: null, file_id: { not: null } },
-        select: { file_id: true },
-      }),
-    ]);
-    const linkedIds = new Set(linked.map((c) => c.file_id));
-    const kept = files.filter((f) => linkedIds.has(f.id));
-    const removed = files.filter((f) => !linkedIds.has(f.id));
-    const keepFolders = ancestorIds(new Map(folders.map((f) => [f.id, f])), kept.map((f) => f.folder_id));
+    const files = await this.prisma.storageFile.findMany({
+      where: { user_id: userId, deleted_at: null, ...(scope ? { folder_id: { in: [...scope] } } : {}) },
+      select: { id: true, folder_id: true, object_key: true, size: true },
+    });
     // 비우는 폴더 자신은 남기고 그 아래만 지운다
     const removedFolderIds = folders
       .map((f) => f.id)
-      .filter((id) => (scope ? scope.has(id) && id !== folderId : true) && !keepFolders.has(id));
+      .filter((id) => (scope ? scope.has(id) && id !== folderId : true));
 
     return {
-      fileIds: removed.map((f) => f.id),
+      fileIds: files.map((f) => f.id),
       folderIds: removedFolderIds,
-      objectKeys: removed.map((f) => f.object_key),
-      totalBytes: removed.reduce((sum, f) => sum + Number(f.size), 0),
-      keptLinked: kept.length,
+      objectKeys: files.map((f) => f.object_key),
+      totalBytes: files.reduce((sum, f) => sum + Number(f.size), 0),
     };
   }
 
@@ -475,7 +447,7 @@ export class FileService {
       }),
     ]);
     const purged = await this.deleteUnreferencedObjects(userId, plan.objectKeys);
-    return { deletedFiles: plan.fileIds.length, deletedFolders: plan.folderIds.length, keptLinked: plan.keptLinked, purgedObjects: purged };
+    return { deletedFiles: plan.fileIds.length, deletedFolders: plan.folderIds.length, purgedObjects: purged };
   }
 
   // 남은(미삭제) 파일이 하나도 가리키지 않는 오브젝트만 B2 에서 지운다 — 하나가 실패해도 나머지는 계속, 실패는 시스템 로그로

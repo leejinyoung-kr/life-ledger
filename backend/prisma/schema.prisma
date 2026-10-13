@@ -28,7 +28,6 @@ model User {
   calendarEvents     CalendarEvent[]
   securityRisks      SecurityRisk[]
   loginSessions      LoginSession[]
-  identityCards      IdentityCard[]
   credentials        Credential[]
   storageFolders     StorageFolder[]
   storageFiles       StorageFile[]
@@ -530,7 +529,7 @@ enum SessionStatus {
   @@map("session_status")
 }
 
-/// 카테고리 도메인: transaction(가계부) | subscription(구독) | asset(자산) | investment(투자) | saving(예적금) | pay_method(결제수단) | credential_cat(계정 카테고리) | id_type(신원지갑 종류)
+/// 카테고리 도메인: transaction(가계부) | subscription(구독) | asset(자산) | investment(투자) | saving(예적금) | pay_method(결제수단) | credential_cat(계정 카테고리)
 enum CategoryDomain {
   transaction
   subscription
@@ -540,7 +539,6 @@ enum CategoryDomain {
   pay_method
   bank
   credential_cat
-  id_type
 
   @@map("category_domain")
 }
@@ -617,39 +615,6 @@ model EmailLoginCode {
   @@map("email_login_code")
 }
 
-/// 신원 문서 종류: passport(여권) | idcard(주민등록증) | license(운전면허) | cert(자격증) | etc(기타)
-enum IdentityType {
-  passport
-  idcard
-  license
-  cert
-  etc
-
-  @@map("identity_type")
-}
-
-/// 신원 지갑 (신원 지갑 페이지) — 문서 번호는 AES-256-GCM 암호화 저장
-model IdentityCard {
-  id          Int          @id @default(autoincrement())
-  user_id     Int /// user.id FK
-  type        IdentityType
-  name        String       @db.VarChar(100)
-  number_enc  String       @db.Text /// 문서 번호(암호문)
-  file_id     Int? /// storage_file.id FK — 사본 이미지(여권/신분증 스캔)
-  issue_date  DateTime?    @db.Date
-  expire_date DateTime?    @db.Date
-  memo        String?      @db.VarChar(300)
-  deleted_at  DateTime?
-  created_at  DateTime     @default(now())
-  updated_at  DateTime     @updatedAt
-
-  user User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  file StorageFile? @relation(fields: [file_id], references: [id], onDelete: SetNull)
-
-  @@index([user_id])
-  @@map("identity_card")
-}
-
 /// 계정 보관함 (계정 보관함 페이지) — 비밀번호·TOTP 는 AES-256-GCM 암호화 저장
 model Credential {
   id                  Int       @id @default(autoincrement())
@@ -709,7 +674,6 @@ model StorageFile {
 
   user          User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
   folder        StorageFolder? @relation(fields: [folder_id], references: [id], onDelete: SetNull)
-  identityCards IdentityCard[]
 
   @@index([user_id])
   @@index([folder_id])
@@ -717,14 +681,13 @@ model StorageFile {
   @@map("storage_file")
 }
 
-/// 보관함 열람 동작: cred_reveal(계정 비번/2FA) | cred_totp(TOTP 코드) | cred_backup(백업코드) | identity_reveal(신원번호)
+/// 보관함 열람 동작: cred_reveal(계정 비번/2FA) | cred_totp(TOTP 코드) | cred_backup(백업코드)
 /// | backup_codes_generate(백업코드 생성) | vault_unlock(보관함 잠금해제) | vault_disable(보관함 잠금 해제설정)
 /// | session_revoke(세션 강제로그아웃) | data_export(전체 데이터 export)
 enum AccessAction {
   cred_reveal
   cred_totp
   cred_backup
-  identity_reveal
   backup_codes_generate
   vault_unlock
   vault_disable
@@ -739,7 +702,7 @@ model AccessLog {
   id          Int          @id @default(autoincrement())
   user_id     Int /// user.id FK
   action      AccessAction
-  target_type String       @db.VarChar(20) /// 대상 종류 (credential|identity|env|security|account)
+  target_type String       @db.VarChar(20) /// 대상 종류 (credential|security|account)
   target_id   Int /// 대상 레코드 id
   target_name String       @db.VarChar(200) /// 대상 표시명(열람 시점 스냅샷)
   ip          String?      @db.VarChar(60)

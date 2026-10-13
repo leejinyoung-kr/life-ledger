@@ -107,13 +107,6 @@ const SEED: Record<CategoryDomain, { code: string; label: string; parent?: strin
     { code: 'work',     label: '업무' },
     { code: 'etc',      label: '기타' },
   ],
-  id_type: [
-    { code: 'passport',    label: '여권' },
-    { code: 'resident_id', label: '주민등록증' },
-    { code: 'driver',      label: '운전면허' },
-    { code: 'cert',        label: '자격증' },
-    { code: 'etc',         label: '기타' },
-  ],
 };
 
 @Injectable()

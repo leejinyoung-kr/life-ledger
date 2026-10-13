@@ -120,13 +120,6 @@ const CATEGORIES: CatSeed[] = [
   { domain: 'credential_cat', code: 'work',      label: '업무' },
   { domain: 'credential_cat', code: 'etc',       label: '기타' },
 
-  // ── 신원지갑 종류 ────────────────────────
-  { domain: 'id_type', code: 'passport',    label: '여권' },
-  { domain: 'id_type', code: 'resident_id', label: '주민등록증' },
-  { domain: 'id_type', code: 'driver',      label: '운전면허' },
-  { domain: 'id_type', code: 'cert',        label: '자격증' },
-  { domain: 'id_type', code: 'etc',         label: '기타' },
-
 ];
 
 // 카테고리 시드 — 전역 공용(user 무관). 기존 전체 삭제 후 재삽입 (idempotent)

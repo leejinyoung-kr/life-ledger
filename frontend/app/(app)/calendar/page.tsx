@@ -173,7 +173,7 @@ export default function CalendarPage() {
       />
 
       <p className="text-[0.8rem] text-muted bg-surface border border-border-subtle rounded-ui px-3.5 py-2 mb-5">
-        ◈ 표시 항목(구독·예적금·신원지갑·할일)은 연동된 데이터입니다. 수정은 각 페이지에서, 삭제 시 원본에서도 삭제됩니다. 날짜를 클릭하면 그 날에 바로 일정을 추가할 수 있습니다.
+        ◈ 표시 항목(구독·예적금·할일)은 연동된 데이터입니다. 수정은 각 페이지에서, 삭제 시 원본에서도 삭제됩니다. 날짜를 클릭하면 그 날에 바로 일정을 추가할 수 있습니다.
       </p>
 
       <ErrorBanner message={error} />

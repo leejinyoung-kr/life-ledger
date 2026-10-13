@@ -28,10 +28,10 @@ interface Forecast {
   items: { name: string; kind: 'subscription' | 'recurring'; cycle: string; amount: number; currency: 'KRW' | 'USD'; monthly: number }[];
 }
 
-type DeadlineKind = 'identity' | 'saving' | 'investment' | 'subscription' | 'task';
+type DeadlineKind = 'saving' | 'investment' | 'subscription' | 'task';
 interface Deadline { kind: DeadlineKind; title: string; date: string; dday: number }
-const DEADLINE_DOT: Record<DeadlineKind, 'green' | 'warning' | 'muted'> = { identity: 'warning', saving: 'muted', investment: 'muted', subscription: 'warning', task: 'green' };
-const DEADLINE_LABEL: Record<DeadlineKind, string> = { identity: '신원', saving: '예적금', investment: '투자', subscription: '구독', task: '할일' };
+const DEADLINE_DOT: Record<DeadlineKind, 'green' | 'warning' | 'muted'> = { saving: 'muted', investment: 'muted', subscription: 'warning', task: 'green' };
+const DEADLINE_LABEL: Record<DeadlineKind, string> = { saving: '예적금', investment: '투자', subscription: '구독', task: '할일' };
 
 const EV_LABEL: Record<EvType, string> = { pay: '결제', due: '만기', exp: '만료', task: '할일' };
 const TX_DOT: Record<TransactionType, 'green' | 'warning' | 'muted'> = { income: 'green', expense: 'muted', transfer: 'muted' };

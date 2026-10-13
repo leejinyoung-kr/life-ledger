@@ -155,7 +155,6 @@ function nextOccurrenceOnOrAfter(event: CalendarEvent, from: Date): Date | null 
 const VIRT_OFFSET = {
   subscription: 1_000_000,
   saving: 2_000_000,
-  identity: 3_000_000,
   holiday: 4_000_000,
   investmentAccount: 5_000_000,
 };
@@ -169,8 +168,6 @@ function decodeVirtId(
     return { sourceType: 'investmentAccount', sourceId: id - VIRT_OFFSET.investmentAccount };
   if (id >= VIRT_OFFSET.holiday)
     return { sourceType: 'holiday', sourceId: id - VIRT_OFFSET.holiday };
-  if (id >= VIRT_OFFSET.identity)
-    return { sourceType: 'identity', sourceId: id - VIRT_OFFSET.identity };
   if (id >= VIRT_OFFSET.saving)
     return { sourceType: 'saving', sourceId: id - VIRT_OFFSET.saving };
   if (id >= VIRT_OFFSET.subscription)
@@ -244,12 +241,12 @@ export class CalendarService {
     };
   }
 
-  // 4개 테이블에서 가상 이벤트 수집 (dateFilter 없으면 전체)
+  // 구독·예적금·투자계좌 테이블에서 가상 이벤트 수집 (dateFilter 없으면 전체)
   private async virtualEvents(
     userId: number,
     dateFilter?: { gte: Date; lt?: Date },
   ): Promise<CalEventDto[]> {
-    const [subs, savings, isaAccounts, identities] = await Promise.all([
+    const [subs, savings, isaAccounts] = await Promise.all([
       this.prisma.subscription.findMany({
         where: {
           user_id: userId,
@@ -273,14 +270,6 @@ export class CalendarService {
           maturity_date: { not: null, ...(dateFilter ?? {}) },
         },
         select: { id: true, name: true, maturity_date: true },
-      }),
-      this.prisma.identityCard.findMany({
-        where: {
-          user_id: userId,
-          deleted_at: null,
-          expire_date: { not: null, ...(dateFilter ?? {}) },
-        },
-        select: { id: true, name: true, expire_date: true },
       }),
     ]);
 
@@ -322,18 +311,6 @@ export class CalendarService {
         memo: null,
         virtual: true,
         sourceType: 'investmentAccount',
-      });
-    });
-    identities.forEach((i) => {
-      if (!i.expire_date) return;
-      result.push({
-        id: VIRT_OFFSET.identity + i.id,
-        date: toDateStr(i.expire_date),
-        type: 'exp',
-        title: `${i.name} 만료`,
-        memo: null,
-        virtual: true,
-        sourceType: 'identity',
       });
     });
 
@@ -562,12 +539,6 @@ export class CalendarService {
         break;
       case 'saving':
         await this.prisma.saving.updateMany({
-          where: { id: sourceId, user_id: userId },
-          data: { deleted_at: now },
-        });
-        break;
-      case 'identity':
-        await this.prisma.identityCard.updateMany({
           where: { id: sourceId, user_id: userId },
           data: { deleted_at: now },
         });

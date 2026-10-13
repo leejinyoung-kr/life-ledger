@@ -31,7 +31,6 @@ const NOTIFICATIONS: NotiSeed[] = [
   { group: 'system', tone: 'warning', title: '유출 의심 비밀번호 발견', description: '카카오뱅크 계정의 비밀번호가 다크웹 유출 DB에서 발견됐습니다. 즉시 변경을 권장합니다.', source: '보안 센터', occurredAt: ago(6 * HOUR), read: false },
   { group: 'system', tone: 'warning', title: '비밀번호 재사용 감지', description: 'GitHub·쿠팡·넷플릭스 3개 계정이 동일한 비밀번호를 사용 중입니다.', source: '보안 센터', occurredAt: ago(1 * DAY), read: false },
   { group: 'system', tone: 'warning', title: '새 기기 로그인 감지', description: '부산에서 Windows·Edge 로 새로운 로그인이 있었습니다. 본인이 아니라면 세션을 종료하세요.', source: '보안 센터', occurredAt: ago(2 * DAY), read: false },
-  { group: 'ledger', tone: 'warning', title: '여권 만료 임박 (D-45)', description: '여권 유효기간이 45일 남았습니다. 갱신 신청을 준비하세요.', source: '신원 지갑', occurredAt: ago(2 * DAY), read: true },
   { group: 'ledger', tone: 'info', title: '예적금 만기 임박 — 26주 적금', description: '카카오뱅크 26주 적금이 2026-06-20 만기됩니다.', source: '자산 종합', occurredAt: ago(3 * DAY), read: false },
   { group: 'ledger', tone: 'warning', title: '미사용 구독 정리 제안', description: '스포티파이·뉴욕타임스가 30일 이상 미사용 상태입니다. 해지를 검토하세요.', source: '구독 관리', occurredAt: ago(4 * DAY), read: false },
   { group: 'system', tone: 'info', title: '계정 추가됨 — GitHub', description: '새 계정이 계정 보관함에 암호화되어 저장됐습니다.', source: '계정 보관함', occurredAt: ago(7 * DAY), read: true },

@@ -2,7 +2,7 @@
 
 /**
  * 코드 관리 페이지.
- * 가계부 카테고리·결제수단·신원지갑 종류 등 앱 전역 선택박스 항목을 도메인별로 관리한다.
+ * 가계부 카테고리·결제수단 등 앱 전역 선택박스 항목을 도메인별로 관리한다.
  * @dnd-kit 으로 드래그 순서 변경 → 순서가 바뀐 항목만 PATCH 호출(최소 요청).
  * 스타일: Tailwind + 공통 컴포넌트(Button/Card). 드래그 transform 은 dnd-kit inline style.
  */
@@ -43,8 +43,7 @@ type Domain =
   | 'investment'
   | 'saving'
   | 'bank'
-  | 'credential_cat'
-  | 'id_type';
+  | 'credential_cat';
 
 const DOMAINS: { key: Domain; label: string; desc: string }[] = [
   { key: 'transaction',    label: '가계부 카테고리', desc: '수입/지출 내역의 카테고리' },
@@ -55,7 +54,6 @@ const DOMAINS: { key: Domain; label: string; desc: string }[] = [
   { key: 'saving',         label: '예적금 유형',      desc: '적금·예금·청약 등' },
   { key: 'bank',           label: '은행/기관',        desc: '예적금·계좌의 은행/금융기관' },
   { key: 'credential_cat', label: '계정 카테고리',    desc: '개발·금융·소셜 등' },
-  { key: 'id_type',        label: '신원지갑 종류',    desc: '여권·주민등록증·자격증 등' },
 ];
 
 interface CodeItem {

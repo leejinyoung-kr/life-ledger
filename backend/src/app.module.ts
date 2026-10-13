@@ -21,7 +21,6 @@ import { TransactionModule } from './transaction/transaction.module';
 import { SearchModule } from './search/search.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CryptoModule } from '@leejinyoung-kr/core-security';
-import { IdentityModule } from './identity/identity.module';
 import { CredentialModule } from './credential/credential.module';
 import { ExportModule } from './export/export.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
@@ -78,7 +77,6 @@ import { env } from './config/env';
     CryptoModule.forRoot(cryptoOptions()),
     // 부팅 시 암호문 점검 + 현재 키가 아닌 암호문 자동 재암호화
     CryptoAuditModule,
-    IdentityModule,
     CredentialModule,
     ExportModule,
     MaintenanceModule,

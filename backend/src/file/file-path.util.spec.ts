@@ -1,4 +1,4 @@
-import { ancestorIds, folderPath, safeSegment, subtreeIds, uniquePath, zipPaths, type FolderNode } from './file-path.util';
+import { folderPath, safeSegment, subtreeIds, uniquePath, zipPaths, type FolderNode } from './file-path.util';
 
 // 루트: 보험(1) ─ 2026(2) ─ 영수증(3), 사진(4)
 const FOLDERS: FolderNode[] = [
@@ -23,11 +23,6 @@ describe('file-path.util', () => {
   it('subtreeIds 는 자기 자신과 모든 하위 폴더를 모은다', () => {
     expect([...subtreeIds(FOLDERS, 1)].sort()).toEqual([1, 2, 3]);
     expect([...subtreeIds(FOLDERS, 4)]).toEqual([4]);
-  });
-
-  it('ancestorIds 는 남길 파일이 든 폴더와 그 위 폴더를 모은다', () => {
-    expect([...ancestorIds(byId, [3, null])].sort()).toEqual([1, 2, 3]);
-    expect(ancestorIds(byId, [])).toEqual(new Set());
   });
 
   it('safeSegment 는 구분자·금지 문자를 바꾸고 끝의 점을 뗀다', () => {

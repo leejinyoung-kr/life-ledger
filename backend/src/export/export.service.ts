@@ -64,7 +64,7 @@ export class ExportService {
     const [
       transactions, savings, investments, subscriptions,
       calendarEvents, notifications, securityRisks,
-      categories, identityCards, credentials,
+      categories, credentials,
       settings,
     ] = await this.prisma.$transaction([
       this.prisma.transaction.findMany(where),
@@ -75,7 +75,6 @@ export class ExportService {
       this.prisma.notification.findMany({ where: { user_id: userId } }),
       this.prisma.securityRisk.findMany({ where: { user_id: userId } }),
       this.prisma.category.findMany(), // 전역 공용 분류표 스냅샷 (user 무관)
-      this.prisma.identityCard.findMany(where),
       this.prisma.credential.findMany(where),
       this.prisma.userSettings.findUnique({
         where: { user_id: userId },
@@ -90,7 +89,7 @@ export class ExportService {
     const data: Record<string, unknown> = {
       transactions, savings, investments, subscriptions,
       calendarEvents, notifications, securityRisks,
-      categories, identityCards, credentials,
+      categories, credentials,
       settings,
     };
     for (const [name, rows] of Object.entries(data)) {
@@ -106,7 +105,7 @@ export class ExportService {
           `생성: ${new Date().toISOString()}`,
           '',
           '- data/ : 도메인별 전체 데이터(JSON)',
-          '- 계정 비밀번호·신원 번호는 AES-256-GCM 암호문(v2:<키ID>:...)으로 포함됩니다.',
+          '- 계정 비밀번호는 AES-256-GCM 암호문(v2:<키ID>:...)으로 포함됩니다.',
           '  이 서버에 해당 키가 남아 있는 동안만 복호화할 수 있습니다. 계정 보관함 복원에는 계정 JSON 백업을 쓰세요.',
         ].join('\n'),
         'utf8',

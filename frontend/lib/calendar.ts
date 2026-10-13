@@ -4,7 +4,7 @@
  */
 
 export type EvType = 'pay' | 'due' | 'exp' | 'task' | 'holiday';
-export type VirtSource = 'subscription' | 'saving' | 'investmentAccount' | 'identity' | 'holiday';
+export type VirtSource = 'subscription' | 'saving' | 'investmentAccount' | 'holiday';
 export type RecurFreq = 'none' | 'weekly' | 'monthly' | 'yearly';
 
 export interface CalEvent {
@@ -48,7 +48,6 @@ export const VIRT_SOURCE_META: Record<VirtSource, { label: string; path: string 
   subscription:      { label: '구독',     path: '/subscriptions' },
   saving:            { label: '예적금',   path: '/transactions' },
   investmentAccount: { label: '투자',     path: '/transactions' },
-  identity:          { label: '신원지갑', path: '/id-wallet' },
   holiday:           { label: '공휴일',   path: '' },
 };
 

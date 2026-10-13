@@ -1,6 +1,6 @@
 /**
  * 엑셀 양식 다운로드 · 업로드 · 데이터 다운로드 버튼 줄.
- * 버튼 모양(.excel-btn)은 settings · id-wallet 의 업로드 라벨과 공유하는 globals 클래스다.
+ * 버튼 모양(.excel-btn)은 settings 의 업로드 라벨과 공유하는 globals 클래스다.
  */
 import type { ChangeEvent } from 'react';
 

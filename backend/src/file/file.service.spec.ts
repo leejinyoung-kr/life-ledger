@@ -298,60 +298,53 @@ describe('FileService', () => {
         { id: 3, name: '사진', parent_id: null },
       ]);
       prisma.storageFile.findMany = jest.fn().mockResolvedValue([file(10, 1), file(11, 2), file(12, 2)]);
-      prisma.identityCard = { findMany: jest.fn().mockResolvedValue([{ file_id: 12 }]) };
     });
 
     it('폴더를 고르면 그 폴더와 하위 폴더만, 경로는 그 폴더 기준', async () => {
       prisma.storageFolder.findFirst.mockResolvedValue({ id: 1, name: '보험', parent_id: null });
-      const plan = await svc().planZip(1, 1, true);
+      const plan = await svc().planZip(1, 1);
       expect(prisma.storageFile.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ folder_id: { in: [1, 2] } }) }));
       expect(plan.rootName).toBe('보험');
       expect(plan.entries.map((e) => e.path)).toEqual(['f10.pdf', '2026/f11.pdf', '2026/f12.pdf']);
       expect(plan.totalBytes).toBe(300);
-      expect(plan.skippedLocked).toBe(0);
     });
 
-    it('잠금이 안 풀렸으면 신원 지갑 사본은 빼고 센다', async () => {
-      const plan = await svc().planZip(1, undefined, false);
+    it('폴더를 안 고르면 보관함 전체를 담는다', async () => {
+      const plan = await svc().planZip(1, undefined);
       expect(plan.rootName).toBeNull();
-      expect(plan.entries.map((e) => e.path)).toEqual(['보험/f10.pdf', '보험/2026/f11.pdf']);
-      expect(plan.skippedLocked).toBe(1);
+      expect(plan.entries.map((e) => e.path)).toEqual(['보험/f10.pdf', '보험/2026/f11.pdf', '보험/2026/f12.pdf']);
     });
 
     it('assertZippable 은 비었거나 2GB 를 넘으면 거부한다', () => {
       const s = svc();
-      expect(() => s.assertZippable({ entries: [], totalBytes: 0, skippedLocked: 0 })).toThrow('받을 파일이 없습니다');
-      expect(() => s.assertZippable({ entries: [], totalBytes: 0, skippedLocked: 2 })).toThrow('잠긴 파일만');
+      expect(() => s.assertZippable({ entries: [], totalBytes: 0 })).toThrow('받을 파일이 없습니다');
       const one = [{ path: 'a', name: 'a', objectKey: 'k', mimeType: 'text/plain', createdAt: new Date() }];
-      expect(() => s.assertZippable({ entries: one, totalBytes: 3 * 1024 ** 3, skippedLocked: 0 })).toThrow(BadRequestException);
-      expect(() => s.assertZippable({ entries: one, totalBytes: 10, skippedLocked: 0 })).not.toThrow();
+      expect(() => s.assertZippable({ entries: one, totalBytes: 3 * 1024 ** 3 })).toThrow(BadRequestException);
+      expect(() => s.assertZippable({ entries: one, totalBytes: 10 })).not.toThrow();
     });
   });
   describe('clear — 비우기', () => {
     const file = (id: number, folder_id: number | null, size = 100) => ({ id, folder_id, object_key: `k${id}`, size: BigInt(size) });
 
     beforeEach(() => {
-      // 보험(1) > 2026(2), 사진(3) — 사본 파일 12 가 2026 안에 있다
+      // 보험(1) > 2026(2), 사진(3)
       prisma.storageFolder.findMany.mockResolvedValue([
         { id: 1, name: '보험', parent_id: null },
         { id: 2, name: '2026', parent_id: 1 },
         { id: 3, name: '사진', parent_id: null },
       ]);
-      prisma.identityCard = { findMany: jest.fn().mockResolvedValue([{ file_id: 12 }]) };
     });
 
-    it('보관함 전체를 비우면 사본 파일과 그 경로 폴더만 남긴다', async () => {
+    it('보관함 전체를 비우면 모든 파일과 폴더를 지운다', async () => {
       prisma.storageFile.findMany.mockResolvedValueOnce([file(10, 1), file(11, 3), file(12, 2), file(13, null)]);
       const plan = await svc().planClear(1, undefined);
-      expect(plan.fileIds).toEqual([10, 11, 13]);
-      expect(plan.folderIds).toEqual([3]);
-      expect(plan.totalBytes).toBe(300);
-      expect(plan.keptLinked).toBe(1);
+      expect(plan.fileIds).toEqual([10, 11, 12, 13]);
+      expect(plan.folderIds).toEqual([1, 2, 3]);
+      expect(plan.totalBytes).toBe(400);
     });
 
     it('폴더를 비우면 그 폴더 자신은 남기고 하위만 지운다', async () => {
       prisma.storageFolder.findFirst.mockResolvedValue({ id: 1, name: '보험', parent_id: null });
-      prisma.identityCard.findMany.mockResolvedValue([]);
       prisma.storageFile.findMany.mockResolvedValueOnce([file(10, 1), file(12, 2)]);
       const plan = await svc().planClear(1, 1);
       expect(prisma.storageFile.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ folder_id: { in: [1, 2] } }) }));
@@ -368,11 +361,11 @@ describe('FileService', () => {
       const res = await svc().clear(1, undefined);
 
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-      expect(prisma.storageFile.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: [10, 11] } }) }));
-      expect(prisma.storageFolder.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: [3] } }) }));
+      expect(prisma.storageFile.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: [10, 11, 12] } }) }));
+      expect(prisma.storageFolder.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: { in: [1, 2, 3] } }) }));
       const deletes = sendMock.mock.calls.map((c) => c[0]).filter((cmd: any) => cmd.__type === 'Delete');
-      expect(deletes.map((d: any) => d.input.Key)).toEqual(['k10', 'k11']);
-      expect(res).toEqual({ deletedFiles: 2, deletedFolders: 1, keptLinked: 1, purgedObjects: 2 });
+      expect(deletes.map((d: any) => d.input.Key)).toEqual(['k10', 'k11', 'k12']);
+      expect(res).toEqual({ deletedFiles: 3, deletedFolders: 3, purgedObjects: 3 });
     });
   });
 });

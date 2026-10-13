@@ -23,7 +23,6 @@ import { seedNotifications } from './seeds/notifications.seed';
 import { seedSecurity } from './seeds/security.seed';
 import { seedCategories } from './seeds/categories.seed';
 import { seedCredentials } from './seeds/credentials.seed';
-import { seedIdentity } from './seeds/identity.seed';
 import { seedSystemLogs } from './seeds/system-log.seed';
 
 const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
@@ -40,7 +39,6 @@ const SEEDS: { name: string; run: SeedFn }[] = [
   { name: '설정', run: seedSettings },
   { name: '알림', run: seedNotifications },
   { name: '계정보관함', run: seedCredentials },
-  { name: '신원지갑', run: seedIdentity },
   { name: '보안센터', run: seedSecurity },
   { name: '카테고리', run: seedCategories },
   { name: '시스템 로그', run: seedSystemLogs },

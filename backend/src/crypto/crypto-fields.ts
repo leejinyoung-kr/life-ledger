@@ -13,11 +13,6 @@ export const ENCRYPTED_COLUMNS = [
     field: 'credential.backup_codes_enc',
   },
   {
-    table: 'identity_card',
-    column: 'number_enc',
-    field: 'identityCard.number_enc',
-  },
-  {
     table: 'investment_account',
     column: 'account_number_enc',
     field: 'investmentAccount.account_number_enc',

@@ -3,9 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
-  HttpException,
-  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -26,7 +23,6 @@ import { JwtAuthGuard } from '@leejinyoung-kr/core-auth';
 import type { AuthUser } from '../auth/auth-user';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
 import { FileService, ZIP_MAX_BYTES } from './file.service';
-import { VaultService } from '../security/vault.service';
 
 // 업로드 상한 — core-storage 검증(50MB)과 같은 값
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
@@ -36,10 +32,7 @@ const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 @UseGuards(JwtAuthGuard)
 @Controller('files')
 export class FileController {
-  constructor(
-    private readonly service: FileService,
-    private readonly vault: VaultService,
-  ) {}
+  constructor(private readonly service: FileService) {}
 
   // 현재 폴더의 하위 폴더·파일 + 브레드크럼 + 전체 사용량
   @Get()
@@ -56,31 +49,25 @@ export class FileController {
     return this.service.search(user.id, q);
   }
 
-  // ZIP 으로 받기 전 요약 — 담길 파일 수·용량, 잠겨서 빠질 파일 수, 한 번에 받을 수 있는 상한
+  // ZIP 으로 받기 전 요약 — 담길 파일 수·용량, 한 번에 받을 수 있는 상한
   @Get('zip/summary')
-  async zipSummary(
-    @CurrentUser() user: AuthUser,
-    @Query('folderId') folderId?: string,
-    @Headers('x-vault-token') vaultToken?: string,
-  ) {
-    const plan = await this.service.planZip(user.id, folderId ? Number(folderId) : undefined, await this.isUnlocked(user.id, vaultToken));
-    return { fileCount: plan.entries.length, totalBytes: plan.totalBytes, skippedLocked: plan.skippedLocked, maxBytes: ZIP_MAX_BYTES };
+  async zipSummary(@CurrentUser() user: AuthUser, @Query('folderId') folderId?: string) {
+    const plan = await this.service.planZip(user.id, folderId ? Number(folderId) : undefined);
+    return { fileCount: plan.entries.length, totalBytes: plan.totalBytes, maxBytes: ZIP_MAX_BYTES };
   }
 
-  // 폴더(없으면 보관함 전체)를 하위 폴더까지 ZIP 하나로 내려준다 — 폴더 구조 유지, 잠긴 파일은 잠금이 풀렸을 때만
+  // 폴더(없으면 보관함 전체)를 하위 폴더까지 ZIP 하나로 내려준다 — 폴더 구조 유지
   @Get('zip')
   async zip(
     @CurrentUser() user: AuthUser,
     @Res() res: Response,
     @Query('folderId') folderId?: string,
-    @Headers('x-vault-token') vaultToken?: string,
   ) {
-    const plan = await this.service.planZip(user.id, folderId ? Number(folderId) : undefined, await this.isUnlocked(user.id, vaultToken));
+    const plan = await this.service.planZip(user.id, folderId ? Number(folderId) : undefined);
     this.service.assertZippable(plan);
 
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', contentDisposition('attachment', `${plan.rootName ?? '파일보관함'}.zip`));
-    res.setHeader('X-Skipped-Locked', String(plan.skippedLocked));
     try {
       await this.service.streamZip(user.id, plan.entries, res);
     } catch (err) {
@@ -89,28 +76,17 @@ export class FileController {
     }
   }
 
-  // 비우기 전 요약 — 지울 폴더·파일 수와 용량, 신원 지갑 사본이라 남길 파일 수
+  // 비우기 전 요약 — 지울 폴더·파일 수와 용량
   @Get('clear/summary')
   async clearSummary(@CurrentUser() user: AuthUser, @Query('folderId') folderId?: string) {
     const plan = await this.service.planClear(user.id, folderId ? Number(folderId) : undefined);
-    return { folderCount: plan.folderIds.length, fileCount: plan.fileIds.length, totalBytes: plan.totalBytes, keptLinked: plan.keptLinked };
+    return { folderCount: plan.folderIds.length, fileCount: plan.fileIds.length, totalBytes: plan.totalBytes };
   }
 
-  // 비우기 — 폴더(없으면 보관함 전체) 안의 하위 폴더·파일을 한 번에 지운다. 신원 지갑 사본 파일은 남긴다
+  // 비우기 — 폴더(없으면 보관함 전체) 안의 하위 폴더·파일을 한 번에 지운다
   @Delete('clear')
   clear(@CurrentUser() user: AuthUser, @Query('folderId') folderId?: string) {
     return this.service.clear(user.id, folderId ? Number(folderId) : undefined);
-  }
-
-  // 마스터 잠금이 꺼져 있거나 유효한 잠금 해제 토큰이 있는지 (잠김이면 false — 예외를 던지지 않는다)
-  private async isUnlocked(userId: number, vaultToken?: string): Promise<boolean> {
-    try {
-      await this.vault.assertUnlocked(userId, vaultToken);
-      return true;
-    } catch (e) {
-      if (e instanceof HttpException && e.getStatus() === HttpStatus.LOCKED) return false;
-      throw e;
-    }
   }
 
   // 파일 업로드 (multipart/form-data). 크기 상한을 multer 에도 걸어 큰 파일을 메모리에 다 받기 전에 끊는다.
@@ -127,18 +103,13 @@ export class FileController {
     return this.service.upload(user.id, file, folderId ? Number(folderId) : undefined, relDir || undefined);
   }
 
-  // presigned 다운로드/미리보기 URL 발급 (?disposition=inline 이면 브라우저 내 미리보기용).
-  // 신원 지갑 사본으로 연결된 파일은 보관함 민감정보라 마스터 잠금 해제를 요구한다
+  // presigned 다운로드/미리보기 URL 발급 (?disposition=inline 이면 브라우저 내 미리보기용)
   @Get(':id/url')
   async getUrl(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseIntPipe) id: number,
     @Query('disposition') disposition?: string,
-    @Headers('x-vault-token') vaultToken?: string,
   ) {
-    if (await this.service.isIdentityAttachment(user.id, id)) {
-      await this.vault.assertUnlocked(user.id, vaultToken);
-    }
     return this.service.getDownloadUrl(user.id, id, disposition === 'inline' ? 'inline' : 'attachment');
   }
 

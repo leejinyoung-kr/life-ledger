@@ -54,7 +54,7 @@ export const envShape = {
   JWT_SECRET: secret(),
   JWT_REFRESH_SECRET: secret(),
   JWT_VAULT_SECRET: secret(),
-  // 보관함 암호화 키 목록(AES-256-GCM) — 계정 비밀번호·신원 번호·ENV 값 등. 첫 번째 키로 암호화, 나머지는 복호화만.
+  // 보관함 암호화 키 목록(AES-256-GCM) — 계정 비밀번호 등. 첫 번째 키로 암호화, 나머지는 복호화만.
   // 교체: 새 키를 맨 앞에 추가 → 배포(부팅 시 자동 재암호화) → 이전 키 제거 → 배포
   CRYPTO_KEYS: csv(cryptoKey),
   // 이전 포맷(v1) 암호문 복호화 전용 — 재암호화가 끝나면 비운다(남은 v1 이 있으면 배포 전 점검·부팅이 막는다)

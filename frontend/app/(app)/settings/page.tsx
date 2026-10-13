@@ -302,11 +302,10 @@ export default function SettingsPage() {
     notifMonthly: '월간 리포트 자동 생성',
     notifUpload: '파일 업로드 완료 알림',
     notifMaturity: '만기·결제 임박 알림',
-    notifDeadline: '만료·마감 임박 알림',
   };
 
   // 알림 토글 — 즉시 저장
-  const handleToggleNotif = (key: 'notifMonthly' | 'notifUpload' | 'notifMaturity' | 'notifDeadline') => {
+  const handleToggleNotif = (key: 'notifMonthly' | 'notifUpload' | 'notifMaturity') => {
     const next = !s[key];
     const label = NOTIF_LABEL[key];
     patch({ [key]: next }, `${label}${eulreul(label)} ${next ? '켰습니다.' : '껐습니다.'}`);
@@ -412,9 +411,6 @@ export default function SettingsPage() {
                 <Row label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
                   <Toggle on={s.notifMaturity} onToggle={() => handleToggleNotif('notifMaturity')} />
                 </Row>
-                <Row label="만료·마감 임박 알림" desc="신원 문서 만료·할일 마감 임박 시 알림">
-                  <Toggle on={s.notifDeadline} onToggle={() => handleToggleNotif('notifDeadline')} />
-                </Row>
                 <Row label="월간 리포트 자동 생성" desc="매월 1일 전월 리포트 자동 생성">
                   <Toggle on={s.notifMonthly} onToggle={() => handleToggleNotif('notifMonthly')} />
                 </Row>
@@ -450,7 +446,7 @@ export default function SettingsPage() {
                     <Badge tone={vault?.enabled ? 'success' : 'warning'}>{vault?.enabled ? '사용 중' : '미설정'}</Badge>
                   </div>
                   <div className="text-[0.78rem] text-muted break-keep">
-                    켜두면 비밀번호·신원번호을 열람할 때마다 마스터 비밀번호가 필요합니다.
+                    켜두면 비밀번호을 열람할 때마다 마스터 비밀번호가 필요합니다.
                   </div>
                   {vault?.enabled && (
                     <div className="text-[0.74rem] text-muted mt-1">자동잠금: {vault.timeoutMin > 0 ? `${vault.timeoutMin}분` : '수동'} · 변경하려면 해제 후 다시 설정하세요.</div>

@@ -19,10 +19,6 @@ export const qk = {
     list: (params?: unknown) => ['credentials', 'list', params ?? null] as const,
     backupCodes: (id: number) => ['credentials', id, 'backup-codes'] as const,
   },
-  identity: {
-    all: ['identity'] as const,
-    list: () => ['identity', 'list'] as const,
-  },
   transactions: {
     all: ['transactions'] as const,
     list: (params?: unknown) => ['transactions', 'list', params ?? null] as const,

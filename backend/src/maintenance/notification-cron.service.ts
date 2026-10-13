@@ -44,7 +44,7 @@ export class NotificationCronService {
     return 1;
   }
 
-  // 한 사용자의 알림 후보를 생성 (예적금만기·구독결제/체험·신원만료·비번회전)
+  // 한 사용자의 알림 후보를 생성 (예적금만기·구독결제/체험·비번회전)
   private async runForUser(userId: number): Promise<number> {
     const today = todayKst();
     let n = 0;
@@ -91,22 +91,6 @@ export class NotificationCronService {
           title: trial ? `${s.name} 무료체험 종료 임박` : `${s.name} 결제 예정`,
           description: trial ? `무료체험이 ${daysLeft}일 후 종료되어 과금됩니다.` : `구독 결제일이 ${daysLeft}일 남았습니다.`,
           source: '구독',
-        });
-      }
-    }
-
-    // 만료/마감 임박 알림(신원·할일) — settings.notif_deadline 켜진 경우만
-    if (settings?.notif_deadline ?? true) {
-      // 4) 신원 문서 만료 D-60 / D-30 / D-14 / D-7 / D-1 (매일 반복되지 않도록 정확히 해당 일자에만 발생)
-      const expireReminderDays = [60, 30, 14, 7, 1];
-      const ids = await this.prisma.identityCard.findMany({
-        where: { user_id: userId, deleted_at: null, expire_date: { in: expireReminderDays.map((d) => addDays(today, d)) } },
-      });
-      for (const i of ids) {
-        const daysLeft = expireReminderDays.find((d) => addDays(today, d).getTime() === new Date(i.expire_date!).getTime()) ?? 0;
-        n += await this.emit(userId, {
-          group: 'system', tone: 'warning',
-          title: `${i.name} 문서 만료 임박`, description: `신원 문서 유효기간이 ${daysLeft}일 남았습니다.`, source: '신원 지갑',
         });
       }
     }

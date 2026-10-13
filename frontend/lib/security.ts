@@ -37,7 +37,7 @@ export interface LoginSession {
 }
 
 // 접근 감사 로그 동작
-export type AccessAction = 'cred_reveal' | 'cred_totp' | 'cred_backup' | 'identity_reveal';
+export type AccessAction = 'cred_reveal' | 'cred_totp' | 'cred_backup';
 
 export interface AccessLogEntry {
   id: number;
@@ -82,7 +82,6 @@ export const ACCESS_ACTION_META: Record<AccessAction, { label: string; icon: str
   cred_reveal: { label: '비밀번호 열람', icon: '🔑' },
   cred_totp: { label: '2FA 코드 생성', icon: '🔢' },
   cred_backup: { label: '백업코드 열람', icon: '🧾' },
-  identity_reveal: { label: '신원번호 열람', icon: '🪪' },
 };
 
 // 위험 종류 → 아이콘

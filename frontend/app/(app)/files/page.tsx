@@ -70,7 +70,6 @@ interface SearchResponse {
 interface ZipSummary {
   fileCount: number;
   totalBytes: number;
-  skippedLocked: number;
   maxBytes: number;
 }
 
@@ -79,7 +78,6 @@ interface ClearSummary {
   folderCount: number;
   fileCount: number;
   totalBytes: number;
-  keptLinked: number;
 }
 
 // 비우기 확인에서 그대로 입력해야 하는 낱말 (실수로 누르는 것 막기)
@@ -284,15 +282,14 @@ export default function FilesPage() {
     try {
       const s = await api.get<ZipSummary>(`/files/zip/summary${qs}`);
       if (s.fileCount === 0) {
-        notify.error(s.skippedLocked ? '잠긴 파일만 있습니다. 마스터 잠금을 해제한 뒤 받으세요.' : '받을 파일이 없습니다.');
+        notify.error('받을 파일이 없습니다.');
         return;
       }
       if (s.totalBytes > s.maxBytes) {
         notify.error(`한 번에 받을 수 있는 용량(${formatBytes(s.maxBytes)})을 넘습니다 — ${formatBytes(s.totalBytes)}. 하위 폴더별로 나눠 받으세요.`);
         return;
       }
-      const locked = s.skippedLocked ? ` 잠긴 파일 ${s.skippedLocked}개는 빠집니다(마스터 잠금을 해제하면 함께 받아요).` : '';
-      if (!await confirm(`${where ? `"${where}" 폴더` : '보관함 전체'}의 파일 ${s.fileCount}개(${formatBytes(s.totalBytes)})를 ZIP 으로 받을까요?${locked}`, 'primary')) return;
+      if (!await confirm(`${where ? `"${where}" 폴더` : '보관함 전체'}의 파일 ${s.fileCount}개(${formatBytes(s.totalBytes)})를 ZIP 으로 받을까요?`, 'primary')) return;
       await api.download(`/files/zip${qs}`, `${where ?? '파일보관함'}_${localDate()}.zip`, (received) => setZipProgress({ received, total: s.totalBytes }));
       notify.success('ZIP 을 받았습니다.');
     } catch (e) {
@@ -310,7 +307,7 @@ export default function FilesPage() {
     try {
       const s = await api.get<ClearSummary>(`/files/clear/summary${qs}`);
       if (s.fileCount === 0 && s.folderCount === 0) {
-        notify.error(s.keptLinked ? '신원 지갑 사본 파일만 있어 지울 것이 없습니다.' : '지울 파일이 없습니다.');
+        notify.error('지울 파일이 없습니다.');
         return;
       }
       setClearWord('');
@@ -327,9 +324,8 @@ export default function FilesPage() {
     const qs = currentFolderId !== undefined ? `?folderId=${currentFolderId}` : '';
     setClearing(true);
     try {
-      const r = await api.del<{ deletedFiles: number; deletedFolders: number; keptLinked: number }>(`/files/clear${qs}`);
-      const kept = r.keptLinked ? ` 신원 지갑 사본 ${r.keptLinked}개는 남겼습니다.` : '';
-      notify.success(`폴더 ${r.deletedFolders}개 · 파일 ${r.deletedFiles}개를 지웠습니다.${kept}`);
+      const r = await api.del<{ deletedFiles: number; deletedFolders: number }>(`/files/clear${qs}`);
+      notify.success(`폴더 ${r.deletedFolders}개 · 파일 ${r.deletedFiles}개를 지웠습니다.`);
       setClearPlan(null);
       reload();
     } catch (e) {
@@ -584,7 +580,7 @@ export default function FilesPage() {
       <ConfirmModal
         open={clearPlan !== null}
         title={currentFolderId === undefined ? '보관함 전체 비우기' : `"${data.breadcrumb.at(-1)?.name ?? ''}" 폴더 비우기`}
-        message={clearPlan ? `폴더 ${clearPlan.folderCount}개 · 파일 ${clearPlan.fileCount}개(${formatBytes(clearPlan.totalBytes)})를 지웁니다. 되돌릴 수 없어요.${clearPlan.keptLinked ? ` 신원 지갑 사본 ${clearPlan.keptLinked}개와 그 파일이 든 폴더는 남깁니다.` : ''} 계속하려면 "${CLEAR_WORD}"를 입력하세요.` : ''}
+        message={clearPlan ? `폴더 ${clearPlan.folderCount}개 · 파일 ${clearPlan.fileCount}개(${formatBytes(clearPlan.totalBytes)})를 지웁니다. 되돌릴 수 없어요. 계속하려면 "${CLEAR_WORD}"를 입력하세요.` : ''}
         confirmLabel="비우기"
         confirmDisabled={clearWord.trim() !== CLEAR_WORD}
         loading={clearing}

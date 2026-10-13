@@ -106,7 +106,7 @@ export default async function LoginPage({
 }
 
 const FEATURES = [
-  { title: 'AES-256 완전 암호화', desc: '계정·신원 문서, 내 서버에서만 복호화' },
+  { title: 'AES-256 완전 암호화', desc: '계정 정보, 내 서버에서만 복호화' },
   { title: '비밀번호 없는 로그인', desc: 'Google OAuth 2.0으로 안전하게, 별도 비밀번호 불필요' },
   { title: '제3자 공유 없음', desc: '내 데이터는 오직 나만 접근. 마케팅·광고 활용 없음' },
 ];

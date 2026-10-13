@@ -70,13 +70,11 @@ const ACCESS_LOGS: LogSeed[] = [
   { action: 'cred_reveal', targetType: 'credential', targetName: 'GitHub' },
   { action: 'cred_totp', targetType: 'credential', targetName: 'Google' },
   { action: 'cred_backup', targetType: 'credential', targetName: 'Google' },
-  { action: 'identity_reveal', targetType: 'identity', targetName: '여권' },
   { action: 'cred_reveal', targetType: 'credential', targetName: '카카오뱅크' },
   { action: 'cred_reveal', targetType: 'credential', targetName: '토스' },
   { action: 'cred_totp', targetType: 'credential', targetName: 'AWS' },
   { action: 'cred_totp', targetType: 'credential', targetName: 'Cloudflare' },
   { action: 'cred_backup', targetType: 'credential', targetName: 'GitLab' },
-  { action: 'identity_reveal', targetType: 'identity', targetName: '주민등록증' },
   { action: 'cred_reveal', targetType: 'credential', targetName: '네이버' },
 ];
 
