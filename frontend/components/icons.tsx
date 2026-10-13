@@ -1,6 +1,6 @@
 /**
  * 공통 SVG 아이콘 모음.
- * 사이드바 / 탑바 / 대시보드 위젯에서 재사용한다.
+ * 사이드바 / 탑바 / 대시보드에서 재사용한다.
  * 모든 아이콘은 currentColor 를 사용해 부모 color 로 색이 결정된다.
  */
 import type { SVGProps } from 'react';
@@ -74,23 +74,6 @@ export const IconLock = (p: IconProps) => (
   </Stroke>
 );
 
-// ENV(코드) 아이콘
-export const IconCode = (p: IconProps) => (
-  <Stroke {...p}>
-    <polyline points="4 17 10 11 4 5" />
-    <line x1="12" y1="19" x2="20" y2="19" />
-  </Stroke>
-);
-
-// 신원 지갑(ID 카드) 아이콘
-export const IconIdCard = (p: IconProps) => (
-  <Stroke {...p}>
-    <rect x="2" y="4" width="20" height="16" rx="2" />
-    <circle cx="8" cy="10" r="2" />
-    <path d="M13 9h5M13 13h5M5 16h14" />
-  </Stroke>
-);
-
 // 문서/메모 아이콘
 export const IconDoc = (p: IconProps) => (
   <Stroke {...p}>
@@ -119,7 +102,7 @@ export const IconCalendar = (p: IconProps) => (
   </Stroke>
 );
 
-// 인사이트/큐브(AI 리포트) 아이콘
+// 큐브 아이콘
 export const IconCube = (p: IconProps) => (
   <Stroke {...p}>
     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -292,13 +275,6 @@ export const IconClock = (p: IconProps) => (
   <Stroke {...p}>
     <circle cx="12" cy="12" r="10" />
     <polyline points="12 6 12 12 16 14" />
-  </Stroke>
-);
-
-// 번개(빠른 실행) 아이콘
-export const IconZap = (p: IconProps) => (
-  <Stroke {...p}>
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
   </Stroke>
 );
 

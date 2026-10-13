@@ -310,7 +310,7 @@ model NetWorthSnapshot {
   @@map("net_worth_snapshot")
 }
 
-/// 사용자 설정 (설정 페이지) — 1:1. 알림/보안/API/예산/카테고리/위젯 선호값
+/// 사용자 설정 (설정 페이지) — 1:1. 알림/보안/카테고리 선호값
 model UserSettings {
   id                  Int      @id @default(autoincrement())
   user_id             Int      @unique /// user.id FK
