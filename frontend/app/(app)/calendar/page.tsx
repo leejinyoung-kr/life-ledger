@@ -78,7 +78,8 @@ export default function CalendarPage() {
   // 오늘 기준 현재 월로 초기화 (SSR 불일치 방지 — 클라이언트에서 설정)
   const [view, setView] = useState<{ year: number; month: number } | null>(null);
   const [todayIso, setTodayIso] = useState('');
-  const [addModal, setAddModal] = useState<{ open: boolean; date?: string }>({ open: false });
+  // 일정 추가/수정 모달 — event 가 있으면 수정
+  const [addModal, setAddModal] = useState<EventFormState>({ open: false });
   const [detailEvent, setDetailEvent] = useState<CalEvent | null>(null);
   // 모바일 — 날짜 점(dot) 탭 시 그 날 일정 목록 모달
   const [dayList, setDayList] = useState<{ day: number; events: CalEvent[] } | null>(null);
@@ -297,11 +298,16 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* 일정 추가 모달 */}
-      <AddEventModal state={addModal} onClose={() => setAddModal({ open: false })} onSaved={() => { setAddModal({ open: false }); reload(); }} />
+      {/* 일정 추가/수정 모달 */}
+      <EventFormModal state={addModal} onClose={() => setAddModal({ open: false })} onSaved={() => { setAddModal({ open: false }); reload(); }} />
 
-      {/* 일정 상세/삭제 모달 */}
-      <EventDetailModal event={detailEvent} onClose={() => setDetailEvent(null)} onDelete={(ev) => handleRemoveEvent(ev)} />
+      {/* 일정 상세 모달 (수정·삭제) */}
+      <EventDetailModal
+        event={detailEvent}
+        onClose={() => setDetailEvent(null)}
+        onEdit={(ev) => { setDetailEvent(null); setAddModal({ open: true, event: ev }); }}
+        onDelete={(ev) => handleRemoveEvent(ev)}
+      />
 
       {/* 모바일 — 날짜 점 탭 시 그 날 일정 목록 모달 */}
       <DayListModal day={dayList} onClose={() => setDayList(null)} onSelect={(ev) => { setDayList(null); setDetailEvent(ev); }} />
@@ -311,8 +317,8 @@ export default function CalendarPage() {
   );
 }
 
-// 일정 상세 / 삭제 모달
-function EventDetailModal({ event, onClose, onDelete }: { event: CalEvent | null; onClose: () => void; onDelete: (ev: CalEvent) => void }) {
+// 일정 상세 모달 — 직접 등록한 일정은 수정, 공휴일이 아니면 삭제
+function EventDetailModal({ event, onClose, onEdit, onDelete }: { event: CalEvent | null; onClose: () => void; onEdit: (ev: CalEvent) => void; onDelete: (ev: CalEvent) => void }) {
   if (!event) return null;
   const [, m, d] = event.date.split('-');
   const sourceMeta = event.virtual && event.sourceType && event.sourceType !== 'holiday' ? VIRT_SOURCE_META[event.sourceType] : null;
@@ -341,7 +347,11 @@ function EventDetailModal({ event, onClose, onDelete }: { event: CalEvent | null
         {event.type !== 'holiday' ? (
           <Button variant="danger" size="sm" onClick={() => onDelete(event)}>삭제</Button>
         ) : <span />}
-        <Button variant="ghost" size="sm" onClick={onClose}>닫기</Button>
+        <div className="flex gap-2">
+          {/* 연동 항목(구독·예적금 등)은 원본 페이지에서 수정한다 */}
+          {!event.virtual && <Button size="sm" onClick={() => onEdit(event)}>수정</Button>}
+          <Button variant="ghost" size="sm" onClick={onClose}>닫기</Button>
+        </div>
       </div>
     </Modal>
   );
@@ -370,8 +380,11 @@ function DayListModal({ day, onClose, onSelect }: { day: { day: number; events: 
   );
 }
 
-// 일정 추가 모달 — 날짜 셀 클릭 시 state.date 로 미리 채워짐
-function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; date?: string }; onClose: () => void; onSaved: () => void }) {
+// 추가/수정 모달 상태 — date: 날짜 셀 클릭으로 미리 채울 날짜, event: 수정할 일정
+interface EventFormState { open: boolean; date?: string; event?: CalEvent }
+
+// 일정 추가/수정 모달 — 추가는 날짜 셀 클릭 시 state.date 로, 수정은 state.event 값으로 미리 채워짐
+function EventFormModal({ state, onClose, onSaved }: { state: EventFormState; onClose: () => void; onSaved: () => void }) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [type, setType] = useState<EvType>('pay');
@@ -382,12 +395,23 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
 
+  const editing = state.event;
+  const isRecurring = recurFreq !== 'none';
+
   useEffect(() => {
     if (!state.open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    reset(); setTitle(''); setType('pay'); setMemo(''); setIsLunar(false); setRecurFreq('none'); setRecurUntil('');
-    setDate(state.date ?? localDate());
-  }, [state.open, state.date, reset]);
+    const ev = state.event;
+    reset();
+    if (ev) {
+      // 반복 일정은 클릭한 회차가 아니라 원래 날짜(첫 회차)를 고친다
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
+      setTitle(ev.title); setDate(ev.startDate ?? ev.date); setType(ev.type); setMemo(ev.memo ?? '');
+      setIsLunar(!!ev.isLunar); setRecurFreq(ev.recurFreq ?? 'none'); setRecurUntil(ev.recurUntil ?? '');
+    } else {
+      setTitle(''); setType('pay'); setMemo(''); setIsLunar(false); setRecurFreq('none'); setRecurUntil('');
+      setDate(state.date ?? localDate());
+    }
+  }, [state.open, state.date, state.event, reset]);
 
   // 음력 체크 시 반복 옵션을 매년으로 제한(음력 매주/매월 반복은 지원하지 않음) — 음력 체크의 주 목적이 매년 반복(생일 등)이므로 기본값도 매년으로
   function handleLunarToggle(checked: boolean) {
@@ -407,13 +431,24 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
     if (!validate()) return;
     setSaving(true);
     try {
-      await api.post('/calendar', {
-        title: title.trim(), date, type, memo: memo || undefined,
-        isLunar: isLunar || undefined,
-        recurFreq: recurFreq !== 'none' ? recurFreq : undefined,
-        recurUntil: recurFreq !== 'none' && recurUntil ? recurUntil : undefined,
-      });
-      notify.added('일정');
+      if (editing) {
+        // 수정은 비운 칸을 null 로 보내 지운다 (undefined 는 서버에서 '그대로 둠')
+        await api.put(`/calendar/${editing.id}`, {
+          title: title.trim(), date, type, memo: memo || null,
+          isLunar,
+          recurFreq,
+          recurUntil: isRecurring && recurUntil ? recurUntil : null,
+        });
+        notify.updated('일정');
+      } else {
+        await api.post('/calendar', {
+          title: title.trim(), date, type, memo: memo || undefined,
+          isLunar: isLunar || undefined,
+          recurFreq: isRecurring ? recurFreq : undefined,
+          recurUntil: isRecurring && recurUntil ? recurUntil : undefined,
+        });
+        notify.added('일정');
+      }
       onSaved();
     } catch (err) {
       notify.error((err as Error).message || '저장에 실패했습니다.');
@@ -423,12 +458,18 @@ function AddEventModal({ state, onClose, onSaved }: { state: { open: boolean; da
   }
 
   return (
-    <Modal open={state.open} onClose={onClose} title="일정 추가" footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
+    <Modal
+      open={state.open}
+      onClose={onClose}
+      title={editing ? '일정 수정' : '일정 추가'}
+      subtitle={editing && editing.recurFreq && editing.recurFreq !== 'none' ? '반복 일정은 모든 회차에 적용됩니다. 날짜는 첫 회차 기준입니다.' : undefined}
+      footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}
+    >
       <Field label="제목" required error={errors.title}>
         <input type="text" className="input" placeholder="예: 보험 갱신" value={title} onChange={(e) => { setTitle(e.target.value); clearError('title'); }} />
       </Field>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-        <Field label="날짜" required error={errors.date}>
+        <Field label={editing && isRecurring ? '시작일' : '날짜'} required error={errors.date}>
           <input type="date" className="input" aria-label="날짜" value={date} onChange={(e) => { setDate(e.target.value); clearError('date'); }} />
         </Field>
         <Field label="유형" required>

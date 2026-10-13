@@ -185,6 +185,8 @@ export interface CalEventDto {
   title: string;
   memo: string | null;
   virtual: boolean;
+  // 실제 일정의 원래 날짜(반복 일정이면 첫 회차) — date 는 표시 중인 회차라 수정 폼은 이 값을 쓴다
+  startDate?: string;
   sourceType?: VirtSource;
   recurFreq?: CalRecurFreq;
   recurUntil?: string | null;
@@ -232,6 +234,7 @@ export class CalendarService {
       title: e.title,
       memo: e.memo,
       virtual: false,
+      startDate: toDateStr(e.date),
       recurFreq: e.recur_freq,
       recurUntil: e.recur_until ? toDateStr(e.recur_until) : null,
       isLunar: e.is_lunar,

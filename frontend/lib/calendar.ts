@@ -14,6 +14,7 @@ export interface CalEvent {
   title: string;
   memo: string | null;
   virtual: boolean;       // true = 다른 테이블에서 연동된 가상 이벤트
+  startDate?: string;     // 실제 일정의 원래 날짜 (반복 일정이면 첫 회차) — 수정 폼 기준
   sourceType?: VirtSource; // 연동 원본 테이블
   recurFreq?: RecurFreq;
   recurUntil?: string | null;
