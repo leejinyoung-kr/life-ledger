@@ -24,6 +24,8 @@ import { seedSecurity } from './seeds/security.seed';
 import { seedCategories } from './seeds/categories.seed';
 import { seedCredentials } from './seeds/credentials.seed';
 import { seedSystemLogs } from './seeds/system-log.seed';
+import { seedCalendarEvents } from './seeds/calendar.seed';
+import { seedFavorites } from './seeds/favorites.seed';
 
 const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
 const prisma = new PrismaClient({ adapter });
@@ -35,11 +37,13 @@ const SEEDS: { name: string; run: SeedFn }[] = [
   { name: '투자', run: seedInvestments },
   { name: '순자산 스냅샷', run: seedNetWorthSnapshots },
   { name: '수입/지출', run: seedTransactions },
+  { name: '즐겨찾기', run: seedFavorites },
   { name: '구독', run: seedSubscriptions },
+  { name: '캘린더', run: seedCalendarEvents },
   { name: '설정', run: seedSettings },
   { name: '알림', run: seedNotifications },
   { name: '계정보관함', run: seedCredentials },
-  { name: '보안센터', run: seedSecurity },
+  { name: '보안', run: seedSecurity },
   { name: '카테고리', run: seedCategories },
   { name: '시스템 로그', run: seedSystemLogs },
 ];

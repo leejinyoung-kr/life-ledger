@@ -23,17 +23,15 @@ type NotiSeed = {
 };
 
 const NOTIFICATIONS: NotiSeed[] = [
-  { group: 'ledger', tone: 'warning', title: '구독 예산 90% 초과', description: '이번 달 구독 지출이 예산(₩200,000)의 94%에 달했습니다. 미사용 구독 서비스 정리를 권장합니다.', source: '가계부', occurredAt: ago(1 * HOUR), read: false },
-  { group: 'ledger', tone: 'success', title: '5월 정기 구독 결제 완료', description: '넷플릭스 외 6건의 정기 구독이 정상 결제됐습니다.', source: '구독 관리', occurredAt: ago(2 * DAY), read: false },
-  { group: 'ledger', tone: 'info', title: '이번 달 순자산 증가', description: '순자산이 지난달 대비 ₩3,000,000 (2.1%) 증가했습니다.', source: '자산 종합', occurredAt: ago(4 * DAY), read: true },
-  { group: 'ledger', tone: 'warning', title: '식비 예산 78% 도달', description: '이번 달 식비가 예산(₩400,000)의 78%에 도달했습니다.', source: '가계부', occurredAt: ago(5 * DAY), read: false },
-  { group: 'system', tone: 'warning', title: '새 기기 로그인 감지', description: '부산에서 Windows·Edge 로 새로운 로그인이 있었습니다. 본인이 아니라면 세션을 종료하세요.', source: '보안 센터', occurredAt: ago(2 * DAY), read: false },
-  { group: 'ledger', tone: 'info', title: '예적금 만기 임박 — 26주 적금', description: '카카오뱅크 26주 적금이 2026-06-20 만기됩니다.', source: '자산 종합', occurredAt: ago(3 * DAY), read: false },
-  { group: 'ledger', tone: 'warning', title: '미사용 구독 정리 제안', description: '스포티파이·뉴욕타임스가 30일 이상 미사용 상태입니다. 해지를 검토하세요.', source: '구독 관리', occurredAt: ago(4 * DAY), read: false },
-  { group: 'system', tone: 'info', title: '계정 추가됨 — GitHub', description: '새 계정이 계정 보관함에 암호화되어 저장됐습니다.', source: '계정 보관함', occurredAt: ago(7 * DAY), read: true },
-  { group: 'system', tone: 'info', title: '파일 업로드 완료 — 보험증권_2026.pdf', description: '파일이 Backblaze B2에 안전하게 저장됐습니다.', source: '파일 보관함', occurredAt: ago(7 * DAY), read: true },
-  { group: 'ledger', tone: 'success', title: '월급 입금 확인', description: '5월 급여 ₩3,200,000 이 입금됐습니다.', source: '가계부', occurredAt: ago(9 * DAY), read: true },
-  { group: 'system', tone: 'warning', title: 'SSL 인증서 갱신 임박', description: '도메인 인증서가 14일 후 만료됩니다. 갱신이 필요합니다.', source: '시스템', occurredAt: ago(10 * DAY), read: true },
+  // 문구는 앱이 실제로 보내는 알림(notification-cron · 로그인 · 파일 업로드)에 맞춘다
+  { group: 'ledger', tone: 'warning', title: 'Disney+ 무료체험 종료 임박', description: '무료체험이 3일 후 종료되어 과금됩니다.', source: '구독', occurredAt: ago(1 * HOUR), read: false },
+  { group: 'ledger', tone: 'info', title: '넷플릭스 결제 예정', description: '구독 결제일이 3일 남았습니다.', source: '구독', occurredAt: ago(5 * HOUR), read: false },
+  { group: 'system', tone: 'warning', title: '새 기기에서 로그인', description: 'Windows · Edge (부산) 에서 로그인되었습니다. 본인이 아니라면 보안 화면에서 세션을 로그아웃하세요.', source: '보안', occurredAt: ago(2 * DAY), read: false },
+  { group: 'ledger', tone: 'info', title: '26주 적금 만기 임박', description: '예적금 만기가 9일 남았습니다.', source: '예적금', occurredAt: ago(1 * DAY), read: false },
+  { group: 'system', tone: 'warning', title: "'네이버' 비밀번호 교체 권장", description: '비밀번호를 변경한 지 210일이 지났습니다.', source: '계정 보관함', occurredAt: ago(3 * DAY), read: false },
+  { group: 'system', tone: 'success', title: '보험증권_2026.pdf 업로드 완료', description: '파일 보관함에 업로드가 완료됐습니다.', source: '파일 보관함', occurredAt: ago(7 * DAY), read: true },
+  { group: 'ledger', tone: 'info', title: 'ChatGPT Plus 결제 예정', description: '구독 결제일이 1일 남았습니다.', source: '구독', occurredAt: ago(9 * DAY), read: true },
+  { group: 'system', tone: 'warning', title: "'AWS' 비밀번호 교체 권장", description: '비밀번호를 변경한 지 185일이 지났습니다.', source: '계정 보관함', occurredAt: ago(12 * DAY), read: true },
 ];
 
 // 한 사용자에게 알림 더미를 채운다 (기존 행 제거 후 재삽입 → idempotent)

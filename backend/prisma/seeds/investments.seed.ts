@@ -4,7 +4,7 @@
  * 국내/해외 주식·ETF·가상자산 섞고 손익(원금<>평가) 다양하게 구성.
  */
 import type { InvestmentType } from '@prisma/client';
-import { d, enc, type SeedFn } from './helpers';
+import { d, enc, todayStr, type SeedFn } from './helpers';
 
 type AccountSeed = { name: string; cashBalance: number; accountNumber: string };
 
@@ -87,6 +87,8 @@ export const seedInvestments: SeedFn = async (prisma, userId) => {
           kind: 'investment',
           rule: { cycle: 'monthly', day: v.recurringBuy.day, weekendAdjust: 'none' },
           start_date: d(v.purchaseDate),
+          // 이번 달까지 처리한 것으로 — 비워 두면 예약 작업이 매수일(최대 2년 전)부터 모든 회차를 한 번에 사들인다
+          last_period: todayStr.slice(0, 7),
           investment_id: created.id,
           buy_amount: v.recurringBuy.amount,
         },

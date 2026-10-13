@@ -1,9 +1,9 @@
 /**
  * 순자산 월별 스냅샷(NetWorthSnapshot) 더미.
- * 총자산 = 예적금(35.33M) + 투자(33.59M) 기준 6개월 추이 (현금은 수입-지출로 별도 집계 — 스냅샷에는 미포함)
+ * 총자산 = 예적금(35.33M) + 투자(33.59M) 기준 6개월 추이 (현금은 수입-지출로 별도 집계 — 스냅샷에는 미포함). 달은 실행일 기준으로 옮겨진다
  * 부채(자산관리) 기능 제거 이후로는 total_debt를 항상 0으로 기록한다.
  */
-import type { SeedFn } from './helpers';
+import { ym, type SeedFn } from './helpers';
 
 const SNAPSHOTS: { month: string; totalAssets: number }[] = [
   { month: '2026-01', totalAssets: 58500000 },
@@ -22,7 +22,7 @@ export const seedNetWorthSnapshots: SeedFn = async (prisma, userId) => {
     await prisma.netWorthSnapshot.create({
       data: {
         user_id: userId,
-        month: s.month,
+        month: ym(s.month),
         total_assets: s.totalAssets,
         total_debt: 0,
       },
