@@ -17,13 +17,6 @@ export const ENCRYPTED_COLUMNS = [
     column: 'account_number_enc',
     field: 'investmentAccount.account_number_enc',
   },
-  // 암호화 도입 전에 평문으로 저장된 행이 있을 수 있다 — 재암호화가 암호문으로 바꾼다
-  {
-    table: 'user_settings',
-    column: 'openai_api_key',
-    field: 'userSettings.openai_api_key',
-    legacyPlaintext: true,
-  },
 ] as const;
 
 export type EncryptedColumn = (typeof ENCRYPTED_COLUMNS)[number];

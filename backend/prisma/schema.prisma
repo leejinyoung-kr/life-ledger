@@ -23,8 +23,6 @@ model User {
   nwSnapshots        NetWorthSnapshot[]
   settings           UserSettings?
   notifications      Notification[]
-  aiReports          AiReport[]
-  aiUsageLogs        AiUsageLog[]
   calendarEvents     CalendarEvent[]
   securityRisks      SecurityRisk[]
   loginSessions      LoginSession[]
@@ -319,15 +317,12 @@ model UserSettings {
   id                  Int      @id @default(autoincrement())
   user_id             Int      @unique /// user.id FK
   display_name        String?  @db.VarChar(100)
-  notif_monthly       Boolean  @default(true)
   notif_upload        Boolean  @default(false)
   notif_maturity      Boolean  @default(true) /// 예적금/구독 만기·결제 임박 알림 수신
-  notif_deadline      Boolean  @default(true) /// 신원 만료·할일 마감 임박 알림 수신
+  notif_deadline      Boolean  @default(true) /// 할일 마감 임박 알림 수신
   show_holidays       Boolean  @default(true) /// 캘린더에 공휴일·대체공휴일 표시 여부
   session_expiry      String   @default("7d") @db.VarChar(10) /// 7d|1d|12h|none
   pw_auto_hide        String   @default("10s") @db.VarChar(10) /// 10s|30s|1m|none
-  openai_api_key      String?  @db.VarChar(512) /// OpenAI API 키 (AI 리포트 생성, AES-256-GCM 암호문 'v2:<키ID>:...')
-  openai_model        String   @default("gpt-4o-mini") @db.VarChar(50) /// AI 리포트 생성 모델
   master_lock_enabled Boolean  @default(false) /// 보관함 마스터 잠금 사용 여부 (Google 로그인 외 2차 잠금)
   master_lock_hash    String?  @db.VarChar(200) /// 마스터 비번 해시 (scrypt: saltHex:hashHex)
   master_lock_timeout Int      @default(5) /// 자동잠금 시간(분). 0=수동 잠금만
@@ -367,7 +362,7 @@ model Notification {
   tone        NotiTone
   title       String    @db.VarChar(200)
   description String    @db.VarChar(500)
-  source      String    @db.VarChar(50) /// 발생처 라벨(가계부/AI 리포트/계정 보관함 등)
+  source      String    @db.VarChar(50) /// 발생처 라벨(가계부/계정 보관함 등)
   read_at     DateTime? /// 읽은 시각, null=안읽음
   occurred_at DateTime  @default(now()) /// 알림 발생 시각(화면 표시용)
   created_at  DateTime  @default(now())
@@ -376,42 +371,6 @@ model Notification {
 
   @@index([user_id, created_at])
   @@map("notification")
-}
-
-/// AI 리포트 (가계부 데이터 분석 - 소비 패턴·절약 인사이트)
-model AiReport {
-  id           Int      @id @default(autoincrement())
-  user_id      Int /// user.id FK
-  period_label String   @db.VarChar(50) /// 분석 기간 표시 라벨 (예: "2026년 5월", "최근 3개월")
-  period_from  DateTime @db.Date /// 분석 시작일
-  period_to    DateTime @db.Date /// 분석 종료일
-  model_used   String   @db.VarChar(50) /// 생성에 사용한 AI 모델
-  summary      String   @db.VarChar(1000) /// 종합 요약 (총지출·증감 등)
-  insights     Json /// [{tone: green|warning|danger, text}]
-  tags         Json /// 키워드 태그 목록
-  created_at   DateTime @default(now())
-
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id, created_at])
-  @@map("ai_report")
-}
-
-model AiUsageLog {
-  id                Int      @id @default(autoincrement())
-  user_id           Int /// user.id FK
-  model             String   @db.VarChar(50) /// 호출에 사용한 OpenAI 모델
-  source            String   @db.VarChar(20) /// 호출 출처: parse(거래파싱) | report(리포트)
-  prompt_tokens     Int /// 입력 토큰 수
-  completion_tokens Int /// 출력 토큰 수
-  total_tokens      Int /// 총 토큰 수
-  cost_usd          Decimal  @db.Decimal(10, 6) /// 비용(USD) — 호출 시점 모델 단가로 산정
-  created_at        DateTime @default(now())
-
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id, created_at])
-  @@map("ai_usage_log")
 }
 
 /// 일정 유형: pay(구독 결제) | due(입금/만기) | exp(서류 만료) | task(할일)

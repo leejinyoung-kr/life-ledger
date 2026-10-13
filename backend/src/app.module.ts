@@ -27,7 +27,6 @@ import { MaintenanceModule } from './maintenance/maintenance.module';
 import { FileModule } from './file/file.module';
 import { AccessLogModule } from './access-log/access-log.module';
 import { ImportModule } from './import/import.module';
-import { AiModule } from './ai/ai.module';
 import { PushModule } from './push/push.module';
 import { MailModule } from './mail/mail.module';
 import { HealthModule } from './health/health.module';
@@ -82,7 +81,6 @@ import { env } from './config/env';
     MaintenanceModule,
     FileModule,
     ImportModule,
-    AiModule,
     PushModule,
     MailModule,
     HealthModule,

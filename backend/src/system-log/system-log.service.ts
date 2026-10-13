@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type SysLogLevel = 'info' | 'warn' | 'error';
-export type SysLogCategory = 'recurring_buy' | 'recurring_tx' | 'cron' | 'asset' | 'file' | 'security' | 'ai' | 'notification';
+export type SysLogCategory = 'recurring_buy' | 'recurring_tx' | 'cron' | 'asset' | 'file' | 'security' | 'notification';
 
 export interface SysLogOptions {
   userId?: number;

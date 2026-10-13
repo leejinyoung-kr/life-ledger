@@ -17,7 +17,7 @@ import { localDate } from '@/lib/finance';
 import FilterPanel from '@/components/FilterPanel';
 
 type LogLevel = 'info' | 'warn' | 'error';
-type LogCategory = 'recurring_buy' | 'recurring_tx' | 'cron' | 'asset' | 'file' | 'security' | 'ai' | 'notification';
+type LogCategory = 'recurring_buy' | 'recurring_tx' | 'cron' | 'asset' | 'file' | 'security' | 'notification';
 
 interface SystemLog {
   id: number;
@@ -36,7 +36,6 @@ const CATEGORY_LABEL: Record<LogCategory, string> = {
   asset: '자산',
   file: '파일',
   security: '보안',
-  ai: 'AI',
   notification: '알림',
 };
 

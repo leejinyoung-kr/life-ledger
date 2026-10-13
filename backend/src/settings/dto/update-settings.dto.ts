@@ -17,10 +17,6 @@ export class UpdateSettingsDto {
 
   @IsOptional()
   @IsBoolean()
-  notifMonthly?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
   notifUpload?: boolean;
 
   @IsOptional()
@@ -42,17 +38,6 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsIn(['10s', '30s', '1m', 'none'])
   pwAutoHide?: string;
-
-  // 빈 문자열/미전송이면 기존 키 유지 (서비스에서 처리)
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  openaiApiKey?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  openaiModel?: string;
 
   // [{ emoji, name }]
   @IsOptional()

@@ -23,16 +23,12 @@ export interface WidgetPref {
 export interface Settings {
   user: SettingsUser;
   displayName: string;
-  notifMonthly: boolean;
   notifUpload: boolean;
   notifMaturity: boolean;
   notifDeadline: boolean;
   showHolidays: boolean;
   sessionExpiry: string; // 7d|1d|12h|none
   pwAutoHide: string; // 10s|30s|1m|none
-  openaiApiKeySet: boolean;
-  openaiApiKeyMasked: string | null;
-  openaiModel: string;
   categories: Category[];
   widgets: WidgetPref[];
   menuOrder: string[] | null; // 사이드바 1차 메뉴 순서 (key 배열). null=기본
@@ -44,7 +40,6 @@ export const MENU_ITEMS: { key: string; label: string }[] = [
   { key: 'finance', label: '금융' },
   { key: 'vault', label: '보관함' },
   { key: 'tools', label: '도구' },
-  { key: 'insight', label: '인사이트' },
   { key: 'system', label: '시스템' },
 ];
 export const DEFAULT_MENU_ORDER = MENU_ITEMS.map((m) => m.key);
@@ -69,23 +64,3 @@ export const PW_AUTO_HIDE_OPTIONS: { value: string; label: string }[] = [
   { value: '1m', label: '1분' },
   { value: 'none', label: '없음' },
 ];
-
-export const OPENAI_MODEL_OPTIONS = ['gpt-4o-mini', 'gpt-4o'];
-
-// 이번 달 AI 사용량 집계 (GET /ai/usage)
-export interface AiUsageByModel {
-  model: string;
-  calls: number;
-  totalTokens: number;
-  costUsd: number;
-}
-export interface AiUsageSummary {
-  month: string; // YYYY-MM
-  calls: number;
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
-  costUsd: number;
-  lastUsedAt: string | null;
-  byModel: AiUsageByModel[];
-}

@@ -1,6 +1,6 @@
 /**
  * 시스템 로그(SystemLog) 더미.
- * 카테고리(recurring_buy·cron·asset·file·security·ai)와 레벨(info·warn·error)을
+ * 카테고리(recurring_buy·cron·asset·file·security)와 레벨(info·warn·error)을
  * 고르게 섞어 최근 30일 범위로 구성.
  */
 import { Prisma } from '@prisma/client';
@@ -161,25 +161,6 @@ const LOGS = (userId: number): LogSeed[] => [
     created_at: daysAgo(12, 11, 5),
   },
 
-  // ── ai ────────────────────────────────────────────────────────────────────
-  {
-    user_id: userId, level: 'info', category: 'ai',
-    message: '월간 AI 리포트 생성 완료',
-    metadata: { month: '2026-06', tokensUsed: 2148, durationMs: 4320 },
-    created_at: daysAgo(3, 2, 0),
-  },
-  {
-    user_id: userId, level: 'error', category: 'ai',
-    message: 'AI 리포트 생성 실패 — API 한도 초과',
-    metadata: { month: '2026-05', error: 'insufficient_quota', retryAfter: '2026-06-01T00:00:00Z' },
-    created_at: daysAgo(20, 2, 1),
-  },
-  {
-    user_id: userId, level: 'info', category: 'ai',
-    message: '월간 AI 리포트 생성 완료',
-    metadata: { month: '2026-05', tokensUsed: 1893, durationMs: 3870 },
-    created_at: daysAgo(17, 2, 0),
-  },
 ];
 
 export const seedSystemLogs: SeedFn = async (prisma, userId) => {

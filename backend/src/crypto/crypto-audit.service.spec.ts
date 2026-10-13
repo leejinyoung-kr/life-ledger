@@ -55,10 +55,9 @@ class MemoryStore implements CipherStore {
 const crypto = (options: Partial<CryptoModuleOptions>) =>
   new CryptoService({ keys: [NEW], currentKeyId: NEW.id, ...options });
 const PW = (userId: number) => cipherContext('credential.password_enc', userId);
-const KEY = (userId: number) =>
-  cipherContext('userSettings.openai_api_key', userId);
+const TOTP = (userId: number) => cipherContext('credential.totp_enc', userId);
 
-// 재암호화 이전 DB — v1 행, 이전 키(k2609) 행, 평문 OpenAI 키
+// 재암호화 이전 DB — v1 행, 이전 키(k2609) 행
 function legacyStore(): MemoryStore {
   const before = crypto({ keys: [OLD], currentKeyId: OLD.id });
   return new MemoryStore({
@@ -67,14 +66,14 @@ function legacyStore(): MemoryStore {
       { id: 2, userId: 1, value: before.encrypt('old-key-pw', PW(1)) },
       { id: 3, userId: 2, value: v1Encrypt('', LEGACY) },
     ],
-    'user_settings.openai_api_key': [
-      { id: 1, userId: 1, value: 'sk-proj-plaintext' },
+    'credential.totp_enc': [
+      { id: 1, userId: 1, value: before.encrypt('old-key-totp', TOTP(1)) },
     ],
   });
 }
 
 describe('CryptoAuditService — 점검·재암호화', () => {
-  it('v1·이전 키·평문을 현재 키로 재암호화하고, 이전 키와 legacy 를 빼도 전부 같은 값으로 읽힌다', async () => {
+  it('v1·이전 키 암호문을 현재 키로 재암호화하고, 이전 키와 legacy 를 빼도 전부 같은 값으로 읽힌다', async () => {
     const store = legacyStore();
     const rotating = crypto({ keys: [NEW, OLD], legacySecret: LEGACY });
     const audit = new CryptoAuditService(store, rotating);
@@ -88,8 +87,8 @@ describe('CryptoAuditService — 점검·재암호화', () => {
       failures: [],
     });
     expect(
-      before.find((r) => r.label === 'user_settings.openai_api_key'),
-    ).toMatchObject({ byKey: { 평문: 1 }, stale: 1 });
+      before.find((r) => r.label === 'credential.totp_enc'),
+    ).toMatchObject({ byKey: { k2609: 1 }, stale: 1 });
 
     const results = await audit.reencrypt();
     expect(results.reduce((n, r) => n + r.converted, 0)).toBe(4);
@@ -104,11 +103,8 @@ describe('CryptoAuditService — 점검·재암호화', () => {
     expect(after.decrypt(b.value, PW(1))).toBe('old-key-pw');
     expect(after.decrypt(c.value, PW(2))).toBe('');
     expect(
-      after.decrypt(
-        store.rows('user_settings.openai_api_key')[0].value,
-        KEY(1),
-      ),
-    ).toBe('sk-proj-plaintext');
+      after.decrypt(store.rows('credential.totp_enc')[0].value, TOTP(1)),
+    ).toBe('old-key-totp');
 
     const verified = await new CryptoAuditService(store, after).verify();
     expect(
@@ -148,7 +144,7 @@ describe('CryptoAuditService — 점검·재암호화', () => {
     );
   });
 
-  it('평문은 평문 레거시가 허용된 컬럼(OpenAI 키)에서만 받는다 — 다른 컬럼의 평문은 형식 오류', async () => {
+  it('평문이 저장된 암호문 컬럼은 형식 오류로 보고하고 건드리지 않는다', async () => {
     const store = new MemoryStore({
       'credential.password_enc': [
         { id: 9, userId: 1, value: 'plain-password' },
@@ -227,7 +223,7 @@ describe('CryptoAuditService — 점검·재암호화', () => {
     );
     expect(text).toContain('credential.password_enc');
     expect(text).toContain('✗ credential.password_enc#2 [missing-key]');
-    expect(text).not.toContain('sk-proj-plaintext');
+    expect(text).not.toContain('old-key-totp');
     expect(text).not.toContain(store.rows('credential.password_enc')[0].value);
   });
 });
@@ -240,7 +236,7 @@ describe('CryptoBootstrapService — 부팅 시 점검', () => {
       new CryptoAuditService(legacyStore(), c),
     );
     await expect(boot.onApplicationBootstrap()).rejects.toThrow(
-      '설정에 없는 키로 된 암호문 3건',
+      '설정에 없는 키로 된 암호문 4건',
     );
   });
 

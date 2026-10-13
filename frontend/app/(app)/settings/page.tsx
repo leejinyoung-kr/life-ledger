@@ -2,7 +2,7 @@
 
 /**
  * 설정 페이지.
- * 좌측 탭(프로필/보안/API키/위젯/데이터)으로 분기하며,
+ * 좌측 탭(프로필/보안/위젯/데이터)으로 분기하며,
  * 토글·위젯 드래그 정렬을 지원한다. 데이터는 백엔드 API(/settings)와 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(Button/Badge/Toggle).
  */
@@ -23,14 +23,14 @@ import { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
-import { IconWon, IconClock, IconZap, IconLock, IconCube, IconDrag } from '@/components/icons';
+import { IconWon, IconClock, IconZap, IconLock, IconDrag } from '@/components/icons';
 import { api, apiDownload, setAccessToken } from '@/lib/api';
 import { clearVaultToken } from '@/lib/vault';
 import { isPushSupported, fetchPushStatus, getCurrentSubscription, enablePush, disablePush, sendTestPush } from '@/lib/push';
 import {
-  SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS, OPENAI_MODEL_OPTIONS,
+  SESSION_EXPIRY_OPTIONS, PW_AUTO_HIDE_OPTIONS,
   MENU_ITEMS, DEFAULT_MENU_ORDER, normalizeMenuOrder,
-  type Settings, type WidgetPref, type AiUsageSummary,
+  type Settings, type WidgetPref,
 } from '@/lib/settings';
 import type { VaultStatus } from '@/lib/security';
 import { Card } from '@/components/ui/Card';
@@ -47,11 +47,10 @@ const VAULT_TIMEOUT_OPTIONS = [
 // 메뉴 key → 라벨
 const MENU_LABEL: Record<string, string> = Object.fromEntries(MENU_ITEMS.map((m) => [m.key, m.label]));
 
-type TabId = 'profile' | 'security' | 'api' | 'widgets' | 'data';
+type TabId = 'profile' | 'security' | 'widgets' | 'data';
 const TABS: { id: TabId; label: string }[] = [
   { id: 'profile', label: '프로필' },
   { id: 'security', label: '보안' },
-  { id: 'api', label: 'API 키' },
   { id: 'widgets', label: '위젯 설정' },
   { id: 'data', label: '데이터' },
 ];
@@ -63,12 +62,10 @@ const WIDGET_META: Record<string, WidgetMeta> = {
   'recent-activity': { name: '최근 활동', desc: '가계부 추가, 파일 업로드 등 최근 액션 목록', tone: 'blue', icon: <IconClock width={16} height={16} />, emoji: '🕐', short: '최근 활동' },
   'quick-actions': { name: '빠른 실행', desc: '지출 추가, 파일 업로드 등 자주 쓰는 액션 단축', tone: 'muted', icon: <IconZap width={16} height={16} />, emoji: '⚡', short: '빠른 실행' },
   'cred-count': { name: '저장된 계정 수', desc: '계정 보관함 총 개수 및 최근 추가 항목', tone: 'red', icon: <IconLock width={16} height={16} />, emoji: '🔐', short: '계정 수' },
-  'ai-summary': { name: 'AI 리포트 요약', desc: '최신 AI 분석 인사이트 한 줄 요약', tone: 'accent', icon: <IconCube width={16} height={16} />, emoji: '🤖', short: 'AI 요약' },
 };
 const DEFAULT_WIDGETS: WidgetPref[] = [
   { id: 'stat-cards', on: true }, { id: 'recent-activity', on: true },
   { id: 'quick-actions', on: true }, { id: 'cred-count', on: false },
-  { id: 'ai-summary', on: true },
 ];
 
 // 위젯 아이콘 배경색 (tone → Tailwind)
@@ -81,19 +78,10 @@ export default function SettingsPage() {
   const router = useRouter();
   const { confirm, confirmElement } = useConfirm();
   const [tab, setTab] = useState<TabId>('profile');
-  // URL ?tab=api 진입 시 해당 탭 선택 (헤더 AI 배지 등 외부 링크용) — 클라이언트 마운트 후 1회
-  useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get('tab');
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- URL 쿼리 기반 마운트 1회 탭 동기화
-    if (t && TABS.some((x) => x.id === t)) setTab(t as TabId);
-  }, []);
   const qc = useQueryClient();
   const settingsQuery = useApiQuery<Settings>(qk.settings.detail(), '/settings');
   const s = settingsQuery.data ?? null;
   const error = settingsQuery.error?.message ?? null;
-  // 이번 달 AI 사용량 — API 탭 진입 시에만 조회
-  const usageQuery = useApiQuery<AiUsageSummary>(qk.aiUsage.summary(), '/ai/usage', { enabled: tab === 'api' });
-  const usage = usageQuery.data ?? null;
   // 마스터 잠금
   const [vault, setVault] = useState<VaultStatus | null>(null);
   const [vaultPw, setVaultPw] = useState('');
@@ -141,11 +129,6 @@ export default function SettingsPage() {
 
   // 로컬 편집 상태 (입력 중 값 — 저장 버튼으로 커밋)
   const [displayName, setDisplayName] = useState('');
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [openaiModel, setOpenaiModel] = useState('gpt-4o-mini');
-  // OpenAI 키 연결 확인 결과 (null=미확인)
-  const [keyCheck, setKeyCheck] = useState<{ ok: boolean; model: string; modelAvailable: boolean } | null>(null);
-  const [keyCheckBusy, setKeyCheckBusy] = useState(false);
   const [widgets, setWidgets] = useState<WidgetPref[]>(DEFAULT_WIDGETS);
   const [menuOrder, setMenuOrder] = useState<string[]>(DEFAULT_MENU_ORDER);
   const [menuDragId, setMenuDragId] = useState<string | null>(null);
@@ -212,7 +195,6 @@ export default function SettingsPage() {
     if (!data) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 설정 데이터 로드 시 편집 상태 동기화
     setDisplayName(data.displayName);
-    setOpenaiModel(data.openaiModel);
     setWidgets(data.widgets.length ? data.widgets : DEFAULT_WIDGETS);
     setMenuOrder(normalizeMenuOrder(data.menuOrder));
   }, [settingsQuery.data]);
@@ -255,24 +237,6 @@ export default function SettingsPage() {
     finally { setVaultSaving(false); }
   }
 
-  // OpenAI 키 연결 확인 — 서버가 저장된 키로 /v1/models 호출해 유효성·모델 가용성 검사
-  async function handleVerifyApiKey() {
-    if (keyCheckBusy) return;
-    setKeyCheckBusy(true);
-    setKeyCheck(null);
-    try {
-      const r = await api.post<{ ok: boolean; model: string; modelAvailable: boolean }>('/ai/verify-key', {});
-      setKeyCheck(r);
-      if (r.modelAvailable) notify.success('연결 정상 · 모델 사용 가능');
-      else notify.error(`연결됨 · 단 '${r.model}' 모델에 접근할 수 없습니다.`);
-    } catch (e) {
-      setKeyCheck({ ok: false, model: openaiModel, modelAvailable: false });
-      notify.error((e as Error).message);
-    } finally {
-      setKeyCheckBusy(false);
-    }
-  }
-
   // 마스터 잠금 해제(비활성화) — 현재 비번 확인
   async function handleDisableVault() {
     if (!vaultPw || vaultSaving) return;
@@ -299,13 +263,12 @@ export default function SettingsPage() {
   }
 
   const NOTIF_LABEL: Record<string, string> = {
-    notifMonthly: '월간 리포트 자동 생성',
     notifUpload: '파일 업로드 완료 알림',
     notifMaturity: '만기·결제 임박 알림',
   };
 
   // 알림 토글 — 즉시 저장
-  const handleToggleNotif = (key: 'notifMonthly' | 'notifUpload' | 'notifMaturity') => {
+  const handleToggleNotif = (key: 'notifUpload' | 'notifMaturity') => {
     const next = !s[key];
     const label = NOTIF_LABEL[key];
     patch({ [key]: next }, `${label}${eulreul(label)} ${next ? '켰습니다.' : '껐습니다.'}`);
@@ -411,9 +374,6 @@ export default function SettingsPage() {
                 <Row label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
                   <Toggle on={s.notifMaturity} onToggle={() => handleToggleNotif('notifMaturity')} />
                 </Row>
-                <Row label="월간 리포트 자동 생성" desc="매월 1일 전월 리포트 자동 생성">
-                  <Toggle on={s.notifMonthly} onToggle={() => handleToggleNotif('notifMonthly')} />
-                </Row>
                 <Row label="파일 업로드 완료 알림" desc="파일 업로드 시 알림 표시">
                   <Toggle on={s.notifUpload} onToggle={() => handleToggleNotif('notifUpload')} />
                 </Row>
@@ -474,68 +434,6 @@ export default function SettingsPage() {
                 </div>
               </div>
             </Group>
-          )}
-
-          {/* ── API 키 ── */}
-          {tab === 'api' && (
-            <>
-            <Group title="OpenAI API">
-              <div className="flex flex-col gap-2.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-                <div className="min-w-0">
-                  <div className="text-[0.875rem] font-medium text-primary">API 키</div>
-                  <div className="text-[0.78rem] text-muted mt-0.5">{s.openaiApiKeySet ? `저장됨 (${s.openaiApiKeyMasked})` : 'AI 리포트 생성에 사용됩니다.'}</div>
-                </div>
-                <div className="flex items-center gap-2.5 sm:shrink-0">
-                  <input type="password" className="input flex-1 min-w-0 font-mono sm:w-50 sm:flex-none" placeholder={s.openaiApiKeySet ? '변경하려면 입력' : 'sk-proj-...'} value={apiKeyInput} onChange={(e) => setApiKeyInput(e.target.value)} aria-label="API 키" />
-                  <Button onClick={() => patch({ openaiApiKey: apiKeyInput || undefined }).then(() => { setApiKeyInput(''); setKeyCheck(null); })}>저장</Button>
-                </div>
-              </div>
-              <Row label="모델" desc="리포트 생성에 사용할 OpenAI 모델" stack>
-                <select className="input w-50 font-mono" aria-label="모델" value={openaiModel} onChange={(e) => { setOpenaiModel(e.target.value); setKeyCheck(null); patch({ openaiModel: e.target.value }); }}>
-                  {OPENAI_MODEL_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </Row>
-              <Row label="연결 확인" desc="저장된 키로 OpenAI 연결 상태와 선택한 모델의 접근 가능 여부를 확인합니다." stack>
-                {keyCheck && (
-                  <Badge tone={keyCheck.modelAvailable ? 'success' : keyCheck.ok ? 'warning' : 'danger'}>
-                    {keyCheck.modelAvailable ? '정상' : keyCheck.ok ? '모델 접근 불가' : '연결 실패'}
-                  </Badge>
-                )}
-                <Button variant="ghost" disabled={!s.openaiApiKeySet} loading={keyCheckBusy} loadingLabel="확인 중..." onClick={handleVerifyApiKey}>
-                  연결 확인
-                </Button>
-              </Row>
-              <Row label="크레딧 잔액" desc="OpenAI는 잔액 조회 API를 제공하지 않습니다. 사용량·잔액은 OpenAI 대시보드에서 확인하세요." stack>
-                <Button variant="ghost" href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer">대시보드 열기</Button>
-              </Row>
-            </Group>
-
-            <Group title={`이번 달 사용량${usage ? ` (${usage.month})` : ''}`}>
-              <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">앱에서 발생한 OpenAI 호출의 토큰·비용 누적입니다. 단가표 기준 추정치이며 실제 청구액과 다를 수 있습니다.</p>
-              {!usage ? (
-                <p className="px-5 py-4 text-[0.82rem] text-secondary">{usageQuery.isLoading ? '불러오는 중...' : '데이터가 없습니다.'}</p>
-              ) : usage.calls === 0 ? (
-                <p className="px-5 py-4 text-[0.82rem] text-secondary">이번 달 사용 내역이 없습니다.</p>
-              ) : (
-                <>
-                  <div className="grid grid-cols-3 gap-3 px-5 py-4 max-md:grid-cols-1">
-                    <UsageStat label="예상 비용" value={`$${usage.costUsd.toFixed(4)}`} tone="accent" />
-                    <UsageStat label="총 토큰" value={usage.totalTokens.toLocaleString()} tone="blue" />
-                    <UsageStat label="호출 수" value={`${usage.calls.toLocaleString()}회`} tone="muted" />
-                  </div>
-                  <div className="px-5 pb-2 text-[0.74rem] text-muted">
-                    입력 {usage.promptTokens.toLocaleString()} · 출력 {usage.completionTokens.toLocaleString()} 토큰
-                    {usage.lastUsedAt && ` · 최근 ${new Date(usage.lastUsedAt).toLocaleString('ko-KR')}`}
-                  </div>
-                  {usage.byModel.map((bm) => (
-                    <Row key={bm.model} label={bm.model} desc={`${bm.calls.toLocaleString()}회 · ${bm.totalTokens.toLocaleString()} 토큰`}>
-                      <span className="text-[0.82rem] font-mono text-secondary">${bm.costUsd.toFixed(4)}</span>
-                    </Row>
-                  ))}
-                </>
-              )}
-            </Group>
-            </>
           )}
 
           {/* ── 위젯 설정 ── */}
@@ -658,21 +556,6 @@ function Row({ label, desc, labelClass, stack, children }: { label: string; desc
   );
 }
 
-// 사용량 통계 카드 (라벨 + 큰 값 + tone 색)
-function UsageStat({ label, value, tone }: { label: string; value: string; tone: 'accent' | 'blue' | 'muted' }) {
-  const toneCls: Record<string, string> = {
-    accent: 'text-accent',
-    blue: 'text-blue',
-    muted: 'text-primary',
-  };
-  return (
-    <div className="bg-surface border border-border-subtle rounded-ui px-4 py-3">
-      <div className="text-[0.74rem] text-muted">{label}</div>
-      <div className={`[font-family:var(--font-display)] text-[1.25rem] font-bold mt-1 ${toneCls[tone]}`}>{value}</div>
-    </div>
-  );
-}
-
 // 토글 가능 위젯 셀 — on/off 상태 반영
 function WidgetCell({ on, children, center }: { on: boolean; children: ReactNode; center?: boolean }) {
   return (
@@ -711,7 +594,6 @@ function WidgetPreview({ widgets }: { widgets: WidgetPref[] }) {
       <div className="grid grid-cols-[2fr_1fr] gap-1.5 items-start">
         <div className="flex flex-col gap-1.5">
           <WidgetCell on={wp['recent-activity']}>🕐 최근 활동</WidgetCell>
-          <WidgetCell on={wp['ai-summary']}>🤖 AI 리포트 요약</WidgetCell>
           <AlwaysCell>💸 고정지출 예측</AlwaysCell>
         </div>
         <div className="flex flex-col gap-1.5">
@@ -722,7 +604,7 @@ function WidgetPreview({ widgets }: { widgets: WidgetPref[] }) {
 
       {/* 빠른 실행 — 전체 너비 4열 */}
       <div className="grid grid-cols-4 gap-1.5">
-        {['지출 기록', '계정 추가', '파일 업로드', 'AI 리포트'].map((l) => (
+        {['지출 기록', '계정 추가', '파일 업로드'].map((l) => (
           <WidgetCell key={l} on={wp['quick-actions']} center>{l}</WidgetCell>
         ))}
       </div>

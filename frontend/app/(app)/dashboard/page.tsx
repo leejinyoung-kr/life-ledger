@@ -10,9 +10,8 @@ import StatCard from '@/components/StatCard';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
-import { IconWon, IconLock, IconCube, IconUpload, IconRepeat, IconPie } from '@/components/icons';
+import { IconWon, IconLock, IconUpload, IconRepeat, IconPie } from '@/components/icons';
 import { won, usd, signedWon, type TransactionType } from '@/lib/finance';
-import { type AiReport, formatReportDate } from '@/lib/aiReport';
 
 type EvType = 'pay' | 'due' | 'exp' | 'task';
 interface Summary {
@@ -44,7 +43,6 @@ const QUICK_ACTIONS = [
   { icon: <IconWon width={17} height={17} />,    title: '지출 기록',   desc: '가계부에 추가',     href: '/transactions' },
   { icon: <IconLock width={17} height={17} />,   title: '계정 추가',   desc: 'ID/PW 저장',       href: '/credentials' },
   { icon: <IconUpload width={17} height={17} />, title: '파일 업로드', desc: '문서/이미지 보관',  href: '/files' },
-  { icon: <IconCube width={17} height={17} />,   title: 'AI 리포트',   desc: '소비 패턴 분석',    href: '/ai-report' },
 ];
 
 function ActivityRow({ dot, text, time }: { dot: 'green' | 'warning' | 'muted'; text: ReactNode; time: string }) {
@@ -61,7 +59,7 @@ function ActivityRow({ dot, text, time }: { dot: 'green' | 'warning' | 'muted'; 
 
 const DEFAULT_WIDGET_MAP: Record<string, boolean> = {
   'stat-cards': true, 'recent-activity': true,
-  'quick-actions': true, 'cred-count': false, 'ai-summary': true,
+  'quick-actions': true, 'cred-count': false,
 };
 
 export default function DashboardPage() {
@@ -86,10 +84,6 @@ export default function DashboardPage() {
   const credCountOn = wMap['cred-count'];
   const credQuery = useApiQuery<{ id: number }[]>(qk.credentials.list(), '/credentials', { enabled: credCountOn });
 
-  // AI 리포트 요약 위젯 — 켜진 경우에만 조회, 최신 리포트만 사용
-  const aiSummaryOn = wMap['ai-summary'];
-  const aiReportQuery = useApiQuery<AiReport[]>(qk.aiReports.list(), '/ai/reports', { enabled: aiSummaryOn });
-  const latestReport = aiReportQuery.data?.[0] ?? null;
   const credCount = credQuery.data ? credQuery.data.length : null;
 
   const stats = s
@@ -141,35 +135,6 @@ export default function DashboardPage() {
                 {s?.recent.map((r, i) => (
                   <ActivityRow key={i} dot={TX_DOT[r.type]} text={<><strong>{r.title}</strong> {signedWon(r.type, r.amount)}</>} time={r.date} />
                 ))}
-              </CardBody>
-            </Card>
-          )}
-
-          {wMap['ai-summary'] && (
-            <Card>
-              <CardHeader>
-                <CardTitle>🤖 AI 리포트 요약</CardTitle>
-                <Button href="/ai-report" variant="ghost" size="sm">전체 보기</Button>
-              </CardHeader>
-              <CardBody>
-                {latestReport ? (
-                  <>
-                    <p className="text-[0.75rem] text-muted mb-2">{latestReport.periodLabel} · {formatReportDate(latestReport.createdAt)}</p>
-                    <p className="text-[0.875rem] text-secondary leading-relaxed">{latestReport.summary}</p>
-                    {latestReport.insights.length > 0 && (
-                      <div className="flex flex-col gap-2 mt-3">
-                        {latestReport.insights.slice(0, 2).map((ins, i) => (
-                          <div key={i} className="flex gap-2.5 items-start px-3 py-2.5 bg-surface border border-border rounded-ui">
-                            <div className={`w-1.5 h-1.5 rounded-full shrink-0 mt-[6px] ${ins.tone === 'green' ? 'bg-accent' : ins.tone === 'danger' ? 'bg-danger' : 'bg-warning'}`} />
-                            <span className="text-[0.82rem] text-secondary leading-relaxed">{ins.text}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-[0.82rem] text-muted">AI 리포트 페이지에서 소비 패턴 분석 및 인사이트를 확인하세요.</p>
-                )}
               </CardBody>
             </Card>
           )}

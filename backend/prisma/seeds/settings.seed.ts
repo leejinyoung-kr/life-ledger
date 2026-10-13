@@ -1,9 +1,9 @@
 /**
  * 사용자 설정(UserSettings) 더미 — 1:1.
- * 기본값 + 샘플 API 키/표시이름을 채운다. user_id unique 라 기존 행 제거 후 재생성(idempotent).
+ * 기본값 + 표시이름을 채운다. user_id unique 라 기존 행 제거 후 재생성(idempotent).
  * 기본값은 src/settings/settings.defaults.ts 와 동일 — 시드 단독 실행을 위해 인라인 보관.
  */
-import { enc, type SeedFn } from './helpers';
+import type { SeedFn } from './helpers';
 
 const CATEGORIES = [
   { emoji: '☕', name: '식비' },
@@ -27,12 +27,9 @@ export const seedSettings: SeedFn = async (prisma, userId) => {
     data: {
       user_id: userId,
       display_name: '데모 사용자',
-      notif_monthly: true,
       notif_upload: false,
       session_expiry: '7d',
       pw_auto_hide: '10s',
-      openai_api_key: enc('sk-proj-demo-0000000000000000', 'userSettings.openai_api_key', userId),
-      openai_model: 'gpt-4o-mini',
       categories: CATEGORIES,
       widgets: WIDGETS,
     },

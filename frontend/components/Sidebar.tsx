@@ -12,7 +12,7 @@ import { normalizeMenuOrder, type Settings } from '@/lib/settings';
 import {
   IconLogo, IconGrid, IconChart, IconWon, IconRepeat, IconPie, IconFolder,
   IconLock, IconDoc, IconCalendar,
-  IconCube, IconSettings, IconShield, IconBell,
+  IconSettings, IconShield, IconBell,
   IconCaret, IconLogout, IconBars, IconClock,
 } from './icons';
 
@@ -60,14 +60,6 @@ const NAV_GROUPS: NavGroup[] = [
     icon: <IconDoc className={GROUP_IC} />,
     children: [
       { label: '캘린더', href: '/calendar', icon: <IconCalendar /> },
-    ],
-  },
-  {
-    key: 'insight',
-    label: '인사이트',
-    icon: <IconCube className={GROUP_IC} />,
-    children: [
-      { label: 'AI 리포트', href: '/ai-report', icon: <IconCube /> },
     ],
   },
   {
