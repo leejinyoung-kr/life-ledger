@@ -83,12 +83,11 @@
 | AI 리포트 제거 | 완료 | `openai` 의존성 제거. `crypto-audit` 테스트는 credential 컬럼으로 교체 — 평문 레거시(`legacyPlaintext`) 경로는 쓰는 컬럼이 없어졌지만 코드는 남김 |
 | 보안 센터 축소 | 완료 | /security = 로그인 기기/세션 · 보안 설정(`SecuritySettings`) · 최근 열람. 설정의 보안 탭 삭제 |
 | 설정 위젯 탭 · 메뉴 순서 · 대시보드 고정 | 완료 | 저장된 계정 수 카드는 항상 표시 |
-| DB 마이그레이션 | SQL 작성 완료, **미적용** | `20261013141800_remove_env_identity_ai_security_score_features` — 로컬 DB(13306)가 꺼져 있어 적용 · 확인은 아직. 앞쪽에 `access_log` · `category` 의 지울 enum 값 행 DELETE 가 들어 있다 |
+| DB 마이그레이션 | 로컬 적용 완료 | `20261013141800_remove_env_identity_ai_security_score_features` — 앞쪽에 `access_log` · `category` 의 지울 enum 값 행 DELETE 가 들어 있다. 운영은 `main` 배포 때 `migrate deploy` 로 |
 | 문서 갱신 | 완료 | `CLAUDE.md` · `architecture.md` · `erd.md` · `api.md` |
+| 로컬 화면 확인 | 완료 | 12개 화면 정상, 지운 4개 경로 404. 확인하다 캘린더 일정 수정 기능(백엔드 PUT 은 있고 화면이 없었다)과 시스템 로그 항목 이름 한글 표시를 같이 넣었다 |
 
 실제 규모: 화면 16 → 12, 테이블 33 → 25, 예약 작업 10 → 8(`ai-monthly-report` · `security-snapshot` 삭제).
-
-남은 일: `pnpm install`(lockfile 갱신) → 로컬 DB 에서 `prisma migrate dev` 로 적용 확인 → 화면 확인 → 운영 반영 전 `develop` → `main` 머지 순서 결정.
 
 ### 2. 이름 변경
 
@@ -99,10 +98,43 @@
   - JWT `iss`/`aud` 가 바뀌면 모든 기기가 한 번 다시 로그인한다.
   - 호스트명이 바뀌면 Google OAuth 리디렉션 URI 를 **사용자가** Google Cloud 콘솔에서 고쳐야 한다. 웹 푸시도 기기마다 다시 구독해야 한다.
 
+#### 2단계 진행 상황 (2026-10-13, `develop` — 코드 쪽 완료)
+
+코드 · 문서에서 바꾼 것:
+
+| 대상 | 바뀐 값 |
+| --- | --- |
+| 화면 이름 (로고 · 탭 제목 · PWA · 푸시 기본 제목 · 메일 · Swagger · 백업 ZIP 안내) | `DocNexus` → `LifeLedger`, 설명 "자산 · 구독 · 계정을 한곳에서 관리하는 개인 생활 장부" |
+| JWT `iss`/`aud` | `doc-nexus` → `life-ledger` (배포하면 모든 기기 다시 로그인) |
+| 쿠키 · localStorage 접두사 | `dn_` → `ll_` (`ll_refresh_token` · `ll_has_session` · `ll_recent_search`) |
+| 서비스 워커 캐시 | `docnexus-v2` → `life-ledger-v1` (활성화 때 옛 캐시는 지워진다) |
+| 백업 ZIP 파일 이름 | `life-ledger-backup.zip` |
+| compose 프로젝트 · Tailscale 호스트명 | `life-ledger` · `lifeledger` — **볼륨은 `doc-nexus_db_backups` · `doc-nexus_tailscale_state` 이름 그대로** 이어 쓴다(지난 백업 · 노드 정보를 옮기지 않으려고) |
+| 배포 워크플로 클론 경로 | `~/apps/life-ledger` |
+| Next 빌드 캐시 id | `nextjs-cache-life-ledger` (첫 빌드 한 번은 캐시 없이) |
+
+그대로 둔 것: DB · 사용자 `docnexus`, B2 버킷, 매일 DB 덤프 파일 접두사 `docnexus_`(DB 이름이라 맞다 — 바꾸면 지난 덤프가 보관 기간 정리에서 빠진다), 테스트 DB 이름.
+
+#### 이름 전환 절차 (`develop` → `main` 배포 때 한 번)
+
+compose 프로젝트 이름이 바뀌어 새 컨테이너(`life-ledger-*`)가 따로 뜬다. 옛 컨테이너(`doc-nexus-*`)가 루프백 3000 · 8000 을 잡고 있으면 `up -d` 가 실패하므로, push 직전에 옛 컨테이너를 내린다 — 빌드 시간(약 4분)만큼 서비스가 멈춘다.
+
+1. GitHub 레포 이름 `doc-nexus` → `life-ledger` (옛 주소는 자동 리다이렉트). 로컬 · 홈서버 클론의 `remote` 주소를 새 이름으로.
+2. **사용자**: Google Cloud 콘솔 OAuth 클라이언트에 `https://lifeledger.tailba78c1.ts.net/api/v1/auth/google/callback` 추가(옛 주소는 전환 확인 뒤 삭제).
+3. 홈서버:
+   - `~/apps/doc-nexus` → `~/apps/life-ledger` 로 옮긴다.
+   - 루트 `.env` · `backend/.env` 의 주소(`NEXT_PUBLIC_*` · `FRONTEND_URL` · `CORS_ORIGINS` · `GOOGLE_CALLBACK_URL`)를 `docnexus.tailba78c1` → `lifeledger.tailba78c1` 로 — 값은 출력하지 않고 치환 · 건수만 확인. `SMTP_FROM` 에 이름이 있으면 같이.
+   - push 직전 `docker compose -p doc-nexus down` (볼륨은 남는다).
+4. `develop` → `main` 머지 · push → 배포 워크플로가 새 경로에서 빌드 · 마이그레이션 · 기동.
+5. 확인: `https://lifeledger.tailba78c1.ts.net` 접속 · 로그인 · 보관함 열람(복호화) · `_meta` 의 `warn`. Tailscale 관리 화면에서 노드 이름이 `lifeledger` 로 바뀌었는지(관리 화면에서 이름을 손으로 고친 적이 있으면 안 바뀐다).
+6. 기기마다 다시 로그인 · 웹 푸시 다시 켜기.
+7. 정리: 러너 폴더 `~/runners/doc-nexus` → `~/runners/life-ledger` (**sudo 필요 — 사용자**, 순서는 infra README "러너 폴더를 옮길 때"), 로컬 폴더 `d:\develop\doc-nexus` → `life-ledger`(VS Code · 개발 서버를 닫고 **사용자**), 워크스페이스 `CLAUDE.md` · infra `README.md`(폴더 목록 · 외부 접속 표) 갱신.
+
 ### 3. 보안 화면 개편
 
 - '보안' 화면 하나로: 로그인 기기/세션 · 마스터 잠금 · 세션 만료 · 비밀번호 자동 숨김 · 최근 열람 기록.
 - 면접 소재: 비밀번호를 열어 보려면 잠금을 다시 풀어야 하고(`VaultGuard`), 그 열람이 감사 로그로 남는다.
+- 최근 열람 목록이 동작 코드를 그대로 보여 준다(`vault` · `vault_disable` · `export:backup` · `data_export` 등) — 한글 이름으로 바꾼다 (2026-10-13 로컬 확인 때 발견).
 
 ### 4. 디자인 개편
 
@@ -117,6 +149,8 @@
 - 같은 홈서버에 따로 띄운다: DB `<이름>_demo`(전용 사용자), 파일 저장소 분리(별도 버킷이나 접두사 + 용량 제한), 앱 전용 Tailscale 사이드카(호스트명 따로, Funnel 켬).
 - 로그인 화면의 "데모로 둘러보기" 버튼 — `DEMO_MODE=true` 일 때만 열리는 로그인 경로. 운영 인스턴스에서는 라우트 자체가 없게 한다.
 - 샘플 데이터: 기존 `prisma/seeds` 를 데모용으로 다듬고, 매일 새벽 초기화한다.
+  - 지금 시드는 2026-06 기준 고정 날짜라 이번 달 수입이 0원으로 나온다 — **실행한 날 기준 상대 날짜**로 바꾼다. 로컬 DB 도 이걸로 다시 넣는다(지운 기능의 옛 시스템 로그 '보안 점수 스냅샷' 행도 같이 사라진다).
+  - 대시보드 '활성 구독 13건'과 현금흐름 예측 '구독 15건'이 다르게 나온다 — 세는 기준(상태 · 주기)이 다른지 시드를 다시 넣은 뒤 확인한다.
 - 메일 · 웹 푸시 발송은 끈다.
 
 ### 6. 공개
