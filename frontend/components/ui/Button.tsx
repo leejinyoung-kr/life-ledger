@@ -13,11 +13,12 @@ const BASE =
   'inline-flex items-center justify-center gap-1.5 rounded-ui font-semibold whitespace-nowrap transition-all cursor-pointer [&_svg]:w-[15px] [&_svg]:h-[15px] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none';
 
 const VARIANT: Record<Variant, string> = {
-  primary: 'bg-accent text-white hover:bg-accent-dark hover:shadow-[0_0_0_3px_var(--accent-dim)]',
+  // 주 버튼은 채우지 않고 금빛 테두리 + 진한 금빛 글자 (판정 D2 — 금빛 글자는 대비가 모자라다)
+  primary: 'bg-accent-dim text-accent-dark border border-accent hover:bg-accent-hover',
   ghost: 'bg-transparent text-secondary border border-border font-medium hover:bg-surface hover:text-primary',
   danger: 'bg-danger-dim text-danger hover:bg-danger/15',
-  'solid-danger': 'bg-danger text-white border border-danger font-semibold hover:bg-danger-dark hover:border-danger-dark',
-  link: 'bg-transparent text-accent font-medium hover:opacity-70',
+  'solid-danger': 'bg-danger text-on-solid border border-danger font-semibold hover:bg-danger-dark hover:border-danger-dark',
+  link: 'bg-transparent text-accent-dark font-medium hover:opacity-70',
 };
 
 const SIZE: Record<Size, string> = {
