@@ -226,6 +226,7 @@ docker compose exec backend npx prisma migrate deploy
 
 ## 참고 문서
 
+- [docs/planning.md](docs/planning.md) — 화면 기획(디자인 개편용 — 화면별 데이터·동작·바라는 점)
 - [docs/architecture.md](docs/architecture.md) — 구조·모듈
 - [docs/erd.md](docs/erd.md) — DB 엔티티 정의
 - [docs/api.md](docs/api.md) — API 명세
