@@ -9,3 +9,6 @@ coverage/
 *.log
 prisma/migrations/
 generated/
+
+# Claude 디자인에 넣는 현재 화면 캡처 (다시 찍을 수 있어 레포에 두지 않는다)
+docs/design/capture/
