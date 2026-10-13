@@ -1,7 +1,6 @@
 /**
- * 설정 공통 타입 · 라벨/순서 맵.
- * 백엔드 응답 DTO(GET /settings)와 1:1 대응한다. 위젯 프레젠테이션 메타(아이콘 등)는
- * JSX 가 필요하므로 page.tsx 에 두고, 여기서는 데이터 형태만 다룬다.
+ * 설정 공통 타입 · 선택지 라벨.
+ * 백엔드 응답 DTO(GET /settings)와 1:1 대응한다.
  */
 
 export interface SettingsUser {
@@ -15,11 +14,6 @@ export interface Category {
   name: string;
 }
 
-export interface WidgetPref {
-  id: string;
-  on: boolean;
-}
-
 export interface Settings {
   user: SettingsUser;
   displayName: string;
@@ -30,25 +24,6 @@ export interface Settings {
   sessionExpiry: string; // 7d|1d|12h|none
   pwAutoHide: string; // 10s|30s|1m|none
   categories: Category[];
-  widgets: WidgetPref[];
-  menuOrder: string[] | null; // 사이드바 1차 메뉴 순서 (key 배열). null=기본
-}
-
-// 사이드바 1차 메뉴 키 ↔ 라벨 (기본 순서 = 배열 순서). Sidebar·설정 공유
-export const MENU_ITEMS: { key: string; label: string }[] = [
-  { key: 'dashboard', label: '대시보드' },
-  { key: 'finance', label: '금융' },
-  { key: 'vault', label: '보관함' },
-  { key: 'tools', label: '도구' },
-  { key: 'system', label: '시스템' },
-];
-export const DEFAULT_MENU_ORDER = MENU_ITEMS.map((m) => m.key);
-
-// 저장된 순서를 기본 순서에 맞춰 정규화 — 알 수 없는 키 제거 + 누락 키는 기본 위치로 보강
-export function normalizeMenuOrder(order: string[] | null | undefined): string[] {
-  const valid = (order ?? []).filter((k) => DEFAULT_MENU_ORDER.includes(k));
-  const missing = DEFAULT_MENU_ORDER.filter((k) => !valid.includes(k));
-  return [...valid, ...missing];
 }
 
 export const SESSION_EXPIRY_OPTIONS: { value: string; label: string }[] = [

@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 
 // 부분 수정 — 각 설정 섹션의 저장 버튼이 자신이 바꾼 필드만 보낸다.
-// categories/widgets 는 JSON 컬럼이라 형태만 검증(deep validation 생략).
+// categories 는 JSON 컬럼이라 형태만 검증(deep validation 생략).
 export class UpdateSettingsDto {
   @IsOptional()
   @IsString()
@@ -43,15 +43,4 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsArray()
   categories?: { emoji: string; name: string }[];
-
-  // [{ id, on }] — 배열 순서가 표시 순서
-  @IsOptional()
-  @IsArray()
-  widgets?: { id: string; on: boolean }[];
-
-  // 사이드바 1차 메뉴 순서 (key 배열)
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  menuOrder?: string[];
 }

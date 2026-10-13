@@ -24,7 +24,6 @@ describe('VaultService (마스터 잠금)', () => {
       master_lock_hash: null,
       master_lock_timeout: 5,
       categories: {},
-      widgets: {},
     };
     jest.clearAllMocks();
   });

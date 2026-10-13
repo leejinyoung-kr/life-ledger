@@ -7,8 +7,6 @@
  */
 import { useState, type ReactNode } from 'react';
 import { useApiQuery } from '@/lib/query';
-import { qk } from '@/lib/queryKeys';
-import { normalizeMenuOrder, type Settings } from '@/lib/settings';
 import {
   IconLogo, IconGrid, IconChart, IconWon, IconRepeat, IconPie, IconFolder,
   IconLock, IconDoc, IconCalendar,
@@ -31,8 +29,8 @@ interface NavGroup {
 
 const GROUP_IC = 'w-[17px] h-[17px] shrink-0';
 
-// 대시보드(단일) + 그룹 메뉴 정의. key 는 1차 메뉴 순서 식별자(lib/settings MENU_ITEMS 와 일치).
-const TOP_LINK: NavLeaf & { key: string } = { key: 'dashboard', label: '대시보드', href: '/dashboard', icon: <IconGrid /> };
+// 대시보드(단일) + 그룹 메뉴 정의. 표시 순서는 고정 — 대시보드, 그다음 NAV_GROUPS 배열 순서.
+const TOP_LINK: NavLeaf = { label: '대시보드', href: '/dashboard', icon: <IconGrid /> };
 
 const NAV_GROUPS: NavGroup[] = [
   {
@@ -76,8 +74,6 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-const GROUP_BY_KEY: Record<string, NavGroup> = Object.fromEntries(NAV_GROUPS.map((g) => [g.key, g]));
-
 // nav-link 공통 클래스 (leaf 아이콘 17px 자동 사이즈)
 const NAV_LINK = 'flex items-center gap-2.5 px-2.5 py-2 rounded-ui text-[0.875rem] font-medium transition-colors [&_svg]:w-[17px] [&_svg]:h-[17px] [&_svg]:shrink-0';
 
@@ -93,11 +89,8 @@ interface SidebarProps {
 interface MeUser { name: string; email: string }
 
 export default function Sidebar({ activePath = '/dashboard', open = false, onLogout }: SidebarProps) {
-  // 로그인 사용자 + 설정(메뉴 순서) — React Query 캐시 구독.
-  // 설정 저장 시 ['settings'] 캐시가 갱신되므로 별도 window 이벤트 없이 사이드바가 자동 반영된다.
+  // 로그인 사용자 — React Query 캐시 구독
   const me = useApiQuery<MeUser>(['auth', 'me'], '/auth/me').data ?? null;
-  const settingsQuery = useApiQuery<Settings>(qk.settings.detail(), '/settings');
-  const menuOrder = normalizeMenuOrder(settingsQuery.data?.menuOrder ?? null);
 
   const name = me?.name || '사용자';
   const email = me?.email || '';
@@ -110,20 +103,15 @@ export default function Sidebar({ activePath = '/dashboard', open = false, onLog
         Doc<span className="text-accent">Nexus</span>
       </div>
 
-      {/* 네비게이션 — menuOrder 순서대로 1차 메뉴 렌더 (대시보드=링크, 나머지=접이식 그룹) */}
+      {/* 네비게이션 — 대시보드(링크) + 접이식 그룹을 고정 순서로 렌더 */}
       <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-y-auto">
-        {menuOrder.map((key) => {
-          if (key === TOP_LINK.key) {
-            return (
-              <a key={key} href={TOP_LINK.href} className={`${NAV_LINK} ${activePath === TOP_LINK.href ? 'bg-accent-dim text-accent font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`}>
-                {TOP_LINK.icon}
-                {TOP_LINK.label}
-              </a>
-            );
-          }
-          const group = GROUP_BY_KEY[key];
-          return group ? <NavGroupItem key={key} group={group} activePath={activePath} /> : null;
-        })}
+        <a href={TOP_LINK.href} className={`${NAV_LINK} ${activePath === TOP_LINK.href ? 'bg-accent-dim text-accent font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`}>
+          {TOP_LINK.icon}
+          {TOP_LINK.label}
+        </a>
+        {NAV_GROUPS.map((group) => (
+          <NavGroupItem key={group.key} group={group} activePath={activePath} />
+        ))}
       </nav>
 
       {/* 하단 사용자 정보 + 로그아웃 — 모바일에선 BottomNav(z-[100], 동일 영역)에 가려지지 않도록 위로 띄움 */}

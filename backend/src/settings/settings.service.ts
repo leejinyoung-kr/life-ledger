@@ -3,7 +3,7 @@ import { Prisma, UserSettings } from '@prisma/client';
 import type { AuthUser } from '../auth/auth-user';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
-import { DEFAULT_CATEGORIES, DEFAULT_WIDGETS } from './settings.defaults';
+import { DEFAULT_CATEGORIES } from './settings.defaults';
 
 @Injectable()
 export class SettingsService {
@@ -17,7 +17,6 @@ export class SettingsService {
       data: {
         user_id: userId,
         categories: DEFAULT_CATEGORIES,
-        widgets: DEFAULT_WIDGETS,
       },
     });
   }
@@ -34,8 +33,6 @@ export class SettingsService {
       sessionExpiry: s.session_expiry,
       pwAutoHide: s.pw_auto_hide,
       categories: s.categories,
-      widgets: s.widgets,
-      menuOrder: s.menu_order ?? null,
     };
   }
 
@@ -58,8 +55,6 @@ export class SettingsService {
       session_expiry: dto.sessionExpiry,
       pw_auto_hide: dto.pwAutoHide,
       categories: dto.categories as Prisma.InputJsonValue,
-      widgets: dto.widgets as Prisma.InputJsonValue,
-      menu_order: dto.menuOrder as Prisma.InputJsonValue,
     };
     const updated = await this.prisma.userSettings.update({
       where: { user_id: user.id },

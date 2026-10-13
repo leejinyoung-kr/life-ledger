@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, HttpException, HttpStatus, Inj
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { DEFAULT_CATEGORIES, DEFAULT_WIDGETS } from '../settings/settings.defaults';
+import { DEFAULT_CATEGORIES } from '../settings/settings.defaults';
 import { AccessLogService } from '../access-log/access-log.service';
 import type { ClientInfo } from '@leejinyoung-kr/core-logging';
 import { MIN_MASTER_PASSWORD } from './dto/vault.dto';
@@ -46,7 +46,6 @@ export class VaultService {
       data: {
         user_id: userId,
         categories: DEFAULT_CATEGORIES,
-        widgets: DEFAULT_WIDGETS,
       },
     });
   }

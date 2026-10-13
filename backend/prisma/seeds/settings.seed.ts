@@ -12,13 +12,6 @@ const CATEGORIES = [
   { emoji: '🛒', name: '쇼핑' },
   { emoji: '💰', name: '급여' },
 ];
-const WIDGETS = [
-  { id: 'stat-cards', on: true },
-  { id: 'recent-activity', on: true },
-  { id: 'quick-actions', on: true },
-  { id: 'cred-count', on: false },
-  { id: 'ai-summary', on: false },
-];
 
 // 한 사용자에게 설정 더미를 채운다 (기존 행 제거 후 재생성 → idempotent)
 export const seedSettings: SeedFn = async (prisma, userId) => {
@@ -31,7 +24,6 @@ export const seedSettings: SeedFn = async (prisma, userId) => {
       session_expiry: '7d',
       pw_auto_hide: '10s',
       categories: CATEGORIES,
-      widgets: WIDGETS,
     },
   });
   return 1;

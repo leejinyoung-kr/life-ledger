@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
@@ -57,33 +57,18 @@ function ActivityRow({ dot, text, time }: { dot: 'green' | 'warning' | 'muted'; 
   );
 }
 
-const DEFAULT_WIDGET_MAP: Record<string, boolean> = {
-  'stat-cards': true, 'recent-activity': true,
-  'quick-actions': true, 'cred-count': false,
-};
-
 export default function DashboardPage() {
   // 대시보드 데이터 (React Query 캐시 — 페이지 재진입 시 재조회 최소화)
   const summaryQuery = useApiQuery<Summary>(qk.dashboard.summary(), '/dashboard/summary');
   const forecastQuery = useApiQuery<Forecast>(qk.dashboard.forecast(), '/dashboard/cashflow-forecast');
   const deadlinesQuery = useApiQuery<Deadline[]>(qk.dashboard.deadlines(), '/dashboard/deadlines');
-  const settingsQuery = useApiQuery<{ widgets: { id: string; on: boolean }[] }>(qk.settings.detail(), '/settings');
 
   const s = summaryQuery.data ?? null;
   const forecast = forecastQuery.data ?? null;
   const deadlines = deadlinesQuery.data ?? [];
 
-  // 위젯 표시여부 맵 (설정에서 파생)
-  const wMap = useMemo(() => {
-    const map: Record<string, boolean> = { ...DEFAULT_WIDGET_MAP };
-    settingsQuery.data?.widgets.forEach((w) => { map[w.id] = w.on; });
-    return map;
-  }, [settingsQuery.data]);
-
-  // 저장된 계정 수 위젯 — 켜진 경우에만 조회
-  const credCountOn = wMap['cred-count'];
-  const credQuery = useApiQuery<{ id: number }[]>(qk.credentials.list(), '/credentials', { enabled: credCountOn });
-
+  // 저장된 계정 수 카드
+  const credQuery = useApiQuery<{ id: number }[]>(qk.credentials.list(), '/credentials');
   const credCount = credQuery.data ? credQuery.data.length : null;
 
   const stats = s
@@ -108,36 +93,32 @@ export default function DashboardPage() {
       )}
 
       {/* 현황 카드 — 항상 전체 너비 */}
-      {wMap['stat-cards'] && (
-        <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-8">
-          {stats.map((st) => (
-            <StatCard key={st.label} icon={st.icon} tone={st.tone} value={st.value} valueAccent={st.valueAccent} label={st.label} change={st.change} changeDir={st.changeDir} />
-          ))}
-          {wMap['cred-count'] && credCount !== null && (
-            <StatCard icon={<IconLock />} tone="red" value={`${credCount}개`} label="저장된 계정" change="계정 보관함" changeDir="neutral" />
-          )}
-        </div>
-      )}
+      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-8">
+        {stats.map((st) => (
+          <StatCard key={st.label} icon={st.icon} tone={st.tone} value={st.value} valueAccent={st.valueAccent} label={st.label} change={st.change} changeDir={st.changeDir} />
+        ))}
+        {credCount !== null && (
+          <StatCard icon={<IconLock />} tone="red" value={`${credCount}개`} label="저장된 계정" change="계정 보관함" changeDir="neutral" />
+        )}
+      </div>
 
       {/* PC: 메인(좌) + 사이드바(우) 2-컬럼 / 모바일: 단일 컬럼 */}
       <div className="grid min-[1100px]:grid-cols-[1fr_300px] gap-6 items-start">
 
         {/* ── 좌: 메인 피드 ── */}
         <div className="flex flex-col gap-6">
-          {wMap['recent-activity'] && (
-            <Card>
-              <CardHeader>
-                <CardTitle>최근 활동</CardTitle>
-                <Badge tone="success">{s?.recent.length ?? 0}건</Badge>
-              </CardHeader>
-              <CardBody compact>
-                {s && s.recent.length === 0 && <div className="py-2.5 text-muted text-[0.84rem]">최근 활동이 없습니다.</div>}
-                {s?.recent.map((r, i) => (
-                  <ActivityRow key={i} dot={TX_DOT[r.type]} text={<><strong>{r.title}</strong> {signedWon(r.type, r.amount)}</>} time={r.date} />
-                ))}
-              </CardBody>
-            </Card>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle>최근 활동</CardTitle>
+              <Badge tone="success">{s?.recent.length ?? 0}건</Badge>
+            </CardHeader>
+            <CardBody compact>
+              {s && s.recent.length === 0 && <div className="py-2.5 text-muted text-[0.84rem]">최근 활동이 없습니다.</div>}
+              {s?.recent.map((r, i) => (
+                <ActivityRow key={i} dot={TX_DOT[r.type]} text={<><strong>{r.title}</strong> {signedWon(r.type, r.amount)}</>} time={r.date} />
+              ))}
+            </CardBody>
+          </Card>
 
           {forecast && (forecast.subscriptions.count > 0 || forecast.recurring.count > 0) && (
             <Card>
@@ -207,30 +188,28 @@ export default function DashboardPage() {
       </div>
 
       {/* 빠른 실행 — 전체 너비, 맨 아래 */}
-      {wMap['quick-actions'] && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>빠른 실행</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4">
-              {QUICK_ACTIONS.map((q) => (
-                <a
-                  key={q.title}
-                  href={q.href}
-                  className="flex flex-col items-center text-center gap-2 px-3 py-4 min-[1100px]:flex-row min-[1100px]:text-left min-[1100px]:gap-3 min-[1100px]:px-4 min-[1100px]:py-3.5 border border-border rounded-ui bg-background transition-all hover:border-accent hover:bg-accent-dim hover:shadow-card"
-                >
-                  <div className="w-9 h-9 rounded-ui bg-surface border border-border flex items-center justify-center text-accent shrink-0">{q.icon}</div>
-                  <div>
-                    <div className="text-[0.78rem] font-semibold text-primary">{q.title}</div>
-                    <div className="text-[0.68rem] text-muted mt-px">{q.desc}</div>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
-      )}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>빠른 실행</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4">
+            {QUICK_ACTIONS.map((q) => (
+              <a
+                key={q.title}
+                href={q.href}
+                className="flex flex-col items-center text-center gap-2 px-3 py-4 min-[1100px]:flex-row min-[1100px]:text-left min-[1100px]:gap-3 min-[1100px]:px-4 min-[1100px]:py-3.5 border border-border rounded-ui bg-background transition-all hover:border-accent hover:bg-accent-dim hover:shadow-card"
+              >
+                <div className="w-9 h-9 rounded-ui bg-surface border border-border flex items-center justify-center text-accent shrink-0">{q.icon}</div>
+                <div>
+                  <div className="text-[0.78rem] font-semibold text-primary">{q.title}</div>
+                  <div className="text-[0.68rem] text-muted mt-px">{q.desc}</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </CardBody>
+      </Card>
     </AppShell>
   );
 }

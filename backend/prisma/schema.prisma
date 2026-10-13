@@ -325,8 +325,6 @@ model UserSettings {
   master_lock_hash    String?  @db.VarChar(200) /// 마스터 비번 해시 (scrypt: saltHex:hashHex)
   master_lock_timeout Int      @default(5) /// 자동잠금 시간(분). 0=수동 잠금만
   categories          Json /// [{emoji, name}]
-  widgets             Json /// [{id, on}] (배열 순서 = 표시 순서)
-  menu_order          Json? /// 사이드바 1차 메뉴 순서 (key 배열). null=기본순서
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 

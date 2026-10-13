@@ -11,12 +11,3 @@ export const DEFAULT_CATEGORIES: { emoji: string; name: string }[] = [
   { emoji: '🛒', name: '쇼핑' },
   { emoji: '💰', name: '급여' },
 ];
-
-// 대시보드 위젯 표시/순서 (배열 순서 = 표시 순서)
-export const DEFAULT_WIDGETS: { id: string; on: boolean }[] = [
-  { id: 'stat-cards', on: true },
-  { id: 'recent-activity', on: true },
-  { id: 'quick-actions', on: true },
-  { id: 'cred-count', on: false },
-  { id: 'ai-summary', on: false },
-];

@@ -2,11 +2,10 @@
 
 /**
  * 설정 페이지.
- * 좌측 탭(프로필/위젯/데이터)으로 분기하며,
- * 토글·위젯 드래그 정렬을 지원한다. 데이터는 백엔드 API(/settings)와 연동한다.
+ * 좌측 탭(프로필/데이터)으로 분기한다. 데이터는 백엔드 API(/settings)와 연동한다.
  * 스타일: Tailwind + 공통 컴포넌트(Button/Badge/Toggle).
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { notify } from '@/lib/toast';
 import { eulreul } from '@/lib/korean';
@@ -22,44 +21,17 @@ import { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
-import { IconWon, IconClock, IconZap, IconLock, IconDrag } from '@/components/icons';
 import { api, apiDownload, setAccessToken } from '@/lib/api';
 import { isPushSupported, fetchPushStatus, getCurrentSubscription, enablePush, disablePush, sendTestPush } from '@/lib/push';
-import {
-  MENU_ITEMS, DEFAULT_MENU_ORDER, normalizeMenuOrder,
-  type Settings, type WidgetPref,
-} from '@/lib/settings';
+import type { Settings } from '@/lib/settings';
 import { SettingGroup, SettingRow } from '@/components/SettingGroup';
 import { useSettingsPatch } from '@/lib/useSettingsPatch';
 
-// 메뉴 key → 라벨
-const MENU_LABEL: Record<string, string> = Object.fromEntries(MENU_ITEMS.map((m) => [m.key, m.label]));
-
-type TabId = 'profile' | 'widgets' | 'data';
+type TabId = 'profile' | 'data';
 const TABS: { id: TabId; label: string }[] = [
   { id: 'profile', label: '프로필' },
-  { id: 'widgets', label: '위젯 설정' },
   { id: 'data', label: '데이터' },
 ];
-
-// 위젯 프레젠테이션 메타 (아이콘/설명/색 — 표시·순서 선호값은 서버에서 옴)
-interface WidgetMeta { name: string; desc: string; tone: string; icon: ReactNode; emoji: string; short: string; }
-const WIDGET_META: Record<string, WidgetMeta> = {
-  'stat-cards': { name: '수입/지출 요약 카드', desc: '이번 달 수입, 지출, 잔액을 한눈에 표시', tone: 'green', icon: <IconWon width={16} height={16} />, emoji: '📊', short: '수입/지출 요약' },
-  'recent-activity': { name: '최근 활동', desc: '가계부 추가, 파일 업로드 등 최근 액션 목록', tone: 'blue', icon: <IconClock width={16} height={16} />, emoji: '🕐', short: '최근 활동' },
-  'quick-actions': { name: '빠른 실행', desc: '지출 추가, 파일 업로드 등 자주 쓰는 액션 단축', tone: 'muted', icon: <IconZap width={16} height={16} />, emoji: '⚡', short: '빠른 실행' },
-  'cred-count': { name: '저장된 계정 수', desc: '계정 보관함 총 개수 및 최근 추가 항목', tone: 'red', icon: <IconLock width={16} height={16} />, emoji: '🔐', short: '계정 수' },
-};
-const DEFAULT_WIDGETS: WidgetPref[] = [
-  { id: 'stat-cards', on: true }, { id: 'recent-activity', on: true },
-  { id: 'quick-actions', on: true }, { id: 'cred-count', on: false },
-];
-
-// 위젯 아이콘 배경색 (tone → Tailwind)
-const WIDGET_ICON_BG: Record<string, string> = {
-  green: 'bg-accent-dim text-accent', amber: 'bg-amber-dim text-amber', blue: 'bg-blue-dim text-blue',
-  red: 'bg-danger-dim text-danger', muted: 'bg-elevated text-secondary', accent: 'bg-accent-dim text-accent',
-};
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -110,9 +82,6 @@ export default function SettingsPage() {
 
   // 로컬 편집 상태 (입력 중 값 — 저장 버튼으로 커밋)
   const [displayName, setDisplayName] = useState('');
-  const [widgets, setWidgets] = useState<WidgetPref[]>(DEFAULT_WIDGETS);
-  const [menuOrder, setMenuOrder] = useState<string[]>(DEFAULT_MENU_ORDER);
-  const [menuDragId, setMenuDragId] = useState<string | null>(null);
 
   // 웹 푸시 — 브라우저/권한 기반(설정 DTO 아님). serverReady=서버 VAPID 활성, on=현재 구독중
   const [pushSupported, setPushSupported] = useState(false);
@@ -176,8 +145,6 @@ export default function SettingsPage() {
     if (!data) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 설정 데이터 로드 시 편집 상태 동기화
     setDisplayName(data.displayName);
-    setWidgets(data.widgets.length ? data.widgets : DEFAULT_WIDGETS);
-    setMenuOrder(normalizeMenuOrder(data.menuOrder));
   }, [settingsQuery.data]);
 
   // 부분 저장 — 변경 필드만 PUT, 응답으로 서버 상태 동기화
@@ -206,42 +173,9 @@ export default function SettingsPage() {
     patch({ [key]: next }, `${label}${eulreul(label)} ${next ? '켰습니다.' : '껐습니다.'}`);
   };
 
-  // 위젯 표시 토글 — 즉시 저장
-  async function handleToggleWidget(id: string) {
-    const next = widgets.map((w) => (w.id === id ? { ...w, on: !w.on } : w));
-    setWidgets(next);
-    const toggled = next.find((w) => w.id === id);
-    const label = WIDGET_META[id]?.name ?? '위젯';
-    await patch({ widgets: next }, `${label}${eulreul(label)} ${toggled?.on ? '켰습니다.' : '껐습니다.'}`);
-  }
-
-  // 드래그한 1차 메뉴를 대상 위치로 재배치 (로컬)
-  function handleMenuDrop(targetKey: string) {
-    if (!menuDragId || menuDragId === targetKey) return;
-    setMenuOrder((prev) => {
-      const arr = [...prev];
-      const from = arr.indexOf(menuDragId);
-      const to = arr.indexOf(targetKey);
-      const [moved] = arr.splice(from, 1);
-      arr.splice(to, 0, moved);
-      return arr;
-    });
-    setMenuDragId(null);
-  }
-
-  // 메뉴 순서 저장 → patch 가 ['settings'] 캐시를 갱신하면 사이드바(useQuery)가 자동 반영
-  async function handleSaveMenuOrder() {
-    await patch({ menuOrder });
-  }
-
-  // 메뉴 순서 기본값으로 초기화 (로컬)
-  function handleResetMenuOrder() {
-    setMenuOrder([...DEFAULT_MENU_ORDER]);
-  }
-
   return (
     <AppShell activePath="/settings" topbarLabel="설정">
-      <PageHeader title="설정" description="계정, 알림, 대시보드 위젯 등을 관리합니다." />
+      <PageHeader title="설정" description="계정, 알림, 데이터 백업 등을 관리합니다." />
 
       <ErrorBanner message={error} />
 
@@ -313,61 +247,6 @@ export default function SettingsPage() {
             </>
           )}
 
-          {/* ── 위젯 설정 ── */}
-          {tab === 'widgets' && (
-            <>
-              <SettingGroup title="대시보드 위젯 표시 설정">
-                <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">표시할 위젯을 켜고 끌 수 있습니다.</p>
-                {widgets.map((w) => {
-                  const meta = WIDGET_META[w.id];
-                  if (!meta) return null;
-                  return (
-                    <div
-                      key={w.id}
-                      className="flex items-center gap-3.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface"
-                    >
-                      <div className={`w-9 h-9 rounded-ui flex items-center justify-center shrink-0 ${WIDGET_ICON_BG[meta.tone]}`}>{meta.icon}</div>
-                      <div className="flex-1">
-                        <div className="text-[0.875rem] font-medium text-primary">{meta.name}</div>
-                        <div className={`text-[0.775rem] mt-0.5 ${w.on ? 'text-muted' : 'text-danger'}`}>{w.on ? meta.desc : '숨겨짐 · 대시보드에 표시되지 않습니다'}</div>
-                      </div>
-                      <Toggle on={w.on} onToggle={() => handleToggleWidget(w.id)} />
-                    </div>
-                  );
-                })}
-              </SettingGroup>
-
-              <SettingGroup title="위젯 미리보기">
-                <div className="px-5 py-4">
-                  <WidgetPreview widgets={widgets} />
-                </div>
-                <div className="px-5 pt-2 pb-3 text-[0.82rem] text-muted">토글 변경 시 대시보드에 즉시 반영됩니다.</div>
-              </SettingGroup>
-
-              <SettingGroup title="사이드바 메뉴 순서">
-                <p className="px-5 pt-3 pb-1 text-[0.82rem] text-muted">1차 메뉴(그룹)의 표시 순서를 드래그로 변경합니다. 저장 시 사이드바에 즉시 반영됩니다.</p>
-                {menuOrder.map((key) => (
-                  <div
-                    key={key}
-                    className="flex items-center gap-3.5 px-5 py-3 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface"
-                    draggable
-                    onDragStart={() => setMenuDragId(key)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => handleMenuDrop(key)}
-                  >
-                    <span className="text-muted cursor-grab active:cursor-grabbing shrink-0 flex"><IconDrag width={14} height={14} /></span>
-                    <div className="flex-1 text-[0.875rem] font-medium text-primary">{MENU_LABEL[key] ?? key}</div>
-                  </div>
-                ))}
-              </SettingGroup>
-
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={handleResetMenuOrder}>초기화</Button>
-                <Button onClick={handleSaveMenuOrder}>메뉴 순서 저장</Button>
-              </div>
-            </>
-          )}
-
           {/* ── 데이터 ── */}
           {tab === 'data' && (
             <>
@@ -406,66 +285,5 @@ export default function SettingsPage() {
       </div>
       {confirmElement}
     </AppShell>
-  );
-}
-
-// 토글 가능 위젯 셀 — on/off 상태 반영
-function WidgetCell({ on, children, center }: { on: boolean; children: ReactNode; center?: boolean }) {
-  return (
-    <div className={`bg-background border rounded-ui px-2 py-1.5 text-[0.68rem] whitespace-nowrap overflow-hidden text-ellipsis transition-all
-      ${on ? 'border-border text-secondary' : 'border-border-subtle text-muted opacity-40 line-through'}
-      ${center ? 'text-center' : ''}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-// 항상 표시되는 셀 (데이터 조건부)
-function AlwaysCell({ children }: { children: ReactNode }) {
-  return (
-    <div className="bg-surface border border-dashed border-border rounded-ui px-2 py-1.5 text-[0.68rem] text-muted whitespace-nowrap overflow-hidden text-ellipsis">
-      {children}
-    </div>
-  );
-}
-
-// 대시보드 실제 레이아웃(2-컬럼)을 미니맵으로 표현
-function WidgetPreview({ widgets }: { widgets: WidgetPref[] }) {
-  const wp = Object.fromEntries(widgets.map((w) => [w.id, w.on]));
-
-  return (
-    <div className="border border-border rounded-panel bg-surface p-3 flex flex-col gap-2 select-none">
-      {/* 현황 카드 — 전체 너비 4열 */}
-      <div className="grid grid-cols-4 gap-1.5">
-        {['지출', '수입', '순자산', '구독'].map((l) => (
-          <WidgetCell key={l} on={wp['stat-cards']} center>{l}</WidgetCell>
-        ))}
-      </div>
-
-      {/* 2-컬럼: 좌(메인) + 우(사이드바) */}
-      <div className="grid grid-cols-[2fr_1fr] gap-1.5 items-start">
-        <div className="flex flex-col gap-1.5">
-          <WidgetCell on={wp['recent-activity']}>🕐 최근 활동</WidgetCell>
-          <AlwaysCell>💸 고정지출 예측</AlwaysCell>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <AlwaysCell>⏳ 만료·마감</AlwaysCell>
-          <AlwaysCell>📅 다가오는 일정</AlwaysCell>
-        </div>
-      </div>
-
-      {/* 빠른 실행 — 전체 너비 4열 */}
-      <div className="grid grid-cols-4 gap-1.5">
-        {['지출 기록', '계정 추가', '파일 업로드'].map((l) => (
-          <WidgetCell key={l} on={wp['quick-actions']} center>{l}</WidgetCell>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-3 pt-1 text-[0.62rem] text-muted">
-        <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-[2px] border border-border bg-background" /> 토글 위젯</span>
-        <span className="flex items-center gap-1"><span className="inline-block w-2.5 h-2.5 rounded-[2px] border border-dashed border-border bg-surface" /> 항상 표시</span>
-      </div>
-    </div>
   );
 }
