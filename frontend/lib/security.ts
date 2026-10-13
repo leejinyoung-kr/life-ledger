@@ -16,8 +16,10 @@ export interface LoginSession {
   lastActiveAt: string; // ISO
 }
 
-// 접근 감사 로그 동작
-export type AccessAction = 'cred_reveal' | 'cred_totp' | 'cred_backup';
+// 접근 감사 로그 동작 (백엔드 enum AccessAction 과 같다)
+export type AccessAction =
+  | 'cred_reveal' | 'cred_totp' | 'cred_backup' | 'backup_codes_generate'
+  | 'vault_unlock' | 'vault_disable' | 'session_revoke' | 'data_export';
 
 export interface AccessLogEntry {
   id: number;
@@ -40,7 +42,27 @@ export const ACCESS_ACTION_META: Record<AccessAction, { label: string; icon: str
   cred_reveal: { label: '비밀번호 열람', icon: '🔑' },
   cred_totp: { label: '2FA 코드 생성', icon: '🔢' },
   cred_backup: { label: '백업코드 열람', icon: '🧾' },
+  backup_codes_generate: { label: '백업코드 생성', icon: '🧾' },
+  vault_unlock: { label: '잠금 풀기', icon: '🔓' },
+  vault_disable: { label: '마스터 잠금 해제', icon: '🔐' },
+  session_revoke: { label: '기기 로그아웃', icon: '🚪' },
+  data_export: { label: '데이터 내보내기', icon: '📦' },
 };
+
+// 계정이 아닌 동작은 대상 이름에 내부 코드가 들어간다(vault · export:backup · all:3) → 읽을 수 있는 이름으로
+export function accessTargetLabel(action: AccessAction, targetName: string): string {
+  if (targetName === 'vault') return '마스터 잠금';
+  if (targetName === 'export:backup') return '전체 백업 ZIP';
+  if (targetName === 'export:credentials') return '계정 JSON';
+  if (targetName === 'export:credentials-xlsx') return '계정 엑셀';
+  if (action === 'session_revoke' && targetName.startsWith('all:')) return `다른 기기 ${targetName.slice(4)}대`;
+  return targetName;
+}
+
+// 루프백 주소는 이 기기에서 접속한 것 — 화면에는 주소 대신 '이 기기'
+export function accessIpLabel(ip: string): string {
+  return ['::1', '127.0.0.1', '::ffff:127.0.0.1'].includes(ip) ? '이 기기' : ip;
+}
 
 // 기기 종류 → 아이콘
 export const DEVICE_ICON: Record<SessionDeviceType, string> = {

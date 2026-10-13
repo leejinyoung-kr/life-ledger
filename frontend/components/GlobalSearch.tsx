@@ -3,7 +3,7 @@
 /**
  * 공통 통합 검색.
  * 헤더엔 돋보기 아이콘 트리거만 두고, 클릭/⌘K(Ctrl+K) 시 중앙 모달 팔레트를 띄운다.
- * 가계부/계정/파일을 한 입력창에서 검색하고 타입별로 그룹핑해 보여준다. Esc 로 닫기.
+ * 가계부/계정을 한 입력창에서 검색하고 타입별로 그룹핑해 보여준다. Esc 로 닫기.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useApiQuery } from '@/lib/query';

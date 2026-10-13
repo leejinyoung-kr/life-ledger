@@ -35,7 +35,12 @@ export class DashboardService {
         _sum: { amount: true },
       }),
       this.assetService.summary(userId),
-      this.prisma.subscription.count({ where: { user_id: userId, deleted_at: null, status: 'active' } }),
+      // 활성 구독 = 결제 중 + 무료 체험(곧 결제된다 — 구독 화면 · 현금흐름 예측과 같은 기준)
+      this.prisma.subscription.groupBy({
+        by: ['status'],
+        where: { user_id: userId, deleted_at: null, status: { in: ['active', 'trial'] } },
+        _count: { _all: true },
+      }),
       this.prisma.transaction.findMany({
         where: { user_id: userId, deleted_at: null },
         orderBy: [{ date: 'desc' }, { id: 'desc' }],
@@ -50,13 +55,15 @@ export class DashboardService {
 
     const sumType = (t: string) => byType.find((g) => g.type === t)?._sum.amount?.toNumber() ?? 0;
     const netWorth = assetSummary.netWorth;
+    const subCount = (s: string) => activeSubs.find((g) => g.status === s)?._count._all ?? 0;
 
     return {
       stats: {
         income: sumType('income'),
         expense: sumType('expense'),
         netWorth,
-        activeSubs,
+        activeSubs: subCount('active') + subCount('trial'),
+        trialSubs: subCount('trial'),
       },
       recent: recent.map((r) => ({ type: r.type, title: r.title, amount: r.amount.toNumber(), date: r.date.toISOString().slice(0, 10) })),
       upcoming: upcoming.map((u) => ({ type: u.type, title: u.title, date: u.date.toISOString().slice(0, 10) })),

@@ -242,13 +242,13 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
         <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
           <StatCard icon={<IconWon />} tone="green" value={won(summary.income)} label="수입" change="이번 달 합계" changeDir="up" />
           <StatCard icon={<IconWon />} tone="red" value={won(summary.expense)} label="지출" change="이번 달 합계" changeDir="down" />
-          <StatCard icon={<IconBank />} tone="amber" value={won(summary.realSpend)} label="실소비" change={`저축이동 ${won(summary.transfer)}`} changeDir="neutral" />
-          <StatCard icon={<IconChart />} tone="blue" value={won(summary.balance)} label="잔액" change="수입 − 실소비" changeDir="neutral" />
+          <StatCard icon={<IconBank />} tone="amber" value={won(summary.realSpend)} label="실소비" change={`자산이동 ${won(summary.transfer)} 제외`} changeDir="neutral" />
+          <StatCard icon={<IconChart />} tone="blue" value={won(summary.balance)} label="잔액" change="수입 − 지출 − 자산이동" changeDir="neutral" />
         </div>
       )}
 
       <p className="text-[0.78rem] text-muted mb-6 [&_strong]:text-blue">
-        💡 <strong>자산이동</strong>은 실소비가 아닌 자산 이동으로 잔액 계산에서 제외됩니다.
+        💡 <strong>자산이동</strong>은 예적금 · 투자 계좌로 옮긴 돈이라 실소비에는 들지 않고, 잔액에서는 빠집니다.
       </p>
 
       <div className="flex items-start gap-3 mb-6 px-4 py-3 bg-surface border border-border rounded-ui">

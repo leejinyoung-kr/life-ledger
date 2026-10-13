@@ -15,7 +15,7 @@ import { won, usd, signedWon, type TransactionType } from '@/lib/finance';
 
 type EvType = 'pay' | 'due' | 'exp' | 'task';
 interface Summary {
-  stats: { income: number; expense: number; netWorth: number; activeSubs: number };
+  stats: { income: number; expense: number; netWorth: number; activeSubs: number; trialSubs: number };
   recent: { type: TransactionType; title: string; amount: number; date: string }[];
   upcoming: { type: EvType; title: string; date: string }[];
 }
@@ -75,8 +75,8 @@ export default function DashboardPage() {
     ? [
         { tone: 'red' as const,   icon: <IconWon />,    value: won(s.stats.expense),      label: '이번 달 지출', change: '이번 달 합계', changeDir: 'down' as const },
         { tone: 'green' as const, icon: <IconWon />,    value: won(s.stats.income),        label: '이번 달 수입', change: '이번 달 합계', changeDir: 'up' as const, valueAccent: true },
-        { tone: 'blue' as const,  icon: <IconPie />,    value: won(s.stats.netWorth),      label: '순자산',       change: '자산 − 부채',  changeDir: 'neutral' as const },
-        { tone: 'amber' as const, icon: <IconRepeat />, value: `${s.stats.activeSubs}건`,  label: '활성 구독',    change: '결제 중',      changeDir: 'neutral' as const },
+        { tone: 'blue' as const,  icon: <IconPie />,    value: won(s.stats.netWorth),      label: '순자산',       change: '현금 + 예적금 + 투자', changeDir: 'neutral' as const },
+        { tone: 'amber' as const, icon: <IconRepeat />, value: `${s.stats.activeSubs}건`,  label: '활성 구독',    change: s.stats.trialSubs ? `체험 ${s.stats.trialSubs}건 포함` : '결제 중', changeDir: 'neutral' as const },
       ]
     : [];
 

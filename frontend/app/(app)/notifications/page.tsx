@@ -71,13 +71,12 @@ export default function NotificationsPage() {
   const error = itemsQuery.error?.message ?? null;
   const reload = () => invalidate(qk.notifications.all);
 
-  // 알림 클릭 — 상세 모달 열기 + 읽지 않은 경우 읽음 처리
+  // 알림 클릭 — 상세 모달 열기 + 읽지 않은 경우 읽음 처리 (여는 것 자체가 읽음이라 토스트는 띄우지 않는다)
   async function handleOpenDetail(n: Noti) {
     setDetail(n);
     if (n.read) return;
     try {
       await api.put(`/notifications/${n.id}/read`, {});
-      notify.success('읽음 처리했습니다.');
       reload();
     } catch (e) {
       notify.error((e as Error).message);

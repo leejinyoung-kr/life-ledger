@@ -137,6 +137,29 @@ compose 프로젝트 이름이 바뀌어 새 컨테이너(`life-ledger-*`)가 �
 - 최근 열람 목록이 동작 코드를 그대로 보여 준다(`vault` · `vault_disable` · `export:backup` · `data_export` 등) — 한글 이름으로 바꾼다 (2026-10-13 로컬 확인 때 발견).
 - 디자인 점검에서 나온 데이터 · 표시 문제를 같이 고친다 — 목록은 `docs/design/life-ledger-review.md` §4.4 · §5. 가장 먼저 **순자산 이중 계산 의심**(현금 = 수입 − 지출 누계가 자산이동을 빼지 않는다)을 확인한다.
 
+#### 3단계 진행 상황 (2026-10-14, `develop` — 로컬 커밋만, push 전)
+
+| 항목 | 결과 |
+| --- | --- |
+| 순자산 이중 계산 | **맞았다.** 자산이동(연동 대상 있음)은 예적금 잔액 · 투자 예수금에 더해지는데 현금 = 수입 − 지출 이라 같은 돈을 두 번 셌다 → 현금 = 수입 − 지출 − 자산이동(가계부 잔액과 같은 식). `asset.service.spec.ts` 추가 |
+| 스냅샷 이름표 | 2026-08-18 부터 매주 월요일에 **지금 값**을 **지난달** 이름으로 덮어써 왔다(그래서 '지난달 대비' 는 사실상 '지난 월요일 대비'). → 매일 01시에 어제가 속한 달 이름으로 저장. 추이 차트의 이번 달 막대는 지금 값(요약 숫자와 같다). 비교할 스냅샷이 없으면 증감 줄을 숨긴다 |
+| 운영 스냅샷 바로잡기 | 마이그레이션 `20261014090000_fix_net_worth_snapshot_label_and_cash` — 2026-07 이후 행 이름표 +1달(옛 2026-07 값은 덮어써져 비게 된다), `cash_total` 새 식으로 재계산, `total_assets` 에서 그 달 말까지 자산이동 누계를 뺀다. 배포 전 아래 SQL 로 운영 값을 확인한다 |
+| 화면 (§4.4 · §5) | 가계부 잔액 음수 부호(`won()` 이 부호를 살린다) · 잔액/실소비 문구 · 계정 추가 창 비밀번호 가림(눈 버튼, 생성하면 표시) · 최근 열람 동작 8종 한글 + 대상 이름(`vault` · `export:*` · `all:N`) + 루프백 IP '이 기기' · 자산 종합 증감 ▼ 빨강 · 알림 열 때 읽음 토스트 제거 · 대시보드 활성 구독 = 결제 중 + 체험("체험 N건 포함", D6) · 순자산 카드 설명 '자산 − 부채' → '현금 + 예적금 + 투자' |
+| 남은 것 | 데모 시드 스냅샷은 현금을 빼고 적혀 있어 이번 달 막대만 튄다(5단계 시드 정리 때) |
+
+배포 전 운영 확인 (HeidiSQL, `docnexus`):
+
+```sql
+-- 스냅샷 크론이 실제로 언제 돌았는지 — 이름표를 한 달 미는 근거(마지막 실행이 다음 달 하순인지)
+SELECT started_at, status, summary FROM job_run WHERE job = 'net-worth-snapshot' ORDER BY started_at;
+-- 바로잡기 전 스냅샷과 그 달 말까지 자산이동 누계
+SELECT s.month, s.total_assets, s.cash_total,
+  (SELECT COALESCE(SUM(t.amount), 0) FROM `transaction` t
+    WHERE t.user_id = s.user_id AND t.deleted_at IS NULL AND t.type = 'transfer'
+      AND t.date < DATE_ADD(CONCAT(s.month, '-01'), INTERVAL 1 MONTH)) AS transfer_until_month_end
+FROM net_worth_snapshot s ORDER BY s.user_id, s.month;
+```
+
 ### 4. 디자인 개편
 
 - 기획서 `docs/planning.md`(남는 12개 화면 · 화면마다 다루는 데이터 · 자주 쓰는 정도 · 디자인 방향)를 쓴다 — 1단계와 같이 진행해도 된다.

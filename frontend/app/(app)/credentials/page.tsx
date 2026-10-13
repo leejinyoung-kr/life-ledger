@@ -454,6 +454,8 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 
   const [category, setCategory] = useState(CRED_CATEGORIES[0]);
   const [username, setUsername] = useState('');
   const [pw, setPw] = useState('');
+  // 입력 중 비밀번호는 기본으로 가린다 — 화면 공유 · 어깨너머 노출 방지
+  const [showPw, setShowPw] = useState(false);
   const [totp, setTotp] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
@@ -468,6 +470,7 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 
     setCategory(editing?.category ?? CRED_CATEGORIES[0]);
     setUsername(editing?.username ?? '');
     setPw('');
+    setShowPw(false);
     setTotp('');
     setMemo(editing?.memo ?? '');
   }, [state.open, editing, reset]);
@@ -530,8 +533,10 @@ function EditModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 
       </Field>
       <Field label={isEdit ? '비밀번호 (변경 시에만 입력)' : '비밀번호'} required={!isEdit} error={errors.pw}>
         <div className="flex gap-2">
-          <input type="text" className="input" placeholder={isEdit ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearError('pw'); }} />
-          <Button variant="ghost" className="whitespace-nowrap" onClick={() => { setPw(generatePassword()); clearError('pw'); }}>생성</Button>
+          <input type={showPw ? 'text' : 'password'} autoComplete="new-password" className="input" placeholder={isEdit ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearError('pw'); }} />
+          <IconButton label={showPw ? '비밀번호 숨김' : '비밀번호 표시'} onClick={() => setShowPw((v) => !v)}><IconEye width={14} height={14} /></IconButton>
+          {/* 생성한 비밀번호는 사용자가 확인해야 하므로 바로 보여 준다 */}
+          <Button variant="ghost" className="whitespace-nowrap" onClick={() => { setPw(generatePassword()); setShowPw(true); clearError('pw'); }}>생성</Button>
         </div>
         {pw && (
           <>

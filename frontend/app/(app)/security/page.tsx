@@ -18,7 +18,7 @@ import { notify } from '@/lib/toast';
 import { useApiQuery, useInvalidate } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { relativeTime } from '@/lib/notification';
-import { DEVICE_ICON, ACCESS_ACTION_META, type LoginSession, type AccessLogEntry } from '@/lib/security';
+import { DEVICE_ICON, ACCESS_ACTION_META, accessTargetLabel, accessIpLabel, type LoginSession, type AccessLogEntry } from '@/lib/security';
 
 // 세션 아이콘 배경색 (tone → Tailwind)
 const SESSION_ICON_BG: Record<string, string> = {
@@ -108,8 +108,8 @@ export default function SecurityPage() {
                 <div className="flex items-center gap-3.5 px-5 py-3 border-b border-border-subtle last:border-b-0" key={l.id}>
                   <div className="w-9 h-9 rounded-ui flex items-center justify-center shrink-0 text-base bg-elevated">{meta?.icon ?? '🔓'}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-[0.85rem] truncate">{l.targetName}</div>
-                    <div className="text-[0.76rem] text-muted">{meta?.label ?? l.action}{l.ip ? ` · ${l.ip}` : ''}</div>
+                    <div className="font-semibold text-[0.85rem] truncate">{accessTargetLabel(l.action, l.targetName)}</div>
+                    <div className="text-[0.76rem] text-muted">{meta?.label ?? l.action}{l.ip ? ` · ${accessIpLabel(l.ip)}` : ''}</div>
                   </div>
                   <div className="text-[0.74rem] text-muted shrink-0">{relativeTime(l.at)}</div>
                 </div>

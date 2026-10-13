@@ -221,9 +221,9 @@ export const INVEST_TYPE_LABEL: Record<InvestmentType, string> = {
 };
 
 // ── 포맷 유틸 ────────────────────────────────────────────────────
-// 원화 표시 (₩1,234,000)
+// 원화 표시 (₩1,234,000 · 음수는 -₩1,234,000) — 부호를 따로 붙이는 곳은 Math.abs 로 넘긴다
 export function won(n: number): string {
-  return `₩${Math.abs(n).toLocaleString('ko-KR')}`;
+  return `${n < 0 ? '-' : ''}₩${Math.abs(n).toLocaleString('ko-KR')}`;
 }
 
 // 달러 표시 ($1,234.56)
@@ -234,7 +234,7 @@ export function usd(n: number): string {
 // 부호 포함 원화 (수입 +, 지출/저축이동 -)
 export function signedWon(type: TransactionType, n: number): string {
   const sign = type === 'income' ? '+' : '-';
-  return `${sign}${won(n)}`;
+  return `${sign}${won(Math.abs(n))}`;
 }
 
 // YYYY-MM-DD → YYYY.MM.DD
