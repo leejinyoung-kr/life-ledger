@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/classical-3356c73a-14f3-43d6-8597-4ce3e69b8976/styles.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<script src="_ds/classical-3356c73a-14f3-43d6-8597-4ce3e69b8976/_ds_bundle.js"></script>
+<script src="theme.js" data-font="mixed"></script>
+<script src="icons.js"></script>
+<style>body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);-webkit-font-smoothing:antialiased;word-break:keep-all;font-variant-numeric:tabular-nums} a{color:var(--ll-accent-ink)} a:hover{color:var(--color-accent)} button,input,select,textarea{font-family:inherit}</style>
+</helmet>
+<div style="display:flex; flex-direction:column; font-size:14px; line-height:1.55; padding-bottom:120px">
+
+  <section style="padding:48px 40px 36px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:20px; max-width:1240px">
+    <div style="display:flex; flex-direction:column; gap:6px">
+      <span style="font-size:12px; letter-spacing:.06em; color:var(--ll-accent-ink)">LifeLedger 디자인 개편 · 점검 문서 §3-15 · 2026-10-13</span>
+      <span style="font-family:var(--font-heading); font-weight:400; font-size:44px; line-height:1.1; font-variant-numeric:lining-nums">빠진 창</span>
+      <span style="color:var(--ll-muted); max-width:720px; text-wrap:pretty">지난 시안에 없던 입력 창 · 상세 창 · 파일 보관함 요소. 각 창은 데스크톱과 휴대폰 390, 라이트와 다크를 나란히 둔다. 입력 칸은 지금 앱 그대로이고, 각 입력 창에 오류 상태를 하나씩 넣었다.</span>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:0; border-top:1px solid var(--ll-line)">
+      <div style="padding:12px 16px 12px 0; display:flex; flex-direction:column; gap:2px; border-bottom:1px solid var(--ll-line-soft)"><span style="font-size:12px; color:var(--ll-accent-ink)">D1 글꼴</span><span><span style="font-family:var(--font-heading); font-weight:600; font-size:17px">제목 명조</span> · 본문 · 표 · 숫자 · 입력은 Pretendard (tabular-nums)</span></div>
+      <div style="padding:12px 16px 12px 0; display:flex; flex-direction:column; gap:2px; border-bottom:1px solid var(--ll-line-soft)"><span style="font-size:12px; color:var(--ll-accent-ink)">D2 주 버튼</span><span style="display:flex; gap:10px; align-items:center"><button class="btn btn-primary" style="color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600">저장</button>금빛 테두리 + 진한 금빛 글자 · 채우지 않음</span></div>
+      <div style="padding:12px 16px 12px 0; display:flex; flex-direction:column; gap:2px; border-bottom:1px solid var(--ll-line-soft)"><span style="font-size:12px; color:var(--ll-accent-ink)">제목 숫자</span><span><span style="font-family:var(--font-heading); font-weight:600; font-size:17px; font-variant-numeric:lining-nums">2026년 10월 18일</span> · lining-nums</span></div>
+      <div style="padding:12px 16px 12px 0; display:flex; flex-direction:column; gap:2px; border-bottom:1px solid var(--ll-line-soft)"><span style="font-size:12px; color:var(--ll-accent-ink)">모달</span><span>sm 380 · md 520 · lg 720. 머리 / 몸통(스크롤) / 바닥. Esc · X 로만 닫힘. 휴대폰은 아래 시트</span></div>
+      <div style="padding:12px 16px 12px 0; display:flex; flex-direction:column; gap:2px; border-bottom:1px solid var(--ll-line-soft)"><span style="font-size:12px; color:var(--ll-accent-ink)">휴대폰</span><span>입력 · 버튼 · 고르기 칸 높이 44, X 44 × 44</span></div>
+      <div style="padding:12px 16px 12px 0; display:flex; flex-direction:column; gap:2px; border-bottom:1px solid var(--ll-line-soft)"><span style="font-size:12px; color:var(--ll-accent-ink)">긴 창</span><span>번호 붙은 묶음으로 나눈다 — 한 묶음 = 한 질문</span></div>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px 20px; font-size:13px">
+      <a href="#m1">1 투자 항목 추가</a><a href="#m2">2 자동이체 설정</a><a href="#m3">3 반복매수 설정</a><a href="#m4a">4a 투자 계좌 추가</a><a href="#m4b">4b 환전</a><a href="#m5">5 예적금 추가</a><a href="#m6">6 구독 추가</a><a href="#m7a">7a 일정 추가</a><a href="#m7b">7b 일정 상세</a><a href="#m8">8 알림 상세</a><a href="#m9a">9a 파일 격자</a><a href="#m9b">9b 파일 목록</a><a href="#m9c">9c 파일 보기</a><a href="#props">제안</a>
+    </div>
+  </section>
+
+  <!-- 1 투자 항목 추가 -->
+  <section id="m1" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">1</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">투자 항목 추가</span><span style="color:var(--ll-muted); font-size:13px">lg 720 · 앱에서 가장 긴 창 → 세 묶음(종목 · 금액 · 날짜). 원금 역산 도우미는 금액 묶음 안에 접어 둔다. 오류: 투자원금 비움</span></div>
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }}</span>
+        <div style="width:{{ v.fwLg }}; height:{{ v.fh }}; display:flex; align-items:{{ v.al }}; justify-content:center; padding:{{ v.fp }}; background:linear-gradient(var(--ll-backdrop),var(--ll-backdrop)), var(--color-bg); border-radius:{{ v.fr }}; overflow:hidden">
+          <div style="width:{{ v.mwLg }}; max-height:{{ v.mh }}; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:{{ v.mr }}; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; overflow:hidden">
+            <div style="padding:16px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft); flex:none"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-family:var(--font-heading); font-weight:600; font-size:21px">투자 항목 추가</span><span style="font-size:12.5px; color:var(--ll-muted)">일반위탁 · 원화 예수금 ₩501,000</span></div><button class="btn btn-icon btn-secondary" style="width:{{ v.xb }}; height:{{ v.xb }}"><ll-icon name="x"></ll-icon></button></div>
+            <div style="flex:1; overflow-y:auto; padding:{{ v.bp }}; display:flex; flex-direction:column; gap:20px">
+              <div style="display:flex; flex-direction:column; gap:12px">
+                <div style="display:flex; align-items:baseline; gap:8px; font-size:12.5px; color:var(--ll-accent-ink)"><span style="font-family:var(--font-heading); font-weight:600; font-size:17px; font-variant-numeric:lining-nums">1</span>종목</div>
+                <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">계좌 <span style="color:var(--ll-out)">*</span></label><select class="input" style="min-height:{{ v.ih }}"><option>일반위탁</option><option>ISA</option></select></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">종목명 <span style="color:var(--ll-out)">*</span></label><input class="input" value="엔비디아" style="min-height:{{ v.ih }}"></div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">유형 <span style="color:var(--ll-out)">*</span></label>
+                  <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; background:var(--ll-line); border:1px solid var(--ll-line); border-radius:4px; overflow:hidden">
+                    <sc-for list="{{ invTypes }}" as="o" hint-placeholder-count="6"><button onClick="{{ o.go }}" style="min-height:{{ v.ih }}; border:0; background:{{ o.bg }}; color:{{ o.c }}; box-shadow:{{ o.s }}; font-size:13.5px; cursor:pointer; padding:0 6px">{{ o.n }}</button></sc-for>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">종목코드 / 티커 <span style="color:var(--ll-muted)">선택</span></label><input class="input" value="NVDA" style="min-height:{{ v.ih }}; text-transform:uppercase"></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">보유수량 <span style="color:var(--ll-muted)">선택</span></label><input class="input" value="22" style="min-height:{{ v.ih }}; text-align:right"></div>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:12px; padding-top:16px; border-top:1px solid var(--ll-line-soft)">
+                <div style="display:flex; align-items:baseline; gap:8px; font-size:12.5px; color:var(--ll-accent-ink)"><span style="font-family:var(--font-heading); font-weight:600; font-size:17px; font-variant-numeric:lining-nums">2</span>금액</div>
+                <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">투자원금 <span style="color:var(--ll-out)">*</span></label><div style="position:relative"><span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)">₩</span><input class="input" placeholder="0" style="min-height:{{ v.ih }}; padding-left:28px; text-align:right; border-color:var(--ll-out)"></div><span style="font-size:12px; color:var(--ll-out); display:flex; gap:6px; align-items:flex-start"><ll-icon name="alert-circle" size="13" style="margin-top:2px"></ll-icon>투자원금을 입력하거나 아래 도우미로 계산하세요.</span></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">현재 평가금액 <span style="color:var(--ll-out)">*</span></label><div style="position:relative"><span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)">{{ invUnit }}</span><input class="input" value="{{ invEval }}" style="min-height:{{ v.ih }}; padding-left:28px; text-align:right"></div><span style="font-size:12px; color:var(--ll-muted)">{{ invUnitNote }}</span></div>
+                </div>
+                <div style="border:1px dashed var(--ll-line); border-radius:4px; display:flex; flex-direction:column">
+                  <button onClick="{{ toggleHelp }}" style="display:flex; align-items:center; gap:8px; min-height:{{ v.ih }}; padding:0 12px; border:0; background:transparent; color:var(--color-text); cursor:pointer; text-align:left; font-size:13.5px"><ll-icon name="refresh" size="15" style="color:var(--color-accent)"></ll-icon><span style="flex:1">투자원금을 모를 때 — 평가금액과 수익(원) 또는 수익률(%)을 넣으면 원금 계산</span><ll-icon name="{{ helpChev }}" size="15" style="color:var(--ll-muted)"></ll-icon></button>
+                  <sc-if value="{{ helpOpen }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end; padding:4px 12px 12px">
+                      <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border:1px solid var(--ll-line); border-radius:4px; overflow:hidden; flex:1 1 200px"><sc-for list="{{ helpModes }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.go }}" style="min-height:{{ v.ih }}; border:0; background:{{ o.bg }}; color:{{ o.c }}; box-shadow:{{ o.s }}; font-size:13.5px; cursor:pointer">{{ o.n }}</button></sc-for></div>
+                      <div style="flex:1 1 160px; position:relative"><input class="input" value="{{ helpVal }}" style="min-height:{{ v.ih }}; text-align:right; padding-right:32px"><span style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)">{{ helpUnit }}</span></div>
+                      <button class="btn btn-secondary" style="min-height:{{ v.ih }}; font-family:var(--font-body); font-weight:500; flex:1 1 auto">투자원금 계산</button>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:12px; padding-top:16px; border-top:1px solid var(--ll-line-soft)">
+                <div style="display:flex; align-items:baseline; gap:8px; font-size:12.5px; color:var(--ll-accent-ink)"><span style="font-family:var(--font-heading); font-weight:600; font-size:17px; font-variant-numeric:lining-nums">3</span>날짜 · 메모</div>
+                <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">최초 매수일 <span style="color:var(--ll-out)">*</span></label><div style="position:relative"><input class="input" value="2025-03-14" style="min-height:{{ v.ih }}; padding-right:34px"><ll-icon name="calendar" style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)"></ll-icon></div></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">메모 <span style="color:var(--ll-muted)">선택</span></label><input class="input" value="장기 보유" style="min-height:{{ v.ih }}"></div>
+                </div>
+              </div>
+            </div>
+            <div style="padding:12px 20px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--ll-line-soft); flex:none"><button class="btn btn-secondary" style="min-height:{{ v.bh }}; font-family:var(--font-body); font-weight:500">취소</button><button class="btn btn-primary" style="min-height:{{ v.bh }}; color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600">저장</button></div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 2 자동이체 설정 -->
+  <section id="m2" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">2</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">자동이체 설정 추가 / 수정</span><span style="color:var(--ll-muted); font-size:13px">lg 720 · 수정 모드(왼쪽 아래 삭제). 유형과 반복 주기를 눌러 보면 칸이 바뀐다. 오류: 금액 0원</span></div>
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }}</span>
+        <div style="width:{{ v.fwLg }}; height:{{ v.fh }}; display:flex; align-items:{{ v.al }}; justify-content:center; padding:{{ v.fp }}; background:linear-gradient(var(--ll-backdrop),var(--ll-backdrop)), var(--color-bg); border-radius:{{ v.fr }}; overflow:hidden">
+          <div style="width:{{ v.mwLg }}; max-height:{{ v.mh }}; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:{{ v.mr }}; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; overflow:hidden">
+            <div style="padding:16px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft); flex:none"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-family:var(--font-heading); font-weight:600; font-size:21px">자동이체 설정 수정</span><span style="font-size:12.5px; color:var(--ll-muted)">헬스장 회비 · 다음 실행 2026.11.10</span></div><button class="btn btn-icon btn-secondary" style="width:{{ v.xb }}; height:{{ v.xb }}"><ll-icon name="x"></ll-icon></button></div>
+            <div style="flex:1; overflow-y:auto; padding:{{ v.bp }}; display:flex; flex-direction:column; gap:20px">
+              <div style="display:flex; flex-direction:column; gap:12px">
+                <div style="display:flex; align-items:baseline; gap:8px; font-size:12.5px; color:var(--ll-accent-ink)"><span style="font-family:var(--font-heading); font-weight:600; font-size:17px; font-variant-numeric:lining-nums">1</span>무엇을</div>
+                <div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid var(--ll-line); border-radius:4px; overflow:hidden"><sc-for list="{{ apTypes }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.go }}" style="min-height:{{ v.ih }}; border:0; border-left:1px solid var(--ll-line-soft); background:{{ o.bg }}; color:{{ o.c }}; box-shadow:{{ o.s }}; font-size:14px; cursor:pointer">{{ o.n }}</button></sc-for></div>
+                <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">내역 <span style="color:var(--ll-out)">*</span></label><input class="input" value="{{ apName }}" style="min-height:{{ v.ih }}"></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">금액 <span style="color:var(--ll-out)">*</span></label><div style="position:relative"><input class="input" value="0" style="min-height:{{ v.ih }}; text-align:right; padding-right:28px; border-color:var(--ll-out); color:{{ apColor }}"><span style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)">원</span></div><span style="font-size:12px; color:var(--ll-out); display:flex; gap:6px; align-items:center"><ll-icon name="alert-circle" size="13"></ll-icon>금액은 1원 이상이어야 합니다.</span></div>
+                </div>
+                <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">대분류 <span style="color:var(--ll-out)">*</span></label><select class="input" style="min-height:{{ v.ih }}"><option>{{ apCat1 }}</option></select></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">소분류</label><select class="input" style="min-height:{{ v.ih }}"><option>{{ apCat2 }}</option></select></div>
+                </div>
+                <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">{{ apPayLabel }} <span style="color:var(--ll-out)">*</span></label><select class="input" style="min-height:{{ v.ih }}"><option>{{ apPayVal }}</option></select></div>
+                  <sc-if value="{{ apIsMove }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">대상 항목 <span style="color:var(--ll-out)">*</span></label><select class="input" style="min-height:{{ v.ih }}"><option>26주 적금 (카카오뱅크)</option></select></div></sc-if>
+                  <sc-if value="{{ apNotMove }}" hint-placeholder-val="{{ true }}"><div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">메모 <span style="color:var(--ll-muted)">선택</span></label><input class="input" value="월 회원권" style="min-height:{{ v.ih }}"></div></sc-if>
+                </div>
+                <sc-if value="{{ apIsMove }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">메모 <span style="color:var(--ll-muted)">선택</span></label><input class="input" value="" placeholder="추가 정보" style="min-height:{{ v.ih }}"></div></sc-if>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:12px; padding-top:16px; border-top:1px solid var(--ll-line-soft)">
+                <div style="display:flex; align-items:baseline; gap:8px; font-size:12.5px; color:var(--ll-accent-ink)"><span style="font-family:var(--font-heading); font-weight:600; font-size:17px; font-variant-numeric:lining-nums">2</span>언제</div>
+                <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">시작일 <span style="color:var(--ll-out)">*</span></label><div style="position:relative"><input class="input" value="2026-01-10" style="min-height:{{ v.ih }}; padding-right:34px"><ll-icon name="calendar" style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)"></ll-icon></div></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">반복 주기 <span style="color:var(--ll-out)">*</span></label><div style="display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border:1px solid var(--ll-line); border-radius:4px; overflow:hidden"><sc-for list="{{ apCycles }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.go }}" style="min-height:{{ v.ih }}; border:0; border-left:1px solid var(--ll-line-soft); background:{{ o.bg }}; color:{{ o.c }}; box-shadow:{{ o.s }}; font-size:13.5px; cursor:pointer">{{ o.n }}</button></sc-for></div></div>
+                </div>
+                <sc-if value="{{ ap.daily }}" hint-placeholder-val="{{ false }}"><label style="display:flex; align-items:center; gap:10px; min-height:{{ v.ih }}; font-size:14px"><span style="width:18px; height:18px; border:1px solid var(--color-accent); border-radius:2px; color:var(--ll-accent-ink); display:grid; place-items:center"><ll-icon name="check" size="13" stroke="2.4"></ll-icon></span>평일만 (월 – 금)</label></sc-if>
+                <sc-if value="{{ ap.weekly }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">요일</label><div style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px"><sc-for list="{{ wdays }}" as="o" hint-placeholder-count="7"><span style="min-height:{{ v.ih }}; display:grid; place-items:center; border:1px solid {{ o.bd }}; border-radius:4px; color:{{ o.c }}; font-size:13.5px">{{ o.n }}</span></sc-for></div></div></sc-if>
+                <sc-if value="{{ ap.monthly }}" hint-placeholder-val="{{ true }}"><div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px"><div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">기준일</label><select class="input" style="min-height:{{ v.ih }}"><option>매월 10일</option></select></div><div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">주말인 경우</label><select class="input" style="min-height:{{ v.ih }}"><option>다음 월요일</option><option>조정 안 함</option><option>전 금요일</option></select></div></div></sc-if>
+                <sc-if value="{{ ap.yearly }}" hint-placeholder-val="{{ false }}"><div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px"><div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">월 · 일</label><div style="display:grid; grid-template-columns:1fr 1fr; gap:8px"><select class="input" style="min-height:{{ v.ih }}"><option>1월</option></select><select class="input" style="min-height:{{ v.ih }}"><option>10일</option></select></div></div><div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">주말인 경우</label><select class="input" style="min-height:{{ v.ih }}"><option>다음 월요일</option></select></div></div></sc-if>
+                <sc-if value="{{ ap.weekend }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">주말인 경우</label><select class="input" style="min-height:{{ v.ih }}"><option>다음 월요일</option></select></div></sc-if>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px; padding-top:16px; border-top:1px solid var(--ll-line-soft); min-height:{{ v.ih }}"><div style="flex:1; display:flex; flex-direction:column"><span>활성</span><span style="font-size:12.5px; color:var(--ll-muted)">끄면 다음 회차를 만들지 않습니다</span></div><span style="width:40px; height:24px; border-radius:12px; border:1px solid var(--color-accent); background:var(--ll-accent-tint); position:relative; flex:none"><span style="position:absolute; top:4px; left:20px; width:14px; height:14px; border-radius:50%; background:var(--color-accent)"></span></span></div>
+            </div>
+            <div style="padding:12px 20px; display:flex; justify-content:space-between; gap:8px; border-top:1px solid var(--ll-line-soft); flex:none"><button class="btn" style="min-height:{{ v.bh }}; color:var(--ll-out); font-family:var(--font-body); font-weight:500" style-hover="background:var(--ll-out-tint)">삭제</button><div style="display:flex; gap:8px"><button class="btn btn-secondary" style="min-height:{{ v.bh }}; font-family:var(--font-body); font-weight:500">취소</button><button class="btn btn-primary" style="min-height:{{ v.bh }}; color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600">저장</button></div></div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 3 반복매수 -->
+  <section id="m3" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">3</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">반복매수 설정</span><span style="color:var(--ll-muted); font-size:13px">md 520 · 매수 기준(금액 / 수량)을 누르면 단위가 바뀐다. 오류: 회차당 값 비움</span></div>
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }}</span>
+        <div style="width:{{ v.fwMd }}; height:{{ v.fh }}; display:flex; align-items:{{ v.al }}; justify-content:center; padding:{{ v.fp }}; background:linear-gradient(var(--ll-backdrop),var(--ll-backdrop)), var(--color-bg); border-radius:{{ v.fr }}; overflow:hidden">
+          <div style="width:{{ v.mwMd }}; max-height:{{ v.mh }}; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:{{ v.mr }}; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; overflow:hidden">
+            <div style="padding:16px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft); flex:none"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-family:var(--font-heading); font-weight:600; font-size:21px">반복매수 설정</span><span style="font-size:12.5px; color:var(--ll-muted)">정한 날마다 매수 기록을 만듭니다</span></div><button class="btn btn-icon btn-secondary" style="width:{{ v.xb }}; height:{{ v.xb }}"><ll-icon name="x"></ll-icon></button></div>
+            <div style="flex:1; overflow-y:auto; padding:{{ v.bp }}; display:flex; flex-direction:column; gap:14px">
+              <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">대상 종목 <span style="color:var(--ll-out)">*</span></label><select class="input" style="min-height:{{ v.ih }}"><option>NAVER · 일반위탁</option></select></div>
+              <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">시작일 <span style="color:var(--ll-out)">*</span></label><input class="input" value="2026-11-05" style="min-height:{{ v.ih }}"></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">반복 주기</label><select class="input" style="min-height:{{ v.ih }}"><option>매월</option><option>매일 (평일만)</option><option>매주</option><option>매년</option></select></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">기준일</label><select class="input" style="min-height:{{ v.ih }}"><option>매월 5일</option></select></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">주말인 경우</label><select class="input" style="min-height:{{ v.ih }}"><option>다음 월요일</option><option>조정 안 함</option><option>전 금요일</option></select></div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:5px; padding-top:14px; border-top:1px solid var(--ll-line-soft)"><label style="font-size:12.5px; color:var(--ll-muted)">회차당 매수 기준 <span style="color:var(--ll-out)">*</span></label>
+                <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:8px">
+                  <div style="display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--ll-line); border-radius:4px; overflow:hidden"><sc-for list="{{ dcaBasis }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.go }}" style="min-height:{{ v.ih }}; border:0; border-left:1px solid var(--ll-line-soft); background:{{ o.bg }}; color:{{ o.c }}; box-shadow:{{ o.s }}; font-size:13.5px; cursor:pointer">{{ o.n }}</button></sc-for></div>
+                  <div style="position:relative"><input class="input" placeholder="{{ dcaPh }}" style="min-height:{{ v.ih }}; text-align:right; padding-right:28px; border-color:var(--ll-out)"><span style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)">{{ dcaUnit }}</span></div>
+                </div>
+                <span style="font-size:12px; color:var(--ll-out); display:flex; gap:6px; align-items:center"><ll-icon name="alert-circle" size="13"></ll-icon>{{ dcaErr }}</span>
+              </div>
+            </div>
+            <div style="padding:12px 20px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--ll-line-soft); flex:none"><button class="btn btn-secondary" style="min-height:{{ v.bh }}; font-family:var(--font-body); font-weight:500">취소</button><button class="btn btn-primary" style="min-height:{{ v.bh }}; color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600">저장</button></div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 4a 투자 계좌 추가 -->
+  <section id="m4a" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">4a</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">투자 계좌 추가</span><span style="color:var(--ll-muted); font-size:13px">md 520 · 오류: 계좌명 비움</span></div>
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }}</span>
+        <div style="width:{{ v.fwMd }}; height:{{ v.fh }}; display:flex; align-items:{{ v.al }}; justify-content:center; padding:{{ v.fp }}; background:linear-gradient(var(--ll-backdrop),var(--ll-backdrop)), var(--color-bg); border-radius:{{ v.fr }}; overflow:hidden">
+          <div style="width:{{ v.mwMd }}; max-height:{{ v.mh }}; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:{{ v.mr }}; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; overflow:hidden">
+            <div style="padding:16px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft); flex:none"><span style="flex:1; font-family:var(--font-heading); font-weight:600; font-size:21px">투자 계좌 추가</span><button class="btn btn-icon btn-secondary" style="width:{{ v.xb }}; height:{{ v.xb }}"><ll-icon name="x"></ll-icon></button></div>
+            <div style="flex:1; overflow-y:auto; padding:{{ v.bp }}; display:flex; flex-direction:column; gap:14px">
+              <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">계좌명 <span style="color:var(--ll-out)">*</span></label><input class="input" placeholder="예: 일반위탁, ISA" style="min-height:{{ v.ih }}; border-color:var(--ll-out)"><span style="font-size:12px; color:var(--ll-out); display:flex; gap:6px; align-items:center"><ll-icon name="alert-circle" size="13"></ll-icon>계좌명을 입력하세요.</span></div>
+              <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">원화 예수금</label><div style="position:relative"><span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)">₩</span><input class="input" value="0" style="min-height:{{ v.ih }}; padding-left:28px; text-align:right"></div></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">달러 예수금</label><div style="position:relative"><span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)">$</span><input class="input" value="0.00" style="min-height:{{ v.ih }}; padding-left:28px; text-align:right"></div></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">가입일 <span style="color:var(--ll-muted)">선택</span></label><input class="input" placeholder="YYYY-MM-DD" style="min-height:{{ v.ih }}"></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">만기일 <span style="color:var(--ll-muted)">선택</span></label><input class="input" placeholder="YYYY-MM-DD" style="min-height:{{ v.ih }}"></div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">메모 <span style="color:var(--ll-muted)">선택</span></label><input class="input" placeholder="추가 정보" style="min-height:{{ v.ih }}"></div>
+            </div>
+            <div style="padding:12px 20px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--ll-line-soft); flex:none"><button class="btn btn-secondary" style="min-height:{{ v.bh }}; font-family:var(--font-body); font-weight:500">취소</button><button class="btn btn-primary" style="min-height:{{ v.bh }}; color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600">저장</button></div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 4b 환전 -->
+  <section id="m4b" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">4b</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">환전</span><span style="color:var(--ll-muted); font-size:13px">sm 380 · 방향을 누르면 금액 단위가 바뀐다. 오류: 금액 비움</span></div>
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }}</span>
+        <div style="width:{{ v.fwSm }}; height:{{ v.fh }}; display:flex; align-items:{{ v.al }}; justify-content:center; padding:{{ v.fp }}; background:linear-gradient(var(--ll-backdrop),var(--ll-backdrop)), var(--color-bg); border-radius:{{ v.fr }}; overflow:hidden">
+          <div style="width:{{ v.mwSm }}; max-height:{{ v.mh }}; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:{{ v.mr }}; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; overflow:hidden">
+            <div style="padding:16px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft); flex:none"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-family:var(--font-heading); font-weight:600; font-size:21px">환전</span><span style="font-size:12.5px; color:var(--ll-muted)">일반위탁 · ₩501,000 · $0.00</span></div><button class="btn btn-icon btn-secondary" style="width:{{ v.xb }}; height:{{ v.xb }}"><ll-icon name="x"></ll-icon></button></div>
+            <div style="padding:{{ v.bp }}; display:flex; flex-direction:column; gap:14px">
+              <div style="display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--ll-line); border-radius:4px; overflow:hidden"><sc-for list="{{ fxDirs }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.go }}" style="min-height:{{ v.ih }}; border:0; border-left:1px solid var(--ll-line-soft); background:{{ o.bg }}; color:{{ o.c }}; box-shadow:{{ o.s }}; font-size:13.5px; cursor:pointer">{{ o.n }}</button></sc-for></div>
+              <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">금액 <span style="color:var(--ll-out)">*</span></label><div style="position:relative"><span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)">{{ fxUnit }}</span><input class="input" placeholder="0" style="min-height:{{ v.ih }}; padding-left:28px; text-align:right; border-color:var(--ll-out)"></div><span style="font-size:12px; color:var(--ll-out); display:flex; gap:6px; align-items:center"><ll-icon name="alert-circle" size="13"></ll-icon>바꿀 금액을 입력하세요.</span></div>
+              <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">환율 <span style="color:var(--ll-muted)">선택 — 비우면 자동</span></label><input class="input" placeholder="자동" style="min-height:{{ v.ih }}; text-align:right"></div>
+            </div>
+            <div style="padding:12px 20px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--ll-line-soft); flex:none"><button class="btn btn-secondary" style="min-height:{{ v.bh }}; font-family:var(--font-body); font-weight:500">취소</button><button class="btn btn-primary" style="min-height:{{ v.bh }}; color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600"><ll-icon name="transfer"></ll-icon>환전</button></div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 5 예적금 -->
+  <section id="m5" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">5</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">예적금 추가</span><span style="color:var(--ll-muted); font-size:13px">md 520 · 행을 누르면 같은 창이 '예적금 수정'으로 열린다(D8). 오류: 금리 형식</span></div>
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }}</span>
+        <div style="width:{{ v.fwMd }}; height:{{ v.fh }}; display:flex; align-items:{{ v.al }}; justify-content:center; padding:{{ v.fp }}; background:linear-gradient(var(--ll-backdrop),var(--ll-backdrop)), var(--color-bg); border-radius:{{ v.fr }}; overflow:hidden">
+          <div style="width:{{ v.mwMd }}; max-height:{{ v.mh }}; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:{{ v.mr }}; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; overflow:hidden">
+            <div style="padding:16px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft); flex:none"><span style="flex:1; font-family:var(--font-heading); font-weight:600; font-size:21px">예적금 추가</span><button class="btn btn-icon btn-secondary" style="width:{{ v.xb }}; height:{{ v.xb }}"><ll-icon name="x"></ll-icon></button></div>
+            <div style="flex:1; overflow-y:auto; padding:{{ v.bp }}; display:flex; flex-direction:column; gap:14px">
+              <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">유형 <span style="color:var(--ll-out)">*</span></label><div style="display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border:1px solid var(--ll-line); border-radius:4px; overflow:hidden"><sc-for list="{{ saveTypes }}" as="o" hint-placeholder-count="4"><span style="min-height:{{ v.ih }}; display:grid; place-items:center; border-left:1px solid var(--ll-line-soft); background:{{ o.bg }}; color:{{ o.c }}; box-shadow:{{ o.s }}; font-size:13.5px">{{ o.n }}</span></sc-for></div></div>
+              <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">은행 / 기관 <span style="color:var(--ll-out)">*</span></label><select class="input" style="min-height:{{ v.ih }}"><option>국민은행</option></select></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">상품명 <span style="color:var(--ll-out)">*</span></label><input class="input" value="KB내맘대로적금" style="min-height:{{ v.ih }}"></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">잔액</label><div style="position:relative"><span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)">₩</span><input class="input" value="2,100,000" style="min-height:{{ v.ih }}; padding-left:28px; text-align:right"></div></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">월 납입</label><div style="position:relative"><span style="position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)">₩</span><input class="input" value="300,000" style="min-height:{{ v.ih }}; padding-left:28px; text-align:right"></div></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">금리</label><div style="position:relative"><input class="input" value="4,5" style="min-height:{{ v.ih }}; padding-right:28px; text-align:right; border-color:var(--ll-out)"><span style="position:absolute; right:11px; top:50%; transform:translateY(-50%); color:var(--ll-muted)">%</span></div><span style="font-size:12px; color:var(--ll-out); display:flex; gap:6px; align-items:center"><ll-icon name="alert-circle" size="13"></ll-icon>소수점은 마침표로 (예: 4.5)</span></div>
+                <div></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">가입일</label><input class="input" value="2026-03-01" style="min-height:{{ v.ih }}"></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">만기일</label><input class="input" value="2027-03-01" style="min-height:{{ v.ih }}"></div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">메모 <span style="color:var(--ll-muted)">선택</span></label><input class="input" value="여행 자금" style="min-height:{{ v.ih }}"></div>
+            </div>
+            <div style="padding:12px 20px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--ll-line-soft); flex:none"><button class="btn btn-secondary" style="min-height:{{ v.bh }}; font-family:var(--font-body); font-weight:500">취소</button><button class="btn btn-primary" style="min-height:{{ v.bh }}; color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600">저장</button></div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 6 구독 -->
+  <section id="m6" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">6</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">구독 추가</span><span style="color:var(--ll-muted); font-size:13px">md 520 · 두 묶음(무엇을 · 결제). 오류: 다음 결제일 비움</span></div>
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }}</span>
+        <div style="width:{{ v.fwMd }}; height:{{ v.fh }}; display:flex; align-items:{{ v.al }}; justify-content:center; padding:{{ v.fp }}; background:linear-gradient(var(--ll-backdrop),var(--ll-backdrop)), var(--color-bg); border-radius:{{ v.fr }}; overflow:hidden">
+          <div style="width:{{ v.mwMd }}; max-height:{{ v.mh }}; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:{{ v.mr }}; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; overflow:hidden">
+            <div style="padding:16px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft); flex:none"><span style="flex:1; font-family:var(--font-heading); font-weight:600; font-size:21px">구독 추가</span><button class="btn btn-icon btn-secondary" style="width:{{ v.xb }}; height:{{ v.xb }}"><ll-icon name="x"></ll-icon></button></div>
+            <div style="flex:1; overflow-y:auto; padding:{{ v.bp }}; display:flex; flex-direction:column; gap:18px">
+              <div style="display:flex; flex-direction:column; gap:12px">
+                <div style="display:flex; align-items:baseline; gap:8px; font-size:12.5px; color:var(--ll-accent-ink)"><span style="font-family:var(--font-heading); font-weight:600; font-size:17px; font-variant-numeric:lining-nums">1</span>무엇을</div>
+                <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">서비스명 <span style="color:var(--ll-out)">*</span></label><input class="input" value="Disney+" style="min-height:{{ v.ih }}"></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">카테고리</label><select class="input" style="min-height:{{ v.ih }}"><option>OTT · 엔터테인먼트</option></select></div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">상태</label><div style="display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:1px solid var(--ll-line); border-radius:4px; overflow:hidden"><sc-for list="{{ subStatus }}" as="o" hint-placeholder-count="3"><span style="min-height:{{ v.ih }}; display:grid; place-items:center; border-left:1px solid var(--ll-line-soft); background:{{ o.bg }}; color:{{ o.c }}; box-shadow:{{ o.s }}; font-size:13.5px">{{ o.n }}</span></sc-for></div></div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:12px; padding-top:16px; border-top:1px solid var(--ll-line-soft)">
+                <div style="display:flex; align-items:baseline; gap:8px; font-size:12.5px; color:var(--ll-accent-ink)"><span style="font-family:var(--font-heading); font-weight:600; font-size:17px; font-variant-numeric:lining-nums">2</span>결제</div>
+                <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">금액 <span style="color:var(--ll-out)">*</span></label><div style="display:grid; grid-template-columns:minmax(0,1fr) 92px; gap:6px"><input class="input" value="9,900" style="min-height:{{ v.ih }}; text-align:right"><select class="input" style="min-height:{{ v.ih }}"><option>KRW ₩</option><option>USD $</option></select></div></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">결제수단</label><select class="input" style="min-height:{{ v.ih }}"><option>신한카드</option></select></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">주기 <span style="color:var(--ll-out)">*</span></label><select class="input" style="min-height:{{ v.ih }}"><option>매월</option><option>매년</option><option>매주</option></select></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">다음 결제일 <span style="color:var(--ll-out)">*</span></label><input class="input" placeholder="YYYY-MM-DD" style="min-height:{{ v.ih }}; border-color:var(--ll-out)"><span style="font-size:12px; color:var(--ll-out); display:flex; gap:6px; align-items:center"><ll-icon name="alert-circle" size="13"></ll-icon>다음 결제일을 입력하세요.</span></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">마지막 사용일 <span style="color:var(--ll-muted)">선택</span></label><input class="input" value="2026-10-11" style="min-height:{{ v.ih }}"></div>
+                  <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">메모 <span style="color:var(--ll-muted)">선택</span></label><input class="input" placeholder="추가 정보" style="min-height:{{ v.ih }}"></div>
+                </div>
+              </div>
+            </div>
+            <div style="padding:12px 20px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--ll-line-soft); flex:none"><button class="btn btn-secondary" style="min-height:{{ v.bh }}; font-family:var(--font-body); font-weight:500">취소</button><button class="btn btn-primary" style="min-height:{{ v.bh }}; color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600">저장</button></div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 7a 일정 추가 -->
+  <section id="m7a" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">7a</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">캘린더 일정 추가 / 수정</span><span style="color:var(--ll-muted); font-size:13px">md 520 · 날짜 칸을 눌러 열면 그 날짜로 채워진다. 유형 표식은 캘린더 범례와 같다. 오류: 제목 비움</span></div>
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }}</span>
+        <div style="width:{{ v.fwMd }}; height:{{ v.fh }}; display:flex; align-items:{{ v.al }}; justify-content:center; padding:{{ v.fp }}; background:linear-gradient(var(--ll-backdrop),var(--ll-backdrop)), var(--color-bg); border-radius:{{ v.fr }}; overflow:hidden">
+          <div style="width:{{ v.mwMd }}; max-height:{{ v.mh }}; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:{{ v.mr }}; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; overflow:hidden">
+            <div style="padding:16px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft); flex:none"><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-family:var(--font-heading); font-weight:600; font-size:21px">일정 추가</span><span style="font-size:12.5px; color:var(--ll-muted)">10월 18일 일요일</span></div><button class="btn btn-icon btn-secondary" style="width:{{ v.xb }}; height:{{ v.xb }}"><ll-icon name="x"></ll-icon></button></div>
+            <div style="flex:1; overflow-y:auto; padding:{{ v.bp }}; display:flex; flex-direction:column; gap:14px">
+              <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">제목 <span style="color:var(--ll-out)">*</span></label><input class="input" placeholder="예: 연말정산 서류 챙기기" style="min-height:{{ v.ih }}; border-color:var(--ll-out)"><span style="font-size:12px; color:var(--ll-out); display:flex; gap:6px; align-items:center"><ll-icon name="alert-circle" size="13"></ll-icon>제목을 입력하세요.</span></div>
+              <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">유형</label>
+                <div style="display:grid; grid-template-columns:{{ v.c4 }}; gap:1px; background:var(--ll-line); border:1px solid var(--ll-line); border-radius:4px; overflow:hidden"><sc-for list="{{ calTypes }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.go }}" style="min-height:{{ v.ih }}; display:flex; align-items:center; justify-content:center; gap:7px; border:0; background:{{ o.bg }}; color:{{ o.c }}; box-shadow:{{ o.s }}; font-size:13.5px; cursor:pointer"><span style="width:9px; height:9px; border-radius:{{ o.mr }}; background:{{ o.mbg }}; border:1.5px solid {{ o.mc }}; transform:{{ o.mt }}"></span>{{ o.n }}</button></sc-for></div>
+              </div>
+              <div style="display:grid; grid-template-columns:{{ v.c2 }}; gap:12px">
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">날짜 <span style="color:var(--ll-out)">*</span></label><input class="input" value="2026-10-18" style="min-height:{{ v.ih }}"><label style="display:flex; align-items:center; gap:8px; min-height:{{ v.chk }}; font-size:13.5px"><span style="width:18px; height:18px; border:1px solid var(--ll-line); border-radius:2px; flex:none"></span><ll-icon name="moon" size="14" style="color:var(--ll-muted)"></ll-icon>음력</label></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">반복</label><select class="input" style="min-height:{{ v.ih }}"><option>매년</option><option>반복 안 함</option><option>매주</option><option>매월</option></select></div>
+                <div></div>
+                <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">반복 종료일 <span style="color:var(--ll-muted)">선택</span></label><input class="input" placeholder="없으면 계속" style="min-height:{{ v.ih }}"></div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:5px"><label style="font-size:12.5px; color:var(--ll-muted)">메모 <span style="color:var(--ll-muted)">선택</span></label><textarea class="input" placeholder="추가 정보" style="min-height:72px"></textarea></div>
+            </div>
+            <div style="padding:12px 20px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--ll-line-soft); flex:none"><button class="btn btn-secondary" style="min-height:{{ v.bh }}; font-family:var(--font-body); font-weight:500">취소</button><button class="btn btn-primary" style="min-height:{{ v.bh }}; color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600">저장</button></div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 7b 일정 상세 -->
+  <section id="m7b" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">7b</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">일정 상세</span><span style="color:var(--ll-muted); font-size:13px">sm 380 · 위: 직접 입력(수정 · 삭제) · 아래: 연동 일정(원래 화면에서 수정)</span></div>
+    <sc-for list="{{ evDetails }}" as="e" hint-placeholder-count="2">
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }} · {{ e.tag }}</span>
+        <div style="width:{{ v.fwSm }}; height:{{ v.fhSm }}; display:flex; align-items:{{ v.al }}; justify-content:center; padding:{{ v.fp }}; background:linear-gradient(var(--ll-backdrop),var(--ll-backdrop)), var(--color-bg); border-radius:{{ v.fr }}; overflow:hidden">
+          <div style="width:{{ v.mwSm }}; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:{{ v.mr }}; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; overflow:hidden">
+            <div style="padding:16px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft)"><span style="width:10px; height:10px; margin-top:9px; flex:none; border-radius:{{ e.mr }}; background:{{ e.mbg }}; border:1.5px solid {{ e.mc }}"></span><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-family:var(--font-heading); font-weight:600; font-size:20px">{{ e.t }}</span><span style="font-size:12.5px; color:var(--ll-muted)">{{ e.k }}</span></div><button class="btn btn-icon btn-secondary" style="width:{{ v.xb }}; height:{{ v.xb }}"><ll-icon name="x"></ll-icon></button></div>
+            <div style="padding:14px 20px; display:grid; grid-template-columns:72px 1fr; gap:8px 12px; font-size:13.5px">
+              <span style="color:var(--ll-muted)">날짜</span><span>{{ e.d }}</span>
+              <span style="color:var(--ll-muted)">{{ e.l2 }}</span><span style="color:{{ e.v2c }}">{{ e.v2 }}</span>
+              <span style="color:var(--ll-muted)">메모</span><span>{{ e.memo }}</span>
+            </div>
+            <sc-if value="{{ e.linked }}" hint-placeholder-val="{{ false }}"><div style="margin:0 20px 14px; padding:10px 12px; border:1px dashed var(--ll-line); border-radius:4px; display:flex; gap:8px; align-items:center; font-size:13px"><ll-icon name="link" size="14" style="color:var(--ll-muted)"></ll-icon><span style="flex:1">구독 관리에서 온 일정입니다. 수정은 원래 화면에서 합니다.</span></div></sc-if>
+            <div style="padding:12px 20px; display:flex; justify-content:space-between; gap:8px; border-top:1px solid var(--ll-line-soft)">
+              <sc-if value="{{ e.direct }}" hint-placeholder-val="{{ true }}"><button class="btn" style="min-height:{{ v.bh }}; color:var(--ll-out); font-family:var(--font-body); font-weight:500" style-hover="background:var(--ll-out-tint)">삭제</button></sc-if>
+              <sc-if value="{{ e.linked }}" hint-placeholder-val="{{ false }}"><span></span></sc-if>
+              <div style="display:flex; gap:8px"><button class="btn btn-secondary" style="min-height:{{ v.bh }}; font-family:var(--font-body); font-weight:500">닫기</button><button class="btn btn-primary" style="min-height:{{ v.bh }}; color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600"><ll-icon name="{{ e.ai }}"></ll-icon>{{ e.act }}</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+    </sc-for>
+  </section>
+
+  <!-- 8 알림 상세 -->
+  <section id="m8" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">8</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">알림 상세</span><span style="color:var(--ll-muted); font-size:13px">sm 380 · 입력 칸이 없어 오류 상태 없음. 열어도 토스트를 띄우지 않는다</span></div>
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }}</span>
+        <div style="width:{{ v.fwSm }}; height:{{ v.fhSm }}; display:flex; align-items:{{ v.al }}; justify-content:center; padding:{{ v.fp }}; background:linear-gradient(var(--ll-backdrop),var(--ll-backdrop)), var(--color-bg); border-radius:{{ v.fr }}; overflow:hidden">
+          <div style="width:{{ v.mwSm }}; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:{{ v.mr }}; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; overflow:hidden">
+            <div style="padding:16px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft)"><span style="width:36px; height:36px; flex:none; border:1px solid var(--ll-line); border-radius:4px; display:grid; place-items:center; color:var(--ll-warn)"><ll-icon name="card" size="18"></ll-icon></span><div style="flex:1; display:flex; flex-direction:column; gap:2px"><span style="font-family:var(--font-heading); font-weight:600; font-size:20px">Disney+ 무료체험 종료 임박</span><span style="font-size:12.5px; color:var(--ll-muted)">1시간 전 · 구독</span></div><button class="btn btn-icon btn-secondary" style="width:{{ v.xb }}; height:{{ v.xb }}"><ll-icon name="x"></ll-icon></button></div>
+            <div style="padding:16px 20px; font-size:14px; line-height:1.65; text-wrap:pretty">2026.10.16 부터 월 ₩9,900 이 자동 결제됩니다. 해지하려면 3일 남았습니다.</div>
+            <div style="padding:0 20px 14px; display:grid; grid-template-columns:56px 1fr; gap:6px 12px; font-size:12.5px"><span style="color:var(--ll-muted)">받은 시각</span><span>2026.10.13 15:02</span><span style="color:var(--ll-muted)">출처</span><span>구독 관리</span></div>
+            <div style="padding:12px 20px; display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--ll-line-soft)"><button class="btn btn-secondary" style="min-height:{{ v.bh }}; font-family:var(--font-body); font-weight:500">닫기</button><button class="btn btn-primary" style="min-height:{{ v.bh }}; color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600">구독 관리로 이동<ll-icon name="chevron-right" size="14"></ll-icon></button></div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 9a 파일 격자 -->
+  <section id="m9a" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">9a</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">파일 카드 — 격자 보기</span><span style="color:var(--ll-muted); font-size:13px">카드를 누르면 보기 창. 더보기 = 다운로드 · 삭제. 이미지는 썸네일, 그 밖은 확장자 표식</span></div>
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }}</span>
+        <div style="width:{{ v.fwPage }}; padding:{{ v.pp }}; border:1px solid var(--ll-line-soft); border-radius:{{ v.fr }}; display:grid; grid-template-columns:{{ v.fGrid }}; gap:12px">
+          <sc-for list="{{ files }}" as="f" hint-placeholder-count="6">
+            <div style="border:1px solid var(--ll-line); border-radius:4px; display:flex; flex-direction:column; cursor:pointer; min-width:0" style-hover="border-color:var(--color-accent)">
+              <sc-if value="{{ f.img }}" hint-placeholder-val="{{ false }}"><div style="height:{{ v.thumbH }}; padding:5px; border-bottom:1px solid var(--ll-line-soft)"><img src="assets/photo.jpg" alt="{{ f.n }}" class="plate" style="width:100%; height:100%; object-fit:cover; object-position:{{ f.pos }}; border-width:0; outline:0"></div></sc-if>
+              <sc-if value="{{ f.doc }}" hint-placeholder-val="{{ true }}"><div style="height:{{ v.thumbH }}; display:grid; place-items:center; border-bottom:1px solid var(--ll-line-soft)"><div style="display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--ll-muted)"><ll-icon name="{{ f.icon }}" size="28" stroke="1.2"></ll-icon><span style="font-size:11px; letter-spacing:.08em; padding:1px 6px; border:1px solid var(--ll-line); border-radius:2px">{{ f.ext }}</span></div></div></sc-if>
+              <div style="display:flex; align-items:center; gap:4px; padding:8px 4px 8px 10px">
+                <div style="flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.35"><span style="font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ f.n }}</span><span style="font-size:11.5px; color:var(--ll-muted)">{{ f.size }} · {{ f.d }}</span></div>
+                <button title="다운로드 · 삭제" class="btn btn-icon" style="width:{{ v.ib }}; height:{{ v.ib }}; color:var(--ll-muted); flex:none" style-hover="background:var(--ll-hover)"><ll-icon name="more"></ll-icon></button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 9b 파일 목록 -->
+  <section id="m9b" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">9b</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">파일 목록 행 — 목록 보기</span><span style="color:var(--ll-muted); font-size:13px">행 = 보기 창, 관리 열 = 더보기 하나 (표 규칙). 크기는 오른쪽 정렬</span></div>
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }}</span>
+        <div style="width:{{ v.fwPage }}; padding:{{ v.pp }}; border:1px solid var(--ll-line-soft); border-radius:{{ v.fr }}; display:flex; flex-direction:column">
+          <sc-if value="{{ v.desk }}" hint-placeholder-val="{{ true }}"><div style="display:grid; grid-template-columns:34px minmax(0,1fr) 70px 90px 100px 40px; gap:10px; height:36px; align-items:center; border-bottom:1px solid var(--ll-line); font-size:12px; color:var(--ll-muted)"><span></span><span>이름</span><span>종류</span><span style="text-align:right">크기</span><span>올린 날</span><span></span></div></sc-if>
+          <sc-for list="{{ files }}" as="f" hint-placeholder-count="6">
+            <div style="display:grid; grid-template-columns:{{ v.listCols }}; gap:10px; min-height:{{ v.rowH }}; align-items:center; border-bottom:1px solid var(--ll-line-soft); font-size:13.5px; cursor:pointer" style-hover="background:var(--ll-hover)">
+              <sc-if value="{{ f.img }}" hint-placeholder-val="{{ false }}"><img src="assets/photo.jpg" alt="" class="plate" style="width:32px; height:32px; object-fit:cover; object-position:{{ f.pos }}; border-width:2px; outline-width:1px"></sc-if>
+              <sc-if value="{{ f.doc }}" hint-placeholder-val="{{ true }}"><span style="width:32px; height:32px; display:grid; place-items:center; border:1px solid var(--ll-line); border-radius:4px; color:var(--ll-muted)"><ll-icon name="{{ f.icon }}" size="16"></ll-icon></span></sc-if>
+              <div style="min-width:0; display:flex; flex-direction:column; line-height:1.35"><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ f.n }}</span><sc-if value="{{ v.mob }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:var(--ll-muted)">{{ f.ext }} · {{ f.size }} · {{ f.d }}</span></sc-if></div>
+              <sc-if value="{{ v.desk }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px; color:var(--ll-muted); letter-spacing:.06em">{{ f.ext }}</span></sc-if>
+              <sc-if value="{{ v.desk }}" hint-placeholder-val="{{ true }}"><span style="text-align:right; color:var(--ll-muted)">{{ f.size }}</span></sc-if>
+              <sc-if value="{{ v.desk }}" hint-placeholder-val="{{ true }}"><span style="color:var(--ll-muted)">{{ f.d }}</span></sc-if>
+              <button title="다운로드 · 삭제" class="btn btn-icon" style="width:{{ v.ib }}; height:{{ v.ib }}; color:var(--ll-muted); justify-self:end" style-hover="background:var(--ll-hover)"><ll-icon name="more"></ll-icon></button>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 9c 파일 보기 -->
+  <section id="m9c" style="padding:40px; border-bottom:1px solid var(--ll-line); display:flex; flex-direction:column; gap:16px">
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap"><span style="font-size:12px; padding:2px 8px; border:1px solid var(--color-accent); color:var(--ll-accent-ink); border-radius:2px">9c</span><span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">파일 보기 창</span><span style="color:var(--ll-muted); font-size:13px">lg 720 · 위부터 이미지 · PDF · 그 밖(미리보기 없음 → 다운로드)</span></div>
+    <sc-for list="{{ viewers }}" as="w" hint-placeholder-count="3">
+    <div style="display:flex; gap:24px; align-items:flex-start">
+      <sc-for list="{{ V }}" as="v" hint-placeholder-count="4">
+      <div data-theme="{{ v.theme }}" style="flex:none; display:flex; flex-direction:column; gap:10px; padding:16px; background:var(--color-bg); color:var(--color-text); border:1px solid var(--ll-line); border-radius:7px">
+        <span style="font-size:12px; color:var(--ll-muted)">{{ v.label }} · {{ w.tag }}</span>
+        <div style="width:{{ v.fwLg }}; height:{{ v.fh }}; display:flex; align-items:{{ v.al }}; justify-content:center; padding:{{ v.fp }}; background:linear-gradient(var(--ll-backdrop),var(--ll-backdrop)), var(--color-bg); border-radius:{{ v.fr }}; overflow:hidden">
+          <div style="width:{{ v.mwLg }}; max-height:{{ v.mh }}; background:var(--ll-raised); border:1px solid var(--ll-line); border-radius:{{ v.mr }}; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; overflow:hidden">
+            <div style="padding:14px 20px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid var(--ll-line-soft); flex:none"><div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px"><span style="font-family:var(--font-heading); font-weight:600; font-size:20px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ w.n }}</span><span style="font-size:12.5px; color:var(--ll-muted)">{{ w.meta }}</span></div><button class="btn btn-icon btn-secondary" style="width:{{ v.xb }}; height:{{ v.xb }}"><ll-icon name="x"></ll-icon></button></div>
+            <div style="flex:1; overflow-y:auto; padding:16px; display:flex; justify-content:center; background:var(--ll-hover)">
+              <sc-if value="{{ w.img }}" hint-placeholder-val="{{ true }}"><img src="assets/photo.jpg" alt="{{ w.n }}" class="plate" style="max-width:100%; height:{{ v.prevH }}; object-fit:contain"></sc-if>
+              <sc-if value="{{ w.pdf }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-direction:column; gap:12px; align-items:center; width:100%"><div style="width:min(100%, 420px); aspect-ratio:1 / 1.414; background:var(--color-bg); border:1px solid var(--ll-line); box-shadow:var(--shadow-sm); padding:28px; display:flex; flex-direction:column; gap:10px"><span style="font-family:var(--font-heading); font-weight:600; font-size:18px">보험증권</span><span style="height:8px; width:70%; background:var(--ll-line-soft)"></span><span style="height:8px; width:90%; background:var(--ll-line-soft)"></span><span style="height:8px; width:80%; background:var(--ll-line-soft)"></span><span style="height:8px; width:60%; background:var(--ll-line-soft)"></span><span style="font-size:11px; color:var(--ll-faint); margin-top:auto">PDF 미리보기 자리</span></div><span style="font-size:12px; color:var(--ll-muted)">1 / 3 쪽</span></div></sc-if>
+              <sc-if value="{{ w.other }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:48px 16px; text-align:center"><ll-icon name="sheet" size="32" stroke="1.2" style="color:var(--ll-muted)"></ll-icon><span style="font-family:var(--font-heading); font-weight:600; font-size:18px">미리보기를 지원하지 않는 형식입니다</span><span style="font-size:13px; color:var(--ll-muted)">내려받아서 여세요.</span></div></sc-if>
+            </div>
+            <div style="padding:12px 20px; display:flex; justify-content:space-between; gap:8px; border-top:1px solid var(--ll-line-soft); flex:none"><button class="btn" style="min-height:{{ v.bh }}; color:var(--ll-out); font-family:var(--font-body); font-weight:500" style-hover="background:var(--ll-out-tint)">삭제</button><div style="display:flex; gap:8px"><button class="btn btn-secondary" style="min-height:{{ v.bh }}; font-family:var(--font-body); font-weight:500">닫기</button><button class="btn btn-primary" style="min-height:{{ v.bh }}; color:var(--ll-accent-ink); font-family:var(--font-body); font-weight:600"><ll-icon name="download"></ll-icon>다운로드</button></div></div>
+          </div>
+        </div>
+      </div>
+      </sc-for>
+    </div>
+    </sc-for>
+  </section>
+
+  <section id="props" style="padding:40px; display:flex; flex-direction:column; gap:14px; max-width:860px">
+    <span style="font-family:var(--font-heading); font-weight:600; font-size:26px; white-space:nowrap">제안 — 시안에 넣지 않음</span>
+    <span style="font-size:13px; color:var(--ll-muted)">모두 새 기능이라 창에는 그리지 않았다. 판정용.</span>
+    <div style="display:flex; flex-direction:column; border-top:1px solid var(--ll-line)">
+      <sc-for list="{{ proposals }}" as="p" hint-placeholder-count="6">
+        <div style="display:grid; grid-template-columns:36px minmax(0,1fr); gap:12px; padding:12px 0; border-bottom:1px solid var(--ll-line-soft)"><span style="font-family:var(--font-heading); font-weight:600; font-size:18px; color:var(--color-accent); font-variant-numeric:lining-nums">{{ p.i }}</span><div style="display:flex; flex-direction:column; gap:2px"><span style="font-weight:600">{{ p.t }}</span><span style="font-size:13px; color:var(--ll-muted)">{{ p.d }}</span></div></div>
+      </sc-for>
+    </div>
+  </section>
+</div>
+</x-dc>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#f3f2f2"/><rect x="28" y="34" width="44" height="32" fill="none" stroke="#b68235" stroke-width="3"/><line x1="28" y1="42" x2="72" y2="42" stroke="#b68235" stroke-width="2"/></svg></template>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { invType: '해외주식', help: true, helpMode: 'won', apType: 'out', apCycle: 'month', dcaBasis: 'amt', fx: 'k2u', calType: 'todo' };
+  componentDidMount() { this.paint(); }
+  componentDidUpdate() { this.paint(); }
+  paint() {
+    const T = window.LLTheme; if (!T) return;
+    document.querySelectorAll('[data-theme]').forEach(el => T.applyTo(el, el.getAttribute('data-theme') === 'dark'));
+  }
+  renderVals() {
+    requestAnimationFrame(() => this.paint());
+    const s = this.state;
+    const OUT = 'var(--ll-out)', IN = 'var(--ll-in)', MV = 'var(--ll-move)', WARN = 'var(--ll-warn)', TXT = 'var(--color-text)', MUT = 'var(--ll-muted)';
+    const ACC = 'var(--color-accent)', AINK = 'var(--ll-accent-ink)';
+    const selBg = 'color-mix(in srgb, var(--color-accent) 11%, var(--ll-raised))';
+    const opt = (n, on, go, col) => ({ n, go: go || (() => {}), c: on ? (col || AINK) : MUT, s: on ? 'inset 0 0 0 1px ' + (col || ACC) : 'none', bg: on ? (col ? 'color-mix(in srgb, ' + col + ' 9%, var(--ll-raised))' : selBg) : 'var(--ll-raised)' });
+    const mk = (label, theme, mob) => ({
+      label, theme, mob, desk: !mob,
+      fwLg: mob ? '390px' : '800px', fwMd: mob ? '390px' : '600px', fwSm: mob ? '390px' : '460px', fwPage: mob ? '390px' : '900px',
+      fh: mob ? '844px' : 'auto', fhSm: mob ? '600px' : 'auto', fp: mob ? '0' : '40px', al: mob ? 'flex-end' : 'flex-start', fr: mob ? '24px' : '4px',
+      mwLg: mob ? '100%' : '720px', mwMd: mob ? '100%' : '520px', mwSm: mob ? '100%' : '380px',
+      mh: mob ? '92%' : 'none', mr: mob ? '14px 14px 0 0' : '7px', bp: mob ? '16px' : '18px 20px',
+      ih: mob ? '44px' : '40px', bh: mob ? '44px' : '38px', xb: mob ? '44px' : '34px', ib: mob ? '44px' : '32px', chk: mob ? '44px' : '28px',
+      c2: mob ? 'minmax(0,1fr)' : 'repeat(2,minmax(0,1fr))', c4: mob ? 'repeat(2,minmax(0,1fr))' : 'repeat(4,minmax(0,1fr))',
+      fGrid: mob ? 'repeat(2,minmax(0,1fr))' : 'repeat(auto-fill,minmax(160px,1fr))', pp: mob ? '16px' : '20px', thumbH: mob ? '96px' : '112px',
+      listCols: mob ? '32px minmax(0,1fr) 44px' : '34px minmax(0,1fr) 70px 90px 100px 40px', rowH: mob ? '60px' : '48px', prevH: mob ? '300px' : '420px',
+    });
+    const V = [mk('데스크톱 · 라이트', 'light', false), mk('휴대폰 390 · 라이트', 'light', true), mk('데스크톱 · 다크', 'dark', false), mk('휴대폰 390 · 다크', 'dark', true)];
+    const overseas = s.invType === '해외주식' || s.invType === '해외ETF';
+    const AP = { out: ['지출', OUT, '결제수단', '신한카드', '헬스장 회비', '생활', '운동'], in: ['수입', IN, '입금 은행', '토스뱅크', '월급', '근로소득', '급여'], move: ['자산이동', MV, '이동 대상', '예적금', '적금 납입', '저축', '적금'] };
+    const ap = AP[s.apType];
+    const kind = {
+      pay: { n: '구독 결제', mc: OUT, mbg: OUT, mr: '50%', mt: 'none' },
+      mature: { n: '입금 · 만기', mc: MV, mbg: 'transparent', mr: '0', mt: 'none' },
+      expire: { n: '서류 만료', mc: WARN, mbg: 'transparent', mr: '0', mt: 'rotate(45deg) scale(.85)' },
+      todo: { n: '할일', mc: TXT, mbg: 'transparent', mr: '50%', mt: 'none' },
+    };
+    return {
+      V,
+      invTypes: ['국내주식', '해외주식', '해외ETF', '국내ETF', '가상자산', '기타'].map(n => opt(n, s.invType === n, () => this.setState({ invType: n }))),
+      invUnit: overseas ? '$' : '₩', invEval: overseas ? '3,050.00' : '4,180,000', invUnitNote: overseas ? '해외 종목 — 달러로 입력' : '원화로 입력',
+      helpOpen: s.help, helpChev: s.help ? 'chevron-up' : 'chevron-down', toggleHelp: () => this.setState({ help: !s.help }),
+      helpModes: [['won', '수익 (원)'], ['pct', '수익률 (%)']].map(([k, n]) => opt(n, s.helpMode === k, () => this.setState({ helpMode: k }))),
+      helpVal: s.helpMode === 'won' ? '1,180,000' : '39.3', helpUnit: s.helpMode === 'won' ? '원' : '%',
+      apTypes: Object.keys(AP).map(k => opt(AP[k][0], s.apType === k, () => this.setState({ apType: k }), AP[k][1])),
+      apColor: ap[1], apPayLabel: ap[2], apPayVal: ap[3], apName: ap[4], apCat1: ap[5], apCat2: ap[6], apIsMove: s.apType === 'move', apNotMove: s.apType !== 'move',
+      apCycles: [['day', '매일'], ['week', '매주'], ['month', '매월'], ['year', '매년']].map(([k, n]) => opt(n, s.apCycle === k, () => this.setState({ apCycle: k }))),
+      ap: { daily: s.apCycle === 'day', weekly: s.apCycle === 'week', monthly: s.apCycle === 'month', yearly: s.apCycle === 'year', weekend: s.apCycle === 'week' },
+      wdays: ['월', '화', '수', '목', '금', '토', '일'].map((n, i) => ({ n, bd: i === 0 ? ACC : 'var(--ll-line)', c: i === 0 ? AINK : MUT })),
+      dcaBasis: [['amt', '금액'], ['qty', '수량']].map(([k, n]) => opt(n, s.dcaBasis === k, () => this.setState({ dcaBasis: k }))),
+      dcaUnit: s.dcaBasis === 'amt' ? '원' : '주', dcaPh: s.dcaBasis === 'amt' ? '20,000' : '1', dcaErr: s.dcaBasis === 'amt' ? '회차당 매수 금액을 입력하세요.' : '회차당 매수 수량을 입력하세요.',
+      fxDirs: [['k2u', '원 → 달러'], ['u2k', '달러 → 원']].map(([k, n]) => opt(n, s.fx === k, () => this.setState({ fx: k }))), fxUnit: s.fx === 'k2u' ? '₩' : '$',
+      saveTypes: ['적금', '예금', '청약', '기타'].map(n => opt(n, n === '적금')),
+      subStatus: ['활성', '체험', '일시정지'].map(n => opt(n, n === '체험')),
+      calTypes: Object.keys(kind).map(k => Object.assign(opt(kind[k].n, s.calType === k, () => this.setState({ calType: k })), kind[k])),
+      evDetails: [
+        Object.assign({ tag: '직접 입력', t: '연말정산 서류 챙기기', k: '할일 · 직접 입력', d: '2026.10.18 (일) · D-5', l2: '반복', v2: '매년', v2c: TXT, memo: '원천징수영수증 · 의료비 내역', direct: true, linked: false, act: '수정', ai: 'pencil' }, kind.todo),
+        Object.assign({ tag: '연동 일정', t: '멜론 결제', k: '구독 결제 · 연동', d: '2026.10.18 (일) · D-5', l2: '금액', v2: '−₩10,900 · 카카오페이', v2c: OUT, memo: '—', direct: false, linked: true, act: '구독 관리에서 수정', ai: 'external' }, kind.pay),
+      ],
+      files: [
+        { n: '여권사본.jpg', ext: 'JPG', size: '2.4 MB', d: '2026.10.08', img: true, doc: false, pos: '30% 40%' },
+        { n: '보험증권_2026.pdf', ext: 'PDF', size: '845 KB', d: '2026.10.06', img: false, doc: true, icon: 'file-text' },
+        { n: '전세계약서_스캔.pdf', ext: 'PDF', size: '3.1 MB', d: '2026.09.21', img: false, doc: true, icon: 'file-text' },
+        { n: '영수증_1013.png', ext: 'PNG', size: '612 KB', d: '2026.10.13', img: true, doc: false, pos: '70% 60%' },
+        { n: '가계부_2026.xlsx', ext: 'XLSX', size: '128 KB', d: '2026.10.01', img: false, doc: true, icon: 'sheet' },
+        { n: '연말정산_체크리스트.txt', ext: 'TXT', size: '4 KB', d: '2026.09.30', img: false, doc: true, icon: 'file' },
+      ],
+      viewers: [
+        { tag: '이미지', n: '여권사본.jpg', meta: 'JPG · 2.4 MB · 2026.10.08 · 루트', img: true, pdf: false, other: false },
+        { tag: 'PDF', n: '보험증권_2026.pdf', meta: 'PDF · 845 KB · 2026.10.06 · 루트', img: false, pdf: true, other: false },
+        { tag: '그 밖', n: '가계부_2026.xlsx', meta: 'XLSX · 128 KB · 2026.10.01 · 루트', img: false, pdf: false, other: true },
+      ],
+      proposals: [
+        { i: '1', t: '자동이체 · 반복매수 창에 "다음 실행일" 미리보기', d: '주기 · 기준일 · 주말 처리를 바꾸면 다음 3회 날짜를 바로 보여 준다. 화면 계산만으로 된다.' },
+        { i: '2', t: '환전 창에 예상 결과 · 적용 환율 표시', d: '환율을 비우면 서버가 정하므로, 미리 보여 주려면 환율 조회 API 가 필요하다.' },
+        { i: '3', t: '투자 원금 도우미 결과를 칸에 넣기 전에 보여 주기', d: '"투자원금 ₩1,820,000 으로 계산됨 — 넣기". 지금은 버튼이 바로 채운다.' },
+        { i: '4', t: '구독 마지막 사용일 "오늘" 버튼', d: '날짜 입력 옆 작은 버튼. 오래 안 쓴 구독 표시(시안 구독 화면)와 짝.' },
+        { i: '5', t: '파일 보기 창에서 이전 / 다음 파일로 넘기기', d: '같은 폴더 안에서 ← → 키와 버튼.' },
+        { i: '6', t: '연동 일정 상세에서 원래 항목의 수정 창을 바로 열기', d: '지금 판정은 "원래 화면에서 수정" 링크(화면 이동). 바로 열려면 화면 사이 창 열기 규칙이 필요하다.' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

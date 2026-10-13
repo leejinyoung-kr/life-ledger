@@ -25,7 +25,8 @@
   };
   var FONTS = {
     serif: { '--font-heading': '"Cormorant Garamond","Noto Serif KR",serif', '--font-body': '"Lora","Noto Serif KR",serif' },
-    sans: { '--font-heading': '"Cormorant Garamond","Pretendard",sans-serif', '--font-body': '"Pretendard",sans-serif' }
+    sans: { '--font-heading': '"Cormorant Garamond","Pretendard",sans-serif', '--font-body': '"Pretendard",sans-serif' },
+    mixed: { '--font-heading': '"Cormorant Garamond","Noto Serif KR",serif', '--font-body': '"Pretendard Variable","Pretendard",system-ui,sans-serif' }
   };
   function apply(dark, font) {
     var r = document.documentElement, m = dark ? DARK : LIGHT, f = FONTS[font] || FONTS.serif, k;
@@ -33,6 +34,8 @@
     for (k in f) r.style.setProperty(k, f[k]);
     r.style.colorScheme = dark ? 'dark' : 'light';
   }
-  window.LLTheme = { apply: apply };
-  apply(false, 'serif');
+  function applyTo(el, dark) { var m = dark ? DARK : LIGHT, k; for (k in m) el.style.setProperty(k, m[k]); el.style.colorScheme = dark ? 'dark' : 'light'; }
+  var cs = document.currentScript, def = (cs && cs.getAttribute('data-font')) || 'serif';
+  window.LLTheme = { apply: apply, applyTo: applyTo, font: def };
+  apply(false, def);
 })();
