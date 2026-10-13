@@ -1,4 +1,4 @@
-# DocNexus — Backend
+# LifeLedger — Backend
 
 NestJS 기반 API 서버
 
@@ -73,23 +73,19 @@ src/
 ├── asset/         # 순자산 요약/추이 (현금+예적금+투자 집계, 전용 테이블 없음)
 ├── notification/  # 알림
 ├── calendar/      # 캘린더
-├── security/      # 보안센터 + 마스터 잠금(Vault) + 유출검사·강도통계
+├── security/      # 로그인 세션 + 마스터 잠금(Vault) + 열람 기록 조회
 ├── access-log/    # 보관함 접근 감사 로그 (전역)
 ├── settings/      # 사용자 설정
 ├── category/      # 카테고리 관리
 ├── search/        # 통합 검색
 ├── dashboard/     # 대시보드 요약 + 현금흐름 예측 + D-day
-├── identity/      # 신원 지갑 (AES + 사본 fileId)
 ├── credential/    # 계정 보관함 (AES + 백업코드 + 엑셀)
-├── env/           # ENV 보관함 (AES + 변경 이력/롤백)
 ├── file/          # 파일 보관함 (Backblaze B2)
 ├── export/        # 데이터 내보내기 (JSON/ZIP)
 ├── import/        # 데이터 가져오기 (계정 JSON 복원)
-├── maintenance/   # 스케줄 크론 (알림·보안점수·순자산 스냅샷·투자 현재가 갱신·소프트삭제 항목 자동정리)
-├── ai/            # AI 리포트 / 자연어 거래 파싱 (사용자별 OpenAI 키)
+├── maintenance/   # 스케줄 크론 (알림·순자산 스냅샷·투자 현재가 갱신·소프트삭제 항목 자동정리)
 ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
 ├── push/          # 웹 푸시 구독/발송 (VAPID)
-├── convert/       # 이미지↔PDF 변환
 ├── system-log/    # 시스템 로그 (크론·투자 갱신 등 백그라운드 작업 실행 기록)
 ├── health/        # 헬스체크
 ├── crypto/        # 암호화 컬럼 목록·문맥(AAD)·키 설정, 부팅 시 점검·재암호화, 배포 전 점검(crypto-check)

@@ -31,11 +31,11 @@ export default async function LoginPage({
             <rect x="2" y="12" width="8" height="8" rx="2" fill="var(--accent)" opacity=".3" />
             <rect x="12" y="12" width="8" height="8" rx="2" fill="var(--accent)" opacity=".12" />
           </svg>
-          Doc<span className="text-accent">Nexus</span>
+          <span>Life<span className="text-accent">Ledger</span></span>
         </div>
 
-        <h1 className="text-[clamp(1rem,3vw,1.15rem)] font-bold tracking-[-0.03em] text-primary mb-1.5 break-keep">DocNexus가 지켜드리는 것</h1>
-        <p className="text-[0.8rem] text-secondary leading-relaxed mb-6 break-keep">로그인하고 나만의 보안 관리 허브를 시작하세요.</p>
+        <h1 className="text-[clamp(1rem,3vw,1.15rem)] font-bold tracking-[-0.03em] text-primary mb-1.5 break-keep">LifeLedger가 지켜드리는 것</h1>
+        <p className="text-[0.8rem] text-secondary leading-relaxed mb-6 break-keep">로그인하고 나만의 생활 장부를 시작하세요.</p>
 
         {/* 접근 거부 안내 — 허용되지 않은 구글 계정 */}
         {isNotAllowed && (

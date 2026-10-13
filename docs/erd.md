@@ -1,4 +1,4 @@
-# DocNexus — ERD
+# LifeLedger — ERD
 
 > 단일 소스: `backend/prisma/schema.prisma` · DB: MariaDB(utf8mb4_unicode_ci)
 > 마이그레이션: `20260713000000_init`(전 도메인 통합) + `20260715104820_add_recurring_schedule` · `20260715105206_drop_legacy_recurring_columns` · `20260731121236_remove_note_task_calendar` · `20260801140000_restore_calendar_remove_goal` · `20260801225151_add_calendar_lunar` · `20260801233607_add_holiday_and_show_holidays` · `20260822225654_remove_trash_and_asset_realestate_debt`(휴지통 기능 삭제 + Asset 테이블/부동산·부채 제거) · `20261013141800_remove_env_identity_ai_security_score_features`(공개 준비 1단계: ENV 보관함·신원 지갑·AI 리포트·보안 점수 테이블과 관련 컬럼·enum 값 제거)

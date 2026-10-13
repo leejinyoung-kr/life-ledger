@@ -79,7 +79,7 @@ export const envShape = {
   // 웹 푸시 — 키 쌍이 없으면 푸시만 꺼진다(앱 내 알림은 정상)
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
-  VAPID_SUBJECT: z.string().default('mailto:admin@docnexus.local'),
+  VAPID_SUBJECT: z.string().default('mailto:admin@life-ledger.local'),
 
   // SMTP 메일 — HOST·USER·PASS 가 없으면 메일 발송만 꺼진다
   SMTP_HOST: z.string().optional(),

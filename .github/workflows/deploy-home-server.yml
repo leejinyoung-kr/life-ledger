@@ -18,11 +18,11 @@ jobs:
     runs-on: [self-hosted]
     concurrency: deploy-home-server
     steps:
-      # actions/checkout을 쓰지 않고 러너가 이미 갖고 있는 ~/apps/doc-nexus 클론을 그대로 갱신한다.
+      # actions/checkout을 쓰지 않고 러너가 이미 갖고 있는 ~/apps/life-ledger 클론을 그대로 갱신한다.
       # .env / backend/.env 는 git에 커밋되지 않으므로, fresh checkout을 쓰면 이 파일들이 사라진다.
       - name: Pull latest
         run: |
-          cd ~/apps/doc-nexus
+          cd ~/apps/life-ledger
           git fetch origin main
           git reset --hard origin/main
 
@@ -31,7 +31,7 @@ jobs:
       # 배포가 한 번에 하나만 돌도록 강제한다.
       - name: Build and deploy
         run: |
-          cd ~/apps/doc-nexus
+          cd ~/apps/life-ledger
           (
             flock -x 200
             # 실제로 바뀐 경로만 보고 backend/frontend 중 필요한 서비스만 빌드한다.

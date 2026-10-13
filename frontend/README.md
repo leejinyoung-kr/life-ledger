@@ -1,4 +1,4 @@
-# DocNexus — Frontend
+# LifeLedger — Frontend
 
 Next.js (App Router) 기반 웹 클라이언트
 
@@ -36,11 +36,9 @@ frontend/
 │   │   ├── security/      # 보안
 │   │   ├── settings/      # 설정
 │   │   ├── credentials/   # 계정 보관함 (백엔드 연동 — AES 암호화)
-│   │   ├── envs/          # ENV 보관함 (백엔드 연동 — AES 암호화)
-│   │   ├── id-wallet/     # 신원 지갑 (백엔드 연동 — AES 암호화)
 │   │   ├── files/         # 파일 보관함 (백엔드 연동 — Backblaze B2)
-│   │   ├── ai-report/     # AI 리포트 (구현 완료, 백엔드 연동)
-│   │   └── logs/          # 시스템 로그 (구현 완료, 백엔드 연동)
+│   │   ├── logs/          # 시스템 로그
+│   │   └── codes/         # 코드 관리 (카테고리)
 │   ├── auth/callback/     # OAuth 콜백 처리
 │   ├── layout.tsx         # 루트 — Providers(React Query) 마운트
 │   └── login/             # 로그인 페이지

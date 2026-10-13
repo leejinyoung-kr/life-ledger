@@ -258,7 +258,7 @@ export default function SettingsPage() {
                   <Button variant="ghost" onClick={() => exportData('/export/credentials', '계정백업.json')}>JSON 백업</Button>
                 </SettingRow>
                 <SettingRow label="전체 백업" desc="모든 데이터·메모를 ZIP으로 다운로드">
-                  <Button variant="ghost" onClick={() => exportData('/export/backup', 'docnexus-백업.zip')}>ZIP 다운로드</Button>
+                  <Button variant="ghost" onClick={() => exportData('/export/backup', 'life-ledger-백업.zip')}>ZIP 다운로드</Button>
                 </SettingRow>
               </SettingGroup>
 

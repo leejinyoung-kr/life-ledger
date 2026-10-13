@@ -24,8 +24,8 @@ import { RequestEmailCodeDto, VerifyEmailCodeDto } from './dto/email-login.dto';
 import { VaultGuard } from '../security/vault.guard';
 
 // 이름에 앱 접두사 — 같은 호스트의 다른 포트 앱(career-notes 등)과 쿠키가 섞이지 않게 (쿠키는 포트를 구분하지 않는다)
-const REFRESH_COOKIE = 'dn_refresh_token';
-const HAS_SESSION_COOKIE = 'dn_has_session';
+const REFRESH_COOKIE = 'll_refresh_token';
+const HAS_SESSION_COOKIE = 'll_has_session';
 
 // 요청에서 클라이언트 IP 추출 (x-forwarded-for 우선 — 신규 기기 감지/세션 기록용)
 function clientIp(req: Request): string | undefined {

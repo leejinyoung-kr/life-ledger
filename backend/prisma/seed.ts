@@ -49,7 +49,7 @@ async function ensureUsers() {
   const users = await prisma.user.findMany({ select: { id: true, email: true } });
   if (users.length > 0) return users;
   const demo = await prisma.user.create({
-    data: { google_id: 'demo-google-id', email: 'demo@docnexus.local', name: '데모 사용자' },
+    data: { google_id: 'demo-google-id', email: 'demo@life-ledger.local', name: '데모 사용자' },
     select: { id: true, email: true },
   });
   console.log(`데모 사용자 생성: ${demo.email} (#${demo.id})`);

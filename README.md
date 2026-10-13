@@ -1,12 +1,12 @@
-# DocNexus
+# LifeLedger
 
-개인 문서·자산·계정 통합 관리 플랫폼
+자산 · 구독 · 계정 · 일정을 한곳에서 관리하는 개인 생활 장부
 
 ## 시작하기
 
 ### 요구사항
 
-- Node.js 20+
+- Node.js 26+
 - pnpm
 - Docker
 
@@ -54,11 +54,9 @@ docker compose up -d --build
 - **Frontend**: Next.js 16.2, React 19, TypeScript, Tailwind CSS v4, **TanStack Query(React Query)**
 - **Backend**: NestJS 11, Prisma, MariaDB, `@nestjs/throttler`(Rate-limit)
 - **인증**: Google OAuth 2.0 + JWT (전역 가드 — 로그인 외 전 엔드포인트 토큰 필수, 새 기기 로그인 감지)
-- **암호화**: AES-256-GCM (계정·신원·ENV 보관함 민감 필드) / 마스터 잠금 scrypt
+- **암호화**: AES-256-GCM (계정 보관함 민감 필드 — 필드·사용자 문맥(AAD)) / 마스터 잠금 scrypt
 - **스토리지**: Backblaze B2 (파일 보관함 — presigned·MIME/매직바이트 검증·SHA-256 중복제거)
-- **외부 연동**: HIBP 유출 비밀번호 검사 · tesseract.js 영수증 OCR
-- **AI**: OpenAI API (사용자별 키·모델 — AI 리포트, 자연어→거래 파싱)
 
 ## 주요 기능
 
-자격증명 관리(계정·ENV·신원, AES) · 파일 보관함(B2) · 가계부/순자산/구독/예산 · 캘린더(일정 + 구독결제·예적금만기·투자계좌만기(ISA 등)·신원만료 가상 이벤트 연동) · 보안 코어(마스터 잠금·접근 감사 로그·보안점수 추이·비번 회전·2FA 백업코드·강도 통계·유출 검사) · 통합 검색·내보내기/가져오기 · 현금흐름 예측·통합 D-day · 시스템 로그(크론·투자 현재가 갱신 등 실행 이력)
+계정 보관함(비밀번호·TOTP·백업코드, AES) · 파일 보관함(B2) · 가계부/순자산/구독 · 캘린더(일정 + 구독결제·예적금만기·투자계좌만기(ISA 등) 가상 이벤트 연동) · 보안(로그인 기기/세션·마스터 잠금·열람 감사 로그·비번 회전 알림) · 통합 검색·내보내기/가져오기 · 현금흐름 예측·통합 D-day · 시스템 로그(크론·투자 현재가 갱신 등 실행 이력)

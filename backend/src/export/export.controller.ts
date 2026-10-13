@@ -42,10 +42,10 @@ export class ExportController {
     @Client() client: ClientInfo,
   ): Promise<void> {
     const buf = await this.service.backupZip(user.id, client);
-    const filename = encodeURIComponent('docnexus-백업.zip');
+    const filename = encodeURIComponent('life-ledger-백업.zip');
     res.set({
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="docnexus-backup.zip"; filename*=UTF-8''${filename}`,
+      'Content-Disposition': `attachment; filename="life-ledger-backup.zip"; filename*=UTF-8''${filename}`,
     });
     res.end(buf);
   }

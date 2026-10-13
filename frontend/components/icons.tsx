@@ -345,7 +345,7 @@ export const IconCreditCard = (p: IconProps) => (
   </svg>
 );
 
-// DocNexus 로고(2x2 사각형) 아이콘
+// LifeLedger 로고(2x2 사각형) 아이콘
 export const IconLogo = (p: IconProps) => (
   <svg viewBox="0 0 22 22" fill="none" {...p}>
     <rect x="2" y="2" width="8" height="8" rx="2" fill="var(--accent)" />

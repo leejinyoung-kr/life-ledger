@@ -28,7 +28,7 @@ const FILTERS: { key: SearchType | 'all'; label: string }[] = [
 ];
 
 // 최근 검색어 (localStorage, 최대 6개)
-const RECENT_KEY = 'dn_recent_search';
+const RECENT_KEY = 'll_recent_search';
 function loadRecent(): string[] {
   if (typeof window === 'undefined') return [];
   try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]') as string[]; } catch { return []; }

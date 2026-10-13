@@ -28,7 +28,7 @@ FROM prepare AS test
 RUN pnpm --filter frontend run test
 
 FROM prepare AS build
-RUN --mount=type=cache,id=nextjs-cache-docnexus,target=/app/frontend/.next/cache \
+RUN --mount=type=cache,id=nextjs-cache-life-ledger,target=/app/frontend/.next/cache \
     pnpm --filter frontend run build
 
 FROM base AS runtime

@@ -100,7 +100,7 @@ export default function Sidebar({ activePath = '/dashboard', open = false, onLog
       {/* 로고 */}
       <div className="h-[60px] flex items-center px-5 gap-2.5 border-b border-border [font-family:var(--font-display)] font-extrabold text-[1.1rem] tracking-[-0.03em] text-primary">
         <IconLogo width={22} height={22} />
-        Doc<span className="text-accent">Nexus</span>
+        <span>Life<span className="text-accent">Ledger</span></span>
       </div>
 
       {/* 네비게이션 — 대시보드(링크) + 접이식 그룹을 고정 순서로 렌더 */}

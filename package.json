@@ -1,5 +1,5 @@
 {
-  "name": "doc-nexus",
+  "name": "life-ledger",
   "private": true,
   "packageManager": "pnpm@12.9.1",
   "workspaces": [

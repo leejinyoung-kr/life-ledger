@@ -3,9 +3,9 @@ import type { MetadataRoute } from "next";
 // PWA 매니페스트 — Next 메타데이터 시스템이 /manifest.webmanifest 로 자동 서빙
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "DocNexus",
-    short_name: "DocNexus",
-    description: "보안 문서 관리 허브",
+    name: "LifeLedger",
+    short_name: "LifeLedger",
+    description: "자산 · 구독 · 계정을 한곳에서 관리하는 개인 생활 장부",
     start_url: "/",
     scope: "/",
     display: "standalone",

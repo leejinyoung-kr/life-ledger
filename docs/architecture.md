@@ -1,4 +1,4 @@
-# DocNexus — Architecture
+# LifeLedger — Architecture
 
 ## Overview
 

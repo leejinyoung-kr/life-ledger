@@ -1,7 +1,7 @@
-// DocNexus Service Worker
+// LifeLedger Service Worker
 // 보안 주의: 민감 자격증명 앱이므로 API/인증 응답은 절대 캐싱하지 않는다.
 // 정적 앱 셸(GET, 네비게이션·정적 에셋)만 캐싱하고, /api 등은 allowlist 밖이라 항상 네트워크로 보낸다.
-const CACHE = "docnexus-v2";
+const CACHE = "life-ledger-v1";
 
 // 런타임 캐싱 제외 경로 — 평문 민감데이터가 디스크에 남지 않도록 차단
 const NO_CACHE_PREFIXES = ["/api", "/auth"];
@@ -28,9 +28,9 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "DocNexus", body: event.data ? event.data.text() : "" };
+    data = { title: "LifeLedger", body: event.data ? event.data.text() : "" };
   }
-  const title = data.title || "DocNexus";
+  const title = data.title || "LifeLedger";
   event.waitUntil(
     Promise.all([
       self.registration.showNotification(title, {

@@ -13,7 +13,7 @@ import { MailService } from './mail.service';
         port: env.SMTP_PORT,
         user: env.SMTP_USER,
         pass: env.SMTP_PASS,
-        from: env.SMTP_FROM ?? `DocNexus <${env.SMTP_USER}>`,
+        from: env.SMTP_FROM ?? `LifeLedger <${env.SMTP_USER}>`,
       },
     }),
   ],

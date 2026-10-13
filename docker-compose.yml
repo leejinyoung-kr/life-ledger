@@ -1,6 +1,6 @@
-# 홈서버 클론 경로: ~/apps/doc-nexus (deploy-home-server.yml 참고)
+# 홈서버 클론 경로: ~/apps/life-ledger (deploy-home-server.yml 참고)
 # DB 는 infra 레포의 공용 MariaDB 다 — infra 를 먼저 띄운다(외부 네트워크 infra, 호스트 이름 mariadb)
-name: doc-nexus
+name: life-ledger
 
 services:
   backend:
@@ -57,14 +57,14 @@ services:
       retries: 5
       start_period: 20s
 
-  # 홈서버 외부 접속 — 앱 전용 Tailscale 노드 docnexus 가 Funnel 로 / 는 frontend, /api 는 backend 로 보낸다
+  # 홈서버 외부 접속 — 앱 전용 Tailscale 노드 lifeledger 가 Funnel 로 / 는 frontend, /api 는 backend 로 보낸다
   # (같은 origin 이라 NEXT_PUBLIC_* 과 backend 의 FRONTEND_URL·CORS_ORIGINS 가 한 주소다. infra README "외부 접속")
   tailscale:
     image: tailscale/tailscale:stable
     profiles: [homeserver]
     restart: unless-stopped
     environment:
-      TS_HOSTNAME: docnexus
+      TS_HOSTNAME: lifeledger
       # 처음 붙을 때만 쓴다 — 그 뒤로는 tailscale_state 볼륨의 노드 정보로 붙는다 (태그 tag:app 이 달린 키)
       TS_AUTHKEY: ${TS_AUTHKEY:-}
       TS_STATE_DIR: /var/lib/tailscale
@@ -80,9 +80,12 @@ networks:
   infra:
     external: true
 
+# 이름은 doc-nexus 시절 볼륨을 그대로 쓴다 (2026-10 이름 변경) — 지난 DB 백업과 Tailscale 노드 정보를 옮기지 않고 잇는다
 volumes:
   db_backups:
+    name: doc-nexus_db_backups
   tailscale_state:
+    name: doc-nexus_tailscale_state
 
 secrets:
   npm_read_token:

@@ -1,4 +1,4 @@
-# DocNexus — API 명세
+# LifeLedger — API 명세
 
 Base URL: `http://localhost:8000/api/v1`
 
@@ -19,7 +19,7 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /auth/dev-login | 로컬 개발용 원클릭 로그인, 고정 유저(`dev@local`)로 즉시 JWT 발급 (`@Public`, `NODE_ENV=production`에서는 404) |
 
 > 토큰: **Access(15분)** 는 `?token=` 으로 전달 → 프론트 메모리(모듈 변수) → `Authorization: Bearer`.
-> **Refresh(7일)** 는 httpOnly 쿠키(`dn_refresh_token`, 힌트 쿠키 `dn_has_session`)로만 저장 — 접두사는 같은 호스트의 다른 포트 앱과 쿠키가 섞이지 않게. access 만료(401) 시 프론트가 `/auth/refresh` 1회 호출해 갱신·재요청.
+> **Refresh(7일)** 는 httpOnly 쿠키(`ll_refresh_token`, 힌트 쿠키 `ll_has_session`)로만 저장 — 접두사는 같은 호스트의 다른 포트 앱과 쿠키가 섞이지 않게. access 만료(401) 시 프론트가 `/auth/refresh` 1회 호출해 갱신·재요청.
 > 전역 JWT 가드 — 로그인 관련(`@Public()`) 외 **모든** 엔드포인트는 access 토큰 필수.
 
 ## 가계부 — 수입/지출

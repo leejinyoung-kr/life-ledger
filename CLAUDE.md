@@ -1,8 +1,8 @@
-# DocNexus — Claude 컨텍스트
+# LifeLedger (생활 장부) — Claude 컨텍스트
 
 ## 이 프로젝트가 무엇인가
 
-개인 문서·자산·계정 통합 보안 관리 플랫폼.
+자산 · 구독 · 계정 · 일정을 한곳에서 관리하는 개인 생활 장부 (2026-10 공개 준비 때 doc-nexus 에서 이름을 바꿨다 — DB · 사용자 이름 `docnexus` 와 B2 버킷은 그대로).
 민감한 자격증명(계정 비밀번호 · 2FA 시크릿)을 AES-256-GCM 암호화로 저장하고, Google OAuth 또는 이메일 인증코드(`ALLOWED_EMAILS` 화이트리스트)로만 접근한다.
 전 엔드포인트는 전역 JWT 가드로 보호되며, 로그인(`@Public()`)만 예외다.
 
@@ -20,7 +20,7 @@
 ## 구조
 
 ```text
-doc-nexus/
+life-ledger/
 ├── frontend/          # Next.js (사용자 UI, 포트 3000)
 ├── backend/           # NestJS (API 서버, 포트 8000)
 │   ├── prisma/        # schema.prisma, migrations/
@@ -165,14 +165,14 @@ cd backend && npx prisma generate
 (2026-08-01 전환 — 원래는 배포와 마이그레이션 시점을 의도적으로 분리했었으나, 수동 적용을
 누락하기 쉬워 자동화로 되돌림). `up -d` 전 점검이 실패하면 기존 컨테이너가 그대로 서비스한다.
 서버 `.env` 만 바꿨을 때(키 교체 등)는 Actions 에서 수동 실행(`workflow_dispatch`)한다.
-외부 접속은 앱 전용 Tailscale 사이드카(compose `tailscale`, 프로필 `homeserver`) `https://docnexus.tailba78c1.ts.net` — `/` frontend · `/api` backend 가 같은 origin 이다(`tailscale/serve.json`, infra README "외부 접속"). 2026-10-10 전에는 홈서버 노드 Funnel 443(화면)·8443(API) 이었다.
+외부 접속은 앱 전용 Tailscale 사이드카(compose `tailscale`, 프로필 `homeserver`) `https://lifeledger.tailba78c1.ts.net` — `/` frontend · `/api` backend 가 같은 origin 이다(`tailscale/serve.json`, infra README "외부 접속"). 2026-10-10 전에는 홈서버 노드 Funnel 443(화면)·8443(API) 이었다.
 DB 는 이 워크플로가 다루지 않는다 — `infra` 레포(`~/apps/infra`)의 공용 MariaDB 이고 수동으로 띄운다. 루트 `.env` 의 `DB_PASSWORD` 는 `infra/.env` 의 `DOCNEXUS_DB_PASSWORD` 와 같아야 한다.
 
 수동으로 다시 적용해야 할 때만 아래처럼 직접 실행한다.
 
 ```bash
 # 홈서버 SSH 접속 후
-cd ~/apps/doc-nexus
+cd ~/apps/life-ledger
 docker compose exec backend npx prisma migrate deploy
 ```
 
@@ -211,7 +211,7 @@ docker compose exec backend npx prisma migrate deploy
 
 - **보관함 암호화**: `backend/.env` 의 `CRYPTO_KEYS`(`<키ID>:<32자 이상 시크릿>` 콤마 구분, 첫 번째가 현재 키) 필수. 이 값을 잃으면 보관함 데이터 복구 불가 — 서버 밖에도 보관. 암호문은 `v2:<키ID>:...` 이고 `cipherContext(필드, 사용자 id)`(`src/crypto/crypto-fields.ts`)를 AAD 로 묶어, 다른 필드·다른 사용자 행으로 옮기면 풀리지 않는다. **키 교체**: 새 키를 맨 앞에 추가 → 배포(부팅 시 현재 키가 아닌 암호문 자동 재암호화) → 이전 키 제거 → 배포. `CREDENTIAL_SECRET` 은 이전 포맷(v1) 읽기 전용이라 재암호화가 끝나면 비운다. 이전 키로 된 암호문이 남았는데 키를 빼면 배포 전 점검(`node dist/crypto/crypto-check.js`, 전체 복호화)과 부팅이 막는다. 암호문 컬럼을 추가하면 `ENCRYPTED_COLUMNS` 에도 추가 — `crypto-fields.spec.ts` 가 schema.prisma 와 대조해 강제. 재암호화는 raw SQL(compare-and-swap)이라 `updated_at` 을 건드리지 않는다. **암호문 컬럼에 평문을 쓰면 저장되지 않는다** — `PrismaService` 가 `encryptedFields`(core-security/prisma) 쓰기 가드를 걸어 `EncryptedFieldError` 로 막는다(목록은 `ENCRYPTED_COLUMNS` 에서 자동 생성). 읽을 때 자동 복호화는 하지 않는다 — 열람은 잠금·감사 로그를 거치는 명시적 행위로 남긴다. 재암호화·점검의 raw SQL 경로는 가드를 거치지 않는다.
 
-- **인증 전제**: `JWT_SECRET`(access)·`JWT_REFRESH_SECRET`(refresh 쿠키)·`JWT_VAULT_SECRET`(보관함 잠금해제 토큰)은 **서로 다른** 32자 이상 랜덤값이어야 한다 — 누락·중복·예시값이면 부팅 실패. access 토큰은 `iss`/`aud` = `doc-nexus` 로 발급·검증한다(`auth/jwt.constants.ts`). refresh 시크릿을 바꾸면 전 기기 재로그인, vault 시크릿을 바꾸면 보관함 재잠금. `ALLOWED_EMAILS` 는 필수(비면 부팅 실패) — 목록 밖 계정은 구글·이메일 코드 로그인 모두 거부.
+- **인증 전제**: `JWT_SECRET`(access)·`JWT_REFRESH_SECRET`(refresh 쿠키)·`JWT_VAULT_SECRET`(보관함 잠금해제 토큰)은 **서로 다른** 32자 이상 랜덤값이어야 한다 — 누락·중복·예시값이면 부팅 실패. access 토큰은 `iss`/`aud` = `life-ledger` 로 발급·검증한다(`auth/jwt.constants.ts`). refresh 시크릿을 바꾸면 전 기기 재로그인, vault 시크릿을 바꾸면 보관함 재잠금. `ALLOWED_EMAILS` 는 필수(비면 부팅 실패) — 목록 밖 계정은 구글·이메일 코드 로그인 모두 거부.
 
 - **환경변수**: 백엔드는 `process.env` 를 직접 읽지 않고 `backend/src/config/env.ts` 의 `env` 만 읽는다(`@leejinyoung-kr/core-config` 의 `defineEnv` — import 하는 순간 `.env` 로드 + 검증, 틀린 키를 전부 출력하고 부팅 중단). 키를 추가·삭제하면 `env.ts` 와 `backend/.env.example` 을 같이 고친다 — `src/config/env.spec.ts` 가 두 목록 일치·`process.env` 직접 사용 금지를 테스트로 강제한다(도커 빌드 테스트 단계라 배포에서도 막힘). 배포 워크플로는 컨테이너 교체 전에 새 이미지로 `node dist/config/check-env.js` 를 돌려, 서버 `.env` 가 새 스키마에 안 맞으면 기존 컨테이너를 유지한 채 멈춘다. SMTP(HOST·USER·PASS)·VAPID(공개·비공개 키)는 일부만 설정하면 부팅 실패.
 

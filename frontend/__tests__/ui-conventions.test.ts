@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-// 공통 UI 규칙 소스 검사 — 새 화면이 공통 요소를 건너뛰고 날 것으로 만드는 것을 막는다 (규칙은 doc-nexus/CLAUDE.md "프론트 공통 요소")
+// 공통 UI 규칙 소스 검사 — 새 화면이 공통 요소를 건너뛰고 날 것으로 만드는 것을 막는다 (규칙은 life-ledger/CLAUDE.md "프론트 공통 요소")
 const ROOT = path.resolve(__dirname, '..');
 
 // app · components 아래 tsx 파일 목록 (경로는 / 구분자로 통일)
