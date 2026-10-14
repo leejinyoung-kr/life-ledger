@@ -113,6 +113,15 @@ export class FileController {
     return this.service.getDownloadUrl(user.id, id, disposition === 'inline' ? 'inline' : 'attachment');
   }
 
+  // 텍스트 파일 미리보기 — 앞부분(최대 512KB)을 글자로 { text, truncated }
+  @Get(':id/text')
+  previewText(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.service.previewText(user.id, id);
+  }
+
   // 파일 폴더 이동
   @Patch(':id/move')
   move(

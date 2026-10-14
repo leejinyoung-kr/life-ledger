@@ -9,6 +9,7 @@ import { NotificationService } from '../notification/notification.service';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
 import { SystemLogService } from '../system-log/system-log.service';
 import { folderPath, subtreeIds, zipPaths, type FolderNode } from './file-path.util';
+import { decodeText, isTextPreviewable, TEXT_PREVIEW_MAX_BYTES, trimPartialUtf8 } from './file-text.util';
 
 // 전체 검색 결과 상한 (폴더·파일 각각)
 const SEARCH_LIMIT = 200;
@@ -333,6 +334,36 @@ export class FileService {
     const file = await this.findOwnedFile(userId, fileId);
     const url = await this.storage.getDownloadUrl(file.object_key, file.name, file.mime_type, disposition);
     return { url };
+  }
+
+  // 텍스트 미리보기 — 스토리지에서 앞부분(최대 512KB)만 받아 글자로 돌려준다.
+  // 브라우저가 B2 주소를 직접 읽으면 다른 origin(CORS)이고 한글 인코딩도 보장되지 않아 서버에서 읽는다
+  async previewText(userId: number, fileId: number): Promise<{ text: string; truncated: boolean }> {
+    const file = await this.findOwnedFile(userId, fileId);
+    if (!isTextPreviewable(file.mime_type, file.name)) {
+      throw new BadRequestException('글자로 미리 볼 수 없는 형식입니다.');
+    }
+    const url = await this.storage.getDownloadUrl(file.object_key, file.name, file.mime_type, 'attachment');
+    const res = await fetch(url);
+    if (!res.ok || !res.body) throw new BadRequestException('파일을 읽지 못했습니다.');
+    const reader = res.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    let truncated = false;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      size += value.byteLength;
+      if (size >= TEXT_PREVIEW_MAX_BYTES) {
+        truncated = size > TEXT_PREVIEW_MAX_BYTES || file.size > TEXT_PREVIEW_MAX_BYTES;
+        await reader.cancel();
+        break;
+      }
+    }
+    const buf = Buffer.concat(chunks).subarray(0, TEXT_PREVIEW_MAX_BYTES);
+    // 잘라 낸 끝이 한글 글자 중간이면 UTF-8 판정이 깨지므로, 잘랐을 때는 끝의 불완전한 바이트를 떼고 읽는다
+    return { text: decodeText(truncated ? trimPartialUtf8(buf) : buf), truncated };
   }
 
   // 파일 삭제 — DB soft delete. 동일 오브젝트를 가리키는 다른 파일(중복제거 공유)이 없을 때만 B2 오브젝트 삭제

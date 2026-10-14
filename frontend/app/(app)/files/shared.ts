@@ -53,6 +53,9 @@ export function fileExt(name: string) {
 
 export const isImage = (mime: string) => mime.startsWith('image/');
 export const isPdf = (mime: string) => mime === 'application/pdf';
+// 글자로 미리 볼 수 있는 파일 — 백엔드 file-text.util 의 isTextPreviewable 과 같은 규칙
+export const isText = (mime: string, name: string) =>
+  mime.startsWith('text/') || /^application\/(json|xml|x-yaml|yaml)$/.test(mime) || /\.(txt|md|csv|tsv|log|json|ya?ml|xml|ini|conf)$/i.test(name);
 
 // 올린 날 표시
 export function fmtFileDate(iso: string) {

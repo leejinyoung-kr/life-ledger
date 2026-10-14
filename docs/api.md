@@ -245,6 +245,7 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /files/zip?folderId= | 폴더(없으면 보관함 전체)를 하위 폴더까지 ZIP 하나로 (폴더 구조 유지, 같은 경로는 `이름 (2).확장자`). B2 오브젝트를 하나씩 받아 바로 흘려보낸다(archiver, 사진·영상·PDF 는 압축 없이). 비었거나 2GB 초과면 400 |
 | POST | /files/upload?folderId=&path= | 업로드 (multipart `file`, 50MB — multer 단계에서 끊음, MIME 화이트리스트 + SHA-256 중복제거). `path`(예: `보험/2026`)를 주면 folderId 아래에 그 폴더들을 찾거나 만들어 넣는다 — 폴더째 업로드(같은 이름 폴더는 합쳐짐, 20단계까지) |
 | GET | /files/:id/url?disposition= | presigned URL 발급 (5분, inline=미리보기). 응답 파일명은 `filename*=UTF-8''…` + ASCII 대체 이름(NFC) — 프론트의 `a.download` 는 다른 origin 이라 무시됨 |
+| GET | /files/:id/text | 글자 파일(text/* · JSON · XML · YAML, 또는 txt·md·csv·log 등 확장자) 미리보기 — 앞부분 최대 512KB 를 `{ text, truncated }` 로. UTF-8 이 깨지면 EUC-KR 로 읽는다. 그 밖의 형식은 400 |
 | PATCH | /files/:id/move | 파일 폴더 이동 |
 | DELETE | /files/:id | 파일 삭제 (공유 오브젝트 보호) |
 | POST | /files/folders | 폴더 생성 |

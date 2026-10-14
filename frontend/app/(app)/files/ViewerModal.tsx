@@ -8,9 +8,10 @@ import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
 import { IconClose, IconDownload, IconDoc, IconImage } from '@/components/icons';
-import { fileExt, fmtFileDate, formatBytes, isImage, isPdf, type FileItem } from './shared';
+import { useApiQuery } from '@/lib/query';
+import { fileExt, fmtFileDate, formatBytes, isImage, isPdf, isText, type FileItem } from './shared';
 
-// 파일 보기 창 — 이미지 / PDF 는 미리보기, 그 밖은 내려받기 안내
+// 파일 보기 창 — 이미지 / PDF / 글자 파일(TXT · MD · CSV · JSON …)은 미리보기, 그 밖은 내려받기 안내
 export default function ViewerModal({ file, onClose, onDownload, onDelete }: {
   file: FileItem | null;
   onClose: () => void;
@@ -18,6 +19,13 @@ export default function ViewerModal({ file, onClose, onDownload, onDelete }: {
   onDelete: (f: FileItem) => void;
 }) {
   const [loadedPreview, setLoadedPreview] = useState<{ id: number; url: string } | null>(null);
+  // 글자 파일은 서버가 앞부분(최대 512KB)을 글자로 돌려준다 — B2 를 직접 읽으면 CORS · 인코딩 문제가 있어서
+  const textMode = !!file && isText(file.mimeType, file.name);
+  const textQuery = useApiQuery<{ text: string; truncated: boolean }>(['file-text', file?.id], `/files/${file?.id}/text`, {
+    enabled: textMode,
+    staleTime: 60 * 1000,
+    retry: false,
+  });
 
   useEffect(() => {
     if (!file) return;
@@ -75,6 +83,19 @@ export default function ViewerModal({ file, onClose, onDownload, onDelete }: {
         ) : pdf ? (
           previewUrl ? (
             <iframe src={previewUrl} title={file.name} className="w-full h-[60vh] border-0" />
+          ) : (
+            <Placeholder icon={<IconDoc width={40} height={40} />} text="불러오는 중…" />
+          )
+        ) : textMode ? (
+          textQuery.data ? (
+            <div className="w-full self-stretch flex flex-col">
+              <pre className="w-full max-h-[60vh] overflow-auto m-0 p-4 text-left text-[0.8125rem] leading-relaxed text-primary font-mono whitespace-pre-wrap wrap-break-word">{textQuery.data.text || '(빈 파일)'}</pre>
+              {textQuery.data.truncated && (
+                <span className="px-4 py-2 border-t border-border-subtle text-[0.75rem] text-muted">앞부분 512KB 만 보입니다. 전체는 내려받아서 여세요.</span>
+              )}
+            </div>
+          ) : textQuery.isError ? (
+            <Placeholder icon={<IconDoc width={40} height={40} />} text="내용을 불러오지 못했습니다. 내려받아서 여세요." />
           ) : (
             <Placeholder icon={<IconDoc width={40} height={40} />} text="불러오는 중…" />
           )
