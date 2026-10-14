@@ -21,10 +21,16 @@ export class SettingsService {
     });
   }
 
+  // 구글 계정과 연결됐는지 — 이메일 인증코드로만 만든 계정은 google_id 가 없다
+  private async isGoogleLinked(userId: number): Promise<boolean> {
+    const row = await this.prisma.user.findUnique({ where: { id: userId }, select: { google_id: true } });
+    return !!row?.google_id;
+  }
+
   // 엔티티 → 응답 DTO. user(토큰)에서 계정 정보, 설정행에서 선호값.
-  private toDto(s: UserSettings, user: AuthUser) {
+  private toDto(s: UserSettings, user: AuthUser, google: boolean) {
     return {
-      user: { email: user.email, name: user.name, picture: user.picture },
+      user: { email: user.email, name: user.name, picture: user.picture, google },
       displayName: s.display_name ?? user.name,
       notifUpload: s.notif_upload,
       notifMaturity: s.notif_maturity,
@@ -39,7 +45,7 @@ export class SettingsService {
   // 설정 조회 (없으면 기본값 생성 후 반환)
   async get(user: AuthUser) {
     const row = await this.getOrCreate(user.id);
-    return this.toDto(row, user);
+    return this.toDto(row, user, await this.isGoogleLinked(user.id));
   }
 
   // 설정 부분 수정 — 전달된 필드만 반영
@@ -60,6 +66,6 @@ export class SettingsService {
       where: { user_id: user.id },
       data,
     });
-    return this.toDto(updated, user);
+    return this.toDto(updated, user, await this.isGoogleLinked(user.id));
   }
 }

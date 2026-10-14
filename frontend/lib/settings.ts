@@ -7,6 +7,7 @@ export interface SettingsUser {
   email: string;
   name: string;
   picture: string | null;
+  google: boolean; // 구글 계정과 연결됐는지 (이메일 인증코드로만 만든 계정은 false)
 }
 
 export interface Category {
