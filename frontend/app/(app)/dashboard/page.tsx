@@ -73,7 +73,7 @@ function ListRow({ lead, name, sub, trailing }: { lead?: ReactNode; name: ReactN
   );
 }
 
-// 다가오는 날짜 한 줄 — 날짜(두 줄) · 표식 · 이름/종류 · 남은 일수
+// 다가오는 날짜 한 줄 — 날짜(한 줄, 올해가 아니면 연도까지) · 표식 · 이름/종류 · 남은 일수
 function UpcomingRow({ it }: { it: UpcomingItem }) {
   const d = new Date(`${it.date}T00:00:00`);
   const sameYear = d.getFullYear() === new Date().getFullYear();
@@ -81,10 +81,10 @@ function UpcomingRow({ it }: { it: UpcomingItem }) {
   return (
     <ListRow
       lead={
-        <div className="w-16 shrink-0 flex flex-col leading-tight tabular-nums">
-          <span className="text-[0.84rem] text-primary">{it.date.slice(5).replace('-', '.')}</span>
-          <span className="text-[0.7rem] text-muted">{sameYear ? weekday : `${d.getFullYear()} · ${weekday}`}</span>
-        </div>
+        <span className="w-28 shrink-0 text-[0.875rem] font-medium text-primary tabular-nums whitespace-nowrap">
+          {(sameYear ? it.date.slice(5) : it.date).replaceAll('-', '.')}
+          <span className="ml-1 font-normal text-muted">({weekday})</span>
+        </span>
       }
       name={
         <span className="flex items-center gap-3">
