@@ -387,7 +387,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
             <col style={{ width: '140px' }} />
             <col style={{ width: '120px' }} />
             <col style={{ width: '136px' }} />
-            <col style={{ width: '88px' }} />
+            <col style={{ width: '112px' }} />
           </colgroup>
           <thead>
             <tr>
@@ -442,13 +442,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
                 <span className="text-[0.75rem] text-muted">{dotDate(row.date)}</span>
               </span>
             </button>
-            <MoreMenu
-              size="lg"
-              items={[
-                { label: '복사', icon: <IconCopy />, onSelect: () => handleDuplicate(row) },
-                { label: '삭제', icon: <IconTrash />, onSelect: () => handleRemove(row.id), danger: true },
-              ]}
-            />
+            <EntryActions compact onCopy={() => handleDuplicate(row)} onDelete={() => handleRemove(row.id)} />
           </div>
         ))}
       </div>
@@ -513,17 +507,14 @@ const CYCLE_ITEMS: SegmentedItem<RecurringCycle>[] = [
   { value: 'daily', label: '매일' }, { value: 'weekly', label: '매주' }, { value: 'monthly', label: '매월' }, { value: 'yearly', label: '매년' },
 ];
 
-// 내역 한 줄의 관리 — 자주 쓰는 수정 하나 + 더보기(복사 · 삭제)
-function EntryActions({ onEdit, onCopy, onDelete }: { onEdit: () => void; onCopy: () => void; onDelete: () => void }) {
+// 내역 한 줄의 관리 — 같은 지출을 다시 적는 복사를 메뉴에 숨기지 않고 바로 보인다. 휴대폰은 줄을 누르면 수정이라 수정 버튼을 뺀다
+function EntryActions({ onEdit, onCopy, onDelete, compact }: { onEdit?: () => void; onCopy: () => void; onDelete: () => void; compact?: boolean }) {
+  const size = compact ? 'lg' : 'md';
   return (
-    <div className="flex justify-end">
-      <IconButton label="수정" onClick={onEdit}><IconEdit /></IconButton>
-      <MoreMenu
-        items={[
-          { label: '복사', icon: <IconCopy />, onSelect: onCopy },
-          { label: '삭제', icon: <IconTrash />, onSelect: onDelete, danger: true },
-        ]}
-      />
+    <div className="flex justify-end shrink-0">
+      <IconButton label="복사" size={size} onClick={onCopy}><IconCopy /></IconButton>
+      {onEdit && <IconButton label="수정" size={size} onClick={onEdit}><IconEdit /></IconButton>}
+      <IconButton label="삭제" variant="danger" size={size} onClick={onDelete}><IconTrash /></IconButton>
     </div>
   );
 }
@@ -567,7 +558,7 @@ function FormSection({ no, title, divided, children }: { no: number; title: stri
   return (
     <section className={`flex flex-col gap-3 ${divided ? 'pt-4 border-t border-border-subtle' : ''}`}>
       <div className="flex items-baseline gap-2 text-[0.78rem] text-accent-dark">
-        <span className="[font-family:var(--font-display)] text-[1.0625rem] font-semibold lining-nums">{no}</span>{title}
+        <span className="text-[1.0625rem] font-bold">{no}</span>{title}
       </div>
       {children}
     </section>

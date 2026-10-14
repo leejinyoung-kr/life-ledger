@@ -105,11 +105,11 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
 
   const openEdit = (c: Saving) => setModal({ open: true, mode: 'edit', editing: c });
 
-  // 더보기 메뉴(복사 · 삭제) — 수정은 행을 누르거나 표의 수정 버튼으로 연다
-  function rowMenu(c: Saving, size: 'md' | 'lg') {
+  // 휴대폰 줄의 더보기 메뉴(복사 · 삭제) — 수정은 줄을 누르면 열린다
+  function rowMenu(c: Saving) {
     return (
       <MoreMenu
-        size={size}
+        size="lg"
         items={[
           { label: '복사', icon: <IconCopy />, onSelect: () => handleDuplicate(c) },
           { label: '삭제', icon: <IconTrash />, danger: true, onSelect: () => handleRemove(c.id) },
@@ -161,7 +161,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
               <col style={{ width: '120px' }} />
               <col style={{ width: '80px' }} />
               <col style={{ width: '160px' }} />
-              <col style={{ width: '88px' }} />
+              <col style={{ width: '112px' }} />
             </colgroup>
             <thead>
               <tr>
@@ -205,9 +205,10 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                       </div>
                     </td>
                     <td onClick={(ev) => ev.stopPropagation()}>
-                      <div className="flex justify-end gap-1">
-                        <IconButton label="수정" variant="bordered" onClick={() => openEdit(c)}><IconEdit /></IconButton>
-                        {rowMenu(c, 'md')}
+                      <div className="flex justify-end">
+                        <IconButton label="복사" onClick={() => handleDuplicate(c)}><IconCopy /></IconButton>
+                        <IconButton label="수정" onClick={() => openEdit(c)}><IconEdit /></IconButton>
+                        <IconButton label="삭제" variant="danger" onClick={() => handleRemove(c.id)}><IconTrash /></IconButton>
                       </div>
                     </td>
                   </tr>
@@ -240,7 +241,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                     </span>
                   ) : maturityAmt !== null && <span className="text-[0.72rem] text-muted">만기예상 {won(maturityAmt)}</span>}
                 </div>
-                {rowMenu(c, 'lg')}
+                {rowMenu(c)}
               </div>
             );
           })}
