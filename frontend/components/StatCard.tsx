@@ -45,7 +45,8 @@ export default function StatCard({ icon, tone, value, valueTone, label, change, 
         <span className={`w-8 h-8 rounded-ui grid place-items-center shrink-0 [&_svg]:w-4 [&_svg]:h-4 ${ICON_TONE[tone]}`}>{icon}</span>
         {label}
       </span>
-      <span className={`text-[1.2rem] min-[480px]:text-[1.625rem] font-bold tracking-[-0.02em] leading-tight truncate ${valueTone ? VALUE_TONE[valueTone] : 'text-primary'}`}>
+      {/* 휴대폰 2열에서는 카드 안쪽이 125px 안팎이라 8자리 금액(₩79,743,800)이 잘리지 않게 작게 */}
+      <span className={`text-[1.05rem] min-[480px]:text-[1.625rem] font-bold tracking-[-0.02em] leading-tight truncate ${valueTone ? VALUE_TONE[valueTone] : 'text-primary'}`}>
         {value}
       </span>
       {change && <span className={`text-[0.75rem] ${CHANGE_TONE[changeDir]}`}>{change}</span>}
