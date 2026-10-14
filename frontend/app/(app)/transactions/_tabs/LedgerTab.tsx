@@ -254,21 +254,26 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
     <>
       <ErrorBanner message={error} />
 
-      <div className="flex items-center gap-2 flex-wrap mb-6">
-        <span className="flex items-center gap-1.5 text-[0.78rem] text-muted mr-1">
-          <IconStar width={14} height={14} className="text-accent" />빨리 기록
+      {/* 즐겨찾기 줄 — 왼쪽 이름 · 가운데 항목(누르면 오늘 날짜로 추가 창) · 오른쪽 끝 등록 · 관리 */}
+      <Card className="mb-6 px-4 py-3 flex items-center gap-x-3 gap-y-2 flex-wrap">
+        <span className="flex items-center gap-1.5 pr-3 border-r border-border-subtle text-[0.84rem] font-semibold text-primary shrink-0">
+          <IconStar width={15} height={15} className="text-accent" />즐겨찾기
         </span>
-        {favorites.length === 0 && (
-          <span className="text-[0.78rem] text-muted">자주 쓰는 수입·지출을 등록해 두면, 여기서 눌러 오늘 날짜로 바로 추가할 수 있습니다.</span>
-        )}
-        {favorites.map((f) => (
-          <Button key={f.id} size="sm" variant="ghost" onClick={() => handleUseFavorite(f)} title={`${catMap[f.category] ?? f.category} · ${won(f.amount)}`}>
-            <span className={`amount-${f.type}`}>{TYPE_SIGN[f.type]}</span>{f.title}
-          </Button>
-        ))}
-        <Button size="sm" variant="ghost" onClick={() => setFavForm({ open: true })}><IconPlus />등록</Button>
-        {favorites.length > 0 && <Button size="sm" variant="ghost" onClick={() => setFavManageOpen(true)}>관리</Button>}
-      </div>
+        <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+          {favorites.length === 0 && (
+            <span className="text-[0.78rem] text-muted break-keep">자주 쓰는 수입 · 지출을 등록하면, 누를 때마다 오늘 날짜로 채운 추가 창이 열립니다.</span>
+          )}
+          {favorites.map((f) => (
+            <Button key={f.id} size="sm" variant="ghost" onClick={() => handleUseFavorite(f)} title={`${catMap[f.category] ?? f.category} · 누르면 오늘 날짜로 추가`}>
+              {f.title}<span className={`amount-${f.type} text-[0.75rem] font-normal`}>{ledgerAmount(f.type, f.amount)}</span>
+            </Button>
+          ))}
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+          <Button size="sm" variant="ghost" onClick={() => setFavForm({ open: true })}><IconPlus />등록</Button>
+          {favorites.length > 0 && <Button size="sm" variant="ghost" onClick={() => setFavManageOpen(true)}>관리</Button>}
+        </div>
+      </Card>
 
       {summary && (
         <StatStrip>
@@ -369,20 +374,19 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
           <span className="amount-income">수입 +{won(sumIncome)}</span>
           <span className="amount-expense">지출 −{won(sumExpense)}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <ExcelToolbar onDownloadTemplate={downloadTemplate} onUpload={handleUpload} onDownloadData={downloadData} accept=".xlsx,.xls,.csv" />
           <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
 
-      <ExcelToolbar onDownloadTemplate={downloadTemplate} onUpload={handleUpload} onDownloadData={downloadData} accept=".xlsx,.xls,.csv" />
-
-      <div className="table-wrap max-md:hidden">
+      <div className="table-wrap max-md:hidden mt-3">
         <table>
           <colgroup>
             <col style={{ width: '40px' }} />
             <col style={{ width: '104px' }} />
-            <col style={{ width: '56px' }} />
+            <col style={{ width: '80px' }} />
             <col />
             <col style={{ width: '140px' }} />
             <col style={{ width: '120px' }} />
@@ -403,7 +407,8 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
               <tr key={row.id} className="cursor-pointer" onClick={() => setModal({ open: true, mode: 'edit', editing: row })}>
                 <td className="td-center" onClick={(ev) => ev.stopPropagation()}><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" /></td>
                 <td className="td-muted td-mono">{dotDate(row.date)}</td>
-                <td className={`amount-${row.type}`} title={TX_TYPE_LABEL[row.type]} aria-label={TX_TYPE_LABEL[row.type]}>{TYPE_SIGN[row.type]}</td>
+                {/* 유형은 부호(+ −) 대신 글자로 — 부호는 금액 칸에 이미 있어 겹치고, 글자가 한눈에 읽힌다 */}
+                <td className={`amount-${row.type} text-[0.8125rem]`}>{TX_TYPE_LABEL[row.type]}</td>
                 <td className="td-name">
                   <span className="flex items-center gap-1.5 min-w-0">
                     <span className="truncate">{row.title}</span>
@@ -486,7 +491,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
   );
 }
 
-// 유형 부호 — 수입 + · 지출 − · 자산이동 ⇄ (돈 색과 함께 항상 같이 쓴다)
+// 금액 앞 유형 부호 — 수입 + · 지출 − · 자산이동 ⇄ (돈 색과 함께 쓴다)
 const TYPE_SIGN: Record<TransactionType, string> = { income: '+', expense: '−', transfer: '⇄' };
 
 // 금액에 유형 부호를 붙여 보여준다

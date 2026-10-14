@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 데스크톱 좌측 메뉴 (232px). 글자 로고 · 묶음별 메뉴 · 아래 사용자 + 로그아웃.
+ * 데스크톱 좌측 메뉴 (232px). 글자 로고 · 묶음별 메뉴 · 아래 사용자 줄(누르면 로그아웃).
  * 묶음(1차 메뉴)은 접혀 있고 누르면 항목(2차 메뉴)이 펼쳐진다. 지금 화면이 속한 묶음만 처음에 펼쳐 둔다.
  * 휴대폰에서는 숨기고 아래 메뉴 + '전체 메뉴' 시트(MoreSheet)가 대신한다.
  */
@@ -10,7 +10,6 @@ import { useApiQuery } from '@/lib/query';
 import { NAV, type NavSection } from '@/lib/nav';
 import { useUnreadCount } from '@/lib/useUnreadCount';
 import { IconCaret, IconLogout } from './icons';
-import IconButton from './ui/IconButton';
 import Wordmark from './Wordmark';
 
 interface MeUser { name: string; email: string }
@@ -27,7 +26,7 @@ export function NavLink({ href, icon, label, active, count, size = 'md', sub, on
       href={href}
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
-      className={`flex items-center gap-2.5 rounded-ui transition-colors [&_svg]:shrink-0 ${sub ? 'pl-8 pr-2.5' : 'px-2.5'} ${size === 'lg' ? 'min-h-11 text-[0.94rem] [&_svg]:w-[19px] [&_svg]:h-[19px]' : 'min-h-9 text-[0.875rem] [&_svg]:w-[17px] [&_svg]:h-[17px]'} ${active ? 'bg-accent-dim text-accent-dark font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`}
+      className={`flex items-center gap-2.5 rounded-ui transition-colors [&_svg]:shrink-0 ${sub ? 'pl-8 pr-2.5' : 'px-2.5'} ${size === 'lg' ? 'min-h-11 text-[0.94rem] [&_svg]:w-[19px] [&_svg]:h-[19px]' : 'min-h-9 text-[0.875rem] [&_svg]:w-[17px] [&_svg]:h-[17px]'} ${active ? 'bg-accent-dim text-accent-dark font-semibold' : 'text-secondary hover:bg-hover hover:text-primary'}`}
     >
       {icon}
       <span className="flex-1">{label}</span>
@@ -36,21 +35,27 @@ export function NavLink({ href, icon, label, active, count, size = 'md', sub, on
   );
 }
 
-// 로그인 사용자 줄 — 이니셜 · 이름 · 이메일(누르면 설정의 내 계정으로) + 오른쪽 동작(로그아웃). 로그아웃은 잘못 눌리지 않게 따로 둔다
-export function UserLine({ children }: { children?: React.ReactNode }) {
+// 로그인 사용자 + 로그아웃 — 이니셜 · 이름 · 이메일 · 로그아웃 아이콘을 한 직사각형 버튼으로 묶어 어디를 눌러도 로그아웃
+export function UserLine({ onLogout, size = 'md' }: { onLogout?: () => void; size?: 'md' | 'lg' }) {
   const me = useApiQuery<MeUser>(['auth', 'me'], '/auth/me').data ?? null;
   const name = me?.name || '사용자';
   return (
-    <div className="flex items-center gap-1">
-      <a href="/settings" title="내 계정 설정" className="flex-1 min-w-0 flex items-center gap-2.5 -ml-1.5 px-1.5 py-1 rounded-ui transition-colors hover:bg-surface">
-        <span className="w-8 h-8 rounded-full bg-accent-dim text-accent-dark font-semibold grid place-items-center text-[0.8rem] shrink-0">{name.charAt(0)}</span>
-        <span className="flex-1 min-w-0 flex flex-col leading-tight">
-          <span className="text-[0.84rem] font-medium text-primary truncate">{name}</span>
-          <span className="text-[0.75rem] text-muted truncate">{me?.email ?? ''}</span>
-        </span>
-      </a>
-      {children}
-    </div>
+    <button
+      type="button"
+      onClick={onLogout}
+      title="로그아웃"
+      aria-label={`로그아웃 (${name})`}
+      className={`group w-full flex items-center gap-2.5 px-2.5 rounded-ui text-left transition-colors cursor-pointer hover:bg-hover ${size === 'lg' ? 'min-h-14' : 'min-h-12'}`}
+    >
+      <span className="w-8 h-8 rounded-full bg-accent-dim text-accent-dark font-semibold grid place-items-center text-[0.8rem] shrink-0">{name.charAt(0)}</span>
+      <span className="flex-1 min-w-0 flex flex-col leading-tight">
+        <span className="text-[0.84rem] font-medium text-primary truncate">{name}</span>
+        <span className="text-[0.75rem] text-muted truncate">{me?.email ?? ''}</span>
+      </span>
+      <span className="flex items-center gap-1 shrink-0 text-muted text-[0.75rem] transition-colors group-hover:text-accent-dark [&_svg]:w-[18px] [&_svg]:h-[18px]">
+        {size === 'lg' && '로그아웃'}<IconLogout />
+      </span>
+    </button>
   );
 }
 
@@ -73,7 +78,7 @@ function NavGroup({ section, open, activePath, unread, onToggle, onPick }: {
         onClick={onToggle}
         aria-expanded={open}
         aria-controls={id}
-        className={`flex items-center gap-2.5 px-2.5 min-h-9 rounded-ui text-[0.875rem] text-left transition-colors hover:bg-surface hover:text-primary [&_svg]:shrink-0 [&_svg]:w-[17px] [&_svg]:h-[17px] ${hasActive ? 'text-primary font-semibold' : 'text-secondary'}`}
+        className={`flex items-center gap-2.5 px-2.5 min-h-9 rounded-ui text-[0.875rem] text-left transition-colors hover:bg-hover hover:text-primary [&_svg]:shrink-0 [&_svg]:w-[17px] [&_svg]:h-[17px] ${hasActive ? 'text-primary font-semibold' : 'text-secondary'}`}
       >
         {section.icon}
         <span className="flex-1">{section.label}</span>
@@ -131,10 +136,8 @@ export default function Sidebar({ activePath = '/dashboard', onLogout }: { activ
         ))}
       </nav>
 
-      <div className="px-4 py-3.5 border-t border-border">
-        <UserLine>
-          <IconButton label="로그아웃" title="로그아웃" size="lg" onClick={onLogout}><IconLogout /></IconButton>
-        </UserLine>
+      <div className="px-2.5 py-2.5 border-t border-border">
+        <UserLine onLogout={onLogout} />
       </div>
     </aside>
   );

@@ -7,9 +7,8 @@
 import { useEffect } from 'react';
 import { NAV } from '@/lib/nav';
 import { useUnreadCount } from '@/lib/useUnreadCount';
-import { IconClose, IconLogout } from './icons';
+import { IconClose } from './icons';
 import IconButton from './ui/IconButton';
-import Button from './ui/Button';
 import { NavLink, UserLine } from './Sidebar';
 
 export default function MoreSheet({ open, activePath, onClose, onLogout }: { open: boolean; activePath?: string; onClose: () => void; onLogout?: () => void }) {
@@ -44,10 +43,8 @@ export default function MoreSheet({ open, activePath, onClose, onLogout }: { ope
             ))}
           </div>
         ))}
-        <div className="px-2 pt-3 border-t border-border">
-          <UserLine>
-            <Button variant="ghost" onClick={onLogout}><IconLogout />로그아웃</Button>
-          </UserLine>
+        <div className="pt-2 border-t border-border">
+          <UserLine size="lg" onLogout={onLogout} />
         </div>
       </div>
     </div>

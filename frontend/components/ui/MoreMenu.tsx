@@ -64,7 +64,7 @@ export default function MoreMenu({ items, label = '더보기', size = 'md' }: { 
               type="button"
               role="menuitem"
               disabled={it.disabled}
-              className={`w-full flex items-center gap-2.5 px-3 h-10 text-left text-[0.84rem] transition-colors disabled:opacity-45 [&_svg]:w-4 [&_svg]:h-4 ${it.danger ? 'text-danger hover:bg-danger-dim' : 'text-primary hover:bg-surface'}`}
+              className={`w-full flex items-center gap-2.5 px-3 h-10 text-left text-[0.84rem] transition-colors disabled:opacity-45 [&_svg]:w-4 [&_svg]:h-4 ${it.danger ? 'text-danger hover:bg-danger-dim' : 'text-primary hover:bg-hover'}`}
               onClick={() => { setPos(null); it.onSelect(); }}
             >
               {it.icon}{it.label}

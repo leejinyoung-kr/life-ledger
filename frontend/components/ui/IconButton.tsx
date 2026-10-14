@@ -16,7 +16,7 @@ const VARIANT: Record<Variant, string> = {
   ghost: 'text-muted hover:bg-accent-dim hover:text-accent-dark',
   bordered: 'text-secondary border border-border hover:bg-accent-dim hover:text-accent-dark hover:border-accent',
   danger: 'text-muted hover:bg-danger-dim hover:text-danger',
-  handle: 'text-muted cursor-grab touch-none hover:bg-surface hover:text-secondary active:cursor-grabbing',
+  handle: 'text-muted cursor-grab touch-none hover:bg-hover hover:text-secondary active:cursor-grabbing',
   overlay: 'bg-white/[0.18] text-white hover:bg-white/[0.32]',
 };
 

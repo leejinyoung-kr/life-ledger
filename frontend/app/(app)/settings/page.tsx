@@ -17,7 +17,7 @@ import ErrorBanner from '@/components/ErrorBanner';
 import QueryError from '@/components/QueryError';
 import { PageLoading } from '@/components/QueryState';
 import { useConfirm } from '@/components/ConfirmModal';
-import Button from '@/components/ui/Button';
+import Button, { buttonClasses } from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
 import { api, apiDownload, setAccessToken } from '@/lib/api';
@@ -223,8 +223,8 @@ export default function SettingsPage() {
             </SettingRow>
             <SettingRow stack label="계정 보관함" desc="암호화된 JSON 으로 백업합니다. 복원은 같은 계정의 백업만, 현재 보관함에 추가됩니다 (덮어쓰지 않음).">
               <Button variant="ghost" size="sm" onClick={() => exportData('/export/credentials', '계정백업.json')}><IconDownload />JSON 백업</Button>
-              <label className="excel-btn upload border border-border">
-                <IconUpload width={15} height={15} />JSON 복원
+              <label className={buttonClasses('ghost', 'sm')}>
+                <IconUpload />JSON 복원
                 <input type="file" accept=".json,application/json" hidden onChange={handleImportCredentials} />
               </label>
             </SettingRow>

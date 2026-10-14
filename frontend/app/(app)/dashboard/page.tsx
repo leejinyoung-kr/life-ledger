@@ -172,9 +172,9 @@ export default function DashboardPage() {
       <StatStrip>
         {s && (
           <>
-            <StatCard href="/transactions" icon={<IconArrowUp />} tone="red" valueTone="out" value={won(s.stats.expense)} label="이번 달 지출" change={periodText} />
-            <StatCard href="/transactions" icon={<IconArrowDown />} tone="green" valueTone="in" value={won(s.stats.income)} label="이번 달 수입" change={periodText} />
-            <StatCard href="/networth"
+            <StatCard icon={<IconArrowUp />} tone="red" valueTone="out" value={won(s.stats.expense)} label="이번 달 지출" change={periodText} />
+            <StatCard icon={<IconArrowDown />} tone="green" valueTone="in" value={won(s.stats.income)} label="이번 달 수입" change={periodText} />
+            <StatCard
                 icon={<IconPie />}
                 tone="blue"
                 value={won(s.stats.netWorth)}
@@ -182,11 +182,11 @@ export default function DashboardPage() {
                 change={nwChange !== null ? `${nwChange >= 0 ? '▲' : '▼'} ${Math.abs(nwChange)}% 지난달 대비` : '현금 + 예적금 + 투자'}
                 changeDir={nwChange === null ? 'neutral' : nwChange >= 0 ? 'up' : 'down'}
               />
-            <StatCard href="/subscriptions" icon={<IconRepeat />} tone="amber" value={`${s.stats.activeSubs}건`} label="활성 구독" change={subSub || '결제 중'} />
+            <StatCard icon={<IconRepeat />} tone="amber" value={`${s.stats.activeSubs}건`} label="활성 구독" change={subSub || '결제 중'} />
           </>
         )}
         {credTotal !== null && (
-          <StatCard href="/credentials" icon={<IconKey />} tone="amber" value={`${credTotal}개`} label="저장된 계정" change={no2fa > 0 ? `2FA 미설정 ${no2fa}개` : '계정 보관함'} />
+          <StatCard icon={<IconKey />} tone="amber" value={`${credTotal}개`} label="저장된 계정" change={no2fa > 0 ? `2FA 미설정 ${no2fa}개` : '계정 보관함'} />
         )}
       </StatStrip>
 

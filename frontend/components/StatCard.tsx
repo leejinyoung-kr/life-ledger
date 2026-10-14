@@ -16,8 +16,6 @@ interface StatCardProps {
   label: string;
   change?: string;
   changeDir?: 'up' | 'down' | 'neutral';
-  /** 주면 칸 전체가 그 화면으로 가는 링크 */
-  href?: string;
 }
 
 const ICON_TONE: Record<Tone, string> = {
@@ -40,9 +38,9 @@ const CHANGE_TONE: Record<NonNullable<StatCardProps['changeDir']>, string> = {
   neutral: 'text-muted',
 };
 
-export default function StatCard({ icon, tone, value, valueTone, label, change, changeDir = 'neutral', href }: StatCardProps) {
-  const body = (
-    <>
+export default function StatCard({ icon, tone, value, valueTone, label, change, changeDir = 'neutral' }: StatCardProps) {
+  return (
+    <div className="bg-background border border-border rounded-panel shadow-card px-5 py-4 flex flex-col gap-1 min-w-0">
       <span className="text-[0.84rem] text-secondary font-medium flex items-center gap-2 mb-1">
         <span className={`w-8 h-8 rounded-ui grid place-items-center shrink-0 [&_svg]:w-4 [&_svg]:h-4 ${ICON_TONE[tone]}`}>{icon}</span>
         {label}
@@ -51,12 +49,8 @@ export default function StatCard({ icon, tone, value, valueTone, label, change, 
         {value}
       </span>
       {change && <span className={`text-[0.75rem] ${CHANGE_TONE[changeDir]}`}>{change}</span>}
-    </>
+    </div>
   );
-  const cls = 'bg-background border border-border rounded-panel shadow-card px-5 py-4 flex flex-col gap-1 min-w-0';
-  // href 가 있으면 카드 전체가 링크 — hover 때 초록 테두리
-  if (href) return <a href={href} className={`${cls} transition-colors hover:border-accent`}>{body}</a>;
-  return <div className={cls}>{body}</div>;
 }
 
 // 숫자 카드 줄 — 넓은 화면은 한 줄, 좁으면 2열(홀수면 마지막 카드가 두 칸)

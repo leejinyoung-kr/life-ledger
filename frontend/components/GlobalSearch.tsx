@@ -146,7 +146,7 @@ export default function GlobalSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden max-md:flex w-11 h-11 items-center justify-center rounded-ui text-muted shrink-0 hover:bg-surface [&_svg]:w-5 [&_svg]:h-5"
+        className="hidden max-md:flex w-11 h-11 items-center justify-center rounded-ui text-muted shrink-0 hover:bg-hover [&_svg]:w-5 [&_svg]:h-5"
         aria-label="통합 검색 열기"
       >
         <IconSearchBtn />
@@ -208,7 +208,7 @@ export default function GlobalSearch() {
                         key={q}
                         type="button"
                         onClick={() => { setQuery(q); inputRef.current?.focus(); }}
-                        className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-left border-b border-border-subtle last:border-b-0 hover:bg-surface"
+                        className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-left border-b border-border-subtle last:border-b-0 hover:bg-hover"
                       >
                         <IconClock width={15} height={15} className="text-muted shrink-0" />
                         <span className="text-[0.84rem] text-secondary">{q}</span>
@@ -246,7 +246,7 @@ const TYPE_ICON: Record<SearchType, React.ReactNode> = {
 // 검색 결과 한 줄
 function SearchResultRow({ item, query, onPick }: { item: SearchEntry; query: string; onPick?: () => void }) {
   return (
-    <a className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer transition-colors border-b border-border-subtle last:border-b-0 hover:bg-surface no-underline" href={item.href} onClick={onPick}>
+    <a className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer transition-colors border-b border-border-subtle last:border-b-0 hover:bg-hover no-underline" href={item.href} onClick={onPick}>
       <div className="w-8 h-8 rounded-ui border border-border flex items-center justify-center text-muted shrink-0">{TYPE_ICON[item.type]}</div>
       <div>
         <div className="text-[0.855rem] text-primary">{query ? highlight(item.title, query) : item.title}</div>

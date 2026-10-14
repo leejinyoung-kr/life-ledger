@@ -418,7 +418,7 @@ function SortableRow({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={`flex items-center gap-2.5 min-h-11 pr-2 border-b border-border-subtle last:border-b-0 bg-background transition-colors hover:bg-surface ${level === 'child' ? 'pl-8' : 'pl-2'}`}>
+    <div ref={setNodeRef} style={style} className={`flex items-center gap-2.5 min-h-11 pr-2 border-b border-border-subtle last:border-b-0 bg-background transition-colors hover:bg-hover ${level === 'child' ? 'pl-8' : 'pl-2'}`}>
       <IconButton label="순서 변경" variant="handle" {...attributes} {...listeners}>
         <IconDrag width={14} height={14} />
       </IconButton>

@@ -95,7 +95,7 @@ export default function NetworthPage() {
               <Link
                 key={r.type}
                 href="/transactions"
-                className="flex items-center gap-3 px-5 py-3 min-h-14 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface"
+                className="flex items-center gap-3 px-5 py-3 min-h-14 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-hover"
               >
                 <span className="w-2.5 h-2.5 shrink-0 rounded-full" style={{ background: ASSET_TYPE_COLOR[r.type] }} />
                 <span className="flex-1 min-w-0 flex flex-col leading-snug">

@@ -198,15 +198,15 @@ export default function CredentialsPage() {
         </div>
       )}
 
-      {/* 총 개수 + 선택삭제 · 페이지 크기 한 줄, 그 아래 엑셀 (가계부와 같은 순서) */}
-      <div className="flex items-center justify-between gap-3 flex-wrap py-2.5 border-b border-border text-[0.8125rem]">
+      {/* 총 개수 + 엑셀 · 선택삭제 · 페이지 크기 한 줄 (가계부와 같은 순서) */}
+      <div className="flex items-center justify-between gap-3 flex-wrap py-2.5 mb-3 border-b border-border text-[0.8125rem]">
         <span>총 <b className="font-semibold">{total}</b>개</span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <ExcelToolbar onDownloadTemplate={handleDownloadTemplate} onUpload={handleUploadExcel} onDownloadData={handleDownloadDataAsk} />
           <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
-      <ExcelToolbar onDownloadTemplate={handleDownloadTemplate} onUpload={handleUploadExcel} onDownloadData={handleDownloadDataAsk} />
 
       {/* 표 + 휴대폰 줄 */}
       <div className="table-wrap max-md:hidden">

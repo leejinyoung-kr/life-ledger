@@ -23,19 +23,19 @@ const UNDERLINE_SIZE: Record<Size, { base: string; on: string; off: string }> = 
   sm: {
     base: 'py-2 text-[0.82rem] border-b-2 -mb-px flex items-center gap-1.5 [&_svg]:w-3.5 [&_svg]:h-3.5',
     on: 'text-primary border-accent',
-    off: 'text-muted border-transparent hover:text-primary',
+    off: 'text-muted border-transparent hover:text-primary hover:border-accent/40',
   },
   md: {
     base: 'py-2.5 text-[0.875rem] border-b-2 -mb-px flex items-center gap-1.75 [&_svg]:w-4 [&_svg]:h-4 max-md:text-[0.82rem]',
     on: 'text-primary border-accent',
-    off: 'text-muted border-transparent hover:text-primary',
+    off: 'text-muted border-transparent hover:text-primary hover:border-accent/40',
   },
 };
 
 const VERTICAL_TAB = {
   base: 'px-3 py-2 rounded-ui text-[0.855rem] text-left',
   on: 'bg-accent-dim text-accent-dark',
-  off: 'text-secondary hover:bg-surface hover:text-primary',
+  off: 'text-secondary hover:bg-hover hover:text-accent-dark',
 };
 
 export default function Tabs<T extends string>({

@@ -25,18 +25,18 @@ const ITEM: Record<Variant, { base: string; on: string; off: string }> = {
   solid: {
     base: 'rounded-full border cursor-pointer transition-colors whitespace-nowrap shrink-0',
     on: 'bg-accent-dim border-accent text-accent-dark',
-    off: 'bg-transparent border-border text-muted hover:text-primary',
+    off: 'bg-transparent border-border text-muted hover:bg-hover hover:border-accent/50 hover:text-accent-dark',
   },
   soft: {
     base: 'rounded-ui border cursor-pointer transition-colors',
     on: 'bg-accent-dim text-accent-dark border-accent',
-    off: 'bg-transparent text-secondary border-border hover:bg-surface hover:text-primary',
+    off: 'bg-transparent text-secondary border-border hover:bg-hover hover:border-accent/50 hover:text-accent-dark',
   },
   joined: {
     base: 'px-3 py-1.5 transition-colors cursor-pointer whitespace-nowrap',
     // 안쪽 테두리(ring)는 묶음의 둥근 모서리에 잘려 끝 칸 꼭지가 사라지므로 바탕색으로만 표시
     on: 'bg-accent-dim text-accent-dark font-semibold',
-    off: 'text-primary hover:bg-surface',
+    off: 'text-primary hover:bg-hover hover:text-accent-dark',
   },
 };
 

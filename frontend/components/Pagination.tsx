@@ -2,7 +2,7 @@
 
 /**
  * 공통 페이지네이션 컴포넌트 (Tailwind).
- * - Pagination: 하단 페이지 번호 내비게이션
+ * - Pagination: 하단 페이지 번호 내비게이션 — 둥근 네모 칸, 지금 쪽은 진한 초록으로 채운다
  * - LimitSelect: 상단 오른쪽에 배치하는 "n개씩 보기" 선택박스
  */
 
@@ -10,9 +10,11 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const LIMIT_OPTIONS = [10, 20, 30];
 
-// 기본(hover 없음) + 비활성 hover 분리 — 활성 버튼 hover 색 충돌 방지
-const PAG_BASE = 'min-w-8 h-8 px-1.5 text-[0.8125rem] flex items-center justify-center transition-colors border-b-2 disabled:opacity-30 disabled:cursor-not-allowed';
-const PAG_HOVER = 'border-transparent text-primary enabled:hover:bg-surface';
+const PAG_BASE = 'min-w-8 h-8 px-2 rounded-ui text-[0.8125rem] tabular-nums inline-flex items-center justify-center transition-colors';
+// 지금 쪽 / 다른 쪽(올리면 옅은 초록) / 이전 · 다음(테두리 칸, 끝이면 흐리게)
+const PAG_ON = 'bg-accent-dark text-on-solid font-semibold';
+const PAG_OFF = 'text-secondary cursor-pointer hover:bg-hover hover:text-accent-dark';
+const PAG_STEP = 'w-8 px-0 border border-border bg-background text-secondary cursor-pointer enabled:hover:border-accent/50 enabled:hover:bg-hover enabled:hover:text-accent-dark disabled:opacity-40 disabled:cursor-not-allowed';
 
 // ── 페이지 번호 내비게이션 ────────────────────────────────────────
 interface PaginationProps {
@@ -28,28 +30,29 @@ export default function Pagination({ page, totalPages, totalItems, onPageChange 
   const pages = buildPageRange(page, totalPages);
 
   return (
-    <div className="flex items-center justify-center gap-3 px-5 py-3.5 border-t border-border-subtle">
-      <div className="flex items-center gap-[3px]">
-        <PagBtn label="이전 쪽" disabled={page === 1} onClick={() => onPageChange(page - 1)}><ChevronLeft size={16} /></PagBtn>
+    <nav aria-label="쪽 이동" className="flex items-center justify-center gap-1 pt-4 pb-1">
+      <PagStep label="이전 쪽" disabled={page === 1} onClick={() => onPageChange(page - 1)}><ChevronLeft size={16} /></PagStep>
 
+      <div className="flex items-center gap-1 mx-1">
         {pages.map((p, i) =>
           p === '...'
-            ? <span key={`el-${i}`} className="min-w-7 text-center text-muted text-[0.85rem] leading-8">…</span>
+            ? <span key={`el-${i}`} className="min-w-6 text-center text-muted text-[0.85rem]" aria-hidden>…</span>
             : (
               <button
                 key={p}
                 type="button"
-                className={`${PAG_BASE} ${page === p ? 'border-accent text-accent-dark' : PAG_HOVER}`}
+                aria-current={page === p ? 'page' : undefined}
+                className={`${PAG_BASE} ${page === p ? PAG_ON : PAG_OFF}`}
                 onClick={() => onPageChange(Number(p))}
               >
                 {p}
               </button>
             ),
         )}
-
-        <PagBtn label="다음 쪽" disabled={page === totalPages} onClick={() => onPageChange(page + 1)}><ChevronRight size={16} /></PagBtn>
       </div>
-    </div>
+
+      <PagStep label="다음 쪽" disabled={page === totalPages} onClick={() => onPageChange(page + 1)}><ChevronRight size={16} /></PagStep>
+    </nav>
   );
 }
 
@@ -74,14 +77,16 @@ export function LimitSelect({ limit, onLimitChange }: LimitSelectProps) {
   );
 }
 
-function PagBtn({ children, label, disabled, onClick }: { children: React.ReactNode; label: string; disabled: boolean; onClick: () => void }) {
+// 이전 · 다음 칸 — 테두리 있는 네모 아이콘 버튼
+function PagStep({ children, label, disabled, onClick }: { children: React.ReactNode; label: string; disabled: boolean; onClick: () => void }) {
   return (
-    <button type="button" aria-label={label} className={`${PAG_BASE} ${PAG_HOVER}`} disabled={disabled} onClick={onClick}>
+    <button type="button" aria-label={label} className={`${PAG_BASE} ${PAG_STEP}`} disabled={disabled} onClick={onClick}>
       {children}
     </button>
   );
 }
 
+// 지금 쪽 기준으로 보일 번호 목록 — 7쪽 넘으면 양 끝 + 주변만 남기고 … 로 줄인다
 function buildPageRange(current: number, total: number): (number | '...')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
   if (current <= 4) return [1, 2, 3, 4, 5, '...', total];

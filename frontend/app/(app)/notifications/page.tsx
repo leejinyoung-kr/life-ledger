@@ -171,7 +171,7 @@ export default function NotificationsPage() {
           return (
             <div
               key={n.id}
-              className="flex items-start gap-3 px-4 py-3 border-b border-border-subtle last:border-b-0 cursor-pointer transition-colors hover:bg-surface max-md:min-h-11"
+              className="flex items-start gap-3 px-4 py-3 border-b border-border-subtle last:border-b-0 cursor-pointer transition-colors hover:bg-hover max-md:min-h-11"
               onClick={() => handleOpenDetail(n)}
             >
               <input

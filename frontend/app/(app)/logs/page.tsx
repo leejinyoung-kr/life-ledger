@@ -261,7 +261,7 @@ export default function LogsPage() {
             <div key={log.id} className={`flex flex-col border-b border-border-subtle last:border-b-0 ${log.level === 'error' ? 'bg-danger-dim shadow-[inset_2px_0_0_var(--color-danger)]' : ''}`}>
               <button
                 type="button"
-                className="flex items-center gap-2.5 flex-wrap px-4 py-2.5 max-md:min-h-11 text-left cursor-pointer transition-colors hover:bg-surface"
+                className="flex items-center gap-2.5 flex-wrap px-4 py-2.5 max-md:min-h-11 text-left cursor-pointer transition-colors hover:bg-hover"
                 aria-expanded={isOpen}
                 onClick={() => toggleExpand(log.id)}
               >
@@ -272,9 +272,9 @@ export default function LogsPage() {
                 <IconCaret className={`w-3.75 h-3.75 text-muted transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* 상세(metadata) */}
+              {/* 상세(metadata) — 줄 왼쪽 끝에 맞춘 안쪽 상자. 앞을 비워 들여 쓰면 위 줄과 어긋나 보여서 상자로 묶는다 */}
               {isOpen && (
-                <div className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-1.5 pl-4 pr-4 pt-1 pb-3.5 text-[0.78rem] md:pl-24">
+                <div className="grid grid-cols-[96px_1fr] gap-x-4 gap-y-1.5 mx-4 mb-3 px-4 py-3 rounded-ui border border-border-subtle bg-surface text-[0.78rem]">
                   <span className="text-muted">시각</span>
                   <span className="text-primary">{full}</span>
                   {log.metadata && Object.entries(log.metadata).map(([k, v]) => (

@@ -7,6 +7,7 @@ import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
 import MoreMenu from '@/components/ui/MoreMenu';
+import Badge from '@/components/ui/Badge';
 import Segmented from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
 import { Field, ModalFooter } from '@/components/ui/Field';
@@ -146,7 +147,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
       <div className="flex items-center justify-between gap-2 py-2.5 border-y border-border-subtle text-[0.8125rem]">
         <span>총 <b className="font-semibold">{total}</b>건 <span className="text-muted ml-2 max-md:hidden">가입일 · 메모는 행을 누르면 수정 창에서</span></span>
         <div className="flex items-center gap-2">
-          <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+          <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
@@ -157,11 +158,12 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
             <colgroup>
               <col style={{ width: '40px' }} />
               <col />
-              <col style={{ width: '140px' }} />
-              <col style={{ width: '120px' }} />
-              <col style={{ width: '80px' }} />
-              <col style={{ width: '160px' }} />
-              <col style={{ width: '112px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '110px' }} />
+              <col style={{ width: '72px' }} />
+              <col style={{ width: '170px' }} />
+              <col style={{ width: '130px' }} />
+              <col style={{ width: '128px' }} />
             </colgroup>
             <thead>
               <tr>
@@ -170,12 +172,13 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                 <th className="td-right">잔액</th>
                 <th className="td-right">월 납입</th>
                 <th className="td-right">금리</th>
-                <th className="td-right">만기예상</th>
-                <th className="td-right">관리</th>
+                <th className="th-left"><span className="pl-6">만기일</span></th>
+                <th className="td-right">만기 예상액</th>
+                <th className="td-right"><span className="sr-only">관리</span></th>
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && <TableEmptyRow colSpan={7} message="예적금 내역이 없습니다." />}
+              {paged.length === 0 && <TableEmptyRow colSpan={8} message="예적금 내역이 없습니다." />}
               {paged.map((c) => {
                 const dleft = daysUntil(c.maturityDate);
                 const near = dleft !== null && dleft >= 0 && dleft <= 30;
@@ -194,18 +197,19 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                     <td className="td-mono td-right">{won(c.balance)}</td>
                     <td className="td-mono td-right text-muted">{c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-'}</td>
                     <td className="td-mono td-right">{c.interestRate}%</td>
-                    <td className="td-mono td-right">
-                      <div className="flex flex-col leading-snug">
-                        <span className={warn ? 'text-warning' : undefined}>{maturityAmt !== null ? won(maturityAmt) : '-'}</span>
-                        {c.maturityDate && (
-                          <span className={`text-[0.72rem] ${warn ? 'text-warning' : 'text-muted'}`}>
-                            {dotDate(c.maturityDate)}{near && ` · D-${dleft}`}{matured && ' · 만기됨'}
-                          </span>
-                        )}
-                      </div>
+                    {/* 만기일과 예상액을 한 칸에 쌓지 않고 나눈다 — 임박 · 만기됨은 날짜 옆 배지로 */}
+                    <td className="td-mono">
+                      {c.maturityDate ? (
+                        <span className="flex items-center gap-2 pl-6">
+                          <span className={warn ? 'text-warning' : 'text-secondary'}>{dotDate(c.maturityDate)}</span>
+                          {near && <Badge size="sm" tone="warning">D-{dleft}</Badge>}
+                          {matured && <Badge size="sm" tone="neutral">만기됨</Badge>}
+                        </span>
+                      ) : <span className="pl-6 text-muted">-</span>}
                     </td>
+                    <td className={`td-mono td-right ${warn ? 'text-warning' : ''}`}>{maturityAmt !== null ? won(maturityAmt) : <span className="text-muted">-</span>}</td>
                     <td onClick={(ev) => ev.stopPropagation()}>
-                      <div className="flex justify-end">
+                      <div className="flex justify-end pl-4">
                         <IconButton label="복사" onClick={() => handleDuplicate(c)}><IconCopy /></IconButton>
                         <IconButton label="수정" onClick={() => openEdit(c)}><IconEdit /></IconButton>
                         <IconButton label="삭제" variant="danger" onClick={() => handleRemove(c.id)}><IconTrash /></IconButton>

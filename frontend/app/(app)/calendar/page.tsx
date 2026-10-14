@@ -207,7 +207,7 @@ export default function CalendarPage() {
               const isRedDate = !cell.dim && (i % 7 === 0 || isHoliday);
               const shown = events?.slice(0, 2) ?? [];
               const more = (events?.length ?? 0) - shown.length;
-              const cellTone = cell.dim ? 'bg-surface' : isSel ? 'bg-accent-dim cursor-pointer' : 'bg-background cursor-pointer hover:bg-surface';
+              const cellTone = cell.dim ? 'bg-surface' : isSel ? 'bg-accent-dim cursor-pointer' : 'bg-background cursor-pointer hover:bg-hover';
               const dayTone = isToday ? 'bg-accent-dark text-on-solid font-semibold' : cell.dim ? 'text-muted/60' : isRedDate ? 'text-danger' : 'text-primary';
               return (
                 <div
