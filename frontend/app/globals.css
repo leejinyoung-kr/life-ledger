@@ -184,9 +184,10 @@
 
 .input {
   width: 100%; min-width: 0; background: var(--bg-base); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 8px 12px; color: var(--text-primary);
+  border-radius: var(--radius); padding: 8px 12px; min-height: 40px; color: var(--text-primary);
   font-size: 0.875rem; transition: border-color var(--ease), box-shadow var(--ease); outline: none;
 }
+textarea.input { min-height: 72px; }
 .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 .input::placeholder { color: var(--text-muted); }
 /* 좌측 돋보기 아이콘용 패딩 — .input 의 shorthand padding 을 명시도로 덮어쓴다 */
@@ -201,47 +202,49 @@ input[type="date"].input, input[type="time"].input, input[type="datetime-local"]
   appearance: none;
 }
 
-/* 공통 체크박스 — 네이티브 스타일 대신 앱 톤(둥근 사각형 + 강조색)에 맞춤 */
+/* 공통 체크박스 — 선만 있는 네모, 고르면 금빛 테두리 + 진한 금빛 체크 */
 .checkbox {
   appearance: none; -webkit-appearance: none; flex-shrink: 0;
-  width: 16px; height: 16px; border: 1.5px solid var(--border); border-radius: 4px;
-  background: var(--bg-base); cursor: pointer; position: relative;
+  width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 2px;
+  background: transparent; cursor: pointer; position: relative;
   transition: background var(--ease), border-color var(--ease);
 }
 .checkbox:hover { border-color: var(--accent); }
-.checkbox:checked { background: var(--accent); border-color: var(--accent); }
+.checkbox:checked { background: var(--accent-dim); border-color: var(--accent); }
 .checkbox:checked::after {
   content: ''; position: absolute; left: 6px; top: 3px; width: 4px; height: 8px;
-  border: solid var(--on-solid); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg);
+  border: solid var(--accent-dark); border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 
 .table-wrap { width: 100%; overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+/* 표 — 머리 행 36 · 보조 글자(굵게 하지 않음), 줄무늬 없이 행 사이 머리카락 선, 행 44 */
 thead th {
-  text-align: center; padding: 10px 16px; font-size: 0.72rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);
-  border-bottom: 1px solid var(--border); background: var(--bg-surface); white-space: nowrap;
+  text-align: center; height: 36px; padding: 0 12px; font-size: 0.75rem; font-weight: 400;
+  color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap;
 }
+thead th.td-right, thead th.th-right { text-align: right; }
+thead th.th-left { text-align: left; }
 tbody tr { border-bottom: 1px solid var(--border-subtle); transition: background var(--ease); }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: var(--bg-surface); }
-tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middle; }
+tbody td { height: 44px; padding: 6px 12px; color: var(--text-primary); vertical-align: middle; }
 .td-muted { color: var(--text-secondary); }
-.td-mono  { font-family: var(--font-mono); font-size: 0.82rem; }
+.td-mono  { font-variant-numeric: tabular-nums; }
 .td-right { text-align: right; }
 .td-center { text-align: center; }
-.td-name { font-weight: 500; }
-.td-strong { font-weight: 600; }
+.td-name { font-weight: 400; }
+.td-strong { font-weight: 500; }
 
+/* 엑셀 줄 · 업로드 라벨 — 테두리 없는 작은 글자 버튼 */
 .excel-btn {
-  display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px;
-  border-radius: var(--radius); font-size: 0.8rem; font-weight: 500;
-  border: 1px solid var(--border); background: var(--bg-base); color: var(--text-secondary);
-  cursor: pointer; transition: all var(--ease); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px;
+  border-radius: var(--radius); font-size: 0.8125rem;
+  background: transparent; color: var(--text-primary);
+  cursor: pointer; transition: background var(--ease); white-space: nowrap;
 }
-.excel-btn:hover { background: var(--bg-surface); color: var(--text-primary); border-color: var(--accent); }
+.excel-btn:hover { background: var(--bg-surface); }
 @media (max-width: 767px) {
-  .excel-btn { padding: 6px 9px; font-size: 0.75rem; }
   .date-range-group { width: 100%; min-width: 0; }
   .date-range-input { flex: 1; min-width: 0; width: auto !important; }
 }
@@ -257,9 +260,9 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
    가계부 (transactions) 전용
    ════════════════════════════════════════ */
 
-.amount-income  { color: var(--success); font-family: var(--font-mono); font-weight: 500; }
-.amount-expense { color: var(--danger); font-family: var(--font-mono); font-weight: 500; }
-.amount-transfer { color: var(--blue); font-family: var(--font-mono); font-weight: 500; }
+.amount-income  { color: var(--success); font-variant-numeric: tabular-nums; }
+.amount-expense { color: var(--danger); font-variant-numeric: tabular-nums; }
+.amount-transfer { color: var(--blue); font-variant-numeric: tabular-nums; }
 
 .cat-chip {
   display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px;
@@ -289,15 +292,6 @@ tbody td { padding: 12px 16px; color: var(--text-primary); vertical-align: middl
 .return-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--radius-full); font-size: .75rem; font-weight: 700; font-family: var(--font-mono); }
 .return-pill.up { background: var(--success-dim); color: var(--success); }
 .return-pill.down { background: var(--danger-dim); color: var(--danger); }
-
-/* .bars — 자산종합 + 가계부 월별추이 공용 막대차트 */
-.bars { display: flex; align-items: flex-end; gap: 10px; height: 160px; padding: 16px 0; }
-.bars .bar { flex: 1; background: var(--accent-dim); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-bottom: none; border-radius: 4px 4px 0 0; position: relative; transition: all var(--ease); }
-.bars .bar:hover { background: var(--accent-hover); }
-.bars .bar.current { background: var(--accent); }
-.bars .bar span { position: absolute; top: -18px; left: 0; right: 0; text-align: center; font-size: .65rem; color: var(--text-muted); }
-.bars .bar.current span { color: var(--text-primary); font-weight: 700; }
-.bars .bar small { position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: .65rem; color: var(--text-muted); }
 
 /* 추가/수정 모달 — 비밀번호 강도 */
 .input-mono { font-family: var(--font-code); }

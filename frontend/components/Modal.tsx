@@ -22,11 +22,11 @@ interface ModalProps {
   subtitle?: string;
   /** 기본 헤더에서 닫기 버튼 왼쪽에 놓는 요소 (배지 등) */
   headerAction?: ReactNode;
-  /** 박스 너비: sm 440px · md 480px(기본) · lg 860px */
+  /** 박스 너비: sm 380px · md 520px(기본) · lg 720px — 휴대폰에서는 모두 아래에서 올라오는 시트 */
   size?: 'sm' | 'md' | 'lg';
 }
 
-const SIZE = { sm: 'max-w-110', md: 'max-w-[480px]', lg: 'max-w-[860px]' } as const;
+const SIZE = { sm: 'max-w-[380px]', md: 'max-w-[520px]', lg: 'max-w-[720px]' } as const;
 
 export default function Modal({ open, title, onClose, children, footer, header, subtitle, headerAction, size = 'md' }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -94,22 +94,22 @@ export default function Modal({ open, title, onClose, children, footer, header, 
     // 오버레이 클릭으로 닫히지 않음 — 폼 입력 중 실수 방지
     // 닫혀 있을 때는 접근성 트리에서 제외 + 포커스/상호작용 차단 (ghost dialog 방지)
     <div
-      className={`fixed inset-0 bg-[rgba(15,25,35,0.45)] backdrop-blur-[4px] z-[200] flex items-center justify-center p-6 transition-opacity ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      className={`fixed inset-0 bg-backdrop z-[200] flex items-center justify-center p-6 max-md:items-end max-md:p-0 transition-opacity ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       aria-hidden={!open}
       inert={!open}
     >
       <div
         ref={dialogRef}
-        className={`bg-background border border-border rounded-2xl w-full ${SIZE[size]} shadow-overlay max-h-[calc(100vh-48px)] flex flex-col ${open ? '[animation:slideUp_0.25s_ease]' : ''}`}
+        className={`bg-background border border-border rounded-panel w-full ${SIZE[size]} shadow-overlay max-h-[calc(100vh-48px)] flex flex-col max-md:max-w-none max-md:max-h-[92vh] max-md:rounded-b-none max-md:border-b-0 ${open ? '[animation:slideUp_0.25s_ease]' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
         {header ?? (
-          <div className="flex items-center gap-3.5 px-6 pt-5 pb-4 border-b border-border">
+          <div className="flex items-start gap-3 px-5 py-4 border-b border-border-subtle">
             <div className="flex-1 min-w-0">
-              <div className="[font-family:var(--font-display)] text-base font-bold text-primary">{title}</div>
-              {subtitle && <div className="text-[0.78rem] text-muted mt-0.5">{subtitle}</div>}
+              <div className="[font-family:var(--font-display)] text-[1.25rem] font-semibold leading-tight lining-nums text-primary">{title}</div>
+              {subtitle && <div className="text-[0.78rem] text-muted mt-1">{subtitle}</div>}
             </div>
             {headerAction}
             <IconButton label="닫기" variant="bordered" size="lg" onClick={onClose}>
@@ -117,8 +117,8 @@ export default function Modal({ open, title, onClose, children, footer, header, 
             </IconButton>
           </div>
         )}
-        <div className="p-6 flex flex-col gap-4 overflow-y-auto">{children}</div>
-        {footer && <div className="px-6 pt-4 pb-6 flex gap-2.5 justify-end border-t border-border">{footer}</div>}
+        <div className="px-5 py-[18px] flex flex-col gap-4 overflow-y-auto">{children}</div>
+        {footer && <div className="px-5 py-3.5 flex gap-2 justify-end border-t border-border-subtle max-md:pb-[calc(14px+env(safe-area-inset-bottom))]">{footer}</div>}
       </div>
     </div>
   );

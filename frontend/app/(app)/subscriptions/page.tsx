@@ -16,7 +16,7 @@ import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
-import StatCard from '@/components/StatCard';
+import StatCard, { StatStrip } from '@/components/StatCard';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
 import Modal from '@/components/Modal';
@@ -110,11 +110,11 @@ export default function SubscriptionsPage() {
       <ErrorBanner message={error} />
 
       {/* 상단 요약 통계 */}
-      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-8">
+      <StatStrip>
         {stats.map((s) => (
           <StatCard key={s.label} icon={s.icon} tone={s.tone} value={s.value} label={s.label} change={s.change} changeDir={s.changeDir} />
         ))}
-      </div>
+      </StatStrip>
 
       {/* 체험 종료 임박 경고 배너 */}
       {trial && (

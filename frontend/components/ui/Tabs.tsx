@@ -11,8 +11,9 @@ type Size = 'sm' | 'md';
 
 // underline: 가로 밑줄 탭 / vertical: 카드 안 세로 목록 (모바일에서는 가로 스크롤)
 const LIST: Record<Variant, string> = {
-  underline: 'flex overflow-x-auto scrollbar-none',
-  vertical: 'bg-background border border-border rounded-lg p-2.5 flex flex-col gap-0.5 shadow-card max-md:flex-row max-md:flex-nowrap max-md:overflow-x-auto max-md:scrollbar-none',
+  // overflow-y-hidden — 탭의 -mb-px 때문에 휴대폰에서 세로 스크롤바가 생기던 것(시안 점검 §3-6)
+  underline: 'flex gap-6 border-b border-border overflow-x-auto overflow-y-hidden scrollbar-none max-md:gap-4',
+  vertical: 'border border-border rounded-ui p-2 flex flex-col gap-0.5 max-md:flex-row max-md:flex-nowrap max-md:overflow-x-auto max-md:scrollbar-none',
 };
 
 const TAB_BASE = 'cursor-pointer transition-all whitespace-nowrap shrink-0';
@@ -20,20 +21,20 @@ const TAB_BASE = 'cursor-pointer transition-all whitespace-nowrap shrink-0';
 // 밑줄 탭: sm 은 카드 안 환경 탭, md 는 페이지 상단 탭
 const UNDERLINE_SIZE: Record<Size, { base: string; on: string; off: string }> = {
   sm: {
-    base: 'px-4 py-2 text-[0.82rem] border-b-2 -mb-px flex items-center gap-1.5 font-medium',
-    on: 'text-accent border-accent font-semibold',
-    off: 'text-muted border-transparent hover:text-secondary',
+    base: 'py-2 text-[0.82rem] border-b-2 -mb-px flex items-center gap-1.5 [&_svg]:w-3.5 [&_svg]:h-3.5',
+    on: 'text-primary border-accent',
+    off: 'text-muted border-transparent hover:text-primary',
   },
   md: {
-    base: 'px-5 py-2.5 text-[0.875rem] border-b-2 -mb-px flex items-center gap-1.75 font-medium [&_svg]:w-3.75 [&_svg]:h-3.75 max-md:px-3 max-md:text-[0.82rem]',
-    on: 'text-accent border-accent font-semibold',
+    base: 'py-2.5 text-[0.875rem] border-b-2 -mb-px flex items-center gap-1.75 [&_svg]:w-4 [&_svg]:h-4 max-md:text-[0.82rem]',
+    on: 'text-primary border-accent',
     off: 'text-muted border-transparent hover:text-primary',
   },
 };
 
 const VERTICAL_TAB = {
-  base: 'px-3 py-2 rounded-ui text-[0.855rem] font-medium text-left',
-  on: 'bg-accent-dim text-accent font-semibold',
+  base: 'px-3 py-2 rounded-ui text-[0.855rem] text-left',
+  on: 'bg-accent-dim text-accent-dark',
   off: 'text-secondary hover:bg-surface hover:text-primary',
 };
 

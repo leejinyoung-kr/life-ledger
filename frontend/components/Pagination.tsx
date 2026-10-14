@@ -6,11 +6,13 @@
  * - LimitSelect: 상단 오른쪽에 배치하는 "n개씩 보기" 선택박스
  */
 
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
 const LIMIT_OPTIONS = [10, 20, 30];
 
 // 기본(hover 없음) + 비활성 hover 분리 — 활성 버튼 hover 색 충돌 방지
-const PAG_BASE = 'min-w-8 h-8 px-1.5 rounded-ui text-[0.85rem] font-medium flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed';
-const PAG_HOVER = 'text-secondary enabled:hover:bg-surface enabled:hover:text-primary';
+const PAG_BASE = 'min-w-8 h-8 px-1.5 text-[0.8125rem] flex items-center justify-center transition-colors border-b-2 disabled:opacity-30 disabled:cursor-not-allowed';
+const PAG_HOVER = 'border-transparent text-primary enabled:hover:bg-surface';
 
 // ── 페이지 번호 내비게이션 ────────────────────────────────────────
 interface PaginationProps {
@@ -28,7 +30,7 @@ export default function Pagination({ page, totalPages, totalItems, onPageChange 
   return (
     <div className="flex items-center justify-center gap-3 px-5 py-3.5 border-t border-border-subtle">
       <div className="flex items-center gap-[3px]">
-        <PagBtn disabled={page === 1} onClick={() => onPageChange(page - 1)}>‹</PagBtn>
+        <PagBtn label="이전 쪽" disabled={page === 1} onClick={() => onPageChange(page - 1)}><ChevronLeft size={16} /></PagBtn>
 
         {pages.map((p, i) =>
           p === '...'
@@ -37,7 +39,7 @@ export default function Pagination({ page, totalPages, totalItems, onPageChange 
               <button
                 key={p}
                 type="button"
-                className={`${PAG_BASE} ${page === p ? 'bg-accent text-white enabled:hover:bg-accent-dark' : PAG_HOVER}`}
+                className={`${PAG_BASE} ${page === p ? 'border-accent text-accent-dark' : PAG_HOVER}`}
                 onClick={() => onPageChange(Number(p))}
               >
                 {p}
@@ -45,7 +47,7 @@ export default function Pagination({ page, totalPages, totalItems, onPageChange 
             ),
         )}
 
-        <PagBtn disabled={page === totalPages} onClick={() => onPageChange(page + 1)}>›</PagBtn>
+        <PagBtn label="다음 쪽" disabled={page === totalPages} onClick={() => onPageChange(page + 1)}><ChevronRight size={16} /></PagBtn>
       </div>
     </div>
   );
@@ -72,9 +74,9 @@ export function LimitSelect({ limit, onLimitChange }: LimitSelectProps) {
   );
 }
 
-function PagBtn({ children, disabled, onClick }: { children: React.ReactNode; disabled: boolean; onClick: () => void }) {
+function PagBtn({ children, label, disabled, onClick }: { children: React.ReactNode; label: string; disabled: boolean; onClick: () => void }) {
   return (
-    <button type="button" className={`${PAG_BASE} ${PAG_HOVER}`} disabled={disabled} onClick={onClick}>
+    <button type="button" aria-label={label} className={`${PAG_BASE} ${PAG_HOVER}`} disabled={disabled} onClick={onClick}>
       {children}
     </button>
   );

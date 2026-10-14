@@ -205,6 +205,8 @@ docker compose exec backend npx prisma migrate deploy
   | 모달 | `Modal`(`size` · `subtitle` · `headerAction` · `footer`) · `ConfirmModal`(확인 · 입력이 붙는 확인은 `children` · `layer`) |
   | 빈 상태 · 로딩 · 오류 | `EmptyState`(`size`) · `QueryState` / `PageLoading`(`size`) · `ErrorBanner` · `QueryError`, 테이블 빈 행은 `TableEmptyRow` |
   | 조회 조건 박스 / 엑셀 버튼 줄 | `FilterPanel` / `ExcelToolbar` |
+  | 숫자 카드 / 막대 차트 | `StatStrip` 안에 `StatCard`(금액 색은 `valueTone` in · out · move 일 때만) / `BarChart`(`tone` out · neutral) |
+  | 아이콘 | `components/icons` 의 `Icon*` (lucide 한 세트를 앱 이름으로 묶음) — 이모지는 쓰지 않는다 |
   | 체크박스 | `<input type="checkbox" className="checkbox">` |
 
   모서리 · 그림자는 `rounded-ui`(8px) · `rounded-panel`(14px) · `shadow-card` · `shadow-raised` · `shadow-overlay` 토큰 유틸을 쓴다 (`rounded-[var(--radius)]` 같은 표기 금지). `rounded-lg` 는 Tailwind 기본 8px 이라 14px 이 아니다. 색은 `text-danger` · `border-accent/30` 처럼 토큰 + 투명도로 쓰고 hex · rgba 를 직접 적지 않는다.

@@ -7,11 +7,11 @@ import { clickable } from '@/lib/a11y';
 
 type CardHover = 'lift' | 'accent' | 'tile';
 
-// hover: lift 은 살짝 뜨기(정보 카드), accent 는 테두리 강조(미리보기 카드), tile 은 배경 강조(폴더 타일)
+// hover: 누를 수 있는 카드는 테두리만 금빛(lift · accent), tile 은 옅은 금빛 바탕까지(폴더 타일)
 const HOVER: Record<CardHover, string> = {
-  lift: 'transition-all hover:shadow-raised hover:-translate-y-px',
-  accent: 'transition-all hover:border-accent hover:-translate-y-0.5 hover:shadow-raised',
-  tile: 'transition-all hover:border-accent hover:bg-accent-dim hover:-translate-y-px',
+  lift: 'transition-colors hover:border-accent',
+  accent: 'transition-colors hover:border-accent',
+  tile: 'transition-colors hover:border-accent hover:bg-accent-dim',
 };
 
 // clip: 자식이 모서리 밖으로 나가지 않게 자른다. onClick 을 주면 키보드로도 누를 수 있는 클릭 카드가 되고 hover 기본값은 accent
@@ -25,7 +25,7 @@ export function Card({
 }: Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> & { clip?: boolean; hover?: CardHover; onClick?: () => void }) {
   const h = hover ?? (onClick ? 'accent' : undefined);
   const cls = [
-    'bg-background border border-border rounded-panel shadow-card',
+    'border border-border rounded-ui',
     clip ? 'overflow-hidden' : '',
     onClick ? 'cursor-pointer' : '',
     h ? HOVER[h] : '',
@@ -40,14 +40,14 @@ export function Card({
 
 export function CardHeader({ className = '', children }: { className?: string; children: ReactNode }) {
   return (
-    <div className={`flex items-center justify-between px-5 pt-[18px] pb-[14px] border-b border-border ${className}`}>
+    <div className={`flex items-center justify-between gap-3 px-[18px] py-3.5 border-b border-border-subtle ${className}`}>
       {children}
     </div>
   );
 }
 
 export function CardTitle({ children }: { children: ReactNode }) {
-  return <span className="[font-family:var(--font-display)] text-[0.9rem] font-bold text-primary">{children}</span>;
+  return <span className="[font-family:var(--font-display)] text-[1.1875rem] font-semibold leading-tight lining-nums text-primary flex items-center gap-2">{children}</span>;
 }
 
 // padding 기본 20px. compact=상단 8px, flush=0

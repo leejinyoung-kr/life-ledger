@@ -10,21 +10,22 @@ type Variant = 'primary' | 'ghost' | 'danger' | 'solid-danger' | 'link';
 type Size = 'md' | 'sm' | 'lg' | 'inline';
 
 const BASE =
-  'inline-flex items-center justify-center gap-1.5 rounded-ui font-semibold whitespace-nowrap transition-all cursor-pointer [&_svg]:w-[15px] [&_svg]:h-[15px] disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none';
+  'inline-flex items-center justify-center gap-1.5 rounded-ui font-medium whitespace-nowrap transition-all cursor-pointer [&_svg]:w-[15px] [&_svg]:h-[15px] disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none';
 
 const VARIANT: Record<Variant, string> = {
   // 주 버튼은 채우지 않고 금빛 테두리 + 진한 금빛 글자 (판정 D2 — 금빛 글자는 대비가 모자라다)
-  primary: 'bg-accent-dim text-accent-dark border border-accent hover:bg-accent-hover',
-  ghost: 'bg-transparent text-secondary border border-border font-medium hover:bg-surface hover:text-primary',
-  danger: 'bg-danger-dim text-danger hover:bg-danger/15',
+  primary: 'bg-transparent text-accent-dark border border-accent hover:bg-accent-dim',
+  ghost: 'bg-transparent text-primary border border-border hover:bg-surface',
+  // 삭제로 가는 첫 단계 — 지출 색 테두리. 채운 버튼(solid-danger)은 확인 창 안에서만
+  danger: 'bg-transparent text-danger border border-danger hover:bg-danger-dim',
   'solid-danger': 'bg-danger text-on-solid border border-danger font-semibold hover:bg-danger-dark hover:border-danger-dark',
-  link: 'bg-transparent text-accent-dark font-medium hover:opacity-70',
+  link: 'bg-transparent text-accent-dark underline underline-offset-[3px] hover:text-accent',
 };
 
 const SIZE: Record<Size, string> = {
-  md: 'px-4 py-2 text-[0.855rem]',
-  sm: 'px-2.5 py-[5px] text-[0.78rem]',
-  lg: 'px-4 py-3 text-[0.875rem]',
+  md: 'min-h-9 px-3.5 py-1.5 text-[0.875rem]',
+  sm: 'min-h-[30px] px-2.5 py-1 text-[0.8125rem]',
+  lg: 'min-h-11 px-5 py-2.5 text-[0.9375rem]',
   inline: 'p-0 text-[length:inherit]',
 };
 

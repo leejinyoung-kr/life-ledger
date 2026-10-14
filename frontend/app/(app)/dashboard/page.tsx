@@ -6,7 +6,7 @@ import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import QueryError from '@/components/QueryError';
-import StatCard from '@/components/StatCard';
+import StatCard, { StatStrip } from '@/components/StatCard';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -73,8 +73,8 @@ export default function DashboardPage() {
 
   const stats = s
     ? [
-        { tone: 'red' as const,   icon: <IconWon />,    value: won(s.stats.expense),      label: '이번 달 지출', change: '이번 달 합계', changeDir: 'down' as const },
-        { tone: 'green' as const, icon: <IconWon />,    value: won(s.stats.income),        label: '이번 달 수입', change: '이번 달 합계', changeDir: 'up' as const, valueAccent: true },
+        { tone: 'red' as const,   icon: <IconWon />,    value: won(s.stats.expense), valueTone: 'out' as const, label: '이번 달 지출', change: '이번 달 합계', changeDir: 'down' as const },
+        { tone: 'green' as const, icon: <IconWon />,    value: won(s.stats.income),        label: '이번 달 수입', change: '이번 달 합계', changeDir: 'up' as const, valueTone: 'in' as const },
         { tone: 'blue' as const,  icon: <IconPie />,    value: won(s.stats.netWorth),      label: '순자산',       change: '현금 + 예적금 + 투자', changeDir: 'neutral' as const },
         { tone: 'amber' as const, icon: <IconRepeat />, value: `${s.stats.activeSubs}건`,  label: '활성 구독',    change: s.stats.trialSubs ? `체험 ${s.stats.trialSubs}건 포함` : '결제 중', changeDir: 'neutral' as const },
       ]
@@ -93,14 +93,14 @@ export default function DashboardPage() {
       )}
 
       {/* 현황 카드 — 항상 전체 너비 */}
-      <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-8">
+      <StatStrip>
         {stats.map((st) => (
-          <StatCard key={st.label} icon={st.icon} tone={st.tone} value={st.value} valueAccent={st.valueAccent} label={st.label} change={st.change} changeDir={st.changeDir} />
+          <StatCard key={st.label} icon={st.icon} tone={st.tone} value={st.value} valueTone={st.valueTone} label={st.label} change={st.change} changeDir={st.changeDir} />
         ))}
         {credCount !== null && (
           <StatCard icon={<IconLock />} tone="red" value={`${credCount}개`} label="저장된 계정" change="계정 보관함" changeDir="neutral" />
         )}
-      </div>
+      </StatStrip>
 
       {/* PC: 메인(좌) + 사이드바(우) 2-컬럼 / 모바일: 단일 컬럼 */}
       <div className="grid min-[1100px]:grid-cols-[1fr_300px] gap-6 items-start">

@@ -1,6 +1,6 @@
 /**
  * 알약 · 묶음 모양의 선택 버튼 줄. role="tablist" / "tab" / aria-selected 를 갖는다.
- * variant 로 모양(solid 채움 · soft 연한 채움 · joined 붙은 묶음), size 로 크기를 정한다.
+ * variant 로 모양(solid 거르기 알약 · soft 연한 칸 · joined 값 고르기 묶음), size 로 크기를 정한다.
  */
 import type { ReactNode } from 'react';
 
@@ -12,7 +12,7 @@ type Size = 'xs' | 'sm' | 'md';
 const LIST: Record<Variant, string> = {
   solid: 'flex gap-1.5',
   soft: 'flex gap-2',
-  joined: 'inline-flex rounded-md border border-border divide-x divide-border overflow-hidden text-[0.76rem] font-medium',
+  joined: 'inline-flex rounded-ui border border-border divide-x divide-border overflow-hidden text-[0.8125rem]',
 };
 
 const SIZE: Record<Size, string> = {
@@ -23,19 +23,19 @@ const SIZE: Record<Size, string> = {
 
 const ITEM: Record<Variant, { base: string; on: string; off: string }> = {
   solid: {
-    base: 'rounded-ui border cursor-pointer transition-all whitespace-nowrap shrink-0',
-    on: 'bg-accent border-accent text-white font-semibold',
-    off: 'bg-background border-border text-secondary hover:bg-surface hover:text-primary',
+    base: 'rounded-full border cursor-pointer transition-colors whitespace-nowrap shrink-0',
+    on: 'bg-accent-dim border-accent text-accent-dark',
+    off: 'bg-transparent border-border text-muted hover:text-primary',
   },
   soft: {
-    base: 'rounded-ui border cursor-pointer font-semibold transition-colors',
-    on: 'bg-accent-dim text-accent border-accent',
+    base: 'rounded-ui border cursor-pointer transition-colors',
+    on: 'bg-accent-dim text-accent-dark border-accent',
     off: 'bg-transparent text-secondary border-border hover:bg-surface hover:text-primary',
   },
   joined: {
-    base: 'px-2.5 py-1 transition-colors cursor-pointer',
-    on: 'bg-primary text-background',
-    off: 'bg-background text-muted hover:text-primary',
+    base: 'px-3 py-1.5 transition-colors cursor-pointer whitespace-nowrap',
+    on: 'ring-1 ring-inset ring-accent text-accent-dark',
+    off: 'text-primary hover:bg-surface',
   },
 };
 

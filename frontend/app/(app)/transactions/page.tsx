@@ -59,7 +59,7 @@ function TransactionsPageInner() {
         }
       />
 
-      <div className="border-b border-border mb-6">
+      <div className="mb-6">
         <Tabs
           label="가계부"
           size="md"

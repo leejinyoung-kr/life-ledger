@@ -3,7 +3,8 @@
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
-import StatCard from '@/components/StatCard';
+import StatCard, { StatStrip } from '@/components/StatCard';
+import BarChart from '@/components/BarChart';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
@@ -34,7 +35,6 @@ export default function NetworthPage() {
   const trend = trendQuery.data ?? [];
   const error = (summaryQuery.error ?? trendQuery.error)?.message ?? null;
 
-  const maxTrend = Math.max(1, ...trend.map((t) => t.netWorth));
   const change = summary?.changeAmount ?? null;
   const up = (change ?? 0) >= 0;
 
@@ -63,7 +63,7 @@ export default function NetworthPage() {
               <div className="text-[0.8rem] text-secondary font-semibold uppercase tracking-[0.06em] mb-2">총 순자산</div>
               <div className="[font-family:var(--font-display)] text-[2.6rem] font-extrabold tracking-[-0.04em] text-primary leading-none">{won(summary.netWorth)}</div>
               {change !== null && (
-                <div className={`mt-2.5 text-[0.875rem] font-semibold ${up ? 'text-accent' : 'text-danger'}`}>
+                <div className={`mt-2.5 text-[0.875rem] font-semibold ${up ? 'text-success' : 'text-danger'}`}>
                   {up ? '▲' : '▼'} {won(Math.abs(change))} ({Math.abs(summary.changeRate ?? 0)}%) 지난달 말 대비
                 </div>
               )}
@@ -90,11 +90,11 @@ export default function NetworthPage() {
           </div>
 
           {/* 자산 유형별 통계 */}
-          <div className="grid grid-cols-1 min-[1100px]:grid-cols-3 gap-4 mb-8">
+          <StatStrip>
             {cards.map((c) => (
               <StatCard key={c.type} icon={c.icon} tone={c.tone} value={c.value} label={c.label} change={c.change} changeDir="neutral" />
             ))}
-          </div>
+          </StatStrip>
         </>
       )}
 
@@ -103,18 +103,10 @@ export default function NetworthPage() {
         <Card>
           <CardHeader><CardTitle>순자산 추이 (6개월)</CardTitle></CardHeader>
           <CardBody>
-            <div className="bars">
-              {trend.map((t) => (
-                <div
-                  key={t.month}
-                  className={`bar${t.current ? ' current' : ''}`}
-                  style={{ height: `${Math.round((t.netWorth / maxTrend) * 100)}%` }}
-                >
-                  <span>{millionsLabel(t.netWorth)}</span>
-                  <small>{t.label}</small>
-                </div>
-              ))}
-            </div>
+            <BarChart
+              label="순자산 추이"
+              items={trend.map((t) => ({ key: t.month, label: t.label, value: t.netWorth, valueLabel: millionsLabel(t.netWorth), current: t.current }))}
+            />
           </CardBody>
         </Card>
       </div>

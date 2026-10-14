@@ -55,33 +55,31 @@ export default function ConfirmModal({
   // createPortal — body에 직접 마운트해 모달 위에도 정상 표시
   return createPortal(
     <div
-      className={`fixed inset-0 bg-[rgba(0,0,0,0.52)] backdrop-blur-[3px] ${layer === 'top' ? 'z-[400]' : 'z-[300]'} flex items-center justify-center p-6 [animation:fadeIn_0.2s_ease]`}
+      className={`fixed inset-0 bg-backdrop ${layer === 'top' ? 'z-[400]' : 'z-[300]'} flex items-center justify-center p-6 [animation:fadeIn_0.2s_ease]`}
       role="presentation"
     >
       <div
-        className="bg-background border border-border rounded-2xl shadow-overlay w-full max-w-[360px] px-6 pt-8 pb-6 flex flex-col items-center gap-[18px] text-center [animation:slideUp_0.25s_ease]"
+        className="bg-background border border-border rounded-panel shadow-overlay w-full max-w-[380px] flex flex-col [animation:slideUp_0.25s_ease]"
         role="alertdialog"
         aria-modal="true"
         aria-describedby="cm-msg"
       >
-        {/* 아이콘 */}
-        <div className={`w-[60px] h-[60px] rounded-full flex items-center justify-center shrink-0 ${variant === 'danger' ? 'bg-danger-dim text-danger' : 'bg-accent-dim text-accent'}`}>
-          {icon ?? (variant === 'danger'
-            ? <IconAlertCircle width={28} height={28} />
-            : <IconCheck width={28} height={28} />)}
+        {/* 제목(아이콘) + 메시지 — 제목이 없으면 위험 · 확인 기본 제목 */}
+        <div className="px-5 pt-[18px] pb-1.5 flex flex-col gap-1.5">
+          <p className="flex items-center gap-2 [font-family:var(--font-display)] text-[1.25rem] font-semibold leading-tight lining-nums text-primary">
+            <span className={`inline-flex shrink-0 [&_svg]:w-[18px] [&_svg]:h-[18px] ${variant === 'danger' ? 'text-danger' : 'text-accent'}`}>
+              {icon ?? (variant === 'danger' ? <IconAlertCircle /> : <IconCheck />)}
+            </span>
+            {title ?? (variant === 'danger' ? '계속할까요?' : '확인')}
+          </p>
+          <p id="cm-msg" className="text-[0.84rem] text-muted leading-[1.6] [word-break:keep-all]">{message}</p>
         </div>
+        {children && <div className="px-5 pt-2.5 flex flex-col gap-2">{children}</div>}
 
-        {/* 메시지 */}
-        <div>
-          {title && <p className="text-[1rem] font-bold text-primary mb-1">{title}</p>}
-          <p id="cm-msg" className="text-[0.9rem] text-secondary leading-[1.65] [word-break:keep-all]">{message}</p>
-        </div>
-        {children}
-
-        {/* 버튼 */}
-        <div className="flex gap-2 w-full">
-          <Button variant="ghost" className="flex-1" onClick={onCancel} disabled={loading}>{cancelLabel}</Button>
-          <Button variant={variant === 'danger' ? 'solid-danger' : 'primary'} className="flex-1" onClick={onConfirm} disabled={confirmDisabled} loading={loading} loadingLabel={loadingLabel}>
+        {/* 버튼 — 오른쪽 취소 · 확인 */}
+        <div className="px-5 py-4 flex justify-end gap-2">
+          <Button variant="ghost" onClick={onCancel} disabled={loading}>{cancelLabel}</Button>
+          <Button variant={variant === 'danger' ? 'solid-danger' : 'primary'} onClick={onConfirm} disabled={confirmDisabled} loading={loading} loadingLabel={loadingLabel}>
             {confirmLabel}
           </Button>
         </div>

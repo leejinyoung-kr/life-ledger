@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import StatCard from '@/components/StatCard';
+import StatCard, { StatStrip } from '@/components/StatCard';
+import BarChart from '@/components/BarChart';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
@@ -229,7 +230,6 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
     }
   }
 
-  const maxTrend = Math.max(1, ...trend.map((b) => b.total));
   const totalPages = Math.ceil(total / limit);
   const pagedRows = rows; // 서버가 이미 페이지 단위로 잘라서 보냄
   const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(pagedRows.map((r) => r.id));
@@ -239,12 +239,12 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
       <ErrorBanner message={error} />
 
       {summary && (
-        <div className="grid grid-cols-2 min-[1100px]:grid-cols-4 gap-4 mb-6">
-          <StatCard icon={<IconWon />} tone="green" value={won(summary.income)} label="수입" change="이번 달 합계" changeDir="up" />
-          <StatCard icon={<IconWon />} tone="red" value={won(summary.expense)} label="지출" change="이번 달 합계" changeDir="down" />
+        <StatStrip>
+          <StatCard icon={<IconWon />} tone="green" value={won(summary.income)} valueTone="in" label="수입" change="이번 달 합계" changeDir="up" />
+          <StatCard icon={<IconWon />} tone="red" value={won(summary.expense)} valueTone="out" label="지출" change="이번 달 합계" changeDir="down" />
           <StatCard icon={<IconBank />} tone="amber" value={won(summary.realSpend)} label="실소비" change={`자산이동 ${won(summary.transfer)} 제외`} changeDir="neutral" />
           <StatCard icon={<IconChart />} tone="blue" value={won(summary.balance)} label="잔액" change="수입 − 지출 − 자산이동" changeDir="neutral" />
-        </div>
+        </StatStrip>
       )}
 
       <p className="text-[0.78rem] text-muted mb-6 [&_strong]:text-blue">
@@ -275,17 +275,14 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
         <Card>
           <CardHeader><CardTitle>월별 지출 추이</CardTitle></CardHeader>
           <CardBody>
-            <div className="bars">
-              {trend.map((b) => {
+            <BarChart
+              label="월별 지출 추이"
+              tone="out"
+              items={trend.map((b) => {
                 const isCurrent = b.month === applied.to.slice(0, 7);
-                return (
-                  <div key={b.month} className={`bar${isCurrent ? ' current' : ''}`} style={{ height: `${Math.round((b.total / maxTrend) * 100)}%` }}>
-                    <span>{isCurrent ? won(b.total) : ''}</span>
-                    <small>{b.label}</small>
-                  </div>
-                );
+                return { key: b.month, label: b.label, value: b.total, valueLabel: isCurrent ? won(b.total) : undefined, current: isCurrent };
               })}
-            </div>
+            />
           </CardBody>
         </Card>
         <Card>

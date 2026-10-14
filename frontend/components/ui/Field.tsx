@@ -4,17 +4,18 @@
  * .input 은 공통 폼 프리미티브라 globals 클래스를 그대로 쓴다.
  */
 import type { ReactNode } from 'react';
+import { AlertCircle } from 'lucide-react';
 import Button from './Button';
 
 // 라벨 + 입력요소 (label 로 감싸 접근성 이름 연결). error 가 있으면 안의 .input 이 빨간 테두리가 된다
 export function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5" data-invalid={error ? '' : undefined}>
-      <span className="text-[0.8rem] font-medium text-secondary flex items-center gap-0.5">
-        {label}{required && <span className="text-danger font-bold text-[0.85rem] leading-none">*</span>}
+      <span className="text-[0.78rem] text-muted flex items-center gap-1">
+        {label}{required && <span className="text-danger">*</span>}
       </span>
       {children}
-      {error && <span className="text-[0.7rem] text-danger mt-0.5 block leading-[1.4]">{error}</span>}
+      {error && <span className="text-[0.75rem] text-danger flex items-center gap-1.5 leading-[1.4]"><AlertCircle size={13} className="shrink-0" aria-hidden />{error}</span>}
     </label>
   );
 }
