@@ -38,7 +38,7 @@ flowchart LR
 
 - 화면과 API 를 한 주소(`/` · `/api`)로 묶어 CORS · 쿠키 설정이 단순하다.
 - 데모는 같은 코드를 `DEMO_MODE` 로 따로 띄운 인스턴스다. DB · 파일 버킷 · 주소가 운영과 완전히 분리돼 있다 ([docker-compose.demo.yml](docker-compose.demo.yml)).
-- 암호화 · 인증 · 예약 작업 · 알림 같은 공통 부분은 여러 개인 프로젝트가 같이 쓰는 라이브러리 [young-core](https://github.com/leejinyoung-kr/young-core) 패키지(`@leejinyoung-kr/core-*`)로 뽑아 두었다.
+- 암호화 · 인증 · 예약 작업 · 알림 같은 공통 부분은 여러 개인 프로젝트가 같이 쓰는 라이브러리 young-core(`@leejinyoung-kr/core-*`)로 뽑아 두었다. 개인용이라 레포는 비공개이고, 설계와 핵심 코드는 [docs/core-libraries.md](docs/core-libraries.md) 에 요약했다.
 
 | 구분 | 기술 |
 | --- | --- |
@@ -53,7 +53,7 @@ flowchart LR
 - **NestJS + Prisma** — 모듈 · 가드 · 인터셉터 구조가 인증 · 감사 로그 · 레이트 리밋을 전역으로 거는 데 맞다. 스키마와 마이그레이션 이력을 한 파일로 관리한다.
 - **MariaDB 공용 인스턴스** — 홈서버의 다른 앱들과 MariaDB 하나를 나눠 쓰고, 앱마다 데이터베이스 · 전용 사용자를 둔다.
 - **Backblaze B2** — S3 호환 API 라 SDK 를 그대로 쓰고, 개인 용량에서는 저장 비용이 거의 들지 않는다.
-- **공통 라이브러리 분리** — 암호문 형식을 언어 무관 명세와 테스트 벡터로 고정해 두어, 다른 언어(Java) 프로젝트와도 같은 암호문을 읽고 쓴다.
+- **공통 라이브러리 분리** — 같은 기능을 프로젝트마다 다시 만들지 않으려고 패키지로 뺐다. 암호문 형식은 언어 무관 명세와 테스트 벡터로 고정해 두어, 다른 언어(Java) 프로젝트와도 같은 암호문을 읽고 쓴다.
 
 ## 해결한 문제
 
@@ -67,16 +67,22 @@ flowchart LR
 - **배포 전 점검**: 배포 워크플로가 새 컨테이너로 바꾸기 전에 전체 복호화를 먼저 돌려 보고, 실패하면 배포를 멈춘다.
 - **쓰기 가드**: Prisma 확장으로 암호문 컬럼에 평문이 들어가는 것을 막는다. 읽을 때 자동 복호화는 일부러 하지 않는다. 열람은 마스터 잠금 · 감사 로그 · 레이트 리밋을 거치는 별도 동작으로 남긴다.
 
+코드: 점검 · 재암호화 [backend/src/crypto/](backend/src/crypto/) · 배포 단계 [deploy-home-server.yml](.github/workflows/deploy-home-server.yml) · 암복호화 본체 요약 [core-libraries.md §1](docs/core-libraries.md#1-암호화--core-security)
+
 ### 2. 알림과 웹 푸시를 한 트랜잭션으로 — 트랜잭션 아웃박스
 
 알림 행을 저장한 뒤 푸시를 바로 보내면, 저장이 롤백돼도 푸시는 이미 나가 있고 푸시가 실패하면 그대로 사라진다.
 알림을 만드는 트랜잭션 안에서 푸시 메시지를 `outbox_message` 테이블에 같이 적재하고, 커밋된 것만 따로 발송한다.
 발송 선점은 compare-and-swap, 멱등 키로 중복 발송을 막고, 실패는 재시도한 뒤 마지막 실패만 시스템 로그에 남긴다.
 
+코드: 저장소 [outbox.store.ts](backend/src/push/outbox.store.ts) · 적재 [notification.service.ts](backend/src/notification/notification.service.ts) · 발송기 요약 [core-libraries.md §3](docs/core-libraries.md#3-트랜잭션-아웃박스--core-notification)
+
 ### 3. 예약 작업이 겹치거나 죽어도 다음 실행이 막히지 않게
 
 DB 백업 · 알림 · 시세 갱신 등 예약 작업 8개를 실행마다 `job_run` 에 기록한다. 같은 작업이 이미 돌고 있으면 건너뛰고(유니크 키), 정해진 시간(lease) 안에 끝나지 않거나 배포로 프로세스가 죽어 `running` 으로 남은 기록은 lease 가 지나면 실패로 마감해 다음 실행을 막지 않는다.
 사용자별로 도는 작업은 한 사용자가 실패해도 나머지를 다 처리한 뒤 실패로 마감한다.
+
+코드: 실행 기록 저장소 [job-run.store.ts](backend/src/maintenance/job-run.store.ts) · 작업들 [backend/src/maintenance/](backend/src/maintenance/) · 실행기 요약 [core-libraries.md §2](docs/core-libraries.md#2-예약-작업--core-jobs)
 
 ### 4. 홈서버 배포 10 ~ 29분 → 2 ~ 5분
 
@@ -91,12 +97,13 @@ DB 백업 · 알림 · 시세 갱신 등 예약 작업 8개를 실행마다 `job
 ## 문서
 
 - [docs/architecture.md](docs/architecture.md) — 모듈 · 예약 작업 · 화면 목록
+- [docs/core-libraries.md](docs/core-libraries.md) — 공통 라이브러리(비공개) 설계 · 핵심 코드 요약
 - [docs/api.md](docs/api.md) · [docs/erd.md](docs/erd.md) — API · DB
 - [docs/planning.md](docs/planning.md) — 화면 기획 (디자인 개편), 시안은 [docs/design/](docs/design/)
 
 ## 로컬 실행
 
-> 공통 패키지(`@leejinyoung-kr/core-*`)가 GitHub Packages 에 있어 설치 전에 `read:packages` 권한 토큰으로 인증해야 한다.
+> 공통 패키지(`@leejinyoung-kr/core-*`)가 비공개 GitHub Packages 에 있어, 패키지 읽기 권한이 있는 계정에서만 설치된다. 둘러보기는 위 데모 주소로.
 
 필요한 것: Node.js 26+ · pnpm(corepack) · Docker. DB 는 별도 infra 레포(비공개)의 공용 MariaDB(호스트 `13306`)에 붙는다. MariaDB 11 하나를 띄우고 `DATABASE_URL` 을 맞추면 된다.
 
