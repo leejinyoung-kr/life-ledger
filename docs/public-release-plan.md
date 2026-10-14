@@ -180,6 +180,7 @@ FROM net_worth_snapshot s ORDER BY s.user_id, s.month;
 | 2 | 공통 요소: 아이콘 lucide 로(`icons.tsx` 이름 유지) · 숫자 띠(`StatStrip` + `StatCard valueTone`) · 막대 차트(`BarChart`) · 버튼 크기 30 / 36 / 44 · Badge · Card(선만) · Toggle · Tabs(스크롤바) · Segmented · Field 오류 아이콘 · Modal(sm 380 · md 520 · lg 720, 휴대폰 아래 시트) · ConfirmModal · 오류 배너 · 페이지 번호 · 조회 줄 · 엑셀 줄 · 표 · 체크박스 | 완료 (2026-10-14). 더보기 메뉴 · 표 머리 정렬 · 관리 열 규칙은 화면 단계에서(표마다 칸 정렬이 달라서) |
 | 3 | 껍데기: 사이드바 232 · 메뉴 묶음 · TopBar 56(검색 상자 + 종 + 테마) · 휴대폰 아래 메뉴 5칸 + 더보기 시트 | 완료 (2026-10-14). 메뉴 정의는 `lib/nav.tsx` 하나(사이드바 · 전체 메뉴 시트 공용), 글자 로고 `Wordmark`, 상단바는 페이지 이름을 빼고 `topbarLabel` prop 제거 |
 | 4 | 화면 12개 + 로그인 (시안 · 점검 §3 · §4 · §9 대로) | 완료 (2026-10-14). 화면 묶음마다 커밋. 마무리로 Card · SettingGroup tone, Segmented fill, BarChart delta, StatCard warn, 잠금 띠 남은 시간 보강 |
+| 5 | 휴대폰 · 목록 다듬기: PageHeader 버튼은 늘 제목 줄 오른쪽, 목록 도구 줄 `ListToolbar`(총 n건 ··· 선택삭제 · 개수), 휴대폰 목록은 흰 카드 하나 + 전체선택 줄(`SelectAllBar`), 조회 줄은 `[구분][검색][조회]` 한 줄, 넘치는 가로 줄은 `DragScroll`(얇은 막대 + 마우스 끌기) | 완료 (2026-10-15) |
 
 시안과 다르게 둔 것 (화면 확인 때 판단):
 
