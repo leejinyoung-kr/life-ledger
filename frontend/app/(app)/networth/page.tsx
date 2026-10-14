@@ -12,8 +12,11 @@ import { qk } from '@/lib/queryKeys';
 import { won, manwon } from '@/lib/finance';
 import {
   ASSET_TYPE_COLOR, BY_TYPE_NAME, ASSET_TYPE_ORDER,
-  type NetWorthSummary, type TrendPoint, type ByTypeItem,
+  type AssetType, type NetWorthSummary, type TrendPoint, type ByTypeItem,
 } from '@/lib/networth';
+
+// 자산 구성 줄을 누르면 열 가계부 탭 — 현금성 자산은 수입/지출 내역에서 나온다
+const ASSET_TYPE_TAB: Record<AssetType, string> = { cash: 'ledger', savings: 'savings', investment: 'invest' };
 
 // 유형별 보조 글자 (건수 · 평균 금리)
 function typeSubText(b: ByTypeItem | undefined): string {
@@ -94,7 +97,7 @@ export default function NetworthPage() {
             {rows.map((r) => (
               <Link
                 key={r.type}
-                href="/transactions"
+                href={`/transactions?tab=${ASSET_TYPE_TAB[r.type]}`}
                 className="flex items-center gap-3 px-5 py-3 min-h-14 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-hover"
               >
                 <span className="w-2.5 h-2.5 shrink-0 rounded-full" style={{ background: ASSET_TYPE_COLOR[r.type] }} />

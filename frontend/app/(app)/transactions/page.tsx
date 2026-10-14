@@ -25,7 +25,9 @@ const ADD_LABELS: Record<TabId, string> = {
 
 function TransactionsPageInner() {
   const searchParams = useSearchParams();
-  const initialTab = (searchParams.get('tab') as TabId) ?? 'ledger';
+  // ?tab= 은 자산 종합의 자산 구성 줄에서 온다. 모르는 값이면 첫 탭
+  const tabParam = searchParams.get('tab');
+  const initialTab: TabId = tabParam === 'savings' || tabParam === 'invest' ? tabParam : 'ledger';
   const [tab, setTab] = useState<TabId>(initialTab);
   const [addTrigger, setAddTrigger] = useState<Record<TabId, number>>({
     ledger: 0, savings: 0, invest: 0,

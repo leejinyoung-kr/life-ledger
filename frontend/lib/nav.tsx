@@ -1,6 +1,6 @@
 /**
  * 메뉴 정의 — 사이드바와 휴대폰 '전체 메뉴' 시트가 같이 쓴다. 순서는 고정(사용자 편집 없음).
- * 묶음: 대시보드 / 돈 / 보관함 / 일정 / 관리 (시안 §2.3). 사이드바에서는 묶음이 1차 메뉴(눌러서 펼침), 항목이 2차 메뉴다.
+ * 묶음: 대시보드 / 재무 / 보관함 / 일정 / 관리 (시안 §2.3). 사이드바에서는 묶음이 1차 메뉴(눌러서 펼침), 항목이 2차 메뉴다.
  */
 import type { ReactNode } from 'react';
 import {
@@ -28,7 +28,7 @@ export interface NavSection {
 export const NAV: NavSection[] = [
   { label: '', items: [{ label: '대시보드', href: '/dashboard', icon: <IconGrid /> }] },
   {
-    label: '돈',
+    label: '재무',
     icon: <IconCoins />,
     items: [
       { label: '가계부', href: '/transactions', icon: <IconWon /> },
