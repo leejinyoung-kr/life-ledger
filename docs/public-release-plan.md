@@ -272,6 +272,8 @@ docker compose -p life-ledger-demo --env-file .env.demo -f docker-compose.yml -f
   - 홈서버 배포 16~30분 → 4분 (2026-10-13, Dockerfile `chown -R` 원인 분석)
 - ~~young-core 공개.~~ 비공개 유지 — `docs/core-libraries.md` 에 요약(2026-10-15).
 
+**공개 (2026-10-15)** — `leejinyoung-kr/life-ledger` public 전환. 바로 Actions fork PR 승인 정책을 `all_external_contributors` 로, 레포 About 에 소개 문구 · 데모 주소. 남은 것: 옛 빈 DB · 사용자 `docnexus` 삭제(운영이 새 이름으로 안정된 걸 본 뒤) → 이 문서를 `docs/archive/` 로.
+
 **검사 결과 (2026-10-15)** — gitleaks v8.21.2(docker, 전체 이력 `--all`):
 
 - life-ledger 커밋 389개에서 4건, young-core 8개에서 1건 — 모두 오탐(테스트 고정값 `test-…` · `wrong-legacy-secret-…`, `.env.example` 의 빈 `B2_KEY_ID=`).
