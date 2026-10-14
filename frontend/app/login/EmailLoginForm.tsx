@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setAccessToken } from '@/lib/api';
 import Button from '@/components/ui/Button';
+import ErrorBanner from '@/components/ErrorBanner';
 
 export default function EmailLoginForm({ apiBase }: { apiBase: string }) {
   const router = useRouter();
@@ -67,23 +68,17 @@ export default function EmailLoginForm({ apiBase }: { apiBase: string }) {
   // 접힌 상태 — 진입 링크
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full text-center text-[0.8rem] text-secondary hover:text-primary transition-colors py-1"
-      >
-        구글 로그인이 어렵나요? <span className="text-accent font-medium">이메일로 로그인</span>
-      </button>
+      <Button type="button" variant="link" size="inline" onClick={() => setOpen(true)} className="self-center text-[0.84rem]">
+        구글 로그인이 어렵나요? 이메일로 로그인
+      </Button>
     );
   }
 
   return (
-    <div className="mt-1">
-      {error && (
-        <p className="text-[0.76rem] text-danger mb-2 break-keep" role="alert">{error}</p>
-      )}
+    <div className="flex flex-col gap-2.5 pt-3.5 border-t border-border-subtle">
+      <ErrorBanner message={error} className="" />
       {info && step === 'code' && (
-        <p className="text-[0.76rem] text-secondary mb-2 break-keep">{info}</p>
+        <p className="text-[0.78rem] text-muted break-keep">{info}</p>
       )}
 
       {step === 'email' ? (
@@ -117,13 +112,13 @@ export default function EmailLoginForm({ apiBase }: { apiBase: string }) {
           <Button type="submit" size="lg" className="w-full" disabled={code.length !== 6} loading={busy} loadingLabel="확인 중...">
             로그인
           </Button>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => { setStep('email'); setCode(''); setError(null); setInfo(null); }}
-            className="text-[0.76rem] text-muted hover:text-secondary transition-colors"
           >
             이메일 다시 입력
-          </button>
+          </Button>
         </form>
       )}
     </div>

@@ -18,17 +18,7 @@ export default function CallbackHandler() {
   }, [router]);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        background: 'var(--bg-surface)',
-        color: 'var(--text-secondary)',
-        fontSize: '0.875rem',
-      }}
-    >
+    <div className="flex items-center justify-center min-h-screen bg-page text-muted text-[0.875rem]">
       로그인 중...
     </div>
   );
