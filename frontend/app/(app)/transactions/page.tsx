@@ -25,7 +25,7 @@ const ADD_LABELS: Record<TabId, string> = {
 
 function TransactionsPageInner() {
   const searchParams = useSearchParams();
-  // ?tab= 은 자산 종합의 자산 구성 줄에서 온다. 모르는 값이면 첫 탭
+  // ?tab= 은 자산 종합의 자산 구성 줄 · 탭 전환(changeTab)이 넣는다. 모르는 값이면 첫 탭
   const tabParam = searchParams.get('tab');
   const initialTab: TabId = tabParam === 'savings' || tabParam === 'invest' ? tabParam : 'ledger';
   const [tab, setTab] = useState<TabId>(initialTab);
@@ -43,6 +43,12 @@ function TransactionsPageInner() {
   const investCats = useMemo(() => (investCatQuery.data ?? []).filter((c) => c.isActive), [investCatQuery.data]);
   const bankCats = useMemo(() => (bankCatQuery.data ?? []).filter((c) => c.isActive), [bankCatQuery.data]);
   const payMethodCats = useMemo(() => (payMethodCatQuery.data ?? []).filter((c) => c.isActive), [payMethodCatQuery.data]);
+
+  // 탭을 바꾸면 주소의 ?tab= 도 맞춘다 — 새로고침 · 주소 공유 때 같은 탭이 열리게. 뒤로 가기가 탭마다 쌓이지 않게 replace
+  function changeTab(next: TabId) {
+    setTab(next);
+    window.history.replaceState(null, '', next === 'ledger' ? '/transactions' : `/transactions?tab=${next}`);
+  }
 
   function handleOpenAddModal() {
     setAddTrigger((prev) => ({ ...prev, [tab]: prev[tab] + 1 }));
@@ -67,7 +73,7 @@ function TransactionsPageInner() {
           label="가계부"
           size="md"
           value={tab}
-          onChange={setTab}
+          onChange={changeTab}
           items={[
             { value: 'ledger', label: '수입 / 지출', icon: <IconWon /> },
             { value: 'savings', label: '예적금', icon: <IconBank /> },
