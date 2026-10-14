@@ -58,7 +58,7 @@ export interface UpcomingEvent extends CalEvent {
 
 export const EV_TYPE_LABEL: Record<EvType, string> = {
   pay: '구독 결제',
-  due: '입금 / 만기',
+  due: '입금 · 만기',
   exp: '서류 만료',
   task: '할일',
   holiday: '공휴일',
@@ -67,20 +67,21 @@ export const EV_TYPE_LABEL: Record<EvType, string> = {
 // 입력 폼 유형 옵션 (코드 ↔ 라벨)
 export const EV_TYPE_OPTIONS: { value: EvType; label: string }[] = [
   { value: 'pay', label: '구독 결제' },
-  { value: 'due', label: '입금 / 만기' },
+  { value: 'due', label: '입금 · 만기' },
   { value: 'exp', label: '서류 만료' },
   { value: 'task', label: '할일' },
 ];
 
-// 범례 (그리드 색 점)
+// 범례 (그리드 표식)
 export const EV_LEGEND: { type: EvType; label: string }[] = EV_TYPE_OPTIONS.map((o) => ({
   type: o.value,
   label: o.label,
 }));
 
-// 남은 일수 → D-day 라벨 (오늘/내일/D-n)
+// 남은 일수 → D-day 라벨 (오늘/내일/D-n, 지난 날은 n일 전)
 export function ddLabel(days: number): string {
-  if (days <= 0) return '오늘';
+  if (days < 0) return `${-days}일 전`;
+  if (days === 0) return '오늘';
   if (days === 1) return '내일';
   return `D-${days}`;
 }
