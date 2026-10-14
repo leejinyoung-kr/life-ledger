@@ -183,7 +183,7 @@ export default function SettingsPage() {
               </div>
               {s.user.google && <Badge tone="success">Google 연결됨</Badge>}
             </div>
-            <SettingRow stack label="표시 이름" desc="대시보드 상단에 표시되는 이름">
+            <SettingRow stack label="표시 이름" desc="왼쪽 메뉴 아래 사용자 줄에 보이는 이름">
               <input type="text" className="input flex-1 min-w-0 sm:w-50 sm:flex-none" value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="표시 이름" />
               <Button onClick={() => patch({ displayName })}>저장</Button>
             </SettingRow>
@@ -204,14 +204,14 @@ export default function SettingsPage() {
                     <IconSend />테스트 발송
                   </Button>
                 )}
-                <Toggle on={pushOn} onToggle={handleTogglePush} disabled={!pushServerReady || pushBusy} />
+                <Toggle label="푸시 알림 (이 기기)" on={pushOn} onToggle={handleTogglePush} disabled={!pushServerReady || pushBusy} />
               </SettingRow>
             )}
             <SettingRow label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
-              <Toggle on={s.notifMaturity} onToggle={() => handleToggleNotif('notifMaturity')} />
+              <Toggle label="만기·결제 임박 알림" on={s.notifMaturity} onToggle={() => handleToggleNotif('notifMaturity')} />
             </SettingRow>
             <SettingRow label="파일 업로드 완료 알림" desc="파일 업로드 시 알림 표시">
-              <Toggle on={s.notifUpload} onToggle={() => handleToggleNotif('notifUpload')} />
+              <Toggle label="파일 업로드 완료 알림" on={s.notifUpload} onToggle={() => handleToggleNotif('notifUpload')} />
             </SettingRow>
           </SettingGroup>
         </div>

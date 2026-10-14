@@ -8,12 +8,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useApiQuery } from '@/lib/query';
+import { qk } from '@/lib/queryKeys';
+import type { Settings } from '@/lib/settings';
 import { NAV, type NavSection } from '@/lib/nav';
 import { useUnreadCount } from '@/lib/useUnreadCount';
 import { IconCaret, IconLogout } from './icons';
 import Wordmark from './Wordmark';
-
-interface MeUser { name: string; email: string }
 
 // 메뉴 줄 오른쪽 개수 배지 (안 읽은 알림)
 function CountBadge({ count }: { count: number }) {
@@ -38,8 +38,9 @@ export function NavLink({ href, icon, label, active, count, size = 'md', sub, on
 
 // 로그인 사용자 + 로그아웃 — 이니셜 · 이름 · 이메일 · 로그아웃 아이콘을 한 직사각형 버튼으로 묶어 어디를 눌러도 로그아웃
 export function UserLine({ onLogout, size = 'md' }: { onLogout?: () => void; size?: 'md' | 'lg' }) {
-  const me = useApiQuery<MeUser>(['auth', 'me'], '/auth/me').data ?? null;
-  const name = me?.name || '사용자';
+  // 설정의 표시 이름을 쓴다 — 설정 화면과 같은 캐시라 거기서 저장하면 바로 바뀐다 (없으면 계정 이름)
+  const s = useApiQuery<Settings>(qk.settings.detail(), '/settings').data ?? null;
+  const name = s?.displayName || s?.user.name || '사용자';
   return (
     <button
       type="button"
@@ -51,7 +52,7 @@ export function UserLine({ onLogout, size = 'md' }: { onLogout?: () => void; siz
       <span className="w-8 h-8 rounded-full bg-accent-dim text-accent-dark font-semibold grid place-items-center text-[0.8rem] shrink-0">{name.charAt(0)}</span>
       <span className="flex-1 min-w-0 flex flex-col leading-tight">
         <span className="text-[0.84rem] font-medium text-primary truncate">{name}</span>
-        <span className="text-[0.75rem] text-muted truncate">{me?.email ?? ''}</span>
+        <span className="text-[0.75rem] text-muted truncate">{s?.user.email ?? ''}</span>
       </span>
       <span className="flex items-center gap-1 shrink-0 text-muted text-[0.75rem] transition-colors group-hover:text-primary [&_svg]:w-[18px] [&_svg]:h-[18px]">
         {size === 'lg' && '로그아웃'}<IconLogout />

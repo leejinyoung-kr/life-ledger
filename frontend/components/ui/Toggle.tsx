@@ -1,8 +1,8 @@
 /**
- * 공통 토글 스위치 (Tailwind). controlled.
+ * 공통 토글 스위치 (Tailwind). controlled. label 은 화면 읽기용 이름이라 필수.
  * 켜짐은 초록 테두리 + 옅은 초록 바탕 + 초록 손잡이, 꺼짐은 선만. 올리면 테두리 · 바탕이 조금 진해진다.
  */
-export default function Toggle({ on, onToggle, label = '토글', disabled = false }: { on: boolean; onToggle: () => void; label?: string; disabled?: boolean }) {
+export default function Toggle({ on, onToggle, label, disabled = false }: { on: boolean; onToggle: () => void; label: string; disabled?: boolean }) {
   return (
     <button
       type="button"

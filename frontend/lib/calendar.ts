@@ -44,11 +44,11 @@ export const LUNAR_RECUR_FREQ_OPTIONS: { value: RecurFreq; label: string }[] = [
   { value: 'yearly', label: '매년' },
 ];
 
-// sourceType → 한글 라벨 + 원본 페이지 경로
+// sourceType → 한글 라벨 + 원본 페이지 경로 (예적금 · 투자는 가계부의 그 탭)
 export const VIRT_SOURCE_META: Record<VirtSource, { label: string; path: string }> = {
   subscription:      { label: '구독',     path: '/subscriptions' },
-  saving:            { label: '예적금',   path: '/transactions' },
-  investmentAccount: { label: '투자',     path: '/transactions' },
+  saving:            { label: '예적금',   path: '/transactions?tab=savings' },
+  investmentAccount: { label: '투자',     path: '/transactions?tab=invest' },
   holiday:           { label: '공휴일',   path: '' },
 };
 

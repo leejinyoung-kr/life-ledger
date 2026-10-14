@@ -390,7 +390,7 @@ interface EventFormState { open: boolean; date?: string; event?: CalEvent }
 function EventFormModal({ state, onClose, onSaved }: { state: EventFormState; onClose: () => void; onSaved: () => void }) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
-  const [type, setType] = useState<EvType>('pay');
+  const [type, setType] = useState<EvType>('task');
   const [memo, setMemo] = useState('');
   const [isLunar, setIsLunar] = useState(false);
   const [recurFreq, setRecurFreq] = useState<RecurFreq>('none');
@@ -411,7 +411,8 @@ function EventFormModal({ state, onClose, onSaved }: { state: EventFormState; on
       setTitle(ev.title); setDate(ev.startDate ?? ev.date); setType(ev.type); setMemo(ev.memo ?? '');
       setIsLunar(!!ev.isLunar); setRecurFreq(ev.recurFreq ?? 'none'); setRecurUntil(ev.recurUntil ?? '');
     } else {
-      setTitle(''); setType('pay'); setMemo(''); setIsLunar(false); setRecurFreq('none'); setRecurUntil('');
+      // 직접 넣는 일정은 대개 할일이다 — 구독 결제 · 만기는 각 화면에서 연결되어 들어온다
+      setTitle(''); setType('task'); setMemo(''); setIsLunar(false); setRecurFreq('none'); setRecurUntil('');
       setDate(state.date ?? localDate());
     }
   }, [state.open, state.date, state.event, reset]);

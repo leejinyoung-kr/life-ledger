@@ -123,7 +123,7 @@ export default function EditModal({ state, onClose, onSaved }: { state: EditStat
 
       <FormGroup title="추가 정보 (선택)">
         <Field label="2단계 인증 (TOTP)">
-          <input type="text" className="input input-mono" placeholder="otpauth:// 또는 시크릿 키" value={totp} onChange={(e) => setTotp(e.target.value)} />
+          <input type="text" className="input input-mono" placeholder={isEdit && editing?.has2fa ? '비워두면 기존 2FA 유지 · 바꿀 때만 입력' : 'otpauth:// 또는 시크릿 키'} value={totp} onChange={(e) => setTotp(e.target.value)} />
         </Field>
         <Field label="메모"><input type="text" className="input" placeholder="추가 정보" value={memo} onChange={(e) => setMemo(e.target.value)} /></Field>
       </FormGroup>

@@ -39,22 +39,26 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
     return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
   }, [cred]);
 
-  // 2FA 계정이면 현재 TOTP 코드를 받아 1초마다 카운트다운, 만료 시 재요청
+  // 2FA 계정이면 현재 TOTP 코드를 받아 1초마다 카운트다운하고, 남은 시간이 끝나는 때에 한 번만 다시 받는다.
+  // 재요청을 상태 갱신 함수 안에서 하면 응답이 올 때까지 1초마다 · 개발 모드에선 두 번씩 불려 열람 기록이 여러 줄 쌓인다
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 선택된 자격증명 변경 시 TOTP 코드 초기화
     setTotp(null);
     if (!cred?.has2fa) return;
     let active = true;
-    const fetchCode = () => api.get<TotpCode>(`/credentials/${cred.id}/totp`).then((t) => { if (active) setTotp(t); }).catch(() => {});
+    let next: ReturnType<typeof setTimeout> | undefined;
+    const fetchCode = () => api.get<TotpCode>(`/credentials/${cred.id}/totp`)
+      .then((t) => {
+        if (!active) return;
+        setTotp(t);
+        next = setTimeout(fetchCode, Math.max(1, t.remaining) * 1000);
+      })
+      .catch(() => {});
     fetchCode();
     const iv = setInterval(() => {
-      setTotp((prev) => {
-        if (!prev) return prev;
-        if (prev.remaining <= 1) { fetchCode(); return { ...prev, remaining: 0 }; }
-        return { ...prev, remaining: prev.remaining - 1 };
-      });
+      setTotp((prev) => (prev && prev.remaining > 0 ? { ...prev, remaining: prev.remaining - 1 } : prev));
     }, 1000);
-    return () => { active = false; clearInterval(iv); };
+    return () => { active = false; clearInterval(iv); if (next) clearTimeout(next); };
   }, [cred]);
 
   if (!cred) return null;

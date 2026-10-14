@@ -7,9 +7,11 @@ import { Prisma } from '@prisma/client';
 import { ym, type SeedFn } from './helpers';
 
 const DAY = 24 * 60 * 60 * 1000;
+// n일 전 h:m — 시드를 돌린 시각보다 뒤가 되면(예: 오후 3시에 '오늘 23시') 하루 앞당겨 미래 로그가 생기지 않게 한다
 const daysAgo = (n: number, h = 0, m = 0): Date => {
   const d = new Date(Date.now() - n * DAY);
   d.setHours(h, m, 0, 0);
+  if (d.getTime() > Date.now()) d.setTime(d.getTime() - DAY);
   return d;
 };
 

@@ -22,7 +22,10 @@ export const notify = {
   copied: () => toast.success('클립보드에 복사됐습니다.'),
   downloaded: (what = '파일') => toast.success(`${what}${eulreul(what)} 다운로드했습니다.`),
   excelDownloaded: () => toast.success('엑셀 파일을 다운로드했습니다.'),
-  excelUploaded: (count: number) => toast.success(`${count}건이 추가됐습니다.`),
+  // 0건이면 빈 양식을 올린 경우라 '0건 추가' 대신 채워 달라고 안내한다
+  excelUploaded: (count: number) => (count > 0
+    ? toast.success(`${count}건이 추가됐습니다.`)
+    : toast.warning('추가할 줄이 없습니다. 양식에 내역을 채워서 올려 주세요.')),
   excelPartial: (imported: number, failed: number, detail = '') =>
     toast.warning(`${imported}건 추가 · ${failed}건 실패${detail}`),
 

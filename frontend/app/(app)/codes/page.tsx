@@ -428,6 +428,7 @@ function SortableRow({
           <input
             type="text"
             className="input flex-1 min-w-0"
+            aria-label={`${item.code} 표시명`}
             value={editLabel}
             onChange={(e) => onEditLabelChange(e.target.value)}
             onKeyDown={(e) => {
