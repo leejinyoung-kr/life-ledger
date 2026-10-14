@@ -4,48 +4,40 @@
  * 계정 보관함 페이지.
  * 저장된 계정(아이디/비밀번호)을 표로 보고, 행 클릭 시 상세 모달에서 마스킹·복사한다.
  * 비밀번호/TOTP 원문은 reveal API 로만 받아오며, 데이터는 백엔드(/credentials)와 연동한다.
- * 스타일: Tailwind + 공통 컴포넌트(Modal/Button/Badge/Field). 표+모바일카드 패턴.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { notify, copyToClipboard } from '@/lib/toast';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
+import { clickable } from '@/lib/a11y';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
+import FilterPanel from '@/components/FilterPanel';
 import Pagination, { LimitSelect } from '@/components/Pagination';
-import Modal from '@/components/Modal';
+import ConfirmModal, { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
 import SearchInput from '@/components/ui/SearchInput';
 import IconButton from '@/components/ui/IconButton';
-import Badge from '@/components/ui/Badge';
-import { Field, ModalFooter } from '@/components/ui/Field';
-import { useConfirm } from '@/components/ConfirmModal';
-import { useFormErrors } from '@/lib/useFormErrors';
+import MoreMenu from '@/components/ui/MoreMenu';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
-import {
-  IconEdit, IconTrash, IconCopy, IconEye,
-} from '@/components/icons';
+import { IconEdit, IconTrash, IconCopy, IconAlertTriangle, IconChevronRight } from '@/components/icons';
 import { api, apiDownload } from '@/lib/api';
-import {
-  CRED_CATEGORIES, fmtCredDate, pwStrength, generatePassword,
-  type Credential, type CredentialSecret, type TotpCode, type BackupCodes,
-} from '@/lib/credential';
+import { CRED_CATEGORIES, fmtCredDate, type Credential } from '@/lib/credential';
 import type { Settings } from '@/lib/settings';
 import EmptyState from '@/components/EmptyState';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import ExcelToolbar from '@/components/ExcelToolbar';
-
-// 설정의 pwAutoHide(10s|30s|1m|none) → ms. none/누락 시 null(자동 숨김 안 함)
-function pwAutoHideMs(v: string | undefined): number | null {
-  if (v === '10s') return 10000;
-  if (v === '30s') return 30000;
-  if (v === '1m') return 60000;
-  return null;
-}
+import ServiceTile, { TwoFaMark } from './ServiceTile';
+import VaultStrip from './VaultStrip';
+import DetailModal from './DetailModal';
+import EditModal, { type EditState } from './EditModal';
 
 const FILTER_CATEGORIES = ['전체 카테고리', ...CRED_CATEGORIES];
+
+// 평문 엑셀을 받기 전에 그대로 입력해야 하는 낱말 (실수로 누르는 것 막기)
+const EXPORT_WORD = '내려받기';
 
 export default function CredentialsPage() {
   const [pendingQuery, setPendingQuery] = useState('');
@@ -53,12 +45,15 @@ export default function CredentialsPage() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('전체 카테고리');
   const [detail, setDetail] = useState<Credential | null>(null);
-  const [edit, setEdit] = useState<{ open: boolean; mode: 'add' | 'edit'; editing: Credential | null }>({ open: false, mode: 'add', editing: null });
+  const [edit, setEdit] = useState<EditState>({ open: false, mode: 'add', editing: null });
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportWord, setExportWord] = useState('');
+  const [exporting, setExporting] = useState(false);
   const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
 
-  // 검색 버튼(또는 Enter) 클릭 시에만 실제 필터에 반영
+  // 조회 버튼(또는 Enter) 클릭 시에만 실제 필터에 반영
   function handleSearch() {
     setQuery(pendingQuery);
     setCategory(pendingCategory);
@@ -136,11 +131,24 @@ export default function CredentialsPage() {
     catch { notify.error('양식 다운로드에 실패했습니다.'); }
   }
 
-  // 계정 데이터 엑셀 다운로드 — 비밀번호가 평문으로 포함되므로 확인
+  // 계정 데이터 엑셀 다운로드 준비 — 비밀번호가 평문으로 포함되므로 낱말을 입력받는 확인 창을 띄운다
+  function handleDownloadDataAsk() {
+    setExportWord('');
+    setExportOpen(true);
+  }
+
+  // 평문 엑셀 내려받기 실행
   async function handleDownloadData() {
-    if (!await confirm('비밀번호가 평문으로 포함된 엑셀을 다운로드할까요?', 'danger')) return;
-    try { await apiDownload('/credentials/export', '계정.xlsx'); notify.excelDownloaded(); }
-    catch { notify.error('다운로드에 실패했습니다.'); }
+    setExporting(true);
+    try {
+      await apiDownload('/credentials/export', '계정.xlsx');
+      notify.excelDownloaded();
+      setExportOpen(false);
+    } catch {
+      notify.error('다운로드에 실패했습니다.');
+    } finally {
+      setExporting(false);
+    }
   }
 
   // 엑셀 업로드 → 일괄 추가
@@ -158,112 +166,119 @@ export default function CredentialsPage() {
     }
   }
 
+  const openEdit = (c: Credential) => setEdit({ open: true, mode: 'edit', editing: c });
+
   return (
     <AppShell activePath="/credentials">
       <PageHeader
-
         title="계정 보관함"
-
-        description="행을 클릭하면 상세 정보를 확인할 수 있습니다. (AES-256-GCM 암호화)"
-
+        description="비밀번호와 2FA 시크릿은 AES-256-GCM 으로 암호화되어 있고, 열 때마다 기록됩니다. 행을 누르면 상세 정보를 봅니다."
         actions={<Button onClick={() => setEdit({ open: true, mode: 'add', editing: null })}>계정 추가</Button>}
-
       />
+
+      <VaultStrip />
 
       <ErrorBanner message={error} className="mb-4" />
 
-      {/* 보안 경고 배너 — 2FA 미설정 계정 수 */}
+      <FilterPanel className="mb-3">
+        <div className="flex gap-2 flex-col md:flex-row md:items-center">
+          <select className="input md:w-auto md:min-w-40" value={pendingCategory} onChange={(e) => setPendingCategory(e.target.value)} aria-label="카테고리 필터">
+            {FILTER_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+          </select>
+          <SearchInput label="계정 검색" className="flex-1 min-w-0" placeholder="서비스명, URL, 아이디 검색" value={pendingQuery} onChange={(e) => setPendingQuery(e.target.value)} onEnter={handleSearch} />
+          <Button onClick={handleSearch}>조회</Button>
+        </div>
+      </FilterPanel>
+
+      {/* 2FA 미설정 경고 상자 */}
       {no2fa > 0 && (
-        <div className="flex items-center gap-2.5 px-4 py-3 bg-warning-dim border border-warning/20 rounded-ui mb-5 text-[0.82rem]">
-          <span>🔐</span>
-          <span className="flex-1 text-secondary">2FA 미설정 계정이 <strong>{no2fa}건</strong> 있습니다. 2단계 인증 설정을 권장합니다.</span>
+        <div className="flex items-center gap-2.5 px-4 py-3 mb-3 bg-warning-dim border border-warning/20 rounded-ui text-[0.82rem] [&_svg]:w-4 [&_svg]:h-4">
+          <IconAlertTriangle className="text-warning shrink-0" />
+          <span className="flex-1 text-secondary">2FA 미설정 계정이 <strong>{no2fa}개</strong> 있습니다. 2단계 인증 설정을 권장합니다.</span>
         </div>
       )}
 
-      {/* 엑셀 툴바 — 양식/업로드/데이터 */}
-      <ExcelToolbar onDownloadTemplate={handleDownloadTemplate} onUpload={handleUploadExcel} onDownloadData={handleDownloadData} />
-
-      {/* 검색 필터 — PC: 카드 박스, 모바일: 스타일 없음 */}
-      <div className="md:bg-surface md:border md:border-border md:rounded-ui md:px-4 md:py-3 mb-2">
-        <div className="flex gap-2 flex-col md:flex-row">
-          <div className="md:w-40 md:shrink-0">
-            <select className="input" value={pendingCategory} onChange={(e) => setPendingCategory(e.target.value)} aria-label="카테고리 필터">
-              {FILTER_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-          <div className="flex gap-2 flex-1">
-            <SearchInput label="계정 검색" className="flex-1 min-w-0" placeholder="서비스명, URL, 아이디 검색..." value={pendingQuery} onChange={(e) => setPendingQuery(e.target.value)} onEnter={handleSearch} />
-            <Button onClick={handleSearch}>검색</Button>
-          </div>
+      {/* 총 개수 · 엑셀 */}
+      <div className="flex items-start justify-between gap-x-4 flex-wrap">
+        <div className="flex items-center gap-x-4 gap-y-1 flex-wrap mb-3 text-[0.8125rem]">
+          <span>총 <b className="font-semibold">{total}</b>개</span>
         </div>
-      </div>
-      {/* 총개 + 선택삭제 + 페이지 크기 */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-muted text-[0.82rem]">총 {total}개</span>
-        <div className="flex items-center gap-2">
-          <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
-          <LimitSelect limit={limit} onLimitChange={changeLimit} />
-        </div>
+        <ExcelToolbar onDownloadTemplate={handleDownloadTemplate} onUpload={handleUploadExcel} onDownloadData={handleDownloadDataAsk} />
       </div>
 
-      {/* 테이블 + 모바일 카드 */}
-      <div className="bg-background border border-border rounded-lg shadow-card overflow-hidden">
-        <div className="table-wrap max-md:hidden">
-          <table>
-            <thead>
-              <tr>
-                <th className="td-center" style={{ width: '40px' }}><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
-                <th>서비스</th><th>카테고리</th><th>아이디</th><th>수정일</th><th>관리</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.length === 0 && <TableEmptyRow colSpan={6} message="저장된 계정이 없습니다." />}
-              {paged.map((c) => (
-                <tr key={c.id} className="cursor-pointer" onClick={() => setDetail(c)}>
-                  <td className="td-center" onClick={(e) => e.stopPropagation()}><input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" /></td>
-                  <td className="td-center">
-                    <div className="font-medium text-[0.875rem] text-primary">{c.name}</div>
-                    <div className="text-[0.72rem] text-muted">{c.url ?? '—'}</div>
-                  </td>
-                  <td className="td-center"><Badge tone="neutral">{c.category}</Badge></td>
-                  <td className="td-mono td-center">{c.username}</td>
-                  <td className="td-muted td-center">{fmtCredDate(c.updatedAt)}</td>
-                  <td className="td-center" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-center gap-1">
-                      <IconButton label="수정" variant="bordered" onClick={() => setEdit({ open: true, mode: 'edit', editing: c })}><IconEdit width={14} height={14} /></IconButton>
-                      <IconButton label="삭제" variant="danger" onClick={() => handleRemove(c)}><IconTrash width={14} height={14} /></IconButton>
+      {/* 선택삭제 + 페이지 크기 */}
+      <div className="flex items-center justify-end gap-2 mb-2">
+        <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+        <LimitSelect limit={limit} onLimitChange={changeLimit} />
+      </div>
+
+      {/* 표 + 휴대폰 줄 */}
+      <div className="table-wrap max-md:hidden">
+        <table>
+          <thead>
+            <tr>
+              <th className="th-left w-10"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
+              <th className="th-left">서비스</th><th className="th-left">카테고리</th><th className="th-left">아이디</th><th className="th-left">2FA</th><th className="th-left">수정일</th>
+              <th className="th-right"><span className="sr-only">관리</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {paged.length === 0 && <TableEmptyRow colSpan={7} message="저장된 계정이 없습니다." />}
+            {paged.map((c) => (
+              <tr key={c.id} className="cursor-pointer" onClick={() => setDetail(c)}>
+                <td onClick={(e) => e.stopPropagation()}><input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" /></td>
+                <td>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <ServiceTile name={c.name} />
+                    <div className="flex flex-col leading-[1.3] min-w-0">
+                      <span className="text-primary truncate">{c.name}</span>
+                      <span className="text-[0.75rem] text-muted truncate">{c.url ?? '—'}</span>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* 모바일 카드 */}
-        <div className="hidden max-md:flex flex-col gap-2.5 p-3">
-          {paged.length === 0 && <EmptyState message="저장된 계정이 없습니다." />}
-          {paged.map((c) => (
-            <div className="border border-border rounded-lg p-3.5 bg-background cursor-pointer" key={c.id} onClick={() => setDetail(c)}>
-              <div className="flex items-center gap-2.5">
-                <input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} onClick={(e) => e.stopPropagation()} aria-label="선택" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-[0.95rem] text-primary truncate">{c.name}</div>
-                  <div className="text-[0.72rem] text-muted truncate">{c.url ?? '—'}</div>
-                </div>
-                <Badge tone="neutral">{c.category}</Badge>
-              </div>
-              <div className="mt-2 text-[0.78rem] text-secondary font-mono truncate">{c.username}</div>
-              <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
-                <Button variant="ghost" className="flex-1" onClick={() => setEdit({ open: true, mode: 'edit', editing: c })}>수정</Button>
-                <Button variant="danger" className="flex-1" onClick={() => handleRemove(c)}>삭제</Button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
+                  </div>
+                </td>
+                <td className="text-muted">{c.category}</td>
+                <td className="td-mono">{c.username}</td>
+                <td><TwoFaMark on={c.has2fa} /></td>
+                <td className="td-mono text-muted">{fmtCredDate(c.updatedAt)}</td>
+                <td onClick={(e) => e.stopPropagation()}>
+                  <div className="flex justify-end gap-1">
+                    <IconButton label="아이디 복사" onClick={() => copyToClipboard(c.username)}><IconCopy /></IconButton>
+                    <MoreMenu items={[
+                      { label: '수정', icon: <IconEdit />, onSelect: () => openEdit(c) },
+                      { label: '삭제', icon: <IconTrash />, danger: true, onSelect: () => handleRemove(c) },
+                    ]} />
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+
+      <div className="hidden max-md:flex flex-col">
+        {paged.length === 0 && <EmptyState message="저장된 계정이 없습니다." />}
+        {paged.map((c) => (
+          <div
+            key={c.id}
+            {...clickable(() => setDetail(c))}
+            className="flex items-center gap-3 min-h-14 py-1.5 border-b border-border-subtle cursor-pointer"
+            onClick={() => setDetail(c)}
+          >
+            <span className="p-2 -m-2" onClick={(e) => e.stopPropagation()}>
+              <input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" />
+            </span>
+            <ServiceTile name={c.name} />
+            <div className="flex-1 min-w-0 flex flex-col leading-[1.35]">
+              <span className="text-[0.9rem] text-primary truncate">{c.name}</span>
+              <span className="text-[0.75rem] text-muted truncate">{c.username}</span>
+            </div>
+            <TwoFaMark on={c.has2fa} />
+            <IconChevronRight width={16} height={16} className="text-muted shrink-0" />
+          </div>
+        ))}
+      </div>
+
+      <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
 
       {/* 상세 모달 */}
       <DetailModal
@@ -277,278 +292,29 @@ export default function CredentialsPage() {
       {/* 추가/수정 모달 */}
       <EditModal state={edit} onClose={() => setEdit((s) => ({ ...s, open: false }))} onSaved={() => { setEdit({ open: false, mode: 'add', editing: null }); reload(); }} />
       {confirmElement}
+
+      {/* 평문 엑셀 내려받기 확인 — 낱말을 입력해야 활성화 */}
+      <ConfirmModal
+        open={exportOpen}
+        title="평문 엑셀 내려받기"
+        message={`비밀번호가 평문으로 들어간 엑셀을 내려받습니다. 파일을 안전하게 다루세요. 계속하려면 "${EXPORT_WORD}"를 입력하세요.`}
+        confirmLabel="내려받기"
+        confirmDisabled={exportWord.trim() !== EXPORT_WORD}
+        loading={exporting}
+        loadingLabel="받는 중…"
+        onConfirm={handleDownloadData}
+        onCancel={() => setExportOpen(false)}
+      >
+        <input
+          className="input text-center"
+          autoFocus
+          value={exportWord}
+          placeholder={EXPORT_WORD}
+          aria-label="확인 낱말"
+          onChange={(e) => setExportWord(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && exportWord.trim() === EXPORT_WORD) handleDownloadData(); }}
+        />
+      </ConfirmModal>
     </AppShell>
-  );
-}
-
-// 계정 상세 모달 — 열릴 때 reveal 로 원문을 받아 비밀번호 마스킹/표시/복사 (표시 시 설정한 시간 후 자동 숨김)
-function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelete }: { cred: Credential | null; pwAutoHide?: string; onClose: () => void; onEdit: () => void; onDelete: () => void }) {
-  const [secret, setSecret] = useState<CredentialSecret | null>(null);
-  const [totp, setTotp] = useState<TotpCode | null>(null);
-  const [pwVisible, setPwVisible] = useState(false);
-  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
-  const [backupBusy, setBackupBusy] = useState(false);
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // 모달이 바뀌면 원문을 새로 받아오고 비밀번호는 다시 가린다
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 선택된 자격증명 변경 시 표시 상태 초기화
-    setPwVisible(false);
-    setSecret(null);
-    setBackupCodes(null);
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    if (!cred) return;
-    api.get<CredentialSecret>(`/credentials/${cred.id}/reveal`).then(setSecret).catch(() => {});
-    return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
-  }, [cred]);
-
-  // 2FA 계정이면 현재 TOTP 코드를 받아 1초마다 카운트다운, 만료 시 재요청
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 선택된 자격증명 변경 시 TOTP 코드 초기화
-    setTotp(null);
-    if (!cred?.has2fa) return;
-    let active = true;
-    const fetchCode = () => api.get<TotpCode>(`/credentials/${cred.id}/totp`).then((t) => { if (active) setTotp(t); }).catch(() => {});
-    fetchCode();
-    const iv = setInterval(() => {
-      setTotp((prev) => {
-        if (!prev) return prev;
-        if (prev.remaining <= 1) { fetchCode(); return { ...prev, remaining: 0 }; }
-        return { ...prev, remaining: prev.remaining - 1 };
-      });
-    }, 1000);
-    return () => { active = false; clearInterval(iv); };
-  }, [cred]);
-
-  if (!cred) return null;
-
-  // 비밀번호 표시/숨김 토글 — 표시 시 설정한 시간 뒤 자동 숨김 예약(설정이 '없음'이면 예약 안 함)
-  function handleTogglePw() {
-    setPwVisible((v) => {
-      const next = !v;
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-      const ms = pwAutoHideMs(pwAutoHide);
-      if (next && ms) hideTimer.current = setTimeout(() => setPwVisible(false), ms);
-      return next;
-    });
-  }
-
-  // 백업코드 생성(기존 덮어씀) — 평문은 이 응답에서만 노출
-  async function handleGenBackup() {
-    if (!cred || backupBusy) return;
-    setBackupBusy(true);
-    try {
-      const r = await api.post<{ codes: string[] }>(`/credentials/${cred.id}/backup-codes`, {});
-      setBackupCodes(r.codes);
-      notify.success('백업코드를 생성했습니다. 안전한 곳에 보관하세요.');
-    } catch (e) { notify.error((e as Error).message); }
-    finally { setBackupBusy(false); }
-  }
-
-  // 저장된 백업코드 조회
-  async function handleViewBackup() {
-    if (!cred || backupBusy) return;
-    setBackupBusy(true);
-    try {
-      const r = await api.get<BackupCodes>(`/credentials/${cred.id}/backup-codes`);
-      setBackupCodes(r.codes);
-    } catch (e) { notify.error((e as Error).message); }
-    finally { setBackupBusy(false); }
-  }
-
-  const pw = secret?.password ?? '';
-  const maskedPw = '•'.repeat(Math.min(pw.length || 8, 16));
-
-  return (
-    <Modal
-      open={!!cred}
-      onClose={onClose}
-      title={cred.name}
-      subtitle={cred.url ?? '—'}
-      headerAction={<Badge tone="neutral">{cred.category}</Badge>}
-      size="sm"
-      footer={
-        <>
-          <Button variant="danger" className="mr-auto" onClick={onDelete}>삭제</Button>
-          <Button variant="ghost" onClick={onClose}>닫기</Button>
-          <Button onClick={onEdit}>수정</Button>
-        </>
-      }
-    >
-      {/* 아이디 */}
-      <DetailField label="아이디">
-        <span className="flex-1 font-mono text-[0.875rem] text-primary truncate">{cred.username}</span>
-        <IconButton label="아이디 복사" onClick={() => copyToClipboard(cred.username)}><IconCopy width={14} height={14} /></IconButton>
-      </DetailField>
-
-      {/* 비밀번호 */}
-      <DetailField label="비밀번호">
-        <span className={`flex-1 font-mono text-[0.875rem] truncate ${pwVisible ? 'text-primary' : 'tracking-[0.25em] text-muted'}`}>{pwVisible ? pw : maskedPw}</span>
-        <IconButton label="비밀번호 표시/숨김" onClick={handleTogglePw} disabled={!secret}><IconEye width={14} height={14} /></IconButton>
-        <IconButton label="비밀번호 복사" onClick={() => copyToClipboard(pw)} disabled={!secret}><IconCopy width={14} height={14} /></IconButton>
-      </DetailField>
-
-      {/* 2FA — 실시간 6자리 코드 + 남은 시간 */}
-      {cred.has2fa && (
-        <DetailField label="2FA (TOTP)">
-          <span className="flex-1 font-mono text-[1.1rem] font-bold tracking-[0.2em] text-primary">{totp ? totp.code : '••••••'}</span>
-          {totp && <span className="text-[0.72rem] text-muted shrink-0">{totp.remaining}s</span>}
-          <IconButton label="TOTP 복사" onClick={() => totp && copyToClipboard(totp.code)} disabled={!totp}><IconCopy width={14} height={14} /></IconButton>
-        </DetailField>
-      )}
-
-      {/* 2FA 백업코드 — 분실 대비 일회용 코드 */}
-      {cred.has2fa && (
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-muted">2FA 백업코드</span>
-          {backupCodes ? (
-            <div className="bg-surface border border-border rounded-ui p-3">
-              <div className="grid grid-cols-2 gap-1.5">
-                {backupCodes.map((code) => (
-                  <span key={code} className="font-mono text-[0.8rem] text-primary tracking-[0.08em] text-center py-0.5">{code}</span>
-                ))}
-              </div>
-              <div className="flex gap-2 mt-3 pt-3 border-t border-border-subtle">
-                <Button variant="ghost" size="sm" className="flex-1" onClick={() => copyToClipboard(backupCodes.join('\n'))}>전체 복사</Button>
-                <Button variant="ghost" size="sm" className="flex-1" onClick={handleGenBackup} disabled={backupBusy}>재생성</Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 bg-surface border border-border rounded-ui px-3 py-2.5">
-              <span className="flex-1 text-[0.8rem] text-secondary">{cred.hasBackupCodes ? '백업코드가 저장되어 있습니다.' : '저장된 백업코드가 없습니다.'}</span>
-              {cred.hasBackupCodes
-                ? <Button variant="ghost" size="sm" onClick={handleViewBackup} disabled={backupBusy}>보기</Button>
-                : <Button variant="ghost" size="sm" onClick={handleGenBackup} disabled={backupBusy}>생성</Button>}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 메모 */}
-      <div className="flex flex-col gap-1.5">
-        <span className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-muted">메모</span>
-        <div className="text-[0.855rem] text-secondary px-3 py-2.5 bg-surface border border-border rounded-ui min-h-9.5 leading-normal">{cred.memo || '—'}</div>
-      </div>
-
-      <div className="text-[0.72rem] text-muted pt-1">수정일: {fmtCredDate(cred.updatedAt)}</div>
-    </Modal>
-  );
-}
-
-// 상세 필드 (라벨 + 값 행)
-function DetailField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[0.7rem] font-semibold uppercase tracking-[0.07em] text-muted">{label}</span>
-      <div className="flex items-center gap-2 bg-surface border border-border rounded-ui px-3 py-2.5">{children}</div>
-    </div>
-  );
-}
-
-// 계정 추가·수정 모달 (수정 시 비밀번호는 입력해야만 변경)
-function EditModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing: Credential | null }; onClose: () => void; onSaved: () => void }) {
-  const isEdit = state.mode === 'edit';
-  const editing = state.editing;
-  const [serviceName, setServiceName] = useState('');
-  const [url, setUrl] = useState('');
-  const [category, setCategory] = useState(CRED_CATEGORIES[0]);
-  const [username, setUsername] = useState('');
-  const [pw, setPw] = useState('');
-  // 입력 중 비밀번호는 기본으로 가린다 — 화면 공유 · 어깨너머 노출 방지
-  const [showPw, setShowPw] = useState(false);
-  const [totp, setTotp] = useState('');
-  const [memo, setMemo] = useState('');
-  const [saving, setSaving] = useState(false);
-  const { errors, setErrors, clearError, reset } = useFormErrors();
-
-  useEffect(() => {
-    if (!state.open) return;
-    reset();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
-    setServiceName(editing?.name ?? '');
-    setUrl(editing?.url ?? '');
-    setCategory(editing?.category ?? CRED_CATEGORIES[0]);
-    setUsername(editing?.username ?? '');
-    setPw('');
-    setShowPw(false);
-    setTotp('');
-    setMemo(editing?.memo ?? '');
-  }, [state.open, editing, reset]);
-
-  function validate() {
-    const err: Record<string, string> = {};
-    if (!serviceName.trim()) err.serviceName = '서비스명을 입력하세요.';
-    if (!username.trim()) err.username = '아이디를 입력하세요.';
-    if (!isEdit && !pw) err.pw = '비밀번호를 입력하세요.';
-    setErrors(err);
-    return !Object.keys(err).length;
-  }
-
-  async function handleSave() {
-    if (!validate()) return;
-    const body = {
-      name: serviceName.trim(),
-      url: url || undefined,
-      category,
-      username: username.trim(),
-      ...(pw ? { password: pw } : {}),
-      totp: totp || undefined,
-      memo: memo || undefined,
-    };
-    setSaving(true);
-    try {
-      if (isEdit && editing) await api.put(`/credentials/${editing.id}`, body);
-      else await api.post('/credentials', body);
-      notify.upserted(isEdit ? 'edit' : 'add', '계정');
-      onSaved();
-    } catch {
-      notify.saveFailed();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const strength = pwStrength(pw);
-  const STRENGTH_FILL = { danger: 'danger', warning: 'warning', green: '' } as const;
-  const STRENGTH_TEXT = { danger: 'text-danger', warning: 'text-warning', green: 'text-accent' } as const;
-
-  return (
-    <Modal
-      open={state.open}
-      onClose={onClose}
-      title={isEdit ? '계정 수정' : '계정 추가'}
-      footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} saveLabel="저장 (암호화)" />}
-    >
-      <Field label="서비스명" required error={errors.serviceName}>
-        <input type="text" className="input" placeholder="예: GitHub" value={serviceName} onChange={(e) => { setServiceName(e.target.value); clearError('serviceName'); }} />
-      </Field>
-      <Field label="URL"><input type="url" className="input" placeholder="https://github.com" value={url} onChange={(e) => setUrl(e.target.value)} /></Field>
-      <Field label="카테고리" required>
-        <select className="input" aria-label="카테고리" value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CRED_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-        </select>
-      </Field>
-      <Field label="아이디" required error={errors.username}>
-        <input type="text" className="input" placeholder="아이디 또는 이메일" value={username} onChange={(e) => { setUsername(e.target.value); clearError('username'); }} />
-      </Field>
-      <Field label={isEdit ? '비밀번호 (변경 시에만 입력)' : '비밀번호'} required={!isEdit} error={errors.pw}>
-        <div className="flex gap-2">
-          <input type={showPw ? 'text' : 'password'} autoComplete="new-password" className="input" placeholder={isEdit ? '비워두면 기존 비밀번호 유지' : '비밀번호'} value={pw} onChange={(e) => { setPw(e.target.value); clearError('pw'); }} />
-          <IconButton label={showPw ? '비밀번호 숨김' : '비밀번호 표시'} onClick={() => setShowPw((v) => !v)}><IconEye width={14} height={14} /></IconButton>
-          {/* 생성한 비밀번호는 사용자가 확인해야 하므로 바로 보여 준다 */}
-          <Button variant="ghost" className="whitespace-nowrap" onClick={() => { setPw(generatePassword()); setShowPw(true); clearError('pw'); }}>생성</Button>
-        </div>
-        {pw && (
-          <>
-            <div className="track"><div className={`fill ${STRENGTH_FILL[strength.tone]}`} style={{ width: `${strength.pct}%` }} /></div>
-            <span className={`text-[0.72rem] ${STRENGTH_TEXT[strength.tone]}`}>강도: {strength.label}</span>
-          </>
-        )}
-      </Field>
-      <Field label="2단계 인증 (TOTP, 선택)">
-        <input type="text" className="input input-mono" placeholder="otpauth:// 또는 시크릿 키" value={totp} onChange={(e) => setTotp(e.target.value)} />
-      </Field>
-      <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 정보" value={memo} onChange={(e) => setMemo(e.target.value)} /></Field>
-    </Modal>
   );
 }
