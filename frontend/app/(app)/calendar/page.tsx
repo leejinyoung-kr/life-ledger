@@ -285,7 +285,7 @@ export default function CalendarPage() {
                 {EV_LEGEND.map((l) => (
                   <span className="flex items-center gap-2" key={l.type}><TypeMark type={l.type} />{l.label}</span>
                 ))}
-                <span className="flex items-center gap-2 text-danger"><span className="text-[0.75rem] w-2.25 text-center">3</span>공휴일</span>
+                <span className="flex items-center gap-2"><TypeMark type="holiday" />공휴일</span>
                 <span className="flex items-center gap-2"><IconMoon width={12} height={12} />음력</span>
               </div>
               <p className="flex gap-2 items-start mt-3.5 pt-3 border-t border-border-subtle text-[0.75rem] text-muted break-keep">
