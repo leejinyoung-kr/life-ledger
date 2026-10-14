@@ -261,14 +261,21 @@ export default function LogsPage() {
             <div key={log.id} className={`flex flex-col border-b border-border-subtle last:border-b-0 ${log.level === 'error' ? 'bg-danger-dim shadow-[inset_2px_0_0_var(--color-danger)]' : ''}`}>
               <button
                 type="button"
-                className="flex items-center gap-2.5 flex-wrap px-4 py-2.5 max-md:min-h-11 text-left cursor-pointer transition-colors hover:bg-hover"
+                className="flex items-center gap-2.5 px-4 py-2.5 max-md:min-h-11 text-left cursor-pointer transition-colors hover:bg-hover"
                 aria-expanded={isOpen}
                 onClick={() => toggleExpand(log.id)}
               >
-                <Badge tone={LEVEL_TONE[log.level]}>{LEVEL_LABEL[log.level]}</Badge>
-                <span className="w-15 text-[0.78rem] text-muted">{CATEGORY_LABEL[log.category] ?? log.category}</span>
-                <span className="flex-1 basis-[220px] min-w-0 text-[0.84rem] text-primary">{log.message}</span>
-                <span className="text-[0.78rem] text-muted whitespace-nowrap">{full}</span>
+                {/* 휴대폰은 등급 · 구분을 위아래로 쌓아 메시지 칸을 넓힌다 */}
+                <span className="flex items-center gap-2.5 shrink-0 max-md:flex-col max-md:items-start max-md:gap-1">
+                  <Badge tone={LEVEL_TONE[log.level]}>{LEVEL_LABEL[log.level]}</Badge>
+                  <span className="w-15 text-[0.78rem] text-muted">{CATEGORY_LABEL[log.category] ?? log.category}</span>
+                </span>
+                <span className="flex-1 min-w-0 text-[0.84rem] text-primary break-keep">{log.message}</span>
+                {/* 날짜 · 시각 두 줄 — 한 줄이면 휴대폰에서 메시지 아래로 밀려 줄이 하나 더 생긴다 */}
+                <span className="flex flex-col items-end shrink-0 text-[0.78rem] leading-snug text-muted tabular-nums">
+                  <span>{full.slice(0, 10)}</span>
+                  <span>{full.slice(11)}</span>
+                </span>
                 <IconCaret className={`w-3.75 h-3.75 text-muted transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
 

@@ -1,13 +1,14 @@
 'use client';
 
 /**
- * 휴대폰 목록 카드 — 표(md 이상) 대신 쓴다. 머리(선택 · 아이콘 · 이름 · 오른쪽 값) / 이름표 · 값 줄 / 같은 폭 버튼 줄.
- * 목록은 MobileCardList 로 감싸 카드끼리 띄워 쌓는다.
+ * 휴대폰 목록 한 칸 — 표(md 이상) 대신 쓴다. 머리(선택 · 아이콘 · 이름 · 오른쪽 값) / 이름표 · 값 줄 / 같은 폭 버튼 줄.
+ * 목록은 MobileCardList 로 감싸 흰 카드 하나 안에 선으로 나눠 쌓는다 (알림 목록과 같은 모양).
  */
 import type { ReactNode } from 'react';
 import Button from './ui/Button';
 import EmptyState from './EmptyState';
 import SelectAllBar from './SelectAllBar';
+import { Card } from './ui/Card';
 
 export interface MobileField {
   label: string;
@@ -23,7 +24,7 @@ export interface MobileAction {
   danger?: boolean;
 }
 
-// 휴대폰 목록 카드 한 장
+// 휴대폰 목록 한 칸
 export default function MobileCard({ checked, onCheck, icon, title, sub, aside, fields, actions, children }: {
   /** 선택 체크박스 — onCheck 를 주면 보인다 */
   checked?: boolean;
@@ -44,7 +45,7 @@ export default function MobileCard({ checked, onCheck, icon, title, sub, aside, 
   const shown = (fields ?? []).filter((f) => f.value !== null && f.value !== undefined && f.value !== '');
   const actionRows = !actions || actions.length === 0 ? [] : Array.isArray(actions[0]) ? (actions as MobileAction[][]) : [actions as MobileAction[]];
   return (
-    <div className="bg-background border border-border rounded-panel shadow-sm p-4 flex flex-col gap-3">
+    <div className="p-4 flex flex-col gap-3 border-b border-border-subtle last:border-b-0">
       <div className="flex items-start gap-3">
         {onCheck && (
           <label className="-m-2.5 p-2.5 shrink-0 flex">
@@ -84,7 +85,7 @@ export default function MobileCard({ checked, onCheck, icon, title, sub, aside, 
   );
 }
 
-// 휴대폰 목록 — 카드를 띄워 쌓는다. md 이상에서는 숨긴다(표가 대신). 비었으면 안내 글
+// 휴대폰 목록 — 흰 카드 하나에 전체선택 줄 · 칸을 쌓는다. md 이상에서는 숨긴다(표가 대신). 비었으면 안내 글
 export function MobileCardList({ empty, selection, className = '', children }: {
   empty?: string | false;
   /** 카드에 체크박스가 있을 때 맨 위 전체선택 줄 — 표 머리의 전체선택이 휴대폰에선 숨으므로 */
@@ -93,10 +94,12 @@ export function MobileCardList({ empty, selection, className = '', children }: {
   children: ReactNode;
 }) {
   return (
-    <div className={`md:hidden flex flex-col gap-3 py-3 ${className}`.trim()}>
-      {empty && <EmptyState message={empty} />}
-      {!empty && selection && <SelectAllBar boxed checked={selection.all} onToggle={selection.onToggleAll} count={selection.count} />}
-      {children}
+    <div className={`md:hidden py-3 ${className}`.trim()}>
+      <Card clip className="flex flex-col">
+        {!empty && selection && <SelectAllBar checked={selection.all} onToggle={selection.onToggleAll} count={selection.count} />}
+        {empty && <EmptyState message={empty} />}
+        {children}
+      </Card>
     </div>
   );
 }
