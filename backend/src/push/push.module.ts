@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
 import { NotificationModule } from '@leejinyoung-kr/core-notification';
 import { env } from '../config/env';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -13,6 +14,8 @@ import { PrismaOutboxStore } from './outbox.store';
 @Module({
   imports: [
     PrismaModule,
+    // 구독 등록 때 refresh 쿠키로 로그인 세션을 찾는다 — 시크릿은 검증할 때 직접 넘긴다(AuthModule 을 가져오면 순환 참조)
+    JwtModule.register({}),
     NotificationModule.forRoot({
       webPush: {
         publicKey: env.VAPID_PUBLIC_KEY,

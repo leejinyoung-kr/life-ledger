@@ -355,7 +355,7 @@ export class AuthService {
     return { access: this.signAccess(user), refresh: this.signRefresh(user.id, newJti, ttl), refreshTtlMs: ms };
   }
 
-  // 로그아웃 — refresh 토큰의 jti 를 화이트리스트에서 폐기 (서명 검증 실패해도 디코드되면 폐기 시도)
+  // 로그아웃 — refresh 토큰의 jti 를 화이트리스트에서 폐기하고 이 기기의 푸시 구독을 지운다 (서명 검증 실패해도 디코드되면 폐기 시도)
   async logout(refreshToken?: string): Promise<void> {
     if (!refreshToken) return;
     let payload: { jti?: string } | null;
@@ -365,10 +365,18 @@ export class AuthService {
       payload = this.jwtService.decode(refreshToken) as { jti?: string } | null;
     }
     if (!payload?.jti) return;
+    const stored = await this.prisma.refreshToken.findUnique({
+      where: { jti: payload.jti },
+      select: { session_id: true },
+    });
     await this.prisma.refreshToken.updateMany({
       where: { jti: payload.jti, revoked_at: null },
       data: { revoked_at: new Date() },
     });
+    // 로그아웃한 기기로 알림이 계속 가지 않게 — 다시 로그인하면 앱이 구독을 다시 등록한다
+    if (stored?.session_id) {
+      await this.prisma.pushSubscription.deleteMany({ where: { session_id: stored.session_id } });
+    }
   }
 
   // 계정 영구 삭제 — 전 도메인 데이터 + 사용자 제거 (되돌릴 수 없음)

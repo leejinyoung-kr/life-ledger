@@ -32,7 +32,7 @@ export class SecurityService {
     return rows.map((s) => this.sessionDto(s));
   }
 
-  // 단일 세션 로그아웃/차단 (현재 기기는 불가) — 연결된 refresh 토큰도 함께 폐기
+  // 단일 세션 로그아웃/차단 (현재 기기는 불가) — 연결된 refresh 토큰 폐기 + 그 기기의 푸시 구독 삭제
   async revokeSession(userId: number, id: number, client?: ClientInfo) {
     const session = await this.prisma.loginSession.findFirst({
       where: { id, user_id: userId, revoked_at: null },
@@ -45,12 +45,13 @@ export class SecurityService {
         where: { session_id: id, revoked_at: null },
         data: { revoked_at: new Date() },
       }),
+      this.prisma.pushSubscription.deleteMany({ where: { session_id: id } }),
     ]);
     await this.accessLog.log(userId, 'session_revoke', { type: 'security', id, name: session.device }, client);
     return { id };
   }
 
-  // 현재 기기 제외 전체 로그아웃 — 연결된 refresh 토큰도 함께 폐기
+  // 현재 기기 제외 전체 로그아웃 — 연결된 refresh 토큰 폐기 + 그 기기들의 푸시 구독 삭제
   async revokeAll(userId: number, client?: ClientInfo) {
     const sessions = await this.prisma.loginSession.findMany({
       where: { user_id: userId, revoked_at: null, is_current: false },
@@ -63,6 +64,7 @@ export class SecurityService {
         where: { session_id: { in: ids }, revoked_at: null },
         data: { revoked_at: new Date() },
       }),
+      this.prisma.pushSubscription.deleteMany({ where: { session_id: { in: ids } } }),
     ]);
     await this.accessLog.log(userId, 'session_revoke', { type: 'security', id: userId, name: `all:${ids.length}` }, client);
     return { revoked: ids.length };

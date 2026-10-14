@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import {
   OutboxService,
   WebPushService,
 } from '@leejinyoung-kr/core-notification';
+import { env } from '../config/env';
+import { JWT_ALGORITHMS } from '../auth/jwt.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { WebPushChannel } from './webpush.channel';
 import type { PushMessage } from './webpush.channel';
@@ -17,19 +20,41 @@ export class PushService {
     private webPush: WebPushService,
     private outbox: OutboxService,
     private channel: WebPushChannel,
+    private jwt: JwtService,
   ) {}
+
+  // refresh 쿠키로 이 기기의 로그인 세션을 찾는다 — 검증 실패 · 폐기 · 남의 토큰이면 null
+  private async sessionOf(userId: number, refreshToken?: string): Promise<number | null> {
+    if (!refreshToken) return null;
+    let jti: string | undefined;
+    try {
+      jti = this.jwt.verify<{ jti?: string }>(refreshToken, {
+        secret: env.JWT_REFRESH_SECRET,
+        algorithms: JWT_ALGORITHMS,
+      }).jti;
+    } catch {
+      return null;
+    }
+    if (!jti) return null;
+    const stored = await this.prisma.refreshToken.findUnique({
+      where: { jti },
+      select: { user_id: true, session_id: true, revoked_at: true },
+    });
+    return stored && stored.user_id === userId && !stored.revoked_at ? stored.session_id : null;
+  }
 
   // 프론트가 구독 전 공개키를 받아간다. 비활성이면 enabled=false 만 반환
   getPublicKey(): { enabled: boolean; publicKey: string | null } {
     return this.webPush.getPublicKey();
   }
 
-  // 구독 저장 — endpoint 기준 upsert (같은 기기 재구독 시 키 갱신). 비활성이어도 저장은 허용.
+  // 구독 저장 — endpoint 기준 upsert (같은 기기 재구독 시 키 · 로그인 세션 갱신). 비활성이어도 저장은 허용.
   // 다른 사용자가 등록한 endpoint 는 덮어쓰지 않는다(남의 기기 알림 가로채기 방지)
   async subscribe(
     userId: number,
     sub: { endpoint: string; keys: { p256dh: string; auth: string } },
     userAgent?: string,
+    refreshToken?: string,
   ): Promise<{ ok: boolean }> {
     if (!sub?.endpoint || !sub.keys?.p256dh || !sub.keys?.auth || !PUSH_ENDPOINT_PATTERN.test(sub.endpoint)) {
       return { ok: false };
@@ -39,6 +64,7 @@ export class PushService {
       select: { user_id: true },
     });
     if (existing && existing.user_id !== userId) return { ok: false };
+    const sessionId = await this.sessionOf(userId, refreshToken);
     await this.prisma.pushSubscription.upsert({
       where: { endpoint: sub.endpoint },
       create: {
@@ -47,11 +73,13 @@ export class PushService {
         p256dh: sub.keys.p256dh,
         auth: sub.keys.auth,
         user_agent: userAgent?.slice(0, 300) ?? null,
+        session_id: sessionId,
       },
       update: {
         user_id: userId,
         p256dh: sub.keys.p256dh,
         auth: sub.keys.auth,
+        session_id: sessionId,
       },
     });
     return { ok: true };

@@ -6,7 +6,7 @@
  * 셸만 lg 에서 나눈다 — 768 에 사이드바(232)를 두면 본문이 460px 남짓이라 표가 화면 밖으로 밀린다. 화면 안 요소는 그대로 md 기준.
  * 모든 인증 페이지(대시보드 등)가 이 셸로 콘텐츠를 감싼다.
  */
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
@@ -15,6 +15,7 @@ import MoreSheet from './MoreSheet';
 import VaultUnlockModal from './VaultUnlockModal';
 import DemoBand from './DemoBand';
 import { api } from '@/lib/api';
+import { resetPushSync, syncPushSubscription } from '@/lib/push';
 
 interface AppShellProps {
   /** 현재 경로 (메뉴 선택 표시) */
@@ -32,9 +33,13 @@ export default function AppShell({ activePath, onLogout, bare, children }: AppSh
   const [moreOpen, setMoreOpen] = useState(false);
   const closeMore = useCallback(() => setMoreOpen(false), []);
 
+  // 로그인한 화면에 들어오면 이 기기의 푸시 구독을 지금 세션에 다시 묶는다
+  useEffect(() => { void syncPushSubscription(); }, []);
+
   // 기본 로그아웃 — 서버 refresh 쿠키 + 로컬 토큰 제거 후 로그인 페이지로. onLogout 지정 시 그것을 우선
   const handleLogout = onLogout ?? (async () => {
     await api.logout();
+    resetPushSync();
     router.push('/login');
   });
 

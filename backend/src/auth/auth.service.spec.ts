@@ -37,6 +37,7 @@ describe('AuthService', () => {
       },
       userSettings: { findUnique: jest.fn().mockResolvedValue(null) },
       notification: { create: jest.fn() },
+      pushSubscription: { deleteMany: jest.fn() },
       $transaction: jest.fn((ops: any[]) => Promise.all(ops)),
     };
     notification = { createWithPush: jest.fn().mockResolvedValue({ id: 1 }) };
@@ -108,6 +109,20 @@ describe('AuthService', () => {
       expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { jti: 'abc', revoked_at: null } }),
       );
+    });
+
+    it('세션에 묶인 토큰이면 그 기기의 푸시 구독도 지운다', async () => {
+      jwt.verify.mockReturnValue({ jti: 'abc' });
+      prisma.refreshToken.findUnique.mockResolvedValue({ session_id: 9 });
+      await svc().logout('x');
+      expect(prisma.pushSubscription.deleteMany).toHaveBeenCalledWith({ where: { session_id: 9 } });
+    });
+
+    it('세션 없는 토큰이면 푸시 구독은 건드리지 않는다', async () => {
+      jwt.verify.mockReturnValue({ jti: 'abc' });
+      prisma.refreshToken.findUnique.mockResolvedValue({ session_id: null });
+      await svc().logout('x');
+      expect(prisma.pushSubscription.deleteMany).not.toHaveBeenCalled();
     });
 
     it('검증 실패해도 decode 결과의 jti 로 폐기 시도', async () => {

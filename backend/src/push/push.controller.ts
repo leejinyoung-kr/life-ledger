@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Headers, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { CurrentUser } from '@leejinyoung-kr/core-auth';
 import type { AuthUser } from '../auth/auth-user';
+import { REFRESH_COOKIE } from '../auth/auth.controller';
 import { SubscribeDto, UnsubscribeDto } from './dto/subscribe.dto';
 import { PushService } from './push.service';
 
@@ -18,15 +20,16 @@ export class PushController {
     return this.service.getPublicKey();
   }
 
-  // 브라우저 푸시 구독 등록
+  // 브라우저 푸시 구독 등록 — refresh 쿠키로 이 기기의 로그인 세션에 묶는다
   @ApiOperation({ summary: '웹 푸시 구독 등록' })
   @Post('subscribe')
   subscribe(
     @CurrentUser() user: AuthUser,
     @Body() dto: SubscribeDto,
+    @Req() req: Request,
     @Headers('user-agent') ua?: string,
   ) {
-    return this.service.subscribe(user.id, dto, ua);
+    return this.service.subscribe(user.id, dto, ua, req.cookies?.[REFRESH_COOKIE] as string | undefined);
   }
 
   // 브라우저 푸시 구독 해제

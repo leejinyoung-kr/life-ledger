@@ -73,6 +73,27 @@ export async function enablePush(): Promise<boolean> {
   return true;
 }
 
+// 페이지를 새로 불러온 뒤 한 번만 — 화면을 옮길 때마다 AppShell 이 다시 마운트돼도 다시 보내지 않는다
+let synced = false;
+
+// 이 브라우저가 이미 구독 중이면 서버에 다시 등록 — 구독을 지금 로그인 세션에 묶는다
+// (로그아웃하면 서버가 그 세션의 구독을 지우므로, 다시 로그인했을 때 이걸로 되살아난다). 실패는 조용히 넘긴다
+export async function syncPushSubscription(): Promise<void> {
+  if (synced || !isPushSupported() || Notification.permission !== 'granted') return;
+  synced = true;
+  try {
+    const sub = await getCurrentSubscription();
+    if (sub) await api.post('/push/subscribe', sub.toJSON());
+  } catch {
+    synced = false;
+  }
+}
+
+// 로그아웃 뒤 같은 페이지에서 다시 로그인하면(이메일 로그인은 새로고침이 없다) 다시 등록하게 표시를 지운다
+export function resetPushSync(): void {
+  synced = false;
+}
+
 // 테스트 푸시 발송 — 본인 모든 기기로 더미 알림. 서버활성/구독수 반환(진단용)
 export async function sendTestPush(): Promise<{ enabled: boolean; subscriptions: number }> {
   return api.post<{ enabled: boolean; subscriptions: number }>('/push/test', {});
