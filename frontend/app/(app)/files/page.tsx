@@ -377,7 +377,7 @@ export default function FilesPage() {
   }
 
   return (
-    <AppShell activePath="/files" topbarLabel="파일 보관함">
+    <AppShell activePath="/files">
       <PageHeader
         title="파일 보관함"
         description="폴더를 생성하여 파일을 정리하거나, 바로 업로드할 수 있습니다."

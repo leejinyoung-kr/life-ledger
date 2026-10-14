@@ -1,41 +1,31 @@
 'use client';
 
 /**
- * 모바일 전용 하단 내비게이션 (Tailwind). ≤768 에서만 노출.
+ * 휴대폰 아래 메뉴 5칸 — 홈 · 가계부 · 계정 · 일정 · 더보기(전체 메뉴 시트). ≤768 에서만 보인다.
+ * 고른 칸은 위쪽 금빛 선 + 진한 금빛 글자.
  */
-import { IconGrid, IconWon, IconFolder, IconMenu } from './icons';
+import { BOTTOM_NAV } from '@/lib/nav';
 
-interface BottomNavProps {
-  activePath?: string;
-  onMore?: () => void;
-}
+const ITEM = 'flex flex-col items-center justify-center gap-[3px] text-[0.6875rem] transition-colors [&_svg]:w-5 [&_svg]:h-5';
 
-const NAV_ITEMS = [
-  { label: '홈', href: '/dashboard', Icon: IconGrid },
-  { label: '가계부', href: '/transactions', Icon: IconWon },
-  { label: '보관함', href: '/files', Icon: IconFolder },
-];
-
-const ITEM =
-  'flex-1 flex flex-col items-center justify-center gap-[3px] text-[0.63rem] font-medium transition-colors bg-transparent border-none cursor-pointer no-underline rounded-ui px-1 py-1.5 [&>svg]:shrink-0';
-
-export default function BottomNav({ activePath, onMore }: BottomNavProps) {
+export default function BottomNav({ activePath, moreOpen, onMore }: { activePath?: string; moreOpen?: boolean; onMore?: () => void }) {
   return (
-    <nav className="hidden max-md:flex fixed bottom-0 left-0 right-0 h-[60px] bg-background border-t border-border z-[100] px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
-      {NAV_ITEMS.map(({ label, href, Icon }) => (
-        <a
-          key={href}
-          href={href}
-          className={`${ITEM} ${activePath === href ? 'text-accent' : 'text-muted hover:text-secondary'}`}
-        >
-          <Icon width={22} height={22} />
-          <span>{label}</span>
-        </a>
-      ))}
-      <button type="button" className={`${ITEM} text-muted hover:text-secondary`} onClick={onMore} aria-label="더보기">
-        <IconMenu width={22} height={22} />
-        <span>더보기</span>
-      </button>
+    <nav className="hidden max-md:grid grid-cols-5 fixed bottom-0 left-0 right-0 h-[calc(60px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] bg-page border-t border-border z-[100]" aria-label="아래 메뉴">
+      {BOTTOM_NAV.map((it) => {
+        if (it.href === null) {
+          return (
+            <button key="more" type="button" onClick={onMore} aria-expanded={moreOpen} className={`${ITEM} ${moreOpen ? 'text-accent-dark shadow-[inset_0_2px_0_var(--accent)]' : 'text-muted'}`}>
+              {it.icon}{it.label}
+            </button>
+          );
+        }
+        const on = activePath === it.href && !moreOpen;
+        return (
+          <a key={it.href} href={it.href} aria-current={on ? 'page' : undefined} className={`${ITEM} ${on ? 'text-accent-dark shadow-[inset_0_2px_0_var(--accent)]' : 'text-muted'}`}>
+            {it.icon}{it.label}
+          </a>
+        );
+      })}
     </nav>
   );
 }

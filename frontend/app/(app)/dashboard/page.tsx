@@ -81,7 +81,7 @@ export default function DashboardPage() {
     : [];
 
   return (
-    <AppShell activePath="/dashboard" topbarLabel="대시보드">
+    <AppShell activePath="/dashboard">
       <PageHeader title="대시보드" description="이번 달 지출 현황과 최근 활동을 확인하세요." />
 
       {(summaryQuery.isError || forecastQuery.isError || deadlinesQuery.isError) && (

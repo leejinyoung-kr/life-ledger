@@ -50,7 +50,7 @@ export default function NetworthPage() {
   });
 
   return (
-    <AppShell activePath="/networth" topbarLabel="자산 종합">
+    <AppShell activePath="/networth">
       <PageHeader title="자산 종합" description="현금·예적금·투자를 합산해 순자산을 추적합니다." />
 
       <ErrorBanner message={error} />

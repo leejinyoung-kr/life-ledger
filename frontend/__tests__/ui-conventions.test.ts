@@ -54,7 +54,7 @@ function openTags(text: string, tag: string) {
 
 describe('공통 UI 규칙', () => {
   it('페이지 제목 h1 은 PageHeader 안에만 있다', () => {
-    expect(offenders(/text-\[1\.55rem\] font-bold tracking-\[-0\.03em\]/, ['components/PageHeader.tsx'])).toEqual([]);
+    expect(offenders(/text-\[1\.875rem\] max-md:text-\[1\.625rem\] font-semibold/, ['components/PageHeader.tsx'])).toEqual([]);
     expect(offenders(/<h1\b/, ['components/PageHeader.tsx', 'app/login/page.tsx'])).toEqual([]);
   });
 
@@ -77,7 +77,8 @@ describe('공통 UI 규칙', () => {
   });
 
   it('검색 입력은 SearchInput 으로 쓴다 (돋보기 아이콘을 직접 얹지 않는다)', () => {
-    expect(offenders(/<IconSearch className="absolute/, ['components/ui/SearchInput.tsx'])).toEqual([]);
+    // GlobalSearch 팔레트 입력은 테두리 없는 큰 칸이라 SearchInput 과 다른 요소다
+    expect(offenders(/<IconSearch className="absolute/, ['components/ui/SearchInput.tsx', 'components/GlobalSearch.tsx'])).toEqual([]);
   });
 
   it('테이블 빈 행은 TableEmptyRow 로 쓴다', () => {

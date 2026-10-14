@@ -127,7 +127,7 @@ export default function NotificationsPage() {
   const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(paged.map((n) => n.id));
 
   return (
-    <AppShell activePath="/notifications" topbarLabel="알림">
+    <AppShell activePath="/notifications">
       <PageHeader
         title="알림"
         description={unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개가 있습니다.` : '모든 알림을 읽었습니다.'}

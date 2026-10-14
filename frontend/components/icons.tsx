@@ -7,7 +7,8 @@ import {
   LayoutDashboard, ChartLine, Wallet, Repeat, ChartPie, Folder, Lock, FileText, SquareCheck, Calendar, Box,
   Settings, Shield, Bell, Trash, Menu, Search, Plus, ChevronDown, LogOut, Upload, Pencil, X, Download, File,
   Landmark, TrendingUp, FolderPlus, Image, ChartColumn, Clock, GripVertical, Check, Star, Copy, Eye,
-  CircleAlert, TriangleAlert, House, CreditCard,
+  CircleAlert, TriangleAlert, House, CreditCard, KeyRound, ScrollText, Tag, Sun, Moon, Ellipsis, ExternalLink,
+  Inbox, ArrowUp, ArrowDown, ArrowLeftRight, RefreshCw, ChevronRight, Info, Minus, LockOpen, List, LayoutGrid,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -60,13 +61,21 @@ export const IconAlertCircle = wrap(CircleAlert);
 export const IconAlertTriangle = wrap(TriangleAlert);
 export const IconHome = wrap(House);
 export const IconCreditCard = wrap(CreditCard);
-
-// LifeLedger 로고(2x2 사각형) — 사이드바 개편 때 글자 로고로 바뀐다
-export const IconLogo = (p: IconProps) => (
-  <svg viewBox="0 0 22 22" fill="none" {...p}>
-    <rect x="2" y="2" width="8" height="8" rx="2" fill="var(--accent)" />
-    <rect x="12" y="2" width="8" height="8" rx="2" fill="var(--accent)" opacity=".3" />
-    <rect x="2" y="12" width="8" height="8" rx="2" fill="var(--accent)" opacity=".3" />
-    <rect x="12" y="12" width="8" height="8" rx="2" fill="var(--accent)" opacity=".12" />
-  </svg>
-);
+export const IconKey = wrap(KeyRound);
+export const IconLogs = wrap(ScrollText);
+export const IconTag = wrap(Tag);
+export const IconSun = wrap(Sun);
+export const IconMoon = wrap(Moon);
+export const IconMore = wrap(Ellipsis);
+export const IconExternal = wrap(ExternalLink);
+export const IconInbox = wrap(Inbox);
+export const IconArrowUp = wrap(ArrowUp);
+export const IconArrowDown = wrap(ArrowDown);
+export const IconTransfer = wrap(ArrowLeftRight);
+export const IconRefresh = wrap(RefreshCw);
+export const IconChevronRight = wrap(ChevronRight);
+export const IconInfo = wrap(Info);
+export const IconMinus = wrap(Minus);
+export const IconUnlock = wrap(LockOpen);
+export const IconList = wrap(List);
+export const IconTiles = wrap(LayoutGrid);

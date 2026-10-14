@@ -159,7 +159,7 @@ export default function CredentialsPage() {
   }
 
   return (
-    <AppShell activePath="/credentials" topbarLabel="계정 보관함">
+    <AppShell activePath="/credentials">
       <PageHeader
 
         title="계정 보관함"

@@ -251,7 +251,7 @@ export default function CodesPage() {
   const childrenOf = (code: string) => items.filter((i) => i.parentCode === code);
 
   return (
-    <AppShell activePath="/codes" topbarLabel="코드 관리">
+    <AppShell activePath="/codes">
       <PageHeader title="코드 관리" description="선택박스 항목을 도메인별로 관리합니다. 드래그로 순서를 변경할 수 있습니다." />
 
       {/* 도메인 탭 — 모바일은 가로 스크롤, 데스크탑은 줄바꿈 */}

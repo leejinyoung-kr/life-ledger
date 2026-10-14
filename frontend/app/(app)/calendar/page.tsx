@@ -166,7 +166,7 @@ export default function CalendarPage() {
   const cells = view ? buildMonth(view.year, view.month) : [];
 
   return (
-    <AppShell activePath="/calendar" topbarLabel="캘린더">
+    <AppShell activePath="/calendar">
       <PageHeader
         title="캘린더"
         description="구독 결제·예적금 만기·서류 만료·할일·메모를 한 곳에서 봅니다."

@@ -44,7 +44,7 @@ export default function StatCard({ icon, tone, value, valueTone, label, change, 
         <span className={`inline-flex shrink-0 [&_svg]:w-3.25 [&_svg]:h-3.25 ${ICON_TONE[tone]}`}>{icon}</span>
         {label}
       </span>
-      <span className={`text-[1.35rem] min-[480px]:text-[1.625rem] tracking-[-0.01em] leading-tight truncate ${valueTone ? VALUE_TONE[valueTone] : 'text-primary'}`}>
+      <span className={`text-[1.15rem] min-[480px]:text-[1.625rem] tracking-[-0.01em] leading-tight truncate ${valueTone ? VALUE_TONE[valueTone] : 'text-primary'}`}>
         {value}
       </span>
       {change && <span className={`text-[0.75rem] ${CHANGE_TONE[changeDir]}`}>{change}</span>}

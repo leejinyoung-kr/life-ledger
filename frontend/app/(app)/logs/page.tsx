@@ -178,7 +178,7 @@ export default function LogsPage() {
   }
 
   return (
-    <AppShell activePath="/logs" topbarLabel="시스템 로그">
+    <AppShell activePath="/logs">
       <PageHeader
         title="시스템 로그"
         icon={<IconClock className="w-6 h-6 text-accent shrink-0" />}

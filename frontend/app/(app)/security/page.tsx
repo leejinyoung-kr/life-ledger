@@ -50,7 +50,7 @@ export default function SecurityPage() {
   }
 
   return (
-    <AppShell activePath="/security" topbarLabel="보안">
+    <AppShell activePath="/security">
       <PageHeader title="보안" description="로그인 기기와 보관함 잠금을 관리하고 최근 열람 기록을 확인합니다." />
 
       <ErrorBanner message={error} />

@@ -152,7 +152,7 @@ export default function SettingsPage() {
 
   if (!s) {
     return (
-      <AppShell activePath="/settings" topbarLabel="설정">
+      <AppShell activePath="/settings">
         <PageHeader title="설정" />
         {settingsQuery.isError
           ? <QueryError message={error ?? undefined} onRetry={settingsQuery.refetch} />
@@ -174,7 +174,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <AppShell activePath="/settings" topbarLabel="설정">
+    <AppShell activePath="/settings">
       <PageHeader title="설정" description="계정, 알림, 데이터 백업 등을 관리합니다." />
 
       <ErrorBanner message={error} />

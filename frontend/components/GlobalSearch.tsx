@@ -2,17 +2,17 @@
 
 /**
  * 공통 통합 검색.
- * 헤더엔 돋보기 아이콘 트리거만 두고, 클릭/⌘K(Ctrl+K) 시 중앙 모달 팔레트를 띄운다.
+ * 데스크톱은 "가계부 · 계정 검색" 상자, 휴대폰은 돋보기 버튼을 두고, 누르거나 ⌘K(Ctrl+K) 시 중앙 팔레트를 띄운다.
  * 가계부/계정을 한 입력창에서 검색하고 타입별로 그룹핑해 보여준다. Esc 로 닫기.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useApiQuery } from '@/lib/query';
+import { IconClock, IconKey, IconSearch, IconWon } from './icons';
 
 type SearchType = 'tx' | 'cred';
 
 interface SearchEntry {
   type: SearchType;
-  icon: string;
   title: string;
   sub: string;
   href: string;
@@ -54,7 +54,7 @@ function highlight(text: string, q: string) {
   const parts = text.split(re);
   return parts.map((part, i) =>
     i % 2 === 1 ? (
-      <mark key={i} className="bg-accent-dim text-accent rounded-[2px]">
+      <mark key={i} className="bg-accent-dim text-accent-dark rounded-[2px]">
         {part}
       </mark>
     ) : (
@@ -130,23 +130,31 @@ export default function GlobalSearch() {
 
   return (
     <>
-      {/* 헤더 트리거 — 돋보기 아이콘 버튼 (⌘K 힌트 포함) */}
+      {/* 데스크톱 트리거 — 검색 상자 모양 (⌘K 힌트 포함) */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 h-9 px-2.5 rounded-ui text-secondary transition-colors shrink-0 hover:bg-surface hover:text-primary"
+        className="flex max-md:hidden items-center gap-2.5 w-[340px] max-w-[50%] h-9 px-2.5 border border-border rounded-ui text-muted text-[0.84rem] text-left transition-colors hover:border-muted"
         aria-label="통합 검색 열기"
       >
         <IconSearchBtn />
-        <span className="text-[0.68rem] text-muted bg-elevated border border-border rounded-[4px] px-[5px] py-px [font-family:var(--font-mono)] max-[900px]:hidden">
-          {isMac ? '⌘K' : 'Ctrl K'}
-        </span>
+        <span className="flex-1">가계부 · 계정 검색</span>
+        <span className="text-[0.6875rem] border border-border rounded-[2px] px-1.5">{isMac ? '⌘K' : 'Ctrl K'}</span>
+      </button>
+      {/* 휴대폰 트리거 — 44px 돋보기 버튼 */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="hidden max-md:flex w-11 h-11 items-center justify-center rounded-ui text-muted shrink-0 hover:bg-surface [&_svg]:w-5 [&_svg]:h-5"
+        aria-label="통합 검색 열기"
+      >
+        <IconSearchBtn />
       </button>
 
       {/* 검색 팔레트 모달 */}
       {open && (
         <div
-          className="fixed inset-0 z-[300] bg-[rgba(15,25,35,0.45)] backdrop-blur-[4px] flex items-start justify-center pt-[12vh] px-4 animate-[fadeIn_0.2s_ease]"
+          className="fixed inset-0 z-[300] bg-backdrop flex items-start justify-center pt-[12vh] px-4 animate-[fadeIn_0.2s_ease]"
           onMouseDown={() => setOpen(false)}
         >
           <div
@@ -160,7 +168,7 @@ export default function GlobalSearch() {
                 ref={inputRef}
                 className="w-full h-12 bg-transparent pl-9 pr-3 text-[0.9rem] text-primary outline-none placeholder:text-muted"
                 type="text"
-                placeholder="가계부·계정 통합 검색..."
+                placeholder="가계부 · 계정 검색"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitRecent(); } }}
@@ -176,7 +184,7 @@ export default function GlobalSearch() {
                     key={f.key}
                     type="button"
                     onClick={() => setFilter(f.key)}
-                    className={`px-2.5 py-1 rounded-full text-[0.72rem] font-medium whitespace-nowrap transition-colors ${filter === f.key ? 'bg-accent text-white' : 'bg-elevated text-secondary hover:text-primary'}`}
+                    className={`px-2.5 py-1 rounded-full text-[0.72rem] font-medium whitespace-nowrap transition-colors ${filter === f.key ? 'border border-accent bg-accent-dim text-accent-dark' : 'border border-border text-muted hover:text-primary'}`}
                   >
                     {f.label}
                   </button>
@@ -201,7 +209,7 @@ export default function GlobalSearch() {
                         onClick={() => { setQuery(q); inputRef.current?.focus(); }}
                         className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-left border-b border-border-subtle last:border-b-0 hover:bg-surface"
                       >
-                        <span className="text-muted text-[0.85rem]">🕘</span>
+                        <IconClock width={15} height={15} className="text-muted shrink-0" />
                         <span className="text-[0.84rem] text-secondary">{q}</span>
                       </button>
                     ))}
@@ -227,40 +235,32 @@ export default function GlobalSearch() {
   );
 }
 
-const ICON_BG: Record<SearchType, string> = {
-  tx: 'bg-accent-dim', cred: 'bg-blue-dim',
+// 결과 종류 → 아이콘 (서버가 주는 이모지 대신)
+const TYPE_ICON: Record<SearchType, React.ReactNode> = {
+  tx: <IconWon width={16} height={16} />,
+  cred: <IconKey width={16} height={16} />,
 };
 
 // 검색 결과 한 줄
 function SearchResultRow({ item, query, onPick }: { item: SearchEntry; query: string; onPick?: () => void }) {
   return (
     <a className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer transition-colors border-b border-border-subtle last:border-b-0 hover:bg-surface no-underline" href={item.href} onClick={onPick}>
-      <div className={`w-8 h-8 rounded-ui flex items-center justify-center text-[0.9rem] shrink-0 ${ICON_BG[item.type]}`}>{item.icon}</div>
+      <div className="w-8 h-8 rounded-ui border border-border flex items-center justify-center text-muted shrink-0">{TYPE_ICON[item.type]}</div>
       <div>
-        <div className="text-[0.855rem] font-medium text-primary">{query ? highlight(item.title, query) : item.title}</div>
+        <div className="text-[0.855rem] text-primary">{query ? highlight(item.title, query) : item.title}</div>
         <div className="text-[0.75rem] text-muted mt-px">{item.sub}</div>
       </div>
-      <span className="ml-auto text-[0.68rem] px-[7px] py-px rounded-full bg-elevated text-muted shrink-0">{TYPE_LABEL[item.type]}</span>
+      <span className="ml-auto text-[0.72rem] text-muted shrink-0">{TYPE_LABEL[item.type]}</span>
     </a>
   );
 }
 
 // 팔레트 입력창 좌측 돋보기 아이콘 (absolute)
 function IconSearchInline() {
-  return (
-    <svg className="absolute left-3 w-[16px] h-[16px] text-muted pointer-events-none shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.35-4.35" />
-    </svg>
-  );
+  return <IconSearch className="absolute left-3 w-4 h-4 text-muted pointer-events-none shrink-0" />;
 }
 
-// 헤더 트리거 버튼용 돋보기 아이콘 (inline)
+// 트리거 버튼용 돋보기 아이콘
 function IconSearchBtn() {
-  return (
-    <svg className="w-[18px] h-[18px] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.35-4.35" />
-    </svg>
-  );
+  return <IconSearch className="w-[18px] h-[18px] shrink-0" />;
 }

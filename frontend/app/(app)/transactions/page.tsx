@@ -47,7 +47,7 @@ function TransactionsPageInner() {
   }
 
   return (
-    <AppShell activePath="/transactions" topbarLabel="가계부">
+    <AppShell activePath="/transactions">
       <PageHeader
         title="가계부"
         description="수입/지출, 예적금, 투자를 한 곳에서 관리하세요."

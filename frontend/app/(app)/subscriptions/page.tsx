@@ -100,7 +100,7 @@ export default function SubscriptionsPage() {
   const paged = subs; // 서버가 이미 검색+페이지 단위로 잘라서 보냄
 
   return (
-    <AppShell activePath="/subscriptions" topbarLabel="구독 관리">
+    <AppShell activePath="/subscriptions">
       <PageHeader
         title="구독 관리"
         description="정기 결제를 한눈에 — 결제 예정일·연 환산을 추적합니다."
