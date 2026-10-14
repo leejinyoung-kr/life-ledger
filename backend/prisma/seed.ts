@@ -32,11 +32,12 @@ const prisma = new PrismaClient({ adapter });
 
 // 등록된 도메인 시드 (실행 순서 = 배열 순서). 도메인 늘면 여기에 추가.
 // 예적금/투자는 수입/지출보다 먼저 — 자산이동(transfer) 거래가 대상(target) 행을 이름으로 조회해 연동하므로 순서 필요
+// 순자산 스냅샷은 수입/지출 뒤 — 월말 현금을 시드된 거래로 계산한다
 const SEEDS: { name: string; run: SeedFn }[] = [
   { name: '예적금', run: seedSavings },
   { name: '투자', run: seedInvestments },
-  { name: '순자산 스냅샷', run: seedNetWorthSnapshots },
   { name: '수입/지출', run: seedTransactions },
+  { name: '순자산 스냅샷', run: seedNetWorthSnapshots },
   { name: '즐겨찾기', run: seedFavorites },
   { name: '구독', run: seedSubscriptions },
   { name: '캘린더', run: seedCalendarEvents },

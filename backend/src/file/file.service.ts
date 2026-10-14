@@ -3,6 +3,7 @@ import { StorageService } from '@leejinyoung-kr/core-storage';
 import { createHash, randomUUID } from 'crypto';
 import { Readable, type Writable } from 'stream';
 import type { ReadableStream as WebReadableStream } from 'stream/web';
+import { env } from '../config/env';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { CreateFolderDto, MoveFileDto } from './dto/file.dto';
@@ -231,11 +232,22 @@ export class FileService {
     return crumbs;
   }
 
+  // 저장 한도(STORAGE_QUOTA_MB) 검사 — 지금 쓰는 용량 + 올릴 크기가 한도를 넘으면 거부. 한도가 없으면 통과
+  private async assertQuota(userId: number, incoming: number): Promise<void> {
+    if (!env.STORAGE_QUOTA_MB) return;
+    const limit = env.STORAGE_QUOTA_MB * 1024 * 1024;
+    const used = await this.prisma.storageFile.aggregate({ where: { user_id: userId, deleted_at: null }, _sum: { size: true } });
+    if (Number(used._sum.size ?? 0) + incoming > limit) {
+      throw new BadRequestException(`저장 한도(${env.STORAGE_QUOTA_MB}MB)를 넘습니다. 파일을 지우고 다시 올리세요.`);
+    }
+  }
+
   // 파일 업로드 — MIME 화이트리스트 검증 + SHA-256 중복 제거 후 B2 저장·DB 기록.
   // 동일 내용(해시 일치) 파일이 이미 있으면 B2 재업로드 없이 기존 오브젝트를 가리키는 메타만 추가한다.
   // relDir 가 있으면(폴더째 업로드) folderId 아래에 그 경로의 폴더를 찾거나 만들어 그 안에 넣는다
   async upload(userId: number, file: Express.Multer.File, folderId?: number, relDir?: string) {
     this.storage.validateUpload(file);
+    await this.assertQuota(userId, file.size);
 
     if (folderId) await this.findOwnedFolder(userId, folderId);
     if (relDir) folderId = await this.ensureFolderPath(userId, folderId ?? null, relDir);

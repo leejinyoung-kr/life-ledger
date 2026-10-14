@@ -87,6 +87,12 @@ export const envShape = {
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
+
+  // 데모 인스턴스 — 'true' 일 때만 데모 로그인 라우트를 등록하고 다른 방문자를 방해하는 동작을 막는다.
+  // z.coerce.boolean 은 'false' 도 true 로 바꾸므로 문자열로 받아 정확히 'true' 만 켠다
+  DEMO_MODE: z.enum(['true', 'false']).default('false').transform((v) => v === 'true'),
+  // 사용자별 파일 저장 한도(MB) — 미설정이면 한도 없음
+  STORAGE_QUOTA_MB: z.coerce.number().int().positive().optional(),
 };
 
 export const envOptions = {

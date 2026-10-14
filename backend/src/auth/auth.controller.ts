@@ -24,11 +24,11 @@ import { RequestEmailCodeDto, VerifyEmailCodeDto } from './dto/email-login.dto';
 import { VaultGuard } from '../security/vault.guard';
 
 // 이름에 앱 접두사 — 같은 호스트의 다른 포트 앱(career-notes 등)과 쿠키가 섞이지 않게 (쿠키는 포트를 구분하지 않는다)
-const REFRESH_COOKIE = 'll_refresh_token';
-const HAS_SESSION_COOKIE = 'll_has_session';
+export const REFRESH_COOKIE = 'll_refresh_token';
+export const HAS_SESSION_COOKIE = 'll_has_session';
 
 // 요청에서 클라이언트 IP 추출 (x-forwarded-for 우선 — 신규 기기 감지/세션 기록용)
-function clientIp(req: Request): string | undefined {
+export function clientIp(req: Request): string | undefined {
   const fwd = req.headers['x-forwarded-for'];
   const ip = (Array.isArray(fwd) ? fwd[0] : fwd?.split(',')[0]) ?? req.ip;
   return ip?.trim();
@@ -37,7 +37,7 @@ function clientIp(req: Request): string | undefined {
 // 갱신 토큰 쿠키 옵션 — 항상 SameSite=Lax(운영은 +Secure). 프론트와 API 가 같은 호스트(운영은 같은 origin, 로컬은 다른 포트)라 같은 사이트로 취급되어
 // Lax 로도 fetch(credentials:'include') 에 실리고, 외부 사이트에서 /auth/refresh·/logout 을 부르는 CSRF 는 막힌다.
 // maxAge는 사용자 설정(session_expiry) 기준 refresh 토큰 수명(ms)을 그대로 사용 — 토큰보다 쿠키가 더 오래 남지 않도록
-function refreshCookieOptions(maxAge: number): CookieOptions {
+export function refreshCookieOptions(maxAge: number): CookieOptions {
   const isProd = env.NODE_ENV === 'production';
   return {
     httpOnly: true,
@@ -50,7 +50,7 @@ function refreshCookieOptions(maxAge: number): CookieOptions {
 
 // refresh 쿠키 존재 여부를 프론트가 JS로 미리 확인할 수 있게 하는 힌트 쿠키(값 자체는 비민감).
 // httpOnly가 아니어서 refresh 쿠키와 옵션이 다름 — 쿠키 자체 유무 외엔 노출 정보 없음. refresh 쿠키와 동일한 maxAge 유지
-function hasSessionCookieOptions(maxAge: number): CookieOptions {
+export function hasSessionCookieOptions(maxAge: number): CookieOptions {
   const isProd = env.NODE_ENV === 'production';
   return {
     httpOnly: false,

@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { NotificationService } from '../notification/notification.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { JWT_ALGORITHMS, JWT_AUDIENCE, JWT_ISSUER } from './jwt.constants.js';
+import { DEMO_EMAIL, assertNotDemo } from '../common/demo.js';
 
 export interface GoogleUser {
   googleId: string;
@@ -124,6 +125,16 @@ export class AuthService {
       select: { session_expiry: true },
     });
     return SESSION_EXPIRY_MAP[settings?.session_expiry ?? ''] ?? DEFAULT_SESSION_EXPIRY;
+  }
+
+  // 데모 로그인 — 데모 고정 사용자로 세션 발급. DEMO_MODE 인스턴스에서만 컨트롤러가 등록된다(DemoAuthController)
+  async demoLogin(client?: LoginClient): Promise<{ access: string; refresh: string; refreshTtlMs: number }> {
+    const user = await this.prisma.user.upsert({
+      where: { email: DEMO_EMAIL },
+      update: {},
+      create: { email: DEMO_EMAIL, name: '데모 사용자' },
+    });
+    return this.issueTokens(user, client);
   }
 
   // 로컬 개발용 자동 로그인 — 고정 유저를 upsert 후 토큰 발급. NODE_ENV 가드는 컨트롤러에서 처리
@@ -363,6 +374,7 @@ export class AuthService {
   // 계정 영구 삭제 — 전 도메인 데이터 + 사용자 제거 (되돌릴 수 없음)
   // access_log 는 user_id FK cascade 로 함께 삭제되므로 DB 기록 대신 서버 로그로 남긴다
   async deleteAccount(userId: number): Promise<{ ok: true }> {
+    assertNotDemo('계정을 삭제');
     this.logger.warn(`계정 영구 삭제: user_id=${userId}`);
     const w = { where: { user_id: userId } };
     await this.prisma.$transaction([

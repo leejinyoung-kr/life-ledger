@@ -12,6 +12,7 @@ import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import MoreSheet from './MoreSheet';
 import VaultUnlockModal from './VaultUnlockModal';
+import DemoBand from './DemoBand';
 import { api } from '@/lib/api';
 
 interface AppShellProps {
@@ -41,6 +42,7 @@ export default function AppShell({ activePath, onLogout, bare, children }: AppSh
       <div className="flex min-h-screen">
         <Sidebar activePath={activePath} onLogout={handleLogout} />
         <div className="ml-[var(--sidebar-w)] flex-1 min-w-0 min-h-screen flex flex-col max-md:ml-0 max-md:pb-[calc(60px+env(safe-area-inset-bottom))]">
+          <DemoBand />
           <TopBar />
           {bare ? children : <main className="w-full max-w-[calc(var(--content-max)+64px)] mx-auto p-8 max-md:p-4 overflow-x-hidden">{children}</main>}
         </div>

@@ -6,6 +6,7 @@ import { DEFAULT_CATEGORIES } from '../settings/settings.defaults';
 import { AccessLogService } from '../access-log/access-log.service';
 import type { ClientInfo } from '@leejinyoung-kr/core-logging';
 import { MIN_MASTER_PASSWORD } from './dto/vault.dto';
+import { assertNotDemo } from '../common/demo';
 
 // 잠김 응답 — 프론트가 401(재로그인)과 구분하도록 423 + 코드 사용
 function vaultLocked(message: string): never {
@@ -64,6 +65,7 @@ export class VaultService {
 
   // 마스터 잠금 설정/변경 — 비번 해시 저장 + 활성화. 변경 시 현재 비번 확인은 컨트롤러의 VaultGuard 가 맡는다
   async setup(userId: number, password: string, timeoutMin: number) {
+    assertNotDemo('마스터 잠금을 변경');
     if (!password || password.length < MIN_MASTER_PASSWORD) {
       throw new BadRequestException(`마스터 비밀번호는 ${MIN_MASTER_PASSWORD}자 이상이어야 합니다.`);
     }
@@ -81,6 +83,7 @@ export class VaultService {
 
   // 마스터 잠금 해제(비활성화) — 현재 비번 확인 후 해제
   async disable(userId: number, password: string, client?: ClientInfo) {
+    assertNotDemo('마스터 잠금을 해제');
     const row = await this.ensureSettings(userId);
     if (row.master_lock_enabled && row.master_lock_hash && !this.matches(password, row.master_lock_hash)) {
       throw new ForbiddenException('마스터 비밀번호가 일치하지 않습니다.');

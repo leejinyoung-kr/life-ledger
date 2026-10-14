@@ -62,7 +62,7 @@ export default function NetworthPage() {
               </>
             )}
           </div>
-          <span className="text-[0.75rem] text-muted">순자산 추이 · 6개월 · 매월 1일 스냅샷</span>
+          <span className="text-[0.75rem] text-muted">순자산 추이 · 6개월 · 지난달까지는 월말 기준</span>
         </div>
 
         {/* 추이 막대 + 전월 대비 증감 */}

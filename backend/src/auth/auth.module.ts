@@ -4,6 +4,7 @@ import { AuthModule as CoreAuthModule } from '@leejinyoung-kr/core-auth';
 import { env } from '../config/env';
 import { NotificationModule } from '../notification/notification.module';
 import { AuthController } from './auth.controller';
+import { DemoAuthController } from './demo-auth.controller';
 import { AuthService } from './auth.service';
 import { JWT_AUDIENCE, JWT_ISSUER } from './jwt.constants';
 
@@ -28,7 +29,8 @@ import { JWT_AUDIENCE, JWT_ISSUER } from './jwt.constants';
       signOptions: { expiresIn: '7d' },
     }),
   ],
-  controllers: [AuthController],
+  // 데모 로그인 라우트는 DEMO_MODE 인스턴스에서만 등록한다 — 운영에서는 경로 자체가 없다(404)
+  controllers: [AuthController, ...(env.DEMO_MODE ? [DemoAuthController] : [])],
   providers: [AuthService],
 })
 export class AuthModule {}

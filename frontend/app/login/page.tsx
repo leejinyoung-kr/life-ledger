@@ -1,8 +1,10 @@
 /**
  * 로그인 페이지 (독립 풀스크린, AppShell 미사용).
- * Google OAuth + 이메일 코드 로그인 진입점.
+ * Google OAuth + 이메일 코드 로그인 진입점. 데모 빌드(NEXT_PUBLIC_DEMO_MODE)는 '데모로 둘러보기' 만 둔다.
  */
 import EmailLoginForm from './EmailLoginForm';
+import DemoLoginButton from './DemoLoginButton';
+import { IS_DEMO } from '@/lib/demo';
 import LoginGate from './LoginGate';
 import Wordmark from '@/components/Wordmark';
 import Button from '@/components/ui/Button';
@@ -50,13 +52,24 @@ export default async function LoginPage({
             ))}
           </ul>
 
-          <div className="flex flex-col gap-2.5">
-            <Button href={`${backendUrl}/api/v1/auth/google`} size="lg" className="w-full">
-              <GoogleIcon />
-              Google 계정으로 계속하기
-            </Button>
-            <EmailLoginForm apiBase={`${backendUrl}/api/v1`} />
-          </div>
+          {/* 데모 빌드는 데모 입장만, 운영 빌드는 Google · 이메일 로그인 */}
+          {IS_DEMO ? (
+            <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col">
+                <span className="text-[0.875rem] text-primary">포트폴리오를 보러 오셨나요?</span>
+                <span className="text-[0.78rem] text-muted">샘플 데이터가 담긴 데모 계정입니다. 로그인 없이 바로 둘러볼 수 있습니다.</span>
+              </div>
+              <DemoLoginButton apiBase={`${backendUrl}/api/v1`} />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              <Button href={`${backendUrl}/api/v1/auth/google`} size="lg" className="w-full">
+                <GoogleIcon />
+                Google 계정으로 계속하기
+              </Button>
+              <EmailLoginForm apiBase={`${backendUrl}/api/v1`} />
+            </div>
+          )}
 
           {/* 로컬 개발 전용 원클릭 로그인 — production 빌드에서는 렌더하지 않음(백엔드도 별도로 차단) */}
           {process.env.NODE_ENV !== 'production' && (
