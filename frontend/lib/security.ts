@@ -2,6 +2,12 @@
  * 보안 화면 공통 타입 · 아이콘 맵.
  * 백엔드 응답 DTO(/security)와 1:1 대응한다. 상대시각은 lib/notification 과 공유.
  */
+import type { ComponentType, SVGProps } from 'react';
+import {
+  IconMonitor, IconPhone, IconKey, IconShieldCheck, IconDoc, IconUnlock, IconLock, IconLogout, IconDownload,
+} from '@/components/icons';
+
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 export type SessionDeviceType = 'desktop' | 'mobile' | 'unknown';
 export type SessionStatus = 'active' | 'unverified';
@@ -38,15 +44,15 @@ export interface VaultStatus {
 }
 
 // 접근 동작 → 라벨/아이콘
-export const ACCESS_ACTION_META: Record<AccessAction, { label: string; icon: string }> = {
-  cred_reveal: { label: '비밀번호 열람', icon: '🔑' },
-  cred_totp: { label: '2FA 코드 생성', icon: '🔢' },
-  cred_backup: { label: '백업코드 열람', icon: '🧾' },
-  backup_codes_generate: { label: '백업코드 생성', icon: '🧾' },
-  vault_unlock: { label: '잠금 풀기', icon: '🔓' },
-  vault_disable: { label: '마스터 잠금 해제', icon: '🔐' },
-  session_revoke: { label: '기기 로그아웃', icon: '🚪' },
-  data_export: { label: '데이터 내보내기', icon: '📦' },
+export const ACCESS_ACTION_META: Record<AccessAction, { label: string; Icon: IconComponent }> = {
+  cred_reveal: { label: '비밀번호 열람', Icon: IconKey },
+  cred_totp: { label: '2FA 코드 생성', Icon: IconShieldCheck },
+  cred_backup: { label: '백업코드 열람', Icon: IconDoc },
+  backup_codes_generate: { label: '백업코드 생성', Icon: IconDoc },
+  vault_unlock: { label: '잠금 풀기', Icon: IconUnlock },
+  vault_disable: { label: '마스터 잠금 해제', Icon: IconLock },
+  session_revoke: { label: '기기 로그아웃', Icon: IconLogout },
+  data_export: { label: '데이터 내보내기', Icon: IconDownload },
 };
 
 // 계정이 아닌 동작은 대상 이름에 내부 코드가 들어간다(vault · export:backup · all:3) → 읽을 수 있는 이름으로
@@ -65,8 +71,8 @@ export function accessIpLabel(ip: string): string {
 }
 
 // 기기 종류 → 아이콘
-export const DEVICE_ICON: Record<SessionDeviceType, string> = {
-  desktop: '💻',
-  mobile: '📱',
-  unknown: '🖥️',
+export const DEVICE_ICON: Record<SessionDeviceType, IconComponent> = {
+  desktop: IconMonitor,
+  mobile: IconPhone,
+  unknown: IconMonitor,
 };

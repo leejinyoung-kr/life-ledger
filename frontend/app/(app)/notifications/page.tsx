@@ -2,12 +2,10 @@
 
 /**
  * 알림 페이지.
- * 리스트에서는 제목·시간만 노출, 클릭 시 상세 모달로 내용 확인.
- * 읽지 않은 알림 클릭 시 읽음 처리 + 토스트 알림.
- * "모두 읽음" 클릭 시 전체 읽음 처리 + 토스트.
- * 스타일: Tailwind + 공통 컴포넌트(Button/Badge/Modal/Pagination).
+ * 목록에는 제목 · 본문 첫 줄 · 시각 · 출처, 클릭 시 상세 창(알림 상세)으로 내용 확인.
+ * 읽지 않은 알림을 열면 읽음 처리(토스트 없음). "모두 읽음" 은 전체 읽음 처리 + 토스트.
  */
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
@@ -15,36 +13,36 @@ import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
+import IconButton from '@/components/ui/IconButton';
 import Segmented from '@/components/ui/Segmented';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
 import { useConfirm } from '@/components/ConfirmModal';
-import { IconAlertTriangle, IconCube, IconLock, IconFolder } from '@/components/icons';
+import { IconCheck, IconChevronRight, IconClose } from '@/components/icons';
 import { api } from '@/lib/api';
-import { NOTI_TABS, relativeTime, type Noti, type NotiTone } from '@/lib/notification';
+import { NOTI_TABS, SOURCE_ICON, SOURCE_LINK, FALLBACK_SOURCE_ICON, relativeTime, type Noti, type NotiTone } from '@/lib/notification';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 
-// tone → 리스트 아이콘 배경/색 (info 는 muted 재사용)
+// tone → 종류 아이콘 색 (info 는 muted)
 const ICON_TONE: Record<NotiTone, string> = {
-  warning: 'bg-warning-dim text-warning',
-  success: 'bg-accent-dim text-accent',
-  info: 'bg-elevated text-muted',
-};
-// tone → 상세 모달 원형 아이콘 (info 는 blue)
-const DETAIL_TONE: Record<NotiTone, string> = {
-  warning: 'bg-warning-dim text-warning',
-  success: 'bg-accent-dim text-accent',
-  info: 'bg-blue-dim text-blue',
+  warning: 'text-warning',
+  success: 'text-success',
+  info: 'text-muted',
 };
 
-// 발생처/톤으로 아이콘 결정
-function iconFor(n: Noti): ReactNode {
-  if (n.source.includes('계정')) return <IconLock width={17} height={17} />;
-  if (n.source.includes('파일')) return <IconFolder width={17} height={17} />;
-  if (n.tone === 'warning') return <IconAlertTriangle width={17} height={17} />;
-  return <IconCube width={17} height={17} />;
+// ISO → 'YYYY.MM.DD HH:mm' (상세 창의 받은 시각)
+function formatReceived(iso: string): string {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// 출처에 맞는 종류 아이콘
+function SourceIcon({ source, size }: { source: string; size: number }) {
+  const Icon = SOURCE_ICON[source] ?? FALLBACK_SOURCE_ICON;
+  return <Icon width={size} height={size} />;
 }
 
 export default function NotificationsPage() {
@@ -71,7 +69,7 @@ export default function NotificationsPage() {
   const error = itemsQuery.error?.message ?? null;
   const reload = () => invalidate(qk.notifications.all);
 
-  // 알림 클릭 — 상세 모달 열기 + 읽지 않은 경우 읽음 처리 (여는 것 자체가 읽음이라 토스트는 띄우지 않는다)
+  // 알림 클릭 — 상세 창 열기 + 읽지 않은 경우 읽음 처리 (여는 것 자체가 읽음이라 토스트는 띄우지 않는다)
   async function handleOpenDetail(n: Noti) {
     setDetail(n);
     if (n.read) return;
@@ -126,37 +124,37 @@ export default function NotificationsPage() {
   const paged = items; // 서버가 이미 그룹필터+페이지 단위로 잘라서 보냄
   const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(paged.map((n) => n.id));
 
+  const detailLink = detail ? SOURCE_LINK[detail.source] : undefined;
+
   return (
     <AppShell activePath="/notifications">
       <PageHeader
         title="알림"
         description={unreadCount > 0 ? `읽지 않은 알림 ${unreadCount}개가 있습니다.` : '모든 알림을 읽었습니다.'}
+        actions={<Button variant="ghost" onClick={handleMarkAllRead}><IconCheck />모두 읽음</Button>}
       />
 
       <ErrorBanner message={error} />
 
-      {/* 필터 탭 + 선택삭제/전체삭제/모두읽음 + 페이지당 항목 수 */}
-      <div className="flex items-center justify-between gap-2.5 mb-5 max-md:flex-wrap">
+      {/* 거르기 알약 + 선택삭제/전체삭제 + 페이지당 항목 수 */}
+      <div className="flex items-center justify-between gap-2 pb-3 flex-wrap">
         <Segmented
           label="알림 구분"
-          size="md"
-          className="gap-1 flex-wrap"
           value={tab}
           onChange={handleChangeTab}
           items={NOTI_TABS.map((t) => ({ value: t.kind, label: t.label }))}
         />
-        <div className="flex items-center gap-2 flex-wrap justify-end max-md:w-full">
-          <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
-          <Button variant="ghost" onClick={handleRemoveAll}>전체삭제</Button>
-          <Button variant="ghost" onClick={handleMarkAllRead}>모두 읽음</Button>
+        <div className="flex items-center gap-1 flex-wrap justify-end">
+          <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+          <Button variant="danger" size="sm" onClick={handleRemoveAll}>전체삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
 
-      {/* 알림 리스트 — 리스트에서는 desc 미노출, 클릭 시 상세 모달 */}
-      <div className="bg-background border border-border rounded-lg shadow-card overflow-hidden">
+      {/* 알림 목록 — 클릭 시 상세 창 */}
+      <div className="flex flex-col">
         {paged.length > 0 && (
-          <div className="flex items-center gap-3.5 px-5 py-2.5 border-b border-border-subtle bg-surface">
+          <div className="flex items-center gap-3 h-9 px-2 border-y border-border text-[0.78rem] text-muted">
             <input
               type="checkbox"
               className="checkbox"
@@ -164,55 +162,75 @@ export default function NotificationsPage() {
               onChange={toggleAll}
               aria-label="전체선택"
             />
-            <span className="text-[0.78rem] text-muted">
-              {selected.size > 0 ? `${selected.size}건 선택됨` : '전체선택'}
-            </span>
+            {selected.size > 0 ? `${selected.size}건 선택됨` : '전체선택'}
           </div>
         )}
-        {paged.length === 0 && <EmptyState size="sm" message="알림이 없습니다." />}
-        {paged.map((n) => (
-          <div
-            key={n.id}
-            className={`flex gap-3.5 px-5 py-4 border-b border-border-subtle last:border-b-0 transition-colors cursor-pointer hover:bg-surface ${n.read ? '' : 'bg-accent/4'}`}
-            onClick={() => handleOpenDetail(n)}
-          >
-            <input
-              type="checkbox"
-              className="checkbox mt-1"
-              checked={selected.has(n.id)}
-              onChange={() => toggle(n.id)}
-              onClick={(e) => e.stopPropagation()}
-              aria-label="선택"
-            />
-            <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${n.read ? 'bg-transparent border-[1.5px] border-border' : 'bg-accent'}`} />
-            <div className={`w-9 h-9 rounded-ui shrink-0 flex items-center justify-center ${ICON_TONE[n.tone]}`}>{iconFor(n)}</div>
-            <div className="flex-1">
-              <div className={`text-[0.875rem] font-medium ${n.read ? 'text-secondary' : 'text-primary'}`}>{n.title}</div>
-              <div className="text-[0.72rem] text-muted mt-1">{relativeTime(n.occurredAt)} · {n.source}</div>
+        {paged.length === 0 && <EmptyState size="lg" message="알림이 없습니다." />}
+        {paged.map((n) => {
+          return (
+            <div
+              key={n.id}
+              className="flex items-start gap-3 px-2 py-3 border-b border-border-subtle cursor-pointer transition-colors hover:bg-surface max-md:min-h-11"
+              onClick={() => handleOpenDetail(n)}
+            >
+              <input
+                type="checkbox"
+                className="checkbox mt-0.5"
+                checked={selected.has(n.id)}
+                onChange={() => toggle(n.id)}
+                onClick={(e) => e.stopPropagation()}
+                aria-label="선택"
+              />
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-2.25 ${n.read ? 'bg-transparent' : 'bg-accent'}`} aria-label={n.read ? undefined : '읽지 않음'} />
+              <span className={`w-7.5 h-7.5 shrink-0 border border-border rounded-ui flex items-center justify-center ${ICON_TONE[n.tone]}`}>
+                <SourceIcon source={n.source} size={15} />
+              </span>
+              <div className="flex-1 min-w-0 flex flex-col leading-[1.45]">
+                <span className={`text-[0.875rem] ${n.read ? 'text-secondary' : 'text-primary font-semibold'}`}>{n.title}</span>
+                <span className="text-[0.8125rem] text-muted truncate">{n.desc}</span>
+                <span className="text-[0.72rem] text-muted">{relativeTime(n.occurredAt)} · {n.source}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
       </div>
 
-      {/* 상세 모달 */}
+      {/* 알림 상세 창 */}
       {detail && (
-        <Modal open={!!detail} title="알림 상세" onClose={() => setDetail(null)}>
-          <div className="flex flex-col items-center gap-3 text-center">
-            <div className={`w-15 h-15 rounded-full shrink-0 flex items-center justify-center mb-1 ${DETAIL_TONE[detail.tone]}`}>
-              {iconFor(detail)}
+        <Modal
+          open
+          size="sm"
+          title="알림 상세"
+          onClose={() => setDetail(null)}
+          header={(
+            <div className="flex items-start gap-3 px-5 py-4 border-b border-border-subtle">
+              <span className={`w-9 h-9 shrink-0 border border-border rounded-ui flex items-center justify-center ${ICON_TONE[detail.tone]}`}>
+                <SourceIcon source={detail.source} size={18} />
+              </span>
+              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <span className="[font-family:var(--font-display)] text-[1.25rem] font-semibold leading-tight lining-nums text-primary break-keep">{detail.title}</span>
+                <span className="text-[0.78rem] text-muted">{relativeTime(detail.occurredAt)} · {detail.source}</span>
+              </div>
+              <IconButton label="닫기" variant="bordered" size="lg" onClick={() => setDetail(null)}>
+                <IconClose />
+              </IconButton>
             </div>
-
-            <p className="text-base font-bold text-primary leading-[1.45] break-keep">{detail.title}</p>
-
-            <p className="flex items-center gap-1.5 text-[0.78rem] text-muted">
-              <span>{detail.source}</span>
-              <span className="text-border">·</span>
-              <span>{relativeTime(detail.occurredAt)}</span>
-            </p>
-
-            <p className="w-full text-left text-[0.875rem] text-secondary leading-[1.7] break-keep px-4 py-3.5 mt-1 bg-surface rounded-ui border border-border-subtle">{detail.desc}</p>
-          </div>
+          )}
+          footer={(
+            <>
+              <Button variant="ghost" onClick={() => setDetail(null)}>닫기</Button>
+              {detailLink && <Button href={detailLink.href}>{detailLink.label}로 이동<IconChevronRight /></Button>}
+            </>
+          )}
+        >
+          <p className="text-[0.875rem] leading-[1.65] text-primary break-keep">{detail.desc}</p>
+          <dl className="grid grid-cols-[64px_1fr] gap-x-3 gap-y-1.5 text-[0.78rem]">
+            <dt className="text-muted">받은 시각</dt>
+            <dd className="text-primary">{formatReceived(detail.occurredAt)}</dd>
+            <dt className="text-muted">출처</dt>
+            <dd className="text-primary">{detail.source}</dd>
+          </dl>
         </Modal>
       )}
       {confirmElement}

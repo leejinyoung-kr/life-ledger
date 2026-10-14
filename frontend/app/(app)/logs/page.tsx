@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
 import Segmented from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
-import { IconClock, IconCaret } from '@/components/icons';
+import { IconCaret } from '@/components/icons';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { usePagination } from '@/lib/usePagination';
@@ -39,11 +40,11 @@ const CATEGORY_LABEL: Record<LogCategory, string> = {
   notification: '알림',
 };
 
-const LEVEL_STYLE: Record<LogLevel, string> = {
-  info: 'bg-blue-dim text-blue',
-  warn: 'bg-warning-dim text-warning',
-  error: 'bg-danger-dim text-danger',
-};
+const LEVEL_TONE = {
+  info: 'neutral',
+  warn: 'warning',
+  error: 'danger',
+} as const satisfies Record<LogLevel, 'neutral' | 'warning' | 'danger'>;
 
 const LEVEL_LABEL: Record<LogLevel, string> = {
   info: '정보',
@@ -179,24 +180,19 @@ export default function LogsPage() {
 
   return (
     <AppShell activePath="/logs">
-      <PageHeader
-        title="시스템 로그"
-        icon={<IconClock className="w-6 h-6 text-accent shrink-0" />}
-        description="크론 실행, 반복매수, 오류 이력을 확인합니다."
-      />
+      <PageHeader title="시스템 로그" description="크론 실행, 반복매수, 오류 이력을 확인합니다." />
 
-      {/* 레벨 탭 — 클릭 즉시 반영 */}
+      {/* 레벨 알약 — 클릭 즉시 반영 (수준별 개수는 서버가 주지 않아 붙이지 않는다) */}
       <Segmented
         label="로그 레벨"
-        size="xs"
-        className="mb-3"
+        className="pb-3"
         value={level}
         onChange={(l) => { setLevel(l); setPage(1); }}
         items={(['all', 'info', 'warn', 'error'] as const).map((l) => ({ value: l, label: l === 'all' ? '전체' : LEVEL_LABEL[l] }))}
       />
 
-      {/* 필터박스 — 조회 버튼으로 반영 */}
-      <FilterPanel>
+      {/* 필터 줄 — 조회 버튼으로 반영 */}
+      <FilterPanel className="mb-0">
         {/* 1행: 날짜 범위 + 기간 프리셋 */}
         <div className="flex gap-2 items-center flex-wrap">
           <div className="date-range-group flex items-center gap-2 shrink-0">
@@ -216,11 +212,13 @@ export default function LogsPage() {
               aria-label="조회 종료일"
             />
           </div>
-          <div className="flex gap-1">
-            <Button size="sm" variant={activePreset === 1 ? 'primary' : 'ghost'} onClick={() => handleApplyPreset(1)}>1개월</Button>
-            <Button size="sm" variant={activePreset === 2 ? 'primary' : 'ghost'} onClick={() => handleApplyPreset(2)}>2개월</Button>
-            <Button size="sm" variant={activePreset === 3 ? 'primary' : 'ghost'} onClick={() => handleApplyPreset(3)}>3개월</Button>
-          </div>
+          <Segmented
+            label="조회 기간"
+            variant="joined"
+            value={activePreset === null ? '' : String(activePreset)}
+            onChange={(m) => handleApplyPreset(Number(m))}
+            items={[1, 2, 3].map((m) => ({ value: String(m), label: `${m}개월` }))}
+          />
         </div>
         {/* 2행: 카테고리 + 메시지 검색 + 조회/초기화 */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
@@ -245,13 +243,13 @@ export default function LogsPage() {
 
       <ErrorBanner message={logsQuery.error?.message ?? null} />
 
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {total}건</span>
+      <div className="flex items-center justify-between py-2.5 border-y border-border-subtle text-[0.8125rem]">
+        <span>총 <b className="font-semibold">{total}</b>건</span>
         <LimitSelect limit={limit} onLimitChange={(l) => { changeLimit(l); }} />
       </div>
 
-      {/* 로그 목록 */}
-      <div className="bg-background border border-border rounded-lg shadow-card overflow-hidden mb-4">
+      {/* 로그 목록 — 행을 누르면 상세(metadata)가 펼쳐진다 */}
+      <div className="flex flex-col mb-4">
         {!logsQuery.isLoading && items.length === 0 && (
           <EmptyState size="lg" message="해당하는 로그가 없습니다." />
         )}
@@ -259,61 +257,31 @@ export default function LogsPage() {
           const isOpen = expanded.has(log.id);
           const full = formatLogTime(log.created_at);
           return (
-            <div key={log.id} className="border-b border-border last:border-b-0">
+            <div key={log.id} className={`flex flex-col border-b border-border-subtle ${log.level === 'error' ? 'bg-danger-dim shadow-[inset_2px_0_0_var(--color-danger)]' : ''}`}>
               <button
                 type="button"
-                className="w-full px-4 py-3.5 hover:bg-surface text-left transition-colors"
+                className="flex items-center gap-2.5 flex-wrap px-2 py-2.5 max-md:min-h-11 text-left cursor-pointer transition-colors hover:bg-surface"
+                aria-expanded={isOpen}
                 onClick={() => toggleExpand(log.id)}
               >
-                {/* PC 레이아웃 */}
-                <div className="hidden sm:flex items-start gap-2.5">
-                  <span className={`shrink-0 mt-px px-1.5 py-0.5 rounded text-[0.65rem] font-bold tracking-wider ${LEVEL_STYLE[log.level]}`}>
-                    {LEVEL_LABEL[log.level]}
-                  </span>
-                  <span className="shrink-0 mt-px px-2 py-0.5 rounded bg-elevated text-muted text-[0.7rem] font-medium">
-                    {CATEGORY_LABEL[log.category] ?? log.category}
-                  </span>
-                  <span className="flex-1 text-[0.875rem] text-primary min-w-0">{log.message}</span>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[0.72rem] text-secondary dark:text-primary whitespace-nowrap font-mono">{full}</span>
-                    <IconCaret className={`w-3.5 h-3.5 text-muted transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
-                  </div>
-                </div>
-                {/* 모바일 레이아웃 */}
-                <div className="sm:hidden flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`px-1.5 py-0.5 rounded text-[0.65rem] font-bold tracking-wider ${LEVEL_STYLE[log.level]}`}>
-                        {LEVEL_LABEL[log.level]}
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-elevated text-muted text-[0.7rem] font-medium">
-                        {CATEGORY_LABEL[log.category] ?? log.category}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[0.68rem] text-secondary dark:text-primary font-mono">{full}</span>
-                      <IconCaret className={`w-3.5 h-3.5 text-muted transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
-                    </div>
-                  </div>
-                  <p className="text-[0.875rem] text-primary leading-snug">{log.message}</p>
-                </div>
+                <Badge tone={LEVEL_TONE[log.level]}>{LEVEL_LABEL[log.level]}</Badge>
+                <span className="w-15 text-[0.78rem] text-muted">{CATEGORY_LABEL[log.category] ?? log.category}</span>
+                <span className="flex-1 basis-[220px] min-w-0 text-[0.84rem] text-primary">{log.message}</span>
+                <span className="text-[0.78rem] text-muted whitespace-nowrap">{full}</span>
+                <IconCaret className={`w-3.75 h-3.75 text-muted transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* 메타데이터 */}
+              {/* 상세(metadata) */}
               {isOpen && (
-                <div className="px-4 pb-4 bg-surface">
-                  <div className="border border-border rounded-ui p-3.5 flex flex-col gap-1.5 text-[0.8rem]">
-                    <div className="flex gap-3 pb-1.5 mb-1 border-b border-border">
-                      <span className="text-muted w-22 shrink-0">시각</span>
-                      <span className="text-secondary dark:text-primary font-mono">{full}</span>
-                    </div>
-                    {log.metadata && Object.entries(log.metadata).map(([k, v]) => (
-                      <div key={k} className="flex gap-3">
-                        <span className="text-muted w-22 shrink-0">{META_LABEL[k] ?? k}</span>
-                        <span className="text-primary break-all font-mono">{Array.isArray(v) ? v.join(', ') : String(v)}</span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-1.5 pl-2 pr-2 pt-1 pb-3.5 text-[0.78rem] md:pl-[82px]">
+                  <span className="text-muted">시각</span>
+                  <span className="text-primary">{full}</span>
+                  {log.metadata && Object.entries(log.metadata).map(([k, v]) => (
+                    <Fragment key={k}>
+                      <span className="text-muted">{META_LABEL[k] ?? k}</span>
+                      <span className="text-primary break-all">{Array.isArray(v) ? v.join(', ') : String(v)}</span>
+                    </Fragment>
+                  ))}
                 </div>
               )}
             </div>
