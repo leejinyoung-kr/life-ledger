@@ -205,7 +205,7 @@ docker compose exec backend npx prisma migrate deploy
   | 모달 | `Modal`(`size` · `subtitle` · `headerAction` · `footer`) · `ConfirmModal`(확인 · 입력이 붙는 확인은 `children` · `layer`) |
   | 빈 상태 · 로딩 · 오류 | `EmptyState`(`size`) · `QueryState` / `PageLoading`(`size`) · `ErrorBanner` · `QueryError`, 테이블 빈 행은 `TableEmptyRow` |
   | 조회 조건 박스 / 엑셀 버튼 줄 | `FilterPanel` / `ExcelToolbar` |
-  | 숫자 카드 / 막대 차트 | `StatStrip` 안에 `StatCard`(금액 색은 `valueTone` in · out · move 일 때만) / `BarChart`(`tone` out · neutral) |
+  | 숫자 카드 / 막대 차트 | `StatStrip` 안에 `StatCard`(금액 색은 `valueTone` in · out · move 일 때만) / `BarChart`(`tone` out · neutral, `height="fill"` 이면 부모 높이를 채움) |
   | 아이콘 | `components/icons` 의 `Icon*` (lucide 한 세트를 앱 이름으로 묶음) — 이모지는 쓰지 않는다 |
   | 더보기 메뉴 | `ui/MoreMenu`(`items` — 표 관리 열 · 카드는 "자주 쓰는 하나 + 더보기") |
   | 체크박스 | `<input type="checkbox" className="checkbox">` |

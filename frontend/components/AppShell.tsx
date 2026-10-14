@@ -2,7 +2,7 @@
 
 /**
  * 공통 앱 레이아웃 셸 (Tailwind).
- * 데스크톱: 사이드바 + 상단바 + 본문(최대 1200). 휴대폰: 상단바 + 본문 + 아래 메뉴 + '전체 메뉴' 시트.
+ * 데스크톱: 사이드바 + 상단바 + 본문(남은 너비를 꽉 채운다). 휴대폰: 상단바 + 본문 + 아래 메뉴 + '전체 메뉴' 시트.
  * 모든 인증 페이지(대시보드 등)가 이 셸로 콘텐츠를 감싼다.
  */
 import { useCallback, useState, type ReactNode } from 'react';
@@ -44,7 +44,7 @@ export default function AppShell({ activePath, onLogout, bare, children }: AppSh
         <div className="ml-[var(--sidebar-w)] flex-1 min-w-0 min-h-screen flex flex-col max-md:ml-0 max-md:pb-[calc(60px+env(safe-area-inset-bottom))]">
           <DemoBand />
           <TopBar />
-          {bare ? children : <main className="w-full max-w-[calc(var(--content-max)+64px)] mx-auto p-8 max-md:p-4 overflow-x-hidden">{children}</main>}
+          {bare ? children : <main className="w-full p-8 max-md:p-4 overflow-x-hidden">{children}</main>}
         </div>
       </div>
       <BottomNav activePath={activePath} moreOpen={moreOpen} onMore={() => setMoreOpen((v) => !v)} />

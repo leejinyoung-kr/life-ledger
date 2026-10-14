@@ -52,6 +52,11 @@ const AMOUNT_TONE: Record<TransactionType, { cls: string; sign: string }> = {
   transfer: { cls: 'text-blue', sign: '⇄ ' },
 };
 
+// 본문 카드 네 개(월별 지출 · 고정지출 · 다가오는 날짜 · 최근 활동)의 높이 — 데스크톱에서 모두 같게, 넘치는 목록은 카드 안에서 스크롤.
+// 휴대폰은 한 줄에 하나라 내용 높이대로 두고, 차트만 높이를 준다
+const PANEL = 'md:h-[480px] min-w-0 flex flex-col';
+const PANEL_SCROLL = 'flex-1 min-h-0 md:overflow-y-auto';
+
 interface UpcomingItem { key: string; date: string; title: string; marker: EvType; kind: string; dday: number }
 
 // 표식 + 이름 + 보조 글자 + 오른쪽 값이 있는 목록 행 (누르는 곳 44px)
@@ -203,17 +208,17 @@ export default function DashboardPage() {
       </StatStrip>
 
       <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap gap-6 items-start">
-          <Card className="flex-[2_1_520px] min-w-0 flex flex-col">
+        <div className="flex flex-wrap gap-6">
+          <Card className={`flex-[2_1_520px] ${PANEL}`}>
             <CardHeader>
               <CardTitle>월별 지출</CardTitle>
               <Button href="/transactions" variant="link" size="inline">가계부</Button>
             </CardHeader>
-            <CardBody className="flex-1 flex flex-col justify-end">
+            <CardBody className="flex-1 min-h-0 max-md:h-[280px]">
               <BarChart
                 label="월별 지출"
                 tone="out"
-                height={180}
+                height="fill"
                 items={trend.map((b) => {
                   const isCurrent = b.month === month;
                   return { key: b.month, label: b.label, value: b.total, valueLabel: isCurrent ? won(b.total) : `${Math.round(b.total / 10000).toLocaleString('ko-KR')}만`, current: isCurrent };
@@ -223,7 +228,7 @@ export default function DashboardPage() {
           </Card>
 
           {forecast && (forecast.subscriptions.count > 0 || forecast.recurring.count > 0) && (
-            <Card className="flex-[1_1_300px] min-w-0 flex flex-col">
+            <Card className={`flex-[1_1_300px] ${PANEL}`}>
               <CardHeader>
                 <CardTitle>다음 달 고정지출</CardTitle>
                 <span className="text-[0.75rem] text-muted">예측</span>
@@ -241,8 +246,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col">
-                {forecast.items.slice(0, 5).map((it, i) => (
+              <div className={`flex flex-col ${PANEL_SCROLL}`}>
+                {forecast.items.map((it, i) => (
                   <ListRow
                     key={i}
                     name={it.name}
@@ -256,43 +261,47 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="flex flex-wrap gap-6 items-start">
-          <Card className="flex-[2_1_520px] min-w-0 flex flex-col">
+        <div className="flex flex-wrap gap-6">
+          <Card className={`flex-[2_1_520px] ${PANEL}`}>
             <CardHeader>
               <CardTitle>다가오는 날짜</CardTitle>
               <Button href="/calendar" variant="link" size="inline">{upcoming.length}건 · 캘린더</Button>
             </CardHeader>
-            {upcoming.length === 0 && <div className="px-[18px] py-4 text-muted text-[0.84rem]">다가오는 날짜가 없습니다.</div>}
-            {[{ label: '이번 주', items: thisWeek }, { label: '그 이후', items: later }].filter((g) => g.items.length > 0).map((g) => (
-              <div key={g.label} className="flex flex-col">
-                <div className="px-[18px] pt-2.5 pb-1 text-[0.72rem] text-muted tracking-[0.06em]">{g.label}</div>
-                {g.items.map((it) => <UpcomingRow key={it.key} it={it} />)}
-              </div>
-            ))}
-            <div className="flex flex-wrap gap-3.5 px-[18px] pt-2.5 pb-3.5 mt-1.5 border-t border-border-subtle text-[0.72rem] text-muted">
+            <div className={PANEL_SCROLL}>
+              {upcoming.length === 0 && <div className="px-[18px] py-4 text-muted text-[0.84rem]">다가오는 날짜가 없습니다.</div>}
+              {[{ label: '이번 주', items: thisWeek }, { label: '그 이후', items: later }].filter((g) => g.items.length > 0).map((g) => (
+                <div key={g.label} className="flex flex-col">
+                  <div className="px-[18px] pt-2.5 pb-1 text-[0.72rem] text-muted tracking-[0.06em]">{g.label}</div>
+                  {g.items.map((it) => <UpcomingRow key={it.key} it={it} />)}
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-3.5 px-[18px] pt-2.5 pb-3.5 border-t border-border-subtle text-[0.72rem] text-muted">
               {(['pay', 'due', 'exp', 'task'] as const).map((t) => (
                 <span key={t} className="flex items-center gap-1.5"><span aria-hidden className={MARKER_CLASS[t]} />{EV_LABEL[t]}</span>
               ))}
             </div>
           </Card>
 
-          <Card className="flex-[1_1_300px] min-w-0 flex flex-col">
+          <Card className={`flex-[1_1_300px] ${PANEL}`}>
             <CardHeader>
               <CardTitle>최근 활동</CardTitle>
               <Button href="/transactions" variant="link" size="inline">가계부</Button>
             </CardHeader>
-            {s && s.recent.length === 0 && <div className="px-[18px] py-4 text-muted text-[0.84rem]">최근 활동이 없습니다.</div>}
-            {s?.recent.map((r, i) => {
-              const tone = AMOUNT_TONE[r.type];
-              return (
-                <ListRow
-                  key={i}
-                  name={r.title}
-                  sub={r.date}
-                  trailing={<span className={`text-[0.84rem] tabular-nums ${tone.cls}`}>{tone.sign}{won(Math.abs(r.amount))}</span>}
-                />
-              );
-            })}
+            <div className={PANEL_SCROLL}>
+              {s && s.recent.length === 0 && <div className="px-[18px] py-4 text-muted text-[0.84rem]">최근 활동이 없습니다.</div>}
+              {s?.recent.map((r, i) => {
+                const tone = AMOUNT_TONE[r.type];
+                return (
+                  <ListRow
+                    key={i}
+                    name={r.title}
+                    sub={r.date}
+                    trailing={<span className={`text-[0.84rem] tabular-nums ${tone.cls}`}>{tone.sign}{won(Math.abs(r.amount))}</span>}
+                  />
+                );
+              })}
+            </div>
           </Card>
         </div>
       </div>

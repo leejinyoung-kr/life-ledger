@@ -15,19 +15,20 @@ const TONE = {
 export default function BarChart({ items, tone = 'neutral', height = 140, label }: {
   items: BarItem[];
   tone?: keyof typeof TONE;
-  /** 막대 영역 높이(px) — 값 · 이름표 줄은 따로 */
-  height?: number;
+  /** 막대 영역 높이(px) — 값 · 이름표 줄은 따로. 'fill' 이면 부모 높이를 꽉 채운다(부모에 높이가 있어야 한다) */
+  height?: number | 'fill';
   /** 접근성 이름 */
   label: string;
 }) {
   const max = Math.max(1, ...items.map((it) => it.value));
   const hasDelta = items.some((it) => it.delta != null);
+  const fill = height === 'fill';
   return (
-    <div role="img" aria-label={label} className="flex gap-2.5 items-end">
+    <div role="img" aria-label={label} className={`flex gap-2.5 items-end ${fill ? 'h-full' : ''}`}>
       {items.map((it) => (
-        <div key={it.key} className="flex-1 min-w-0 flex flex-col items-center gap-1.5">
+        <div key={it.key} className={`flex-1 min-w-0 flex flex-col items-center gap-1.5 ${fill ? 'h-full' : ''}`}>
           <span className={`text-[0.7rem] h-4 leading-4 truncate max-w-full ${it.current ? 'text-primary' : 'text-muted'}`}>{it.valueLabel ?? ''}</span>
-          <div className="w-full flex items-end" style={{ height }}>
+          <div className={`w-full flex items-end ${fill ? 'flex-1 min-h-0' : ''}`} style={fill ? undefined : { height }}>
             <div
               className={`w-full rounded-t-[2px] ${it.current ? TONE[tone].current : TONE[tone].bar}`}
               style={{ height: `${Math.max(2, Math.round((Math.max(0, it.value) / max) * 100))}%` }}
