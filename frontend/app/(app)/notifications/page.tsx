@@ -18,6 +18,7 @@ import Segmented from '@/components/ui/Segmented';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
+import SelectAllBar from '@/components/SelectAllBar';
 import { Card } from '@/components/ui/Card';
 import { useConfirm } from '@/components/ConfirmModal';
 import { IconCheck, IconChevronRight, IconClose } from '@/components/icons';
@@ -154,18 +155,7 @@ export default function NotificationsPage() {
 
       {/* 알림 목록 — 흰 카드 안 줄 목록, 클릭 시 상세 창 */}
       <Card clip className="flex flex-col">
-        {paged.length > 0 && (
-          <div className="flex items-center gap-3 h-10 px-4 bg-surface border-b border-border text-[0.78rem] text-muted">
-            <input
-              type="checkbox"
-              className="checkbox"
-              checked={allChecked}
-              onChange={toggleAll}
-              aria-label="전체선택"
-            />
-            {selected.size > 0 ? `${selected.size}건 선택됨` : '전체선택'}
-          </div>
-        )}
+        {paged.length > 0 && <SelectAllBar checked={allChecked} onToggle={toggleAll} count={selected.size} />}
         {paged.length === 0 && <EmptyState size="lg" message="알림이 없습니다." />}
         {paged.map((n) => {
           return (

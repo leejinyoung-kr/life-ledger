@@ -7,6 +7,7 @@
 import type { ReactNode } from 'react';
 import Button from './ui/Button';
 import EmptyState from './EmptyState';
+import SelectAllBar from './SelectAllBar';
 
 export interface MobileField {
   label: string;
@@ -94,12 +95,7 @@ export function MobileCardList({ empty, selection, className = '', children }: {
   return (
     <div className={`md:hidden flex flex-col gap-3 py-3 ${className}`.trim()}>
       {empty && <EmptyState message={empty} />}
-      {!empty && selection && (
-        <label className="flex items-center gap-3 min-h-11 px-4 bg-background border border-border rounded-panel text-[0.8125rem] text-muted cursor-pointer">
-          <input type="checkbox" className="checkbox" checked={selection.all} onChange={selection.onToggleAll} aria-label="전체선택" />
-          {selection.count > 0 ? `${selection.count}건 선택됨` : '전체선택'}
-        </label>
-      )}
+      {!empty && selection && <SelectAllBar boxed checked={selection.all} onToggle={selection.onToggleAll} count={selection.count} />}
       {children}
     </div>
   );

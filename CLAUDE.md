@@ -196,7 +196,7 @@ docker compose exec backend npx prisma migrate deploy
 
   | 용도 | 요소 |
   | --- | --- |
-  | 페이지 제목 (h1 · 부제목 · 우측 버튼) | `components/PageHeader` — 페이지에서 h1 을 직접 쓰지 않는다 |
+  | 페이지 제목 (h1 · 부제목 · 우측 버튼) | `components/PageHeader` — 페이지에서 h1 을 직접 쓰지 않는다. 추가 같은 버튼은 늘 제목 줄 오른쪽(휴대폰도) — 휴대폰에서 넘치면 글자를 줄이거나(`추가`) 덜 쓰는 버튼을 숨긴다 |
   | 버튼 / 아이콘 버튼 | `ui/Button` (`variant` · `size` · `loading`, 글줄 안 링크는 `variant="link" size="inline"`) / `ui/IconButton` (`label` 필수, `variant` · `size`) |
   | 검색 입력 | `ui/SearchInput` (`onEnter`) |
   | 입력 그룹 · 오류 | `ui/Field` — `error` 가 있으면 안의 `.input` 이 자동으로 빨개진다. `is-invalid` 를 손으로 붙이지 않는다 (Field 밖은 `aria-invalid`) |
@@ -205,7 +205,7 @@ docker compose exec backend npx prisma migrate deploy
   | 모달 | `Modal`(`size` · `subtitle` · `headerAction` · `footer`, 휴대폰도 여백 두고 가운데) · `ConfirmModal`(확인 · 입력이 붙는 확인은 `children` · `layer`) |
   | 빈 상태 · 로딩 · 오류 | `EmptyState`(`size`) · `QueryState` / `PageLoading`(`size`) · `ErrorBanner` · `QueryError`, 테이블 빈 행은 `TableEmptyRow` |
   | 조회 조건 박스 / 엑셀 버튼 줄 | `FilterPanel` / `ExcelToolbar` |
-  | 휴대폰 목록 (md 미만, 표 대신) | `MobileCardList` 안에 `MobileCard`(`title` · `sub` · `aside` · `fields` 이름표 줄 · `actions` 같은 폭 버튼, 여러 줄이면 배열의 배열). 카드에 체크박스가 있으면 `MobileCardList selection` 으로 전체선택 줄 |
+  | 휴대폰 목록 (md 미만, 표 대신) | `MobileCardList` 안에 `MobileCard`(`title` · `sub` · `aside` · `fields` 이름표 줄 · `actions` 같은 폭 버튼, 여러 줄이면 배열의 배열). 카드에 체크박스가 있으면 `MobileCardList selection` 으로 전체선택 줄 (알림처럼 흰 카드 머리에 둘 때는 `SelectAllBar` 직접) |
   | 가로로 넘치는 줄 (알약 · 띠) | `overflow-x-auto scrollbar-thin` — 막대를 숨기는 `scrollbar-none` 은 넘칠 일 없는 탭에만 |
   | 숫자 카드 / 막대 차트 | `StatStrip` 안에 `StatCard`(금액 색은 `valueTone` in · out · move 일 때만) / `BarChart`(`tone` out · neutral, `height="fill"` 이면 부모 높이를 채움) |
   | 아이콘 | `components/icons` 의 `Icon*` (lucide 한 세트를 앱 이름으로 묶음) — 이모지는 쓰지 않는다 |

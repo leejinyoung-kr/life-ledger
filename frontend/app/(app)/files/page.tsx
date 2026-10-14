@@ -339,13 +339,14 @@ export default function FilesPage() {
         actions={
           <>
             <Button variant="ghost" onClick={() => setFolderModal(true)}><IconFolderPlus />폴더 생성</Button>
-            <label className={buttonClasses('ghost') + (uploading ? ' opacity-60 pointer-events-none' : '')}>
+            {/* 휴대폰 브라우저는 폴더를 고를 수 없어 숨긴다 — 제목 줄에 폴더 생성 · 업로드 둘만 남는다 */}
+            <label className={buttonClasses('ghost', 'md', 'max-md:hidden') + (uploading ? ' opacity-60 pointer-events-none' : '')}>
               <IconFolder />폴더 업로드
               {/* webkitdirectory 는 React 타입에 없어 ref 로 붙인다 — 폴더를 고르면 안의 파일이 상대 경로와 함께 들어온다 */}
               <input ref={(el) => el?.setAttribute('webkitdirectory', '')} type="file" multiple hidden onChange={handlePicked} />
             </label>
             <label className={buttonClasses('primary') + (uploading ? ' opacity-60 pointer-events-none' : '')}>
-              <IconUpload />{uploading ? '업로드 중…' : '파일 업로드'}
+              <IconUpload />{uploading ? '업로드 중…' : <><span className="max-md:hidden">파일 업로드</span><span className="md:hidden">업로드</span></>}
               <input ref={fileInputRef} type="file" multiple hidden onChange={handlePicked} />
             </label>
           </>

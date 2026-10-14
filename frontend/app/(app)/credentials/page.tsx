@@ -32,16 +32,16 @@ import VaultStrip from './VaultStrip';
 import DetailModal from './DetailModal';
 import EditModal, { type EditState } from './EditModal';
 
-const FILTER_CATEGORIES = ['전체 카테고리', ...CRED_CATEGORIES];
+const FILTER_CATEGORIES = ['전체', ...CRED_CATEGORIES];
 
 // 평문 엑셀을 받기 전에 그대로 입력해야 하는 낱말 (실수로 누르는 것 막기)
 const EXPORT_WORD = '내려받기';
 
 export default function CredentialsPage() {
   const [pendingQuery, setPendingQuery] = useState('');
-  const [pendingCategory, setPendingCategory] = useState('전체 카테고리');
+  const [pendingCategory, setPendingCategory] = useState('전체');
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('전체 카테고리');
+  const [category, setCategory] = useState('전체');
   const [detail, setDetail] = useState<Credential | null>(null);
   const [edit, setEdit] = useState<EditState>({ open: false, mode: 'add', editing: null });
   const [exportOpen, setExportOpen] = useState(false);
@@ -63,7 +63,7 @@ export default function CredentialsPage() {
     const params = new URLSearchParams();
     const q = query.trim();
     if (q) params.set('q', q);
-    if (category !== '전체 카테고리') params.set('category', category);
+    if (category !== '전체') params.set('category', category);
     params.set('page', String(page));
     params.set('limit', String(limit));
     return params.toString();
@@ -179,12 +179,12 @@ export default function CredentialsPage() {
       <ErrorBanner message={error} className="mb-4" />
 
       <FilterPanel className="mb-3">
-        <div className="flex gap-2 flex-col md:flex-row md:items-center">
-          <select className="input md:w-auto md:min-w-40" value={pendingCategory} onChange={(e) => setPendingCategory(e.target.value)} aria-label="카테고리 필터">
+        <div className="flex gap-2 items-center">
+          <select className="input w-24 shrink-0 md:w-auto md:min-w-40" value={pendingCategory} onChange={(e) => setPendingCategory(e.target.value)} aria-label="카테고리 필터">
             {FILTER_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>
-          <SearchInput label="계정 검색" className="flex-1 min-w-0" placeholder="서비스명, URL, 아이디 검색" value={pendingQuery} onChange={(e) => setPendingQuery(e.target.value)} onEnter={handleSearch} />
-          <Button onClick={handleSearch}>조회</Button>
+          <SearchInput label="계정 검색" className="flex-1 min-w-0" placeholder="서비스·아이디·URL" value={pendingQuery} onChange={(e) => setPendingQuery(e.target.value)} onEnter={handleSearch} />
+          <Button className="shrink-0" onClick={handleSearch}>조회</Button>
         </div>
       </FilterPanel>
 
