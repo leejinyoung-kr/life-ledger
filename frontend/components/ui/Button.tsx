@@ -1,9 +1,10 @@
 /**
  * 공통 버튼 (Tailwind).
- * variant(primary/ghost/danger/solid-danger/link) + size(md/sm/lg/inline). href 를 주면 <a> 로 렌더된다.
+ * variant(primary/ghost/danger/solid-danger/link) + size(md/sm/lg/inline). href 를 주면 Next Link 로 렌더된다(새로 불러오지 않고 화면만 바꾼다).
  * link + inline 은 글줄 안에 들어가는 링크 모양(브레드크럼 · 위치 표시)이다.
  * loading 이면 비활성화되고 children 대신 loadingLabel 을 보여준다.
  */
+import Link from 'next/link';
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react';
 
 type Variant = 'primary' | 'ghost' | 'danger' | 'solid-danger' | 'link';
@@ -47,7 +48,7 @@ export default function Button(props: ButtonProps | LinkProps) {
 
   if ('href' in props && props.href !== undefined) {
     const { href, ...anchorRest } = rest as AnchorHTMLAttributes<HTMLAnchorElement> & { href: string };
-    return <a href={href} className={cls} {...anchorRest}>{children}</a>;
+    return <Link href={href} className={cls} {...anchorRest}>{children}</Link>;
   }
   const btnRest = rest as ButtonHTMLAttributes<HTMLButtonElement>;
   return (

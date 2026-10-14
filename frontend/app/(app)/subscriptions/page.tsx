@@ -221,23 +221,15 @@ export default function SubscriptionsPage() {
       <Card clip>
         {/* PC: 표 */}
         <div className="table-wrap flat max-md:hidden">
+          {/* 1280 미만에서는 결제수단 칸을 숨기고 서비스 아래 줄로 옮긴다 — 서비스 이름이 여러 줄로 쪼개지지 않게 */}
           <table>
-            <colgroup>
-              <col />
-              <col style={{ width: '88px' }} />
-              <col style={{ width: '140px' }} />
-              <col style={{ width: '170px' }} />
-              <col style={{ width: '110px' }} />
-              <col style={{ width: '150px' }} />
-              <col style={{ width: '88px' }} />
-            </colgroup>
             <thead>
               <tr>
-                <th className="th-left">서비스</th>
+                <th className="th-left min-w-36">서비스</th>
                 <th className="th-left">상태</th>
                 <th className="td-right">금액</th>
                 <th className="th-left">다음 결제</th>
-                <th className="th-left">결제수단</th>
+                <th className="th-left max-xl:hidden">결제수단</th>
                 <th className="th-left">마지막 사용</th>
                 <th aria-label="관리" />
               </tr>
@@ -253,16 +245,19 @@ export default function SubscriptionsPage() {
                     <td>
                       <div className="flex flex-col leading-snug">
                         <span>{sub.name}</span>
-                        <span className="text-[0.75rem] text-muted">{SUB_CATEGORY_LABEL[sub.category] ?? sub.category}</span>
+                        <span className="text-[0.75rem] text-muted">
+                          {SUB_CATEGORY_LABEL[sub.category] ?? sub.category}
+                          {sub.payMethod && <span className="xl:hidden"> · {sub.payMethod}</span>}
+                        </span>
                       </div>
                     </td>
-                    <td><Badge tone={STATUS_TONE[sub.status]}>{STATUS_LABEL[sub.status]}</Badge></td>
+                    <td className="whitespace-nowrap"><Badge tone={STATUS_TONE[sub.status]}>{STATUS_LABEL[sub.status]}</Badge></td>
                     <td className="td-mono td-right">{amountText(sub)}<span className="text-[0.72rem] text-muted">/{CYCLE_LABEL[sub.cycle]}</span></td>
                     <td className="td-mono">
                       {dotDate(sub.nextPaymentDate)}
                       {dd !== null && dd >= 0 && <span className={`text-[0.75rem] ml-1 ${dd <= SOON_DAYS ? 'text-warning' : 'text-muted'}`}>D-{dd}</span>}
                     </td>
-                    <td className="td-muted">{sub.payMethod}</td>
+                    <td className="td-muted max-xl:hidden">{sub.payMethod}</td>
                     <td className={`td-mono ${stale ? 'text-warning' : 'td-muted'}`}>
                       {ago === null ? '-' : (
                         <span className="flex items-center gap-1.5">

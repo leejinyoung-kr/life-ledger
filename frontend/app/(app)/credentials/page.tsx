@@ -233,7 +233,7 @@ export default function CredentialsPage() {
                 </td>
                 <td className="text-muted">{c.category}</td>
                 <td className="td-mono">{c.username}</td>
-                <td><TwoFaMark on={c.has2fa} /></td>
+                <td className="whitespace-nowrap"><TwoFaMark on={c.has2fa} /></td>
                 <td className="td-mono text-muted">{fmtCredDate(c.updatedAt)}</td>
                 <td onClick={(e) => e.stopPropagation()}>
                   {/* 가계부 줄처럼 복사 · 수정 · 삭제를 바로 보인다 */}

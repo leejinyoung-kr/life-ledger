@@ -355,21 +355,13 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
 
       <div className="mb-6">
         <div className="table-wrap max-md:hidden">
+          {/* 1280 미만에서는 투자원금 칸을 숨기고 평가금액 아래 작은 줄로 옮긴다 — 종목 이름이 쪼개지지 않게 */}
           <table>
-            <colgroup>
-              <col style={{ width: '40px' }} />
-              <col />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '140px' }} />
-              <col style={{ width: '96px' }} />
-              <col style={{ width: '170px' }} />
-            </colgroup>
             <thead>
               <tr>
-                <th className="th-left"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
-                <th className="th-left">종목</th>
-                <th className="td-right">투자원금</th>
+                <th className="th-left w-10"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
+                <th className="th-left min-w-36">종목</th>
+                <th className="td-right max-xl:hidden">투자원금</th>
                 <th className="td-right">평가금액</th>
                 <th className="td-right">수익</th>
                 <th className="td-right">수익률</th>
@@ -394,8 +386,11 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                         <span className="text-[0.75rem] text-muted">{accountMap.get(row.accountId)?.name ?? '-'} · {INVEST_TYPE_LABEL[row.type]}</span>
                       </div>
                     </td>
-                    <td className="td-mono td-right text-muted">{fmtPrincipal(row)}</td>
-                    <td className="td-mono td-right">{fmtCurrentValue(row)}</td>
+                    <td className="td-mono td-right text-muted max-xl:hidden">{fmtPrincipal(row)}</td>
+                    <td className="td-mono td-right">
+                      {fmtCurrentValue(row)}
+                      <span className="xl:hidden block text-[0.72rem] text-muted">원금 {fmtPrincipal(row)}</span>
+                    </td>
                     <td className={`td-right amount-${profit.up ? 'income' : 'expense'}`}>{profit.text}</td>
                     <td className="td-right"><span className={`return-pill ${profit.up ? 'up' : 'down'}`}>{profit.up ? '+' : ''}{row.profitRate}%</span></td>
                     <td onClick={(ev) => ev.stopPropagation()}>

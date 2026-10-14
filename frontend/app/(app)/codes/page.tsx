@@ -259,7 +259,7 @@ export default function CodesPage() {
       {/* 종류 알약 — 모바일은 가로 스크롤, 데스크탑은 줄바꿈 */}
       <Segmented
         label="종류"
-        className="mb-4 max-md:overflow-x-auto max-md:flex-nowrap max-md:pb-1.5 md:flex-wrap"
+        className="mb-4 max-md:overflow-x-auto max-md:scrollbar-none max-md:flex-nowrap md:flex-wrap"
         value={domain}
         onChange={setDomain}
         items={DOMAINS.map((d) => ({ value: d.key, label: d.label }))}

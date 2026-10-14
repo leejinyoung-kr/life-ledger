@@ -3,9 +3,10 @@
 /**
  * 데스크톱 좌측 메뉴 (232px). 글자 로고 · 묶음별 메뉴 · 아래 사용자 줄(누르면 로그아웃).
  * 묶음(1차 메뉴)은 접혀 있고 누르면 항목(2차 메뉴)이 펼쳐진다. 지금 화면이 속한 묶음만 처음에 펼쳐 둔다.
- * 휴대폰에서는 숨기고 아래 메뉴 + '전체 메뉴' 시트(MoreSheet)가 대신한다.
+ * 1024 미만(휴대폰 · 태블릿)에서는 숨기고 아래 메뉴 + '전체 메뉴' 시트(MoreSheet)가 대신한다.
  */
 import { useState } from 'react';
+import Link from 'next/link';
 import { useApiQuery } from '@/lib/query';
 import { NAV, type NavSection } from '@/lib/nav';
 import { useUnreadCount } from '@/lib/useUnreadCount';
@@ -22,7 +23,7 @@ function CountBadge({ count }: { count: number }) {
 // 메뉴 한 줄 — 고른 메뉴는 둥근 옅은 초록 바탕 + 진한 초록 굵은 글자. sub 는 사이드바 2차 메뉴(들여 씀)
 export function NavLink({ href, icon, label, active, count, size = 'md', sub, onClick }: { href: string; icon: React.ReactNode; label: string; active: boolean; count?: number; size?: 'md' | 'lg'; sub?: boolean; onClick?: () => void }) {
   return (
-    <a
+    <Link
       href={href}
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
@@ -31,7 +32,7 @@ export function NavLink({ href, icon, label, active, count, size = 'md', sub, on
       {icon}
       <span className="flex-1">{label}</span>
       {count ? <CountBadge count={count} /> : null}
-    </a>
+    </Link>
   );
 }
 
@@ -112,10 +113,10 @@ export default function Sidebar({ activePath = '/dashboard', onLogout }: { activ
   });
 
   return (
-    <aside className="w-[var(--sidebar-w)] h-screen bg-background border-r border-border flex flex-col fixed top-0 left-0 z-[100] max-md:hidden">
-      <a href="/dashboard" className="h-[var(--header-h)] flex items-center px-5 border-b border-border shrink-0">
+    <aside className="w-[var(--sidebar-w)] h-screen bg-background border-r border-border flex flex-col fixed top-0 left-0 z-[100] max-lg:hidden">
+      <Link href="/dashboard" className="h-[var(--header-h)] flex items-center px-5 border-b border-border shrink-0">
         <Wordmark />
-      </a>
+      </Link>
 
       <nav className="flex-1 overflow-y-auto px-2.5 py-3.5 flex flex-col gap-1" aria-label="주 메뉴">
         {NAV.map((section) => section.label ? (

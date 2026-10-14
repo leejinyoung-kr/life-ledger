@@ -2,7 +2,8 @@
 
 /**
  * 공통 앱 레이아웃 셸 (Tailwind).
- * 데스크톱: 사이드바 + 상단바 + 본문(남은 너비를 꽉 채운다). 휴대폰: 상단바 + 본문 + 아래 메뉴 + '전체 메뉴' 시트.
+ * 데스크톱(≥1024): 사이드바 + 상단바 + 본문(남은 너비를 꽉 채운다). 휴대폰 · 태블릿: 상단바 + 본문 + 아래 메뉴 + '전체 메뉴' 시트.
+ * 셸만 lg 에서 나눈다 — 768 에 사이드바(232)를 두면 본문이 460px 남짓이라 표가 화면 밖으로 밀린다. 화면 안 요소는 그대로 md 기준.
  * 모든 인증 페이지(대시보드 등)가 이 셸로 콘텐츠를 감싼다.
  */
 import { useCallback, useState, type ReactNode } from 'react';
@@ -41,7 +42,7 @@ export default function AppShell({ activePath, onLogout, bare, children }: AppSh
     <>
       <div className="flex min-h-screen">
         <Sidebar activePath={activePath} onLogout={handleLogout} />
-        <div className="ml-[var(--sidebar-w)] flex-1 min-w-0 min-h-screen flex flex-col max-md:ml-0 max-md:pb-[calc(60px+env(safe-area-inset-bottom))]">
+        <div className="ml-[var(--sidebar-w)] flex-1 min-w-0 min-h-screen flex flex-col max-lg:ml-0 max-lg:pb-[calc(60px+env(safe-area-inset-bottom))]">
           <DemoBand />
           <TopBar />
           {bare ? children : <main className="w-full p-8 max-md:p-4 overflow-x-hidden">{children}</main>}

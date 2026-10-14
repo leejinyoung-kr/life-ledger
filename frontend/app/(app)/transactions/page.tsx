@@ -27,8 +27,14 @@ function TransactionsPageInner() {
   const searchParams = useSearchParams();
   // ?tab= 은 자산 종합의 자산 구성 줄 · 탭 전환(changeTab)이 넣는다. 모르는 값이면 첫 탭
   const tabParam = searchParams.get('tab');
-  const initialTab: TabId = tabParam === 'savings' || tabParam === 'invest' ? tabParam : 'ledger';
-  const [tab, setTab] = useState<TabId>(initialTab);
+  const urlTab: TabId = tabParam === 'savings' || tabParam === 'invest' ? tabParam : 'ledger';
+  const [tab, setTab] = useState<TabId>(urlTab);
+  // 같은 화면에서 주소만 바뀌면(예: 예적금 탭에서 메뉴의 가계부를 누름) 탭도 따라간다
+  const [prevUrlTab, setPrevUrlTab] = useState<TabId>(urlTab);
+  if (urlTab !== prevUrlTab) {
+    setPrevUrlTab(urlTab);
+    setTab(urlTab);
+  }
   const [addTrigger, setAddTrigger] = useState<Record<TabId, number>>({
     ledger: 0, savings: 0, invest: 0,
   });

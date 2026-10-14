@@ -1,8 +1,9 @@
 /**
  * 공통 아이콘 버튼 (Tailwind). label 은 접근성 이름이라 필수.
  * variant 로 모양, size 로 크기를 정한다 — className 은 배치용으로만 쓴다.
- * href 를 주면 <a> 로 렌더된다(상단바 알림 종처럼 이동하는 아이콘). 개수 점 등은 children 안에 absolute 로 얹는다.
+ * href 를 주면 Next Link 로 렌더된다(상단바 알림 종처럼 이동하는 아이콘 — 새로 불러오지 않고 화면만 바꾼다). 개수 점 등은 children 안에 absolute 로 얹는다.
  */
+import Link from 'next/link';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type Variant = 'ghost' | 'bordered' | 'danger' | 'handle' | 'overlay';
@@ -39,7 +40,7 @@ type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'aria-label
 export default function IconButton({ label, variant = 'ghost', size = 'md', href, className = '', type = 'button', children, ...rest }: IconButtonProps) {
   const cls = `${BASE} ${VARIANT[variant]} ${SIZE[size]} ${className}`.trim();
   if (href !== undefined) {
-    return <a href={href} aria-label={label} className={cls}>{children}</a>;
+    return <Link href={href} aria-label={label} className={cls}>{children}</Link>;
   }
   return (
     <button type={type} aria-label={label} className={cls} {...rest}>

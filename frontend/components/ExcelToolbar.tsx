@@ -1,6 +1,6 @@
 /**
  * 엑셀 양식 받기 · 올리기 · 내려받기 — 한 테두리로 이은 작은 버튼 묶음.
- * 목록 위 도구 줄(총 n건 · 선택삭제 · 개수)의 오른쪽에 같이 놓는다.
+ * 목록 위 도구 줄(총 n건 · 선택삭제 · 개수)의 오른쪽에 같이 놓는다. 휴대폰은 글자를 숨기고 아이콘만(글자는 화면 읽기용으로 남김).
  */
 import type { ChangeEvent, ReactNode } from 'react';
 import { Download, FileSpreadsheet, Upload } from 'lucide-react';
@@ -20,12 +20,12 @@ export default function ExcelToolbar({
 }) {
   return (
     <div role="group" aria-label="엑셀" className="inline-flex items-stretch h-[30px] rounded-ui border border-border bg-background divide-x divide-border overflow-hidden shrink-0">
-      <ExcelItem title="빈 엑셀 양식 받기" onClick={onDownloadTemplate}><FileSpreadsheet aria-hidden />양식</ExcelItem>
+      <ExcelItem title="빈 엑셀 양식 받기" onClick={onDownloadTemplate}><FileSpreadsheet aria-hidden /><span className="max-md:sr-only">양식</span></ExcelItem>
       <label className={ITEM} title="엑셀로 한꺼번에 추가">
-        <Upload aria-hidden />올리기
+        <Upload aria-hidden /><span className="max-md:sr-only">올리기</span>
         <input type="file" accept={accept} hidden aria-label="엑셀 업로드" onChange={onUpload} />
       </label>
-      <ExcelItem title="지금 조건의 목록을 엑셀로" onClick={onDownloadData}><Download aria-hidden />내려받기</ExcelItem>
+      <ExcelItem title="지금 조건의 목록을 엑셀로" onClick={onDownloadData}><Download aria-hidden /><span className="max-md:sr-only">내려받기</span></ExcelItem>
     </div>
   );
 }

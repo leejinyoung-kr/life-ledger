@@ -275,12 +275,13 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
     <>
       <ErrorBanner message={error} />
 
-      {/* 즐겨찾기 줄 — 왼쪽 이름 · 가운데 항목(누르면 오늘 날짜로 추가 창) · 오른쪽 끝 등록 · 관리 */}
-      <Card className="mb-6 px-4 py-3 flex items-center gap-x-3 gap-y-2 flex-wrap">
-        <span className="flex items-center gap-1.5 pr-3 border-r border-border-subtle text-[0.84rem] font-semibold text-primary shrink-0">
+      {/* 즐겨찾기 줄 — 왼쪽 이름 · 가운데 항목(누르면 오늘 날짜로 추가 창) · 오른쪽 끝 등록 · 관리.
+          휴대폰은 이름 · 등록 · 관리를 윗줄에 두고 항목을 아랫줄 전체 폭으로 내린다 (order 로 자리만 바꾼다) */}
+      <Card className="mb-6 px-4 py-3 flex items-center gap-x-3 gap-y-2.5 flex-wrap">
+        <span className="flex items-center gap-1.5 md:pr-3 md:border-r border-border-subtle text-[0.84rem] font-semibold text-primary shrink-0">
           <IconStar width={15} height={15} className="text-accent" />즐겨찾기
         </span>
-        <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+        <div className="order-last md:order-0 basis-full md:basis-0 md:flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
           {favorites.length === 0 && (
             <span className="text-[0.78rem] text-muted break-keep">자주 쓰는 수입 · 지출을 등록하면, 누를 때마다 오늘 날짜로 채운 추가 창이 열립니다.</span>
           )}
@@ -311,12 +312,14 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card>
+        {/* 두 칸일 때는 옆 자동이체 카드 높이만큼 늘어나므로 차트가 남는 높이를 채운다. 한 칸(휴대폰)은 200px */}
+        <Card className="flex flex-col">
           <CardHeader><CardTitle>월별 지출 추이</CardTitle></CardHeader>
-          <CardBody>
+          <CardBody className="h-[200px] md:h-auto md:flex-1 md:min-h-45">
             <BarChart
               label="월별 지출 추이"
               tone="out"
+              height="fill"
               items={trend.map((b) => {
                 const isCurrent = b.month === applied.to.slice(0, 7);
                 return { key: b.month, label: b.label, value: b.total, valueLabel: isCurrent ? won(b.total) : undefined, current: isCurrent };
@@ -329,7 +332,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
             <CardTitle>자동이체 설정</CardTitle>
             <Button size="sm" variant="ghost" onClick={() => setRecurringModal({ open: true })}><IconPlus />설정 추가</Button>
           </CardHeader>
-          <div className="max-h-66 overflow-y-auto">
+          <div className="md:max-h-66 md:overflow-y-auto">
             {recurring.length === 0 && <EmptyState size="sm" message="등록된 자동이체 설정이 없습니다." />}
             {recurring.map((r) => (
               <RecurringRow

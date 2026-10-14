@@ -51,8 +51,10 @@ const AMOUNT_TONE: Record<TransactionType, { cls: string; sign: string }> = {
 };
 
 // 본문 카드 네 개(월별 지출 · 고정지출 · 다가오는 날짜 · 최근 활동)의 높이 — 데스크톱에서 모두 같게, 넘치는 목록은 카드 안에서 스크롤.
-// 휴대폰은 한 줄에 하나라 내용 높이대로 두고, 차트만 높이를 준다
+// 휴대폰은 한 줄에 하나라 내용 높이대로 둔다
 const PANEL = 'md:h-[480px] min-w-0 flex flex-col';
+// 월별 지출 카드 — 두 칸으로 나란히 서는 xl 에서만 옆 카드 높이(480)에 맞추고, 한 줄에 하나일 때는 차트 260px 로 둔다
+const CHART_PANEL = 'xl:h-[480px] min-w-0 flex flex-col';
 const PANEL_SCROLL = 'flex-1 min-h-0 md:overflow-y-auto';
 
 interface UpcomingItem { key: string; date: string; title: string; marker: EvType; kind: string; dday: number }
@@ -115,6 +117,8 @@ export default function DashboardPage() {
 
   const s = summaryQuery.data ?? null;
   const forecast = forecastQuery.data ?? null;
+  // 고정지출 카드는 구독 · 반복지출이 하나라도 있을 때만 — 없으면 월별 지출이 줄을 다 쓴다
+  const hasForecast = !!forecast && (forecast.subscriptions.count > 0 || forecast.recurring.count > 0);
   const trend = trendQuery.data ?? [];
   const credTotal = credQuery.data?.total ?? null;
   const no2fa = credQuery.data?.no2fa ?? 0;
@@ -191,13 +195,13 @@ export default function DashboardPage() {
       </StatStrip>
 
       <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap gap-6">
-          <Card className={`flex-[2_1_520px] ${PANEL}`}>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <Card className={`${CHART_PANEL} ${hasForecast ? '' : 'xl:col-span-2'}`}>
             <CardHeader>
               <CardTitle>월별 지출</CardTitle>
               <Button href="/transactions" variant="link" size="inline" className="gap-0.5 text-[0.8125rem]">가계부<IconChevronRight /></Button>
             </CardHeader>
-            <CardBody className="flex-1 min-h-0 max-md:h-[280px]">
+            <CardBody className="h-[260px] xl:h-auto xl:flex-1 xl:min-h-0">
               <BarChart
                 label="월별 지출"
                 tone="out"
@@ -210,8 +214,8 @@ export default function DashboardPage() {
             </CardBody>
           </Card>
 
-          {forecast && (forecast.subscriptions.count > 0 || forecast.recurring.count > 0) && (
-            <Card className={`flex-[1_1_300px] ${PANEL}`}>
+          {hasForecast && forecast && (
+            <Card className={PANEL}>
               <CardHeader>
                 <CardTitle>다음 달 고정지출</CardTitle>
                 <span className="text-[0.75rem] text-muted">예측</span>
@@ -247,8 +251,8 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="flex flex-wrap gap-6">
-          <Card className={`flex-[2_1_520px] ${PANEL}`}>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <Card className={PANEL}>
             <CardHeader>
               <CardTitle>다가오는 날짜</CardTitle>
               <Button href="/calendar" variant="link" size="inline" className="gap-0.5 text-[0.8125rem]">{upcoming.length}건 · 캘린더<IconChevronRight /></Button>
@@ -269,7 +273,7 @@ export default function DashboardPage() {
             </div>
           </Card>
 
-          <Card className={`flex-[1_1_300px] ${PANEL}`}>
+          <Card className={PANEL}>
             <CardHeader>
               <CardTitle>최근 활동</CardTitle>
               <Button href="/transactions" variant="link" size="inline" className="gap-0.5 text-[0.8125rem]">가계부<IconChevronRight /></Button>

@@ -154,24 +154,15 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
 
       <div className="mb-6">
         <div className="table-wrap max-md:hidden">
+          {/* 1280 미만(사이드바 옆 본문 730px 안팎)에서는 월 납입 · 금리 칸을 숨기고 상품 아래 줄로 옮긴다 — 상품 이름이 세로로 쪼개지지 않게 */}
           <table>
-            <colgroup>
-              <col style={{ width: '40px' }} />
-              <col />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '110px' }} />
-              <col style={{ width: '72px' }} />
-              <col style={{ width: '170px' }} />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '128px' }} />
-            </colgroup>
             <thead>
               <tr>
-                <th className="th-left"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
-                <th className="th-left">상품</th>
+                <th className="th-left w-10"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
+                <th className="th-left min-w-36">상품</th>
                 <th className="td-right">잔액</th>
-                <th className="td-right">월 납입</th>
-                <th className="td-right">금리</th>
+                <th className="td-right max-xl:hidden">월 납입</th>
+                <th className="td-right max-xl:hidden">금리</th>
                 <th className="th-left"><span className="pl-6">만기일</span></th>
                 <th className="td-right">만기 예상액</th>
                 <th className="td-right"><span className="sr-only">관리</span></th>
@@ -191,12 +182,15 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                     <td>
                       <div className="flex flex-col leading-snug min-w-0">
                         <span>{c.name}</span>
-                        <span className="text-[0.75rem] text-muted">{c.bank} · {SAVING_TYPE_LABEL[c.type]}</span>
+                        <span className="text-[0.75rem] text-muted">
+                          {c.bank} · {SAVING_TYPE_LABEL[c.type]}
+                          <span className="xl:hidden"> · {c.interestRate}%{c.monthlyAmount > 0 ? ` · 월 ${won(c.monthlyAmount)}` : ''}</span>
+                        </span>
                       </div>
                     </td>
                     <td className="td-mono td-right">{won(c.balance)}</td>
-                    <td className="td-mono td-right text-muted">{c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-'}</td>
-                    <td className="td-mono td-right">{c.interestRate}%</td>
+                    <td className="td-mono td-right text-muted max-xl:hidden">{c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-'}</td>
+                    <td className="td-mono td-right max-xl:hidden">{c.interestRate}%</td>
                     {/* 만기일과 예상액을 한 칸에 쌓지 않고 나눈다 — 임박 · 만기됨은 날짜 옆 배지로 */}
                     <td className="td-mono">
                       {c.maturityDate ? (

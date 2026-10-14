@@ -23,7 +23,7 @@ export default function MoreSheet({ open, activePath, onClose, onLogout }: { ope
 
   if (!open) return null;
   return (
-    <div className="hidden max-md:flex fixed inset-0 z-[150] bg-backdrop items-end [animation:fadeIn_0.15s_ease]" onClick={onClose}>
+    <div className="hidden max-lg:flex fixed inset-0 z-[150] bg-backdrop items-end [animation:fadeIn_0.15s_ease]" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"

@@ -135,7 +135,7 @@ export default function GlobalSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex max-md:hidden items-center gap-2.5 w-[340px] max-w-[50%] h-9 px-2.5 border border-border rounded-ui text-muted text-[0.84rem] text-left transition-colors hover:border-muted"
+        className="flex max-lg:hidden items-center gap-2.5 w-[340px] max-w-[50%] h-9 px-2.5 border border-border rounded-ui text-muted text-[0.84rem] text-left transition-colors hover:border-border-hover"
         aria-label="통합 검색 열기"
       >
         <IconSearchBtn />
@@ -146,7 +146,7 @@ export default function GlobalSearch() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="hidden max-md:flex w-11 h-11 items-center justify-center rounded-ui text-muted shrink-0 hover:bg-hover [&_svg]:w-5 [&_svg]:h-5"
+        className="hidden max-lg:flex w-11 h-11 items-center justify-center rounded-ui text-muted shrink-0 hover:bg-hover [&_svg]:w-5 [&_svg]:h-5"
         aria-label="통합 검색 열기"
       >
         <IconSearchBtn />

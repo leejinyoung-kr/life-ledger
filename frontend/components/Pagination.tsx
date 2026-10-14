@@ -65,7 +65,7 @@ interface LimitSelectProps {
 export function LimitSelect({ limit, onLimitChange }: LimitSelectProps) {
   return (
     <select
-      className="input w-auto min-w-[72px] text-[0.82rem] shrink-0"
+      className="input input-sm w-auto min-w-[72px] shrink-0"
       value={limit}
       aria-label="페이지당 항목 수"
       onChange={(e) => onLimitChange(Number(e.target.value))}
