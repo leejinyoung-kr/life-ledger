@@ -3,7 +3,7 @@
 Object.assign(process.env, {
   NODE_ENV: 'test',
   FRONTEND_URL: 'http://localhost:3000',
-  DATABASE_URL: 'mysql://test:test@localhost:3306/docnexus_test',
+  DATABASE_URL: 'mysql://test:test@localhost:3306/lifeledger_test',
   JWT_SECRET: 'test-jwt-access-secret-0123456789abcdef',
   JWT_REFRESH_SECRET: 'test-jwt-refresh-secret-0123456789abcdef',
   JWT_VAULT_SECRET: 'test-jwt-vault-secret-0123456789abcdef',

@@ -2,7 +2,7 @@
 
 ## 이 프로젝트가 무엇인가
 
-자산 · 구독 · 계정 · 일정을 한곳에서 관리하는 개인 생활 장부 (2026-10 공개 준비 때 doc-nexus 에서 이름을 바꿨다 — DB · 사용자 이름 `docnexus` 와 B2 버킷은 그대로).
+자산 · 구독 · 계정 · 일정을 한곳에서 관리하는 개인 생활 장부 (2026-10 공개 준비 때 doc-nexus 에서 이름을 바꿨다 — B2 버킷 · 볼륨 이름은 그대로, DB · 사용자는 2026-10-15 `docnexus` → `lifeledger`).
 민감한 자격증명(계정 비밀번호 · 2FA 시크릿)을 AES-256-GCM 암호화로 저장하고, Google OAuth 또는 이메일 인증코드(`ALLOWED_EMAILS` 화이트리스트)로만 접근한다.
 전 엔드포인트는 전역 JWT 가드로 보호되며, 로그인(`@Public()`)만 예외다.
 
@@ -99,7 +99,7 @@ life-ledger/
 | 상태관리 | **TanStack Query(React Query)** — 서버 데이터 캐싱/무효화 (lib/query·queryKeys) |
 | Backend | NestJS 11, TypeScript |
 | ORM | Prisma |
-| DB | MariaDB — `infra` 레포의 공용 MariaDB(포트 13306), 데이터베이스 `docnexus` · 전용 사용자 `docnexus` |
+| DB | MariaDB — `infra` 레포의 공용 MariaDB(포트 13306), 데이터베이스 `lifeledger` · 전용 사용자 `lifeledger` |
 | 인증 | Google OAuth 2.0 + JWT (전역 가드) |
 | Rate-limit | `@nestjs/throttler` (reveal/totp/복호화·vault unlock 엄격 제한) |
 | 암호화 | AES-256-GCM (`CRYPTO_KEYS` 키링 + 필드·사용자 문맥(AAD), 보관함 민감필드) / 마스터 잠금은 scrypt 해시 |
@@ -166,7 +166,7 @@ cd backend && npx prisma generate
 누락하기 쉬워 자동화로 되돌림). `up -d` 전 점검이 실패하면 기존 컨테이너가 그대로 서비스한다.
 서버 `.env` 만 바꿨을 때(키 교체 등)는 Actions 에서 수동 실행(`workflow_dispatch`)한다.
 외부 접속은 앱 전용 Tailscale 사이드카(compose `tailscale`, 프로필 `homeserver`) `https://lifeledger.tailba78c1.ts.net` — `/` frontend · `/api` backend 가 같은 origin 이다(`tailscale/serve.json`, infra README "외부 접속"). 2026-10-10 전에는 홈서버 노드 Funnel 443(화면)·8443(API) 이었다.
-DB 는 이 워크플로가 다루지 않는다 — `infra` 레포(`~/apps/infra`)의 공용 MariaDB 이고 수동으로 띄운다. 루트 `.env` 의 `DB_PASSWORD` 는 `infra/.env` 의 `DOCNEXUS_DB_PASSWORD` 와 같아야 한다.
+DB 는 이 워크플로가 다루지 않는다 — `infra` 레포(`~/apps/infra`)의 공용 MariaDB 이고 수동으로 띄운다. 루트 `.env` 의 `DB_PASSWORD` 는 `infra/.env` 의 `LIFELEDGER_DB_PASSWORD` 와 같아야 한다.
 
 수동으로 다시 적용해야 할 때만 아래처럼 직접 실행한다.
 

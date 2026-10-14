@@ -10,6 +10,9 @@ import { createGzip } from 'zlib';
 import { env } from '../config/env';
 
 const RETENTION_DAYS = 30;
+// 백업 파일 이름 접두사. 2026-10-15 DB 이름을 바꾸기 전 덤프는 docnexus_ 로 남아 있어 보관 기간 정리에 같이 넣는다
+const BACKUP_PREFIX = 'lifeledger_';
+const PURGE_PREFIXES = [BACKUP_PREFIX, 'docnexus_'];
 
 // DATABASE_URL 에서 mariadb-dump 접속 정보 추출
 export function parseDbUrl(databaseUrl: string) {
@@ -37,7 +40,7 @@ export class DbBackupCronService {
     await mkdir(dir, { recursive: true });
 
     const date = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10); // KST 날짜
-    const filePath = join(dir, `docnexus_${date}.sql.gz`);
+    const filePath = join(dir, `${BACKUP_PREFIX}${date}.sql.gz`);
     const { host, port, user, password, database } = parseDbUrl(
       env.DATABASE_URL,
     );
@@ -79,7 +82,7 @@ export class DbBackupCronService {
     const files = await readdir(dir);
     let removed = 0;
     for (const f of files) {
-      if (!f.startsWith('docnexus_') || !f.endsWith('.sql.gz')) continue;
+      if (!PURGE_PREFIXES.some((p) => f.startsWith(p)) || !f.endsWith('.sql.gz')) continue;
       const full = join(dir, f);
       const info = await stat(full);
       if (info.mtimeMs < cutoff) {

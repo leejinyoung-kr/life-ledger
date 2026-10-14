@@ -11,7 +11,7 @@ import { DbBackupCronService, parseDbUrl } from './db-backup-cron.service';
 
 // env 는 동결 객체라 모듈째 바꾼다 — getter 로 두어 테스트마다 BACKUP_DIR 을 바꿀 수 있게
 const mockEnv: { BACKUP_DIR?: string; DATABASE_URL: string } = {
-  DATABASE_URL: 'mysql://root:secret@db:3306/docnexus',
+  DATABASE_URL: 'mysql://root:secret@db:3306/lifeledger',
 };
 jest.mock('../config/env', () => ({
   get env() {
@@ -46,7 +46,7 @@ describe('DbBackupCronService', () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'docnexus-backup-'));
+    dir = await mkdtemp(join(tmpdir(), 'lifeledger-backup-'));
     mockEnv.BACKUP_DIR = dir;
   });
 
@@ -56,12 +56,12 @@ describe('DbBackupCronService', () => {
   });
 
   it('DATABASE_URL 을 host/port/user/password/database 로 분해한다', () => {
-    const cfg = parseDbUrl('mysql://root:p%40ss@db:3306/docnexus');
-    expect(cfg).toEqual({ host: 'db', port: '3306', user: 'root', password: 'p@ss', database: 'docnexus' });
+    const cfg = parseDbUrl('mysql://root:p%40ss@db:3306/lifeledger');
+    expect(cfg).toEqual({ host: 'db', port: '3306', user: 'root', password: 'p@ss', database: 'lifeledger' });
   });
 
   it('포트 생략 시 3306 으로 기본값 처리한다', () => {
-    expect(parseDbUrl('mysql://root:secret@localhost/docnexus').port).toBe('3306');
+    expect(parseDbUrl('mysql://root:secret@localhost/lifeledger').port).toBe('3306');
   });
 
   describe('backup', () => {
@@ -73,7 +73,7 @@ describe('DbBackupCronService', () => {
       const summary = await svc().backup(c);
 
       const [file] = await readdir(dir);
-      expect(file).toMatch(/^docnexus_\d{4}-\d{2}-\d{2}\.sql\.gz$/);
+      expect(file).toMatch(/^lifeledger_\d{4}-\d{2}-\d{2}\.sql\.gz$/);
       expect(gunzipSync(await readFile(join(dir, file))).toString()).toBe('CREATE TABLE t;');
       expect(summary).toMatch(new RegExp(`^${file.replace(/\./g, '\\.')} \\(\\d+\\.\\dMB\\)$`));
       expect(jest.mocked(spawn).mock.calls[0][2]).toEqual({ signal: c.signal });
@@ -87,22 +87,26 @@ describe('DbBackupCronService', () => {
   });
 
   describe('purgeOld', () => {
-    it('30일 지난 백업 파일만 삭제하고 최근 파일·다른 파일은 보존한다', async () => {
-      const old = join(dir, 'docnexus_2026-01-01.sql.gz');
-      const recent = join(dir, 'docnexus_2026-06-10.sql.gz');
+    it('30일 지난 백업 파일만 삭제하고 최근 파일·다른 파일은 보존한다 — 옛 이름(docnexus_) 덤프도 정리한다', async () => {
+      const old = join(dir, 'lifeledger_2026-01-01.sql.gz');
+      const oldLegacy = join(dir, 'docnexus_2026-01-02.sql.gz');
+      const recent = join(dir, 'lifeledger_2026-06-10.sql.gz');
       const unrelated = join(dir, 'note.txt');
       await writeFile(old, 'old');
+      await writeFile(oldLegacy, 'old');
       await writeFile(recent, 'recent');
       await writeFile(unrelated, 'keep');
 
       const oldTime = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000);
       await utimes(old, oldTime, oldTime);
+      await utimes(oldLegacy, oldTime, oldTime);
 
-      expect(await (svc() as any).purgeOld(dir)).toBe(1);
+      expect(await (svc() as any).purgeOld(dir)).toBe(2);
 
       const left = await readdir(dir);
-      expect(left.sort()).toEqual(['docnexus_2026-06-10.sql.gz', 'note.txt']);
+      expect(left.sort()).toEqual(['lifeledger_2026-06-10.sql.gz', 'note.txt']);
       expect(existsSync(old)).toBe(false);
+      expect(existsSync(oldLegacy)).toBe(false);
     });
   });
 });
