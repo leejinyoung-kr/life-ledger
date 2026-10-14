@@ -28,7 +28,7 @@ import {
   type Category, type Saving, type SavingSummary, type SavingType,
 } from '@/lib/finance';
 import { toDay, useAddTrigger } from '../_shared';
-import { SEG_FILL, UnitInput } from './modalParts';
+import { UnitInput } from './modalParts';
 
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Saving; prefill?: Saving };
 
@@ -125,7 +125,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
           <StatCard icon={<IconBank />} tone="green" value={won(summary.totalBalance)} label="총 예적금" change="전체 잔액 합계" changeDir="neutral" />
           <StatCard icon={<IconWon />} tone="blue" value={won(summary.monthlyDeposit)} valueTone="move" label="이번 달 납입" change="⇄ 월 납입액 합계" changeDir="neutral" />
           <StatCard icon={<IconTrendUp />} tone="amber" value={`${summary.avgRate}%`} label="평균 금리" change="보유 상품 평균" changeDir="neutral" />
-          <StatCard icon={<IconAlertTriangle />} tone={summary.maturityNear > 0 ? 'red' : 'green'} value={`${summary.maturityNear}건`} label="만기 임박" change={summary.maturityNear > 0 ? '30일 이내 만기' : '이상 없음'} changeDir={summary.maturityNear > 0 ? 'down' : 'neutral'} />
+          <StatCard icon={<IconAlertTriangle />} tone={summary.maturityNear > 0 ? 'red' : 'green'} value={`${summary.maturityNear}건`} valueTone={summary.maturityNear > 0 ? 'warn' : undefined} label="만기 임박" change={summary.maturityNear > 0 ? '30일 이내 만기' : '이상 없음'} changeDir={summary.maturityNear > 0 ? 'down' : 'neutral'} />
         </StatStrip>
       )}
 
@@ -329,7 +329,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
         <Segmented
           label="유형"
           variant="joined"
-          className={SEG_FILL}
+          fill
           value={type}
           onChange={setType}
           items={[{ value: 'savings', label: '적금' }, { value: 'deposit', label: '예금' }, { value: 'subscription', label: '청약' }, { value: 'etc', label: '기타' }]}

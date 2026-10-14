@@ -17,7 +17,7 @@ import {
   type RecurringCycle, type WeekendAdjust, type RecurringSchedule,
 } from '@/lib/finance';
 import { toDay } from '../_shared';
-import { FormGroup, SEG_FILL, UnitInput } from './modalParts';
+import { FormGroup, UnitInput } from './modalParts';
 
 export type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Investment; prefill?: Investment };
 export type TradeState = { open: boolean; mode: 'buy' | 'sell'; target?: Investment };
@@ -307,7 +307,7 @@ export function InvestModal({ state, accounts, onClose, onSaved }: { state: Moda
           <Segmented
             label="유형"
             variant="joined"
-            className={SEG_FILL}
+            fill
             value={type}
             onChange={setType}
             items={[
@@ -346,7 +346,7 @@ export function InvestModal({ state, accounts, onClose, onSaved }: { state: Moda
             <Segmented
               label="수익 입력 방식"
               variant="joined"
-              className={SEG_FILL}
+              fill
               value={profitHelperMode}
               onChange={(m) => { setProfitHelperMode(m); setHelperResult(null); }}
               items={[{ value: 'amount', label: `수익(${isForeign ? '$' : '원'})` }, { value: 'rate', label: '수익률(%)' }]}
@@ -519,7 +519,7 @@ export function ExchangeModal({ state, onClose, onSaved }: { state: ExchangeModa
       <Segmented
         label="환전 방향"
         variant="joined"
-        className={SEG_FILL}
+        fill
         value={direction}
         onChange={(d) => { setDirection(d); clearError('amount'); }}
         items={[{ value: 'krw_to_usd', label: '원화 → 달러' }, { value: 'usd_to_krw', label: '달러 → 원화' }]}
@@ -689,7 +689,7 @@ export function RecurringInvestmentModal({ state, onClose, onSaved }: { state: R
           <Segmented
             label="회차당 매수 기준"
             variant="joined"
-            className={SEG_FILL}
+            fill
             value={recurringMode}
             onChange={setRecurringMode}
             items={[{ value: 'amount', label: '금액' }, { value: 'quantity', label: '수량(n주)' }]}

@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ConfirmModal from './ConfirmModal';
 import ErrorBanner from './ErrorBanner';
+import { IconLock } from './icons';
 import { api } from '@/lib/api';
 import { registerVaultUnlock, setVaultToken } from '@/lib/vault';
 
@@ -64,10 +65,10 @@ export default function VaultUnlockModal() {
       open
       layer="top"
       variant="primary"
-      icon={<span className="text-[28px]">🔒</span>}
-      title="보관함 잠금"
-      message="민감 정보를 보려면 마스터 비밀번호를 입력하세요."
-      confirmLabel="잠금 해제"
+      icon={<IconLock />}
+      title="보관함이 잠겨 있습니다"
+      message="마스터 비밀번호를 입력하면 하던 열람을 이어서 합니다."
+      confirmLabel="잠금 풀기"
       loading={busy}
       loadingLabel="확인 중..."
       confirmDisabled={!password}
@@ -75,7 +76,7 @@ export default function VaultUnlockModal() {
       onCancel={() => finish(false)}
     >
       <input
-        className="input text-center"
+        className="input"
         type="password"
         autoFocus
         value={password}
@@ -83,7 +84,7 @@ export default function VaultUnlockModal() {
         onChange={(e) => setPassword(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
       />
-      <ErrorBanner message={error} className="-mt-2" />
+      <ErrorBanner message={error} className="mt-0" />
     </ConfirmModal>
   );
 }

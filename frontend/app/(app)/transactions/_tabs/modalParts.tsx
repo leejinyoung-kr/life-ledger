@@ -1,7 +1,6 @@
 import type { InputHTMLAttributes, ReactNode } from 'react';
 
 // 짧은 선택지 묶음(Segmented joined)을 칸 너비에 꽉 채우는 배치용 클래스
-export const SEG_FILL = 'w-full [&>button]:flex-1 [&>button]:px-1';
 
 // 단위(₩ · $ · % · 주)가 안쪽에 붙는 숫자 입력칸 — 값은 오른쪽 정렬, 단위는 left 면 앞 · right 면 뒤
 export function UnitInput({ unit, side = 'left', ...rest }: { unit: string; side?: 'left' | 'right' } & Omit<InputHTMLAttributes<HTMLInputElement>, 'className'>) {

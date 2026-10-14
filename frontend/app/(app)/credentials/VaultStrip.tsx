@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
-import { clearVaultToken, getVaultToken, requestVaultUnlock } from '@/lib/vault';
+import { clearVaultToken, getVaultRemainingMs, requestVaultUnlock } from '@/lib/vault';
 import type { VaultStatus } from '@/lib/security';
 import Button from '@/components/ui/Button';
 import { IconLock, IconUnlock } from '@/components/icons';
@@ -11,11 +11,12 @@ import { IconLock, IconUnlock } from '@/components/icons';
 // 보관함 잠금 띠 — 마스터 잠금이 꺼짐 / 잠김 / 풀림 중 어느 쪽인지 보여 주고 풀기 · 잠그기를 한다
 export default function VaultStrip() {
   const statusQuery = useApiQuery<VaultStatus>(qk.security.vault(), '/security/vault');
-  const [unlocked, setUnlocked] = useState(() => getVaultToken() !== null);
+  const [remainMs, setRemainMs] = useState(() => getVaultRemainingMs());
+  const unlocked = remainMs > 0;
 
-  // 토큰은 메모리에만 있고 만료도 시간 경과로 일어나므로 1초마다 다시 읽는다
+  // 토큰은 메모리에만 있고 만료도 시간 경과로 일어나므로 1초마다 남은 시간을 다시 읽는다
   useEffect(() => {
-    const iv = setInterval(() => setUnlocked(getVaultToken() !== null), 1000);
+    const iv = setInterval(() => setRemainMs(getVaultRemainingMs()), 1000);
     return () => clearInterval(iv);
   }, []);
 
@@ -36,18 +37,25 @@ export default function VaultStrip() {
         tone="open"
         icon={<IconUnlock />}
         title="보관함 잠금이 풀려 있습니다"
-        sub={status.timeoutMin > 0 ? `풀린 뒤 ${status.timeoutMin}분이 지나면 다시 잠깁니다.` : '직접 잠그기 전까지 풀려 있습니다.'}
+        sub={`${formatRemain(remainMs)} 뒤 다시 잠깁니다.`}
       >
-        <Button variant="ghost" onClick={() => { clearVaultToken(); setUnlocked(false); }}><IconLock />지금 잠그기</Button>
+        <Button variant="ghost" onClick={() => { clearVaultToken(); setRemainMs(0); }}><IconLock />지금 잠그기</Button>
       </Strip>
     );
   }
 
   return (
     <Strip tone="locked" icon={<IconLock />} title="보관함이 잠겨 있습니다" sub="비밀번호나 2FA 시크릿을 열 때 마스터 비밀번호를 묻습니다.">
-      <Button variant="ghost" onClick={() => { requestVaultUnlock().then((ok) => { if (ok) setUnlocked(getVaultToken() !== null); }); }}><IconUnlock />잠금 풀기</Button>
+      <Button variant="ghost" onClick={() => { requestVaultUnlock().then((ok) => { if (ok) setRemainMs(getVaultRemainingMs()); }); }}><IconUnlock />잠금 풀기</Button>
     </Strip>
   );
+}
+
+// 남은 시간 'm분 ss초'
+function formatRemain(ms: number): string {
+  const sec = Math.ceil(ms / 1000);
+  const m = Math.floor(sec / 60);
+  return m > 0 ? `${m}분 ${String(sec % 60).padStart(2, '0')}초` : `${sec}초`;
 }
 
 const TONE = {

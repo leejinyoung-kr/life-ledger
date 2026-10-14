@@ -20,6 +20,11 @@ export function setVaultToken(token: string, expiresInSec: number): void {
   vaultExpiry = Date.now() + expiresInSec * 1000 - 5000;
 }
 
+// 다시 잠길 때까지 남은 시간(ms) — 잠겨 있으면 0 (잠금 띠의 남은 시간 표시용)
+export function getVaultRemainingMs(): number {
+  return getVaultToken() ? Math.max(0, vaultExpiry - Date.now()) : 0;
+}
+
 // 토큰 폐기(수동 잠금)
 export function clearVaultToken(): void {
   vaultToken = null;

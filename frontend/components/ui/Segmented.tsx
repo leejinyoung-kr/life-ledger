@@ -46,6 +46,7 @@ export default function Segmented<T extends string>({
   label,
   variant = 'solid',
   size = 'sm',
+  fill = false,
   className = '',
 }: {
   items: SegmentedItem<T>[];
@@ -56,11 +57,13 @@ export default function Segmented<T extends string>({
   variant?: Variant;
   /** joined 는 크기가 고정이라 무시된다 */
   size?: Size;
+  /** 줄 너비를 꽉 채우고 칸을 똑같이 나눈다 (창 안 고르기 칸) */
+  fill?: boolean;
   className?: string;
 }) {
   const it = ITEM[variant];
   return (
-    <div role="tablist" aria-label={label} className={`${LIST[variant]} ${className}`.trim()}>
+    <div role="tablist" aria-label={label} className={`${LIST[variant]} ${fill ? 'w-full' : ''} ${className}`.trim()}>
       {items.map((item) => {
         const active = item.value === value;
         return (
@@ -69,7 +72,7 @@ export default function Segmented<T extends string>({
             type="button"
             role="tab"
             aria-selected={active}
-            className={`${it.base} ${variant === 'joined' ? '' : SIZE[size]} ${active ? it.on : it.off}`}
+            className={`${it.base} ${variant === 'joined' ? '' : SIZE[size]} ${fill ? 'flex-1 px-1' : ''} ${active ? it.on : it.off}`}
             onClick={() => onChange(item.value)}
           >
             {item.label}

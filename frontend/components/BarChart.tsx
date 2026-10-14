@@ -2,7 +2,10 @@
  * 막대 차트 — 값 · 막대 · 이름표 영역을 나눠, 막대 높이가 실제 값 비율대로 그려진다(시안 점검 §3-1).
  * tone 은 막대의 뜻: out(지출 색) · neutral(글자색 계열). 이번 달(current) 막대만 진하게 칠한다.
  */
-export type BarItem = { key: string; label: string; value: number; valueLabel?: string; current?: boolean };
+import type { ReactNode } from 'react';
+
+// delta: 이름표 아래 증감 줄(▲▼ + 돈 색 글자) — 한 항목이라도 있으면 모든 막대에 줄 자리를 둔다
+export type BarItem = { key: string; label: string; value: number; valueLabel?: string; current?: boolean; delta?: ReactNode };
 
 const TONE = {
   out: { bar: 'bg-danger/25', current: 'bg-danger' },
@@ -18,6 +21,7 @@ export default function BarChart({ items, tone = 'neutral', height = 140, label 
   label: string;
 }) {
   const max = Math.max(1, ...items.map((it) => it.value));
+  const hasDelta = items.some((it) => it.delta != null);
   return (
     <div role="img" aria-label={label} className="flex gap-2.5 items-end">
       {items.map((it) => (
@@ -30,6 +34,7 @@ export default function BarChart({ items, tone = 'neutral', height = 140, label 
             />
           </div>
           <span className={`text-[0.72rem] ${it.current ? 'text-primary' : 'text-muted'}`}>{it.label}</span>
+          {hasDelta && <span className="text-[0.72rem] min-h-4 tabular-nums">{it.delta}</span>}
         </div>
       ))}
     </div>

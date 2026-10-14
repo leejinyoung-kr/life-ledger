@@ -1,11 +1,11 @@
 /**
  * 숫자 카드 — 따로 뜬 상자가 아니라 StatStrip 안에서 머리카락 선으로 나뉜 한 칸이다.
- * 금액 색은 돈의 뜻이 있을 때만 valueTone 으로 준다(수입 · 지출 · 자산이동). 그 밖의 금액은 글자색.
+ * 금액 색은 돈의 뜻이 있을 때만 valueTone 으로 준다(수입 · 지출 · 자산이동 · 임박 경고). 그 밖의 숫자는 글자색.
  */
 import type { ReactNode } from 'react';
 
 type Tone = 'green' | 'red' | 'blue' | 'amber';
-type ValueTone = 'in' | 'out' | 'move';
+type ValueTone = 'in' | 'out' | 'move' | 'warn';
 
 interface StatCardProps {
   icon: ReactNode;
@@ -31,6 +31,7 @@ const VALUE_TONE: Record<ValueTone, string> = {
   in: 'text-success',
   out: 'text-danger',
   move: 'text-blue',
+  warn: 'text-warning',
 };
 
 const CHANGE_TONE: Record<NonNullable<StatCardProps['changeDir']>, string> = {

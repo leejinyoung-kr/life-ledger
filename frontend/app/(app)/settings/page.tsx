@@ -12,7 +12,6 @@ import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
-import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { IconArchive, IconDownload, IconSend, IconUpload } from '@/components/icons';
 import ErrorBanner from '@/components/ErrorBanner';
 import QueryError from '@/components/QueryError';
@@ -233,12 +232,11 @@ export default function SettingsPage() {
           </SettingRow>
         </SettingGroup>
 
-        <Card clip className="border-t-2 border-t-danger">
-          <CardHeader><CardTitle>위험 구역</CardTitle></CardHeader>
+        <SettingGroup title="위험 구역" tone="danger">
           <SettingRow stack labelClass="danger" label="계정 삭제" desc="계정을 삭제하면 모든 데이터와 파일이 지워지고 되돌릴 수 없습니다.">
             <Button variant="danger" onClick={handleDeleteAccount}>계정 삭제</Button>
           </SettingRow>
-        </Card>
+        </SettingGroup>
       </div>
       {confirmElement}
     </AppShell>

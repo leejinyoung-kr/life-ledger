@@ -7,7 +7,7 @@
  * 날짜를 누르면 오른쪽(휴대폰은 아래)에 그날 목록과 추가 버튼이 열린다.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { IconCalendarPlus, IconChevronRight, IconClose, IconEdit, IconExternal, IconLink, IconMoon, IconPlus } from '@/components/icons';
+import { IconCalendarPlus, IconChevronLeft, IconChevronRight, IconClose, IconEdit, IconExternal, IconLink, IconMoon, IconPlus } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { withEulReul } from '@/lib/korean';
 import { useApiQuery, useInvalidate } from '@/lib/query';
@@ -185,7 +185,7 @@ export default function CalendarPage() {
         <div className="flex flex-col gap-2.5 min-w-0">
           {/* 월 이동 */}
           <div className="flex items-center gap-1.5">
-            <IconButton label="이전 달" variant="bordered" size="lg" onClick={() => handleMoveMonth(-1)}><IconChevronRight className="rotate-180" /></IconButton>
+            <IconButton label="이전 달" variant="bordered" size="lg" onClick={() => handleMoveMonth(-1)}><IconChevronLeft /></IconButton>
             <span className="[font-family:var(--font-display)] text-[1.375rem] font-semibold px-2 lining-nums text-primary">
               {view ? `${view.year}년 ${view.month + 1}월` : ''}
             </span>

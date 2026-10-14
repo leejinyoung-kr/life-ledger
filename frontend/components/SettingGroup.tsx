@@ -7,11 +7,11 @@
 import type { ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 
-// 설정 그룹 (헤더 + 행 묶음)
-export function SettingGroup({ title, children }: { title: string; children: ReactNode }) {
+// 설정 그룹 (헤더 + 행 묶음). tone="danger" 는 위험 구역 — 위쪽 지출 색 선 + 지출 색 제목
+export function SettingGroup({ title, tone, children }: { title: string; tone?: 'danger'; children: ReactNode }) {
   return (
-    <Card clip>
-      <div className="px-[18px] py-3.5 border-b border-border-subtle [font-family:var(--font-display)] font-semibold text-[1.1875rem] leading-tight lining-nums text-primary">{title}</div>
+    <Card clip tone={tone}>
+      <div className={`px-[18px] py-3.5 border-b border-border-subtle [font-family:var(--font-display)] font-semibold text-[1.1875rem] leading-tight lining-nums ${tone === 'danger' ? 'text-danger' : 'text-primary'}`}>{title}</div>
       {children}
     </Card>
   );

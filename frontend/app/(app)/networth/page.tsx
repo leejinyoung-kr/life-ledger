@@ -70,19 +70,13 @@ export default function NetworthPage() {
           <BarChart
             label="순자산 추이"
             height={180}
-            items={trend.map((t) => ({ key: t.month, label: t.label, value: t.netWorth, valueLabel: `₩${millionsLabel(t.netWorth)}`, current: t.current }))}
-          />
-          {/* BarChart 와 같은 칸 배치 — 막대 아래에 늘어난 달 ▲ 수입 색, 줄어든 달 ▼ 지출 색 */}
-          <div className="flex gap-2.5" aria-hidden>
-            {trend.map((t, i) => {
+            items={trend.map((t, i) => {
+              // 막대 아래 전월 대비 — 늘어난 달 ▲ 수입 색, 줄어든 달 ▼ 지출 색
               const d = i === 0 ? null : Math.round((t.netWorth - trend[i - 1].netWorth) / 1_000_000);
-              return (
-                <span key={t.month} className={`flex-1 min-w-0 text-center text-[0.72rem] tabular-nums min-h-4 ${d === null ? '' : d >= 0 ? 'text-success' : 'text-danger'}`}>
-                  {d === null ? '' : `${d >= 0 ? '▲' : '▼'} ${Math.abs(d)}M`}
-                </span>
-              );
+              const delta = d === null ? undefined : <span className={d >= 0 ? 'text-success' : 'text-danger'}>{`${d >= 0 ? '▲' : '▼'} ${Math.abs(d)}M`}</span>;
+              return { key: t.month, label: t.label, value: t.netWorth, valueLabel: `₩${millionsLabel(t.netWorth)}`, current: t.current, delta };
             })}
-          </div>
+          />
         </div>
       </Card>
 

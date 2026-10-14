@@ -6,6 +6,14 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { clickable } from '@/lib/a11y';
 
 type CardHover = 'lift' | 'accent' | 'tile';
+type CardTone = 'default' | 'accent' | 'danger';
+
+// tone: accent 는 고른 카드(금빛 테두리), danger 는 위험 구역(위쪽 지출 색 선)
+const TONE: Record<CardTone, string> = {
+  default: 'border-border',
+  accent: 'border-accent',
+  danger: 'border-border border-t-2 border-t-danger',
+};
 
 // hover: 누를 수 있는 카드는 테두리만 금빛(lift · accent), tile 은 옅은 금빛 바탕까지(폴더 타일)
 const HOVER: Record<CardHover, string> = {
@@ -21,11 +29,13 @@ export function Card({
   onClick,
   className = '',
   children,
+  tone,
   ...rest
-}: Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> & { clip?: boolean; hover?: CardHover; onClick?: () => void }) {
+}: Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> & { clip?: boolean; hover?: CardHover; onClick?: () => void; tone?: CardTone }) {
   const h = hover ?? (onClick ? 'accent' : undefined);
   const cls = [
-    'border border-border rounded-ui',
+    'border rounded-ui',
+    TONE[tone ?? 'default'],
     clip ? 'overflow-hidden' : '',
     onClick ? 'cursor-pointer' : '',
     h ? HOVER[h] : '',

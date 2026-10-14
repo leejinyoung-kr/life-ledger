@@ -200,8 +200,8 @@ docker compose exec backend npx prisma migrate deploy
   | 버튼 / 아이콘 버튼 | `ui/Button` (`variant` · `size` · `loading`, 글줄 안 링크는 `variant="link" size="inline"`) / `ui/IconButton` (`label` 필수, `variant` · `size`) |
   | 검색 입력 | `ui/SearchInput` (`onEnter`) |
   | 입력 그룹 · 오류 | `ui/Field` — `error` 가 있으면 안의 `.input` 이 자동으로 빨개진다. `is-invalid` 를 손으로 붙이지 않는다 (Field 밖은 `aria-invalid`) |
-  | 탭 | 밑줄 · 세로 `ui/Tabs`, 알약 · 묶음 `ui/Segmented` (`role="tablist"`) |
-  | 카드 / 배지 / 토글 | `ui/Card`(`clip` · `hover` · `onClick`) / `ui/Badge`(`tone` · `size`) / `ui/Toggle` |
+  | 탭 | 밑줄 · 세로 `ui/Tabs`, 알약 · 묶음 `ui/Segmented` (`role="tablist"`, 창 안에서 칸을 꽉 채우려면 `fill`) |
+  | 카드 / 배지 / 토글 | `ui/Card`(`clip` · `hover` · `onClick` · `tone` accent · danger) / `ui/Badge`(`tone` · `size`, 상태에만) / `ui/Toggle` |
   | 모달 | `Modal`(`size` · `subtitle` · `headerAction` · `footer`) · `ConfirmModal`(확인 · 입력이 붙는 확인은 `children` · `layer`) |
   | 빈 상태 · 로딩 · 오류 | `EmptyState`(`size`) · `QueryState` / `PageLoading`(`size`) · `ErrorBanner` · `QueryError`, 테이블 빈 행은 `TableEmptyRow` |
   | 조회 조건 박스 / 엑셀 버튼 줄 | `FilterPanel` / `ExcelToolbar` |
