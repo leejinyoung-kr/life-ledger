@@ -2,8 +2,7 @@
 
 /**
  * 설정 페이지.
- * 좌측 탭(프로필/데이터)으로 분기한다. 데이터는 백엔드 API(/settings)와 연동한다.
- * 스타일: Tailwind + 공통 컴포넌트(Button/Badge/Toggle).
+ * 내 계정 · 알림 · 데이터 · 위험 구역을 한 페이지에 위아래로 묶는다. 데이터는 백엔드 API(/settings)와 연동한다.
  */
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -13,7 +12,8 @@ import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
-import Tabs from '@/components/ui/Tabs';
+import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
+import { IconArchive, IconDownload, IconSend, IconUpload } from '@/components/icons';
 import ErrorBanner from '@/components/ErrorBanner';
 import QueryError from '@/components/QueryError';
 import { PageLoading } from '@/components/QueryState';
@@ -27,16 +27,9 @@ import type { Settings } from '@/lib/settings';
 import { SettingGroup, SettingRow } from '@/components/SettingGroup';
 import { useSettingsPatch } from '@/lib/useSettingsPatch';
 
-type TabId = 'profile' | 'data';
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'profile', label: '프로필' },
-  { id: 'data', label: '데이터' },
-];
-
 export default function SettingsPage() {
   const router = useRouter();
   const { confirm, confirmElement } = useConfirm();
-  const [tab, setTab] = useState<TabId>('profile');
   const settingsQuery = useApiQuery<Settings>(qk.settings.detail(), '/settings');
   const s = settingsQuery.data ?? null;
   const error = settingsQuery.error?.message ?? null;
@@ -179,109 +172,73 @@ export default function SettingsPage() {
 
       <ErrorBanner message={error} />
 
-      <div className="grid grid-cols-[192px_1fr] gap-7 items-start max-md:grid-cols-1">
-        {/* 탭 네비 */}
-        <div className="relative max-md:static">
-          <Tabs
-            label="설정"
-            variant="vertical"
-            className="sticky top-[calc(var(--header-h)+28px)] max-md:static"
-            value={tab}
-            onChange={setTab}
-            items={TABS.map((t) => ({ value: t.id, label: t.label }))}
-          />
-          <div className="hidden max-md:block absolute top-0 right-0 bottom-0 w-6 rounded-r-lg bg-linear-to-l from-background to-transparent pointer-events-none" />
-        </div>
+      <div className="flex flex-col gap-6 max-w-205">
+        <SettingGroup title="내 계정">
+          <div className="flex items-center gap-3.5 px-4.5 py-4 border-b border-border-subtle">
+            <span className="w-12 h-12 rounded-full border border-accent text-accent-dark flex items-center justify-center text-[1.125rem] shrink-0">{(s.displayName || s.user.name || '?').charAt(0)}</span>
+            <div className="flex-1 min-w-0 leading-snug">
+              <div className="font-semibold text-primary truncate">{s.displayName}</div>
+              <div className="text-[0.8125rem] text-muted truncate">{s.user.email}</div>
+            </div>
+            <Badge tone="success">Google 연결됨</Badge>
+          </div>
+          <SettingRow stack label="표시 이름" desc="대시보드 상단에 표시되는 이름">
+            <input type="text" className="input flex-1 min-w-0 sm:w-50 sm:flex-none" value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="표시 이름" />
+            <Button onClick={() => patch({ displayName })}>저장</Button>
+          </SettingRow>
+        </SettingGroup>
 
-        <div className="flex flex-col gap-4">
-          {/* ── 프로필 ── */}
-          {tab === 'profile' && (
-            <>
-              <SettingGroup title="내 계정">
-                <div className="flex items-center gap-5 p-5">
-                  <div className="w-15 h-15 rounded-full bg-accent-dim border-2 border-accent flex items-center justify-center [font-family:var(--font-display)] text-[1.4rem] font-extrabold text-accent shrink-0">{(s.displayName || s.user.name || '?').charAt(0)}</div>
-                  <div>
-                    <div className="font-semibold text-primary text-[0.95rem]">{s.displayName}</div>
-                    <div className="text-[0.82rem] text-muted mt-0.5">{s.user.email}</div>
-                    <div className="mt-2.5"><Badge tone="success">Google 연결됨</Badge></div>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2.5 px-5 py-3.5 border-b border-border-subtle last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-                  <div className="min-w-0">
-                    <div className="text-[0.875rem] font-medium text-primary">표시 이름</div>
-                    <div className="text-[0.78rem] text-muted mt-0.5">대시보드 상단에 표시되는 이름</div>
-                  </div>
-                  <div className="flex items-center gap-2.5 sm:shrink-0">
-                    <input type="text" className="input flex-1 min-w-0 sm:w-45 sm:flex-none" value={displayName} onChange={(e) => setDisplayName(e.target.value)} aria-label="표시 이름" />
-                    <Button onClick={() => patch({ displayName })}>저장</Button>
-                  </div>
-                </div>
-              </SettingGroup>
-              <SettingGroup title="알림">
-                {pushSupported && (
-                  <SettingRow
-                    label="푸시 알림 (이 기기)"
-                    desc={
-                      pushServerReady
-                        ? '브라우저를 닫아도 만기·결제·보안 알림을 푸시로 받습니다.'
-                        : '서버에 푸시 키(VAPID)가 설정되지 않아 사용할 수 없습니다.'
-                    }
-                  >
-                    <div className="flex items-center gap-2">
-                      {pushOn && (
-                        <Button variant="ghost" size="sm" onClick={handleTestPush} disabled={pushBusy}>
-                          테스트 발송
-                        </Button>
-                      )}
-                      <Toggle on={pushOn} onToggle={handleTogglePush} disabled={!pushServerReady || pushBusy} />
-                    </div>
-                  </SettingRow>
-                )}
-                <SettingRow label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
-                  <Toggle on={s.notifMaturity} onToggle={() => handleToggleNotif('notifMaturity')} />
-                </SettingRow>
-                <SettingRow label="파일 업로드 완료 알림" desc="파일 업로드 시 알림 표시">
-                  <Toggle on={s.notifUpload} onToggle={() => handleToggleNotif('notifUpload')} />
-                </SettingRow>
-              </SettingGroup>
-            </>
+        <SettingGroup title="알림">
+          {pushSupported && (
+            <SettingRow
+              label="푸시 알림 (이 기기)"
+              desc={
+                pushServerReady
+                  ? '브라우저를 닫아도 만기·결제·보안 알림을 푸시로 받습니다.'
+                  : '서버에 푸시 키(VAPID)가 설정되지 않아 사용할 수 없습니다.'
+              }
+            >
+              {pushOn && (
+                <Button variant="ghost" size="sm" onClick={handleTestPush} disabled={pushBusy}>
+                  <IconSend />테스트 발송
+                </Button>
+              )}
+              <Toggle on={pushOn} onToggle={handleTogglePush} disabled={!pushServerReady || pushBusy} />
+            </SettingRow>
           )}
+          <SettingRow label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
+            <Toggle on={s.notifMaturity} onToggle={() => handleToggleNotif('notifMaturity')} />
+          </SettingRow>
+          <SettingRow label="파일 업로드 완료 알림" desc="파일 업로드 시 알림 표시">
+            <Toggle on={s.notifUpload} onToggle={() => handleToggleNotif('notifUpload')} />
+          </SettingRow>
+        </SettingGroup>
 
-          {/* ── 데이터 ── */}
-          {tab === 'data' && (
-            <>
-              <SettingGroup title="데이터 내보내기">
-                <SettingRow label="가계부 데이터" desc="전체 거래 내역을 엑셀(.xlsx)로 다운로드">
-                  <Button variant="ghost" onClick={() => exportData('/transactions/export', '가계부.xlsx')}>엑셀 다운로드</Button>
-                </SettingRow>
-                <SettingRow label="계정 보관함" desc="암호화된 JSON 형태로 백업 (같은 계정으로만 복원)">
-                  <Button variant="ghost" onClick={() => exportData('/export/credentials', '계정백업.json')}>JSON 백업</Button>
-                </SettingRow>
-                <SettingRow label="전체 백업" desc="모든 데이터·메모를 ZIP으로 다운로드">
-                  <Button variant="ghost" onClick={() => exportData('/export/backup', 'life-ledger-백업.zip')}>ZIP 다운로드</Button>
-                </SettingRow>
-              </SettingGroup>
+        <SettingGroup title="데이터">
+          <SettingRow stack label="가계부 데이터" desc="전체 거래 내역을 엑셀(.xlsx)로 다운로드">
+            <Button variant="ghost" size="sm" onClick={() => exportData('/transactions/export', '가계부.xlsx')}><IconDownload />엑셀 다운로드</Button>
+          </SettingRow>
+          <SettingRow stack label="계정 보관함" desc="암호화된 JSON 으로 백업합니다. 복원은 같은 계정의 백업만, 현재 보관함에 추가됩니다 (덮어쓰지 않음).">
+            <Button variant="ghost" size="sm" onClick={() => exportData('/export/credentials', '계정백업.json')}><IconDownload />JSON 백업</Button>
+            <label className="excel-btn upload border border-border">
+              <IconUpload width={15} height={15} />JSON 복원
+              <input type="file" accept=".json,application/json" hidden onChange={handleImportCredentials} />
+            </label>
+          </SettingRow>
+          <SettingRow stack label="전체 백업" desc="모든 데이터·메모를 ZIP으로 다운로드">
+            <Button variant="ghost" size="sm" onClick={() => exportData('/export/backup', 'life-ledger-백업.zip')}><IconArchive />ZIP 다운로드</Button>
+          </SettingRow>
+          <SettingRow stack label="가계부 가져오기" desc="거래 내역 엑셀(.xlsx)은 가계부 페이지에서 업로드합니다.">
+            <Button variant="ghost" size="sm" href="/transactions">가계부로 이동</Button>
+          </SettingRow>
+        </SettingGroup>
 
-              <SettingGroup title="데이터 가져오기">
-                <SettingRow label="계정 보관함 복원" desc="JSON 백업을 현재 보관함에 추가 (같은 계정의 백업만 · 덮어쓰지 않음)">
-                  <label className="excel-btn upload">
-                    JSON 복원
-                    <input type="file" accept=".json,application/json" hidden onChange={handleImportCredentials} />
-                  </label>
-                </SettingRow>
-                <SettingRow label="가계부 가져오기" desc="거래 내역 엑셀(.xlsx)은 가계부 페이지에서 업로드합니다.">
-                  <Button variant="ghost" href="/transactions">가계부로 이동</Button>
-                </SettingRow>
-              </SettingGroup>
-              <div className="bg-background border border-danger/20 rounded-panel overflow-hidden shadow-card">
-                <div className="px-5 py-3.5 border-b border-danger/15 [font-family:var(--font-display)] font-bold text-[0.875rem] text-danger bg-danger-dim">위험 구역</div>
-                <SettingRow labelClass="danger" label="계정 삭제" desc="모든 데이터가 영구 삭제됩니다. 되돌릴 수 없습니다.">
-                  <Button variant="danger" onClick={handleDeleteAccount}>계정 삭제</Button>
-                </SettingRow>
-              </div>
-            </>
-          )}
-        </div>
+        <Card clip className="border-t-2 border-t-danger">
+          <CardHeader><CardTitle>위험 구역</CardTitle></CardHeader>
+          <SettingRow stack labelClass="danger" label="계정 삭제" desc="계정을 삭제하면 모든 데이터와 파일이 지워지고 되돌릴 수 없습니다.">
+            <Button variant="danger" onClick={handleDeleteAccount}>계정 삭제</Button>
+          </SettingRow>
+        </Card>
       </div>
       {confirmElement}
     </AppShell>

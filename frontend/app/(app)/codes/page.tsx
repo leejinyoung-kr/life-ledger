@@ -4,7 +4,7 @@
  * 코드 관리 페이지.
  * 가계부 카테고리·결제수단 등 앱 전역 선택박스 항목을 도메인별로 관리한다.
  * @dnd-kit 으로 드래그 순서 변경 → 순서가 바뀐 항목만 PATCH 호출(최소 요청).
- * 스타일: Tailwind + 공통 컴포넌트(Button/Card). 드래그 transform 은 dnd-kit inline style.
+ * 드래그 transform 은 dnd-kit inline style.
  */
 import { Fragment, useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { useConfirm } from '@/components/ConfirmModal';
@@ -29,9 +29,11 @@ import PageHeader from '@/components/PageHeader';
 import EmptyState from '@/components/EmptyState';
 import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
+import MoreMenu from '@/components/ui/MoreMenu';
+import Badge from '@/components/ui/Badge';
 import Segmented from '@/components/ui/Segmented';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
-import { IconDrag, IconPlus } from '@/components/icons';
+import { IconBan, IconDrag, IconEdit, IconPlay, IconPlus, IconRefresh, IconTrash } from '@/components/icons';
 import { api } from '@/lib/api';
 import { PageLoading } from '@/components/QueryState';
 
@@ -252,11 +254,11 @@ export default function CodesPage() {
 
   return (
     <AppShell activePath="/codes">
-      <PageHeader title="코드 관리" description="선택박스 항목을 도메인별로 관리합니다. 드래그로 순서를 변경할 수 있습니다." />
+      <PageHeader title="코드 관리" description="선택박스 항목을 종류별로 관리합니다. 끌어서 순서를 바꿉니다." />
 
-      {/* 도메인 탭 — 모바일은 가로 스크롤, 데스크탑은 줄바꿈 */}
+      {/* 종류 알약 — 모바일은 가로 스크롤, 데스크탑은 줄바꿈 */}
       <Segmented
-        label="도메인"
+        label="종류"
         className="mb-4 max-md:overflow-x-auto max-md:flex-nowrap max-md:pb-1.5 md:flex-wrap"
         value={domain}
         onChange={setDomain}
@@ -264,17 +266,16 @@ export default function CodesPage() {
       />
 
       <Card>
-        {/* 카드 헤더 — 모바일은 세로로 쌓고 버튼은 우측 정렬 */}
-        <CardHeader className="max-md:flex-col max-md:items-start max-md:gap-2">
-          <div>
+        <CardHeader>
+          <div className="flex flex-col min-w-0">
             <CardTitle>{currentDomain.label}</CardTitle>
-            <span className="text-[0.78rem] text-muted ml-2.5">{currentDomain.desc}</span>
+            <span className="text-xs text-muted">{currentDomain.desc}{hierDomain ? ' · 대분류 › 소분류' : ''}</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleSeed} className="max-md:self-end">기본값 복원</Button>
+          <Button variant="ghost" size="sm" onClick={handleSeed}><IconRefresh />기본값 복원</Button>
         </CardHeader>
 
         {/* 항목 목록 (드래그 가능) */}
-        <div className="border-t border-border-subtle">
+        <div>
           {loading && <PageLoading size="sm" />}
 
           {!loading && items.length === 0 && (
@@ -290,8 +291,8 @@ export default function CodesPage() {
                   <SortableContext items={parentItems.map((p) => p.id)} strategy={verticalListSortingStrategy}>
                     {parentItems.map((p) => (
                       <Fragment key={p.id}>
-                        <SortableGroupRow
-                          item={p} isParent
+                        <SortableRow
+                          item={p} level="parent"
                           editingId={editingId} editLabel={editLabel} onEditLabelChange={setEditLabel}
                           onEdit={(it) => { setEditingId(it.id); setEditLabel(it.label); }}
                           onEditSave={() => saveEdit(p.id)} onEditCancel={() => setEditingId(null)}
@@ -300,8 +301,8 @@ export default function CodesPage() {
                         {/* 같은 대분류 안 소분류끼리 정렬 */}
                         <SortableContext items={childrenOf(p.code).map((c) => c.id)} strategy={verticalListSortingStrategy}>
                           {childrenOf(p.code).map((c) => (
-                            <SortableGroupRow
-                              key={c.id} item={c}
+                            <SortableRow
+                              key={c.id} item={c} level="child"
                               editingId={editingId} editLabel={editLabel} onEditLabelChange={setEditLabel}
                               onEdit={(it) => { setEditingId(it.id); setEditLabel(it.label); }}
                               onEditSave={() => saveEdit(c.id)} onEditCancel={() => setEditingId(null)}
@@ -324,11 +325,11 @@ export default function CodesPage() {
                   items={items.map((i) => i.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {items.map((item, idx) => (
+                  {items.map((item) => (
                     <SortableRow
                       key={item.id}
                       item={item}
-                      idx={idx}
+                      level="flat"
                       editingId={editingId}
                       editLabel={editLabel}
                       onEditLabelChange={setEditLabel}
@@ -346,8 +347,7 @@ export default function CodesPage() {
         </div>
 
         {/* 추가 폼 — 모바일은 세로 스택(입력란들 → 추가 버튼), 데스크탑은 한 줄 */}
-        <div className="flex flex-col gap-2 px-5 py-3 border-t border-border-subtle bg-surface md:flex-row md:items-center">
-          <IconPlus width={14} height={14} className="text-muted shrink-0 max-md:hidden" />
+        <div className="flex flex-col gap-2 px-4.5 py-3 border-t border-border md:flex-row md:items-center">
           {hierDomain && (
             <select
               className="input max-md:w-full md:w-auto! md:min-w-[120px] shrink-0"
@@ -376,9 +376,9 @@ export default function CodesPage() {
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             aria-label="표시명"
           />
-          <Button className="max-md:w-full" onClick={handleAdd} disabled={saving}>추가</Button>
+          <Button className="max-md:w-full" onClick={handleAdd} disabled={saving}><IconPlus />추가</Button>
         </div>
-        <p className="px-5 pt-3 pb-3 text-[0.82rem] text-muted">코드는 영문 소문자·숫자·언더바만 사용 (예: public_transport)</p>
+        <p className="px-4.5 pb-3 text-xs text-muted">코드는 영문 소문자·숫자·언더바만 사용 (예: public_transport)</p>
       </Card>
       {confirmElement}
     </AppShell>
@@ -386,9 +386,10 @@ export default function CodesPage() {
 }
 
 // ── 드래그 가능한 항목 행 ─────────────────────────────────────────────────
+// level: flat=평면 목록, parent=가계부 대분류(굵게), child=가계부 소분류(들여쓰기)
 interface SortableRowProps {
   item: CodeItem;
-  idx: number;
+  level: 'flat' | 'parent' | 'child';
   editingId: number | null;
   editLabel: string;
   onEditLabelChange: (v: string) => void;
@@ -399,8 +400,9 @@ interface SortableRowProps {
   onDelete: (id: number) => void;
 }
 
+// 정렬 가능한 코드 한 줄 — 표시명이 주인공, 코드는 흐리게, 관리는 더보기 메뉴
 function SortableRow({
-  item, idx,
+  item, level,
   editingId, editLabel, onEditLabelChange,
   onEdit, onEditSave, onEditCancel,
   onToggle, onDelete,
@@ -411,93 +413,18 @@ function SortableRow({
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.4 : 1,
-    zIndex: isDragging ? 1 : undefined,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} className={`flex flex-wrap items-center gap-2.5 px-5 py-2.5 border-b border-border-subtle last:border-b-0 bg-background transition-colors hover:bg-surface ${item.isActive ? '' : 'opacity-55'}`}>
-      {/* 순서 번호 */}
-      <span className="min-w-6 text-[0.72rem] font-bold text-muted text-right [font-family:var(--font-mono)] shrink-0">{idx + 1}</span>
-
-      {/* 드래그 핸들 */}
-      <IconButton label="순서 변경" variant="handle" {...attributes} {...listeners}>
-        <IconDrag width={14} height={14} />
-      </IconButton>
-
-      {/* 인라인 편집 / 표시 */}
-      {editingId === item.id ? (
-        <div className="flex items-center gap-2 flex-1 min-w-[180px]">
-          <input
-            type="text"
-            className="input flex-1 min-w-0"
-            value={editLabel}
-            onChange={(e) => onEditLabelChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onEditSave();
-              if (e.key === 'Escape') onEditCancel();
-            }}
-            autoFocus
-          />
-          <Button size="sm" onClick={onEditSave}>저장</Button>
-          <Button variant="ghost" size="sm" onClick={onEditCancel}>취소</Button>
-        </div>
-      ) : (
-        <>
-          <div className="flex-1 flex items-center gap-2 min-w-[120px]">
-            <span className="text-[0.72rem] text-muted [font-family:var(--font-mono)] bg-elevated px-[7px] py-0.5 rounded-[4px] whitespace-nowrap shrink-0">{item.code}</span>
-            <span className={`text-[0.875rem] font-medium truncate ${item.isActive ? 'text-primary' : 'text-muted line-through'}`}>{item.label}</span>
-            {!item.isActive && <span className="text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-warning-dim text-warning shrink-0">비활성</span>}
-          </div>
-          <div className="flex gap-1.5 shrink-0 ml-auto">
-            <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>수정</Button>
-            <Button variant={item.isActive ? 'ghost' : 'primary'} size="sm" onClick={() => onToggle(item.id, item.isActive)}>
-              {item.isActive ? '비활성' : '활성'}
-            </Button>
-            <Button variant="danger" size="sm" onClick={() => onDelete(item.id)}>삭제</Button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ── 2계층(가계부) 그룹 행 — 드래그 정렬. isParent=대분류 헤더(대분류끼리), 아니면 들여쓴 소분류(같은 부모 안) ──
-interface SortableGroupRowProps {
-  item: CodeItem;
-  isParent?: boolean;
-  editingId: number | null;
-  editLabel: string;
-  onEditLabelChange: (v: string) => void;
-  onEdit: (item: CodeItem) => void;
-  onEditSave: () => void;
-  onEditCancel: () => void;
-  onToggle: (id: number, isActive: boolean) => void;
-  onDelete: (id: number) => void;
-}
-
-function SortableGroupRow({
-  item, isParent,
-  editingId, editLabel, onEditLabelChange,
-  onEdit, onEditSave, onEditCancel,
-  onToggle, onDelete,
-}: SortableGroupRowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: item.id });
-  const style: CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
     opacity: isDragging ? 0.4 : item.isActive ? 1 : 0.55,
     zIndex: isDragging ? 1 : undefined,
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={`flex flex-wrap items-center gap-2.5 px-5 py-2.5 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface ${isParent ? 'bg-surface' : 'bg-background pl-8'}`}>
+    <div ref={setNodeRef} style={style} className={`flex items-center gap-2.5 min-h-11 pr-2 border-b border-border-subtle last:border-b-0 bg-background transition-colors hover:bg-surface ${level === 'child' ? 'pl-8' : 'pl-2'}`}>
       <IconButton label="순서 변경" variant="handle" {...attributes} {...listeners}>
         <IconDrag width={14} height={14} />
       </IconButton>
+
       {editingId === item.id ? (
-        <div className="flex items-center gap-2 flex-1 min-w-[180px]">
+        <div className="flex items-center gap-2 flex-1 min-w-0 py-1.5">
           <input
             type="text"
             className="input flex-1 min-w-0"
@@ -509,23 +436,25 @@ function SortableGroupRow({
             }}
             autoFocus
           />
-          <Button size="sm" onClick={onEditSave}>저장</Button>
+          <Button variant="ghost" size="sm" onClick={onEditSave}>저장</Button>
           <Button variant="ghost" size="sm" onClick={onEditCancel}>취소</Button>
         </div>
       ) : (
         <>
-          <div className="flex-1 flex items-center gap-2 min-w-[120px]">
-            <span className="text-[0.72rem] text-muted [font-family:var(--font-mono)] bg-elevated px-[7px] py-0.5 rounded-[4px] whitespace-nowrap shrink-0">{item.code}</span>
-            <span className={`truncate ${isParent ? 'text-[0.9rem] font-bold' : 'text-[0.875rem] font-medium'} ${item.isActive ? 'text-primary' : 'text-muted line-through'}`}>{item.label}</span>
-            {!item.isActive && <span className="text-[0.68rem] font-semibold px-1.5 py-0.5 rounded bg-warning-dim text-warning shrink-0">비활성</span>}
-          </div>
-          <div className="flex gap-1.5 shrink-0 ml-auto">
-            <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>수정</Button>
-            <Button variant={item.isActive ? 'ghost' : 'primary'} size="sm" onClick={() => onToggle(item.id, item.isActive)}>
-              {item.isActive ? '비활성' : '활성'}
-            </Button>
-            <Button variant="danger" size="sm" onClick={() => onDelete(item.id)}>삭제</Button>
-          </div>
+          <span className={`min-w-0 truncate ${level === 'parent' ? 'font-semibold' : ''} ${item.isActive ? 'text-primary' : 'text-muted line-through'}`}>{item.label}</span>
+          <span className="text-[0.72rem] text-muted truncate shrink-0 max-w-[40%]">{item.code}</span>
+          {!item.isActive && <Badge tone="warning" size="sm">비활성</Badge>}
+          <span className="flex-1" />
+          <MoreMenu
+            size="lg"
+            items={[
+              { label: '수정', icon: <IconEdit />, onSelect: () => onEdit(item) },
+              item.isActive
+                ? { label: '비활성', icon: <IconBan />, onSelect: () => onToggle(item.id, item.isActive) }
+                : { label: '활성', icon: <IconPlay />, onSelect: () => onToggle(item.id, item.isActive) },
+              { label: '삭제', icon: <IconTrash />, danger: true, onSelect: () => onDelete(item.id) },
+            ]}
+          />
         </>
       )}
     </div>
