@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
 import { useApiQuery, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import AppShell from '@/components/AppShell';
@@ -11,8 +10,7 @@ import BarChart from '@/components/BarChart';
 import StatCard, { StatStrip } from '@/components/StatCard';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import MoreMenu from '@/components/ui/MoreMenu';
-import { IconPlus, IconKey, IconUpload, IconRepeat, IconPie, IconArrowUp, IconArrowDown } from '@/components/icons';
+import { IconPlus, IconKey, IconRepeat, IconPie, IconArrowUp, IconArrowDown } from '@/components/icons';
 import { won, usd, currentMonth, daysUntil, WEEKDAY_LABEL, type TransactionType, type TrendBucket } from '@/lib/finance';
 import type { NetWorthSummary } from '@/lib/networth';
 import type { SubscriptionSummary } from '@/lib/subscription';
@@ -103,7 +101,6 @@ function UpcomingRow({ it }: { it: UpcomingItem }) {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   // 대시보드 데이터 (React Query 캐시 — 페이지 재진입 시 재조회 최소화)
   const summaryQuery = useApiQuery<Summary>(qk.dashboard.summary(), '/dashboard/summary');
   const forecastQuery = useApiQuery<Forecast>(qk.dashboard.forecast(), '/dashboard/cashflow-forecast');
@@ -158,23 +155,8 @@ export default function DashboardPage() {
       <PageHeader
         title="대시보드"
         description={`${todayText} · 이번 달 돈 흐름과 곧 다가오는 날짜`}
-        actions={
-          <>
-            <Button href="/transactions"><IconPlus />지출 기록</Button>
-            <Button href="/credentials" variant="ghost" className="max-md:hidden"><IconKey />계정 추가</Button>
-            <Button href="/files" variant="ghost" className="max-md:hidden"><IconUpload />파일 업로드</Button>
-            <span className="md:hidden">
-              <MoreMenu
-                label="빠른 동작 더보기"
-                size="lg"
-                items={[
-                  { label: '계정 추가', icon: <IconKey />, onSelect: () => router.push('/credentials') },
-                  { label: '파일 업로드', icon: <IconUpload />, onSelect: () => router.push('/files') },
-                ]}
-              />
-            </span>
-          </>
-        }
+        // 보는 화면이라 자주 하는 지출 기록만 둔다 — 계정 · 파일 추가는 각 화면에서
+        actions={<Button href="/transactions"><IconPlus />지출 기록</Button>}
       />
 
       {(summaryQuery.isError || forecastQuery.isError || deadlinesQuery.isError) && (

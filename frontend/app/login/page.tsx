@@ -9,7 +9,7 @@ import LoginGate from './LoginGate';
 import Wordmark from '@/components/Wordmark';
 import Button from '@/components/ui/Button';
 import ErrorBanner from '@/components/ErrorBanner';
-import { IconShieldCheck, IconKey, IconBan } from '@/components/icons';
+import { IconShieldCheck, IconLock, IconBan } from '@/components/icons';
 
 export default async function LoginPage({
   searchParams,
@@ -22,16 +22,12 @@ export default async function LoginPage({
 
   return (
     <LoginGate>
-      <div className="flex justify-center items-start min-h-screen bg-page px-4 py-10 sm:py-16">
-        <div className="w-full max-w-105 flex flex-col gap-5 sm:px-6 sm:py-8 sm:border sm:border-border sm:rounded-panel">
-          <div className="flex items-baseline gap-2">
-            <Wordmark size="lg" />
-            <span className="text-[0.75rem] text-muted">생활 장부</span>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <h1 className="[font-family:var(--font-display)] [font-variant-numeric:lining-nums] font-semibold text-[1.5rem] text-primary break-keep">LifeLedger가 지켜드리는 것</h1>
-            <p className="text-[0.84rem] text-muted break-keep">로그인하고 나만의 생활 장부를 시작하세요.</p>
+      {/* 넓은 화면은 가운데 흰 카드, 휴대폰은 카드 없이 바탕 위에 */}
+      <div className="flex justify-center items-start sm:items-center min-h-screen bg-page px-4 py-10">
+        <div className="w-full max-w-110 flex flex-col gap-6 sm:px-8 sm:py-9 sm:bg-background sm:border sm:border-border sm:rounded-panel sm:shadow-raised">
+          <div className="flex flex-col gap-2">
+            <h1><Wordmark size="lg" /></h1>
+            <p className="text-[0.875rem] text-secondary break-keep">가계부 · 구독 · 계정 · 파일을 한곳에 모아 두는 개인 장부입니다.</p>
           </div>
 
           {/* 접근 거부 안내 — 허용되지 않은 구글 계정 */}
@@ -40,14 +36,11 @@ export default async function LoginPage({
             message={isNotAllowed ? '허용되지 않은 계정입니다. 이 계정은 접근 권한이 없으니 등록된 계정으로 로그인하세요.' : null}
           />
 
-          <ul className="flex flex-col border-y border-border">
-            {FEATURES.map(({ Icon, title, desc }) => (
-              <li key={title} className="flex gap-3 py-3 border-b border-border-subtle last:border-b-0">
-                <Icon width={18} height={18} className="shrink-0 mt-0.5 text-accent" />
-                <div className="flex flex-col min-w-0">
-                  <strong className="font-semibold text-primary break-keep">{title}</strong>
-                  <span className="text-[0.78rem] text-muted break-keep">{desc}</span>
-                </div>
+          <ul className="flex flex-col gap-2.5 px-4 py-3.5 rounded-ui bg-surface">
+            {FEATURES.map(({ Icon, text }) => (
+              <li key={text} className="flex items-start gap-2.5 text-[0.8125rem] text-secondary break-keep">
+                <Icon width={16} height={16} className="shrink-0 mt-0.5 text-accent-dark" />
+                {text}
               </li>
             ))}
           </ul>
@@ -63,7 +56,7 @@ export default async function LoginPage({
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
-              <Button href={`${backendUrl}/api/v1/auth/google`} size="lg" className="w-full">
+              <Button href={`${backendUrl}/api/v1/auth/google`} variant="ghost" size="lg" className="w-full">
                 <GoogleIcon />
                 Google 계정으로 계속하기
               </Button>
@@ -86,10 +79,11 @@ export default async function LoginPage({
   );
 }
 
+// 로그인 전 짧은 소개 — 실제 동작만 적는다
 const FEATURES = [
-  { Icon: IconShieldCheck, title: 'AES-256 완전 암호화', desc: '계정 정보, 내 서버에서만 복호화' },
-  { Icon: IconKey, title: '비밀번호 없는 로그인', desc: 'Google OAuth 2.0으로 안전하게, 별도 비밀번호 불필요' },
-  { Icon: IconBan, title: '제3자 공유 없음', desc: '내 데이터는 오직 나만 접근. 마케팅·광고 활용 없음' },
+  { Icon: IconLock, text: '계정 비밀번호 · 2FA 는 AES-256-GCM 으로 암호화' },
+  { Icon: IconShieldCheck, text: '허용된 계정만 로그인 (Google · 이메일 인증코드)' },
+  { Icon: IconBan, text: '광고 · 외부 공유 없음' },
 ];
 
 // 구글 로고 (브랜드 색 고정)
