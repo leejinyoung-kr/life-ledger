@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent,
 } from '@dnd-kit/core';
@@ -20,7 +20,7 @@ import SearchInput from '@/components/ui/SearchInput';
 import Badge from '@/components/ui/Badge';
 import Toggle from '@/components/ui/Toggle';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
-import { Field, ModalFooter } from '@/components/ui/Field';
+import { Field, FieldGroup, FormGroup, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
   IconWon, IconChart, IconStar, IconTransfer, IconInfo, IconPlus, IconEdit, IconCopy, IconTrash,
@@ -553,28 +553,6 @@ function RecurringRow({ r, catLabel, onToggle, onEdit, onDelete }: { r: Recurrin
   );
 }
 
-// 창 안의 번호 붙은 묶음 — 한 묶음이 한 질문(무엇을 · 언제)
-function FormSection({ no, title, divided, children }: { no: number; title: string; divided?: boolean; children: ReactNode }) {
-  return (
-    <section className={`flex flex-col gap-3 ${divided ? 'pt-4 border-t border-border-subtle' : ''}`}>
-      <div className="flex items-baseline gap-2 text-[0.78rem] text-accent-dark">
-        <span className="text-[1.0625rem] font-bold">{no}</span>{title}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-// 이름표가 붙은 묶음 버튼 자리 — Field 는 label 이라 안의 버튼을 눌러 버리므로 div 로 만든다
-function FieldGroup({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-[0.78rem] text-muted flex items-center gap-1">{label}{required && <span className="text-danger">*</span>}</span>
-      {children}
-    </div>
-  );
-}
-
 // fromManage: 관리 창에서 연 경우 — 닫으면 관리 창으로 돌아간다
 type FavoriteFormState = { open: boolean; editing?: TransactionFavorite; fromManage?: boolean };
 
@@ -891,11 +869,9 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
 
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '항목 수정' : '항목 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
-      <Field label="유형" required>
-        <select className="input" value={type} onChange={(ev) => handleChangeType(ev.target.value as TransactionType)}>
-          <option value="expense">지출</option><option value="income">수입</option><option value="transfer">자산이동</option>
-        </select>
-      </Field>
+      <FieldGroup label="유형" required>
+        <Segmented label="유형" variant="joined" className="w-full *:flex-1" items={TYPE_ITEMS} value={type} onChange={handleChangeType} />
+      </FieldGroup>
       <Field label="날짜" required error={errors.date}>
         <input type="date" className="input" aria-label="날짜" value={date} onChange={(ev) => { setDate(ev.target.value); clearError('date'); }} />
       </Field>
@@ -1089,7 +1065,7 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
       subtitle={r ? `${r.title}${r.nextRunDate ? ` · 다음 실행 ${dotDate(r.nextRunDate)}` : ''}` : undefined}
       footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}
     >
-      <FormSection no={1} title="무엇을">
+      <FormGroup no={1} title="무엇을" first>
         <FieldGroup label="유형" required>
           <Segmented label="유형" variant="joined" className="w-full *:flex-1" items={TYPE_ITEMS} value={type} onChange={handleChangeType} />
         </FieldGroup>
@@ -1150,9 +1126,9 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
           </Field>
         )}
         <Field label="메모 (선택)"><input type="text" className="input" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
-      </FormSection>
+      </FormGroup>
 
-      <FormSection no={2} title="언제" divided>
+      <FormGroup no={2} title="언제">
         <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
           <Field label="시작일" required error={errors.startDate}>
             <input type="date" className="input" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
@@ -1192,7 +1168,7 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
             </Field>
           </div>
         )}
-      </FormSection>
+      </FormGroup>
 
       <div className="flex items-center gap-3 pt-4 border-t border-border-subtle">
         <div className="flex-1 flex flex-col">

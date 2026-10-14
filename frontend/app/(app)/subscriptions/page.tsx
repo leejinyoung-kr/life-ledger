@@ -5,7 +5,7 @@
  * 정기 결제를 표로 모아 결제 예정일·연 환산·마지막 사용을 추적한다.
  * 데이터는 백엔드 API(/subscriptions)와 실시간 연동한다.
  */
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { notify } from '@/lib/toast';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { useFormErrors } from '@/lib/useFormErrors';
@@ -29,7 +29,7 @@ import Segmented from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
 import Badge from '@/components/ui/Badge';
 import { Card, CardTitle } from '@/components/ui/Card';
-import { Field, ModalFooter } from '@/components/ui/Field';
+import { Field, FieldGroup, FormGroup, ModalFooter } from '@/components/ui/Field';
 import { IconRepeat, IconAlertTriangle, IconPlus, IconEdit, IconTrash, IconCalendar, IconCube, IconClock } from '@/components/icons';
 import { api } from '@/lib/api';
 import { won, usd, dotDate, daysUntil, localDate } from '@/lib/finance';
@@ -106,7 +106,7 @@ export default function SubscriptionsPage() {
 
   // 구독 해지 = 소프트 삭제 (목록에서 사라진다)
   async function handleCancel(id: number) {
-    if (!await confirm('이 구독을 해지할까요? 목록에서 사라집니다.', 'danger')) return;
+    if (!await confirm('이 구독을 해지할까요? 목록에서 사라집니다.', 'danger', '해지')) return;
     try {
       await api.del(`/subscriptions/${id}`);
       notify.success('구독이 해지됐습니다.');
@@ -323,18 +323,6 @@ export default function SubscriptionsPage() {
   );
 }
 
-// 구독 추가 창의 번호 붙은 묶음 (1 무엇을 · 2 결제)
-function FormGroup({ no, title, first, children }: { no: number; title: string; first?: boolean; children: ReactNode }) {
-  return (
-    <div className={`flex flex-col gap-3 ${first ? '' : 'pt-4 border-t border-border-subtle'}`}>
-      <div className="flex items-baseline gap-2 text-[0.78rem] text-accent-dark">
-        <span className="font-bold text-[1.0625rem]">{no}</span>{title}
-      </div>
-      {children}
-    </div>
-  );
-}
-
 // 구독 추가·수정 모달
 function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing?: Subscription }; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
@@ -414,10 +402,10 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
             </select>
           </Field>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[0.78rem] text-muted">상태</span>
+        <FieldGroup label="상태">
           <Segmented
             variant="joined"
+            fill
             label="상태"
             value={status}
             onChange={setStatus}
@@ -427,7 +415,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
               { value: 'paused', label: STATUS_LABEL.paused },
             ]}
           />
-        </div>
+        </FieldGroup>
       </FormGroup>
       <FormGroup no={2} title="결제">
         <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
@@ -444,11 +432,20 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
               {SUB_PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </Field>
-          <Field label="주기" required>
-            <select className="input" aria-label="결제 주기" value={cycle} onChange={(ev) => setCycle(ev.target.value as SubscriptionCycle)}>
-              <option value="monthly">매월</option><option value="yearly">매년</option><option value="weekly">매주</option>
-            </select>
-          </Field>
+          <FieldGroup label="주기" required>
+            <Segmented
+              variant="joined"
+              fill
+              label="결제 주기"
+              value={cycle}
+              onChange={setCycle}
+              items={[
+                { value: 'weekly', label: '매주' },
+                { value: 'monthly', label: '매월' },
+                { value: 'yearly', label: '매년' },
+              ]}
+            />
+          </FieldGroup>
           <Field label="다음 결제일" required error={errors.nextPaymentDate}>
             <input type="date" className="input" aria-label="다음 결제일" value={nextPaymentDate} onChange={(ev) => { setNextPaymentDate(ev.target.value); clearError('nextPaymentDate'); }} />
           </Field>

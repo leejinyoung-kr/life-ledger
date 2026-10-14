@@ -10,7 +10,7 @@ import BarChart from '@/components/BarChart';
 import StatCard, { StatStrip } from '@/components/StatCard';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { IconPlus, IconKey, IconRepeat, IconPie, IconArrowUp, IconArrowDown } from '@/components/icons';
+import { IconPlus, IconKey, IconRepeat, IconPie, IconArrowUp, IconArrowDown, IconChevronRight } from '@/components/icons';
 import { won, manwon, usd, currentMonth, daysUntil, WEEKDAY_LABEL, type TransactionType, type TrendBucket } from '@/lib/finance';
 import type { NetWorthSummary } from '@/lib/networth';
 import type { SubscriptionSummary } from '@/lib/subscription';
@@ -195,7 +195,7 @@ export default function DashboardPage() {
           <Card className={`flex-[2_1_520px] ${PANEL}`}>
             <CardHeader>
               <CardTitle>월별 지출</CardTitle>
-              <Button href="/transactions" variant="link" size="inline">가계부</Button>
+              <Button href="/transactions" variant="link" size="inline" className="gap-0.5 text-[0.8125rem]">가계부<IconChevronRight /></Button>
             </CardHeader>
             <CardBody className="flex-1 min-h-0 max-md:h-[280px]">
               <BarChart
@@ -230,7 +230,8 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className={`flex flex-col ${PANEL_SCROLL}`}>
-                {forecast.items.map((it, i) => (
+                {/* 카드 안 스크롤 없이 들어가게 금액이 큰 5건만 (서버가 월 환산액 큰 순으로 준다) */}
+                {forecast.items.slice(0, 5).map((it, i) => (
                   <ListRow
                     key={i}
                     name={it.name}
@@ -239,7 +240,9 @@ export default function DashboardPage() {
                   />
                 ))}
               </div>
-              <p className="px-[18px] pt-2.5 pb-3.5 text-[0.72rem] text-muted">연·주 단위 항목은 월 단위로 환산한 추정치입니다.</p>
+              <p className="px-4.5 pt-2.5 pb-3.5 text-[0.72rem] text-muted">
+                {forecast.items.length > 5 && `금액이 큰 5건만 보입니다 (전체 ${forecast.items.length}건). `}연·주 단위 항목은 월로 환산한 추정치입니다.
+              </p>
             </Card>
           )}
         </div>
@@ -248,7 +251,7 @@ export default function DashboardPage() {
           <Card className={`flex-[2_1_520px] ${PANEL}`}>
             <CardHeader>
               <CardTitle>다가오는 날짜</CardTitle>
-              <Button href="/calendar" variant="link" size="inline">{upcoming.length}건 · 캘린더</Button>
+              <Button href="/calendar" variant="link" size="inline" className="gap-0.5 text-[0.8125rem]">{upcoming.length}건 · 캘린더<IconChevronRight /></Button>
             </CardHeader>
             <div className={PANEL_SCROLL}>
               {upcoming.length === 0 && <div className="px-[18px] py-4 text-muted text-[0.84rem]">다가오는 날짜가 없습니다.</div>}
@@ -269,7 +272,7 @@ export default function DashboardPage() {
           <Card className={`flex-[1_1_300px] ${PANEL}`}>
             <CardHeader>
               <CardTitle>최근 활동</CardTitle>
-              <Button href="/transactions" variant="link" size="inline">가계부</Button>
+              <Button href="/transactions" variant="link" size="inline" className="gap-0.5 text-[0.8125rem]">가계부<IconChevronRight /></Button>
             </CardHeader>
             <div className={PANEL_SCROLL}>
               {s && s.recent.length === 0 && <div className="px-[18px] py-4 text-muted text-[0.84rem]">최근 활동이 없습니다.</div>}

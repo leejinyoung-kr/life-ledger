@@ -8,7 +8,7 @@ import { useFormErrors } from '@/lib/useFormErrors';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
-import { Field, ModalFooter } from '@/components/ui/Field';
+import { Field, FormGroup, ModalFooter } from '@/components/ui/Field';
 import { IconEye } from '@/components/icons';
 
 export type EditState = { open: boolean; mode: 'add' | 'edit'; editing: Credential | null };
@@ -89,7 +89,7 @@ export default function EditModal({ state, onClose, onSaved }: { state: EditStat
       title={isEdit ? '계정 수정' : '계정 추가'}
       footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} saveLabel="저장 (암호화)" />}
     >
-      <FormGroup title="서비스">
+      <FormGroup title="서비스" first>
         <Field label="서비스명" required error={errors.serviceName}>
           <input type="text" className="input" placeholder="예: GitHub" value={serviceName} onChange={(e) => { setServiceName(e.target.value); clearError('serviceName'); }} />
         </Field>
@@ -131,12 +131,3 @@ export default function EditModal({ state, onClose, onSaved }: { state: EditStat
   );
 }
 
-// 폼 묶음 — 작은 제목과 아래 선으로 입력칸을 나눈다
-function FormGroup({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="text-[0.75rem] text-muted pb-1.5 border-b border-border-subtle">{title}</div>
-      {children}
-    </div>
-  );
-}

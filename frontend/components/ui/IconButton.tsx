@@ -11,9 +11,10 @@ type Size = 'md' | 'lg' | 'card';
 const BASE = 'relative inline-flex items-center justify-center shrink-0 transition-all cursor-pointer';
 
 // ghost: 행 안 보조 동작 · 상단바 / bordered: 수정·닫기 등 / danger: 삭제 / handle: 드래그 핸들 / overlay: 색 카드 위
+// 올렸을 때 ghost · bordered 는 초록, danger 는 빨강 — 삭제만 눈에 띄지 않게 모든 동작이 색으로 반응한다
 const VARIANT: Record<Variant, string> = {
-  ghost: 'text-muted hover:bg-surface hover:text-primary',
-  bordered: 'text-secondary border border-border hover:bg-surface hover:text-primary',
+  ghost: 'text-muted hover:bg-accent-dim hover:text-accent-dark',
+  bordered: 'text-secondary border border-border hover:bg-accent-dim hover:text-accent-dark hover:border-accent',
   danger: 'text-muted hover:bg-danger-dim hover:text-danger',
   handle: 'text-muted cursor-grab touch-none hover:bg-surface hover:text-secondary active:cursor-grabbing',
   overlay: 'bg-white/[0.18] text-white hover:bg-white/[0.32]',

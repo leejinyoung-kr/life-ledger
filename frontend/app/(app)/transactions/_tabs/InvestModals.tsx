@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
-import Segmented from '@/components/ui/Segmented';
-import { Field, ModalFooter } from '@/components/ui/Field';
+import Segmented, { type SegmentedItem } from '@/components/ui/Segmented';
+import Toggle from '@/components/ui/Toggle';
+import { Field, FieldGroup, FormGroup, ModalFooter } from '@/components/ui/Field';
 import { IconRefresh, IconChevronRight } from '@/components/icons';
 import { PageLoading } from '@/components/QueryState';
 import { notify } from '@/lib/toast';
@@ -17,7 +18,7 @@ import {
   type RecurringCycle, type WeekendAdjust, type RecurringSchedule,
 } from '@/lib/finance';
 import { toDay } from '../_shared';
-import { FormGroup, UnitInput } from './modalParts';
+import { UnitInput } from './modalParts';
 
 export type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Investment; prefill?: Investment };
 export type TradeState = { open: boolean; mode: 'buy' | 'sell'; target?: Investment };
@@ -336,7 +337,7 @@ export function InvestModal({ state, accounts, onClose, onSaved }: { state: Moda
             {isForeign && <span className="text-[0.75rem] text-muted">해외 종목은 달러($)로 입력합니다.</span>}
           </Field>
         </div>
-        <details className="group border border-dashed border-border rounded-ui">
+        <details className="group bg-surface rounded-ui">
           <summary className="flex items-center gap-2 min-h-10 px-3 text-[0.84rem] cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
             <IconRefresh className="w-3.75 h-3.75 text-accent shrink-0" />
             <span className="flex-1">투자원금을 모를 때 — 평가금액과 수익(금액) 또는 수익률(%)을 넣으면 원금 계산</span>
@@ -639,14 +640,9 @@ export function RecurringInvestmentModal({ state, onClose, onSaved }: { state: R
         <Field label="시작일" required error={errors.startDate}>
           <input type="date" className="input" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
         </Field>
-        <Field label="반복 주기" required>
-          <select className="input" value={recurringCycle} onChange={(ev) => setRecurringCycle(ev.target.value as RecurringCycle)}>
-            <option value="monthly">매월</option>
-            <option value="daily">매일 (평일만)</option>
-            <option value="weekly">매주</option>
-            <option value="yearly">매년</option>
-          </select>
-        </Field>
+        <FieldGroup label="반복 주기" required>
+          <Segmented label="반복 주기" variant="joined" fill value={recurringCycle} onChange={setRecurringCycle} items={CYCLE_ITEMS} />
+        </FieldGroup>
         {recurringCycle === 'yearly' && (
           <Field label="월" required>
             <select className="input" value={recurringMonth} onChange={(ev) => setRecurringMonth(Number(ev.target.value))}>
@@ -705,10 +701,17 @@ export function RecurringInvestmentModal({ state, onClose, onSaved }: { state: R
           </Field>
         )}
       </div>
-      <label className="flex items-center gap-2 text-[0.875rem] font-medium text-primary cursor-pointer select-none">
-        <input type="checkbox" className="checkbox" checked={active} onChange={(ev) => setActive(ev.target.checked)} />
-        활성 (일시정지하면 새 회차를 매수하지 않음)
-      </label>
+      <div className="flex items-center gap-3 pt-4 border-t border-border-subtle">
+        <div className="flex-1 flex flex-col">
+          <span className="text-[0.875rem] text-primary">활성</span>
+          <span className="text-[0.78rem] text-muted">끄면 새 회차를 매수하지 않습니다</span>
+        </div>
+        <Toggle on={active} onToggle={() => setActive(!active)} label="활성" />
+      </div>
     </Modal>
   );
 }
+
+const CYCLE_ITEMS: SegmentedItem<RecurringCycle>[] = [
+  { value: 'daily', label: '매일' }, { value: 'weekly', label: '매주' }, { value: 'monthly', label: '매월' }, { value: 'yearly', label: '매년' },
+];

@@ -97,6 +97,8 @@ export default function FilesPage() {
   }, [currentFolderId]);
   const dataQuery = useApiQuery<ListResponse>(qk.files.list(currentFolderId), `/files${listQs ? `?${listQs}` : ''}`);
   const data = dataQuery.data ?? { breadcrumb: [], folders: [], files: [], totalBytes: 0 };
+  // 지금 폴더에 아무것도 없으면 ZIP 받기 · 비우기를 막는다 (눌러 봐야 '없습니다' 알림만 뜬다)
+  const folderEmpty = data.folders.length === 0 && data.files.length === 0;
   // 변이 후 파일 트리 무효화 (전체 검색 결과도 같이)
   const reload = () => invalidate(qk.files.all);
 
@@ -136,7 +138,7 @@ export default function FilesPage() {
       const bytes = ok.reduce((sum, it) => sum + it.file.size, 0);
       const big = tooBig.length ? ` 50MB 를 넘는 ${tooBig.length}개는 빠집니다.` : '';
       const msg = `폴더 ${folders}개 · 파일 ${ok.length}개(${formatBytes(bytes)})를 ${where ? `"${where}" 폴더` : '맨 위(루트)'}에 올릴까요? 같은 이름 폴더가 있으면 그 안에 합쳐집니다.${big}`;
-      if (!await confirm(msg, 'primary')) return;
+      if (!await confirm(msg, 'primary', '올리기')) return;
     }
 
     const failures: { name: string; reason: string }[] = tooBig.map((it) => ({ name: it.file.name, reason: '50MB 초과' }));
@@ -237,7 +239,7 @@ export default function FilesPage() {
         notify.error(`한 번에 받을 수 있는 용량(${formatBytes(s.maxBytes)})을 넘습니다 — ${formatBytes(s.totalBytes)}. 하위 폴더별로 나눠 받으세요.`);
         return;
       }
-      if (!await confirm(`${where ? `"${where}" 폴더` : '보관함 전체'}의 파일 ${s.fileCount}개(${formatBytes(s.totalBytes)})를 ZIP 으로 받을까요?`, 'primary')) return;
+      if (!await confirm(`${where ? `"${where}" 폴더` : '보관함 전체'}의 파일 ${s.fileCount}개(${formatBytes(s.totalBytes)})를 ZIP 으로 받을까요?`, 'primary', '받기')) return;
       await api.download(`/files/zip${qs}`, `${where ?? '파일보관함'}_${localDate()}.zip`, (received) => setZipProgress({ received, total: s.totalBytes }));
       notify.success('ZIP 을 받았습니다.');
     } catch (e) {
@@ -400,10 +402,10 @@ export default function FilesPage() {
           {currentFolderId === undefined && <span className="text-muted text-[0.875rem]">/ 루트</span>}
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="sm" loading={zipping} loadingLabel={zipProgress ? `ZIP 받는 중 ${formatBytes(zipProgress.received)} / 약 ${formatBytes(zipProgress.total)}` : 'ZIP 준비 중…'} onClick={handleDownloadZip}>
+          <Button variant="ghost" size="sm" disabled={folderEmpty} loading={zipping} loadingLabel={zipProgress ? `ZIP 받는 중 ${formatBytes(zipProgress.received)} / 약 ${formatBytes(zipProgress.total)}` : 'ZIP 준비 중…'} onClick={handleDownloadZip}>
             <IconArchive />{currentFolderId === undefined ? 'ZIP 받기' : '이 폴더 ZIP 받기'}
           </Button>
-          <Button variant="danger" size="sm" loading={clearing && !clearPlan} loadingLabel="확인 중…" onClick={handleClearAsk}>
+          <Button variant="danger" size="sm" disabled={folderEmpty} loading={clearing && !clearPlan} loadingLabel="확인 중…" onClick={handleClearAsk}>
             <IconTrash />{currentFolderId === undefined ? '비우기' : '이 폴더 비우기'}
           </Button>
         </div>

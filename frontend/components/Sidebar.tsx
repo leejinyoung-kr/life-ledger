@@ -36,17 +36,19 @@ export function NavLink({ href, icon, label, active, count, size = 'md', sub, on
   );
 }
 
-// 로그인 사용자 줄 — 이니셜 · 이름 · 이메일
+// 로그인 사용자 줄 — 이니셜 · 이름 · 이메일(누르면 설정의 내 계정으로) + 오른쪽 동작(로그아웃). 로그아웃은 잘못 눌리지 않게 따로 둔다
 export function UserLine({ children }: { children?: React.ReactNode }) {
   const me = useApiQuery<MeUser>(['auth', 'me'], '/auth/me').data ?? null;
   const name = me?.name || '사용자';
   return (
-    <div className="flex items-center gap-2.5">
-      <span className="w-8 h-8 rounded-full border border-accent text-accent-dark grid place-items-center text-[0.8rem] shrink-0">{name.charAt(0)}</span>
-      <div className="flex-1 min-w-0 flex flex-col leading-tight">
-        <span className="text-[0.84rem] truncate">{name}</span>
-        <span className="text-[0.75rem] text-muted truncate">{me?.email ?? ''}</span>
-      </div>
+    <div className="flex items-center gap-1">
+      <a href="/settings" title="내 계정 설정" className="flex-1 min-w-0 flex items-center gap-2.5 -ml-1.5 px-1.5 py-1 rounded-ui transition-colors hover:bg-surface">
+        <span className="w-8 h-8 rounded-full bg-accent-dim text-accent-dark font-semibold grid place-items-center text-[0.8rem] shrink-0">{name.charAt(0)}</span>
+        <span className="flex-1 min-w-0 flex flex-col leading-tight">
+          <span className="text-[0.84rem] font-medium text-primary truncate">{name}</span>
+          <span className="text-[0.75rem] text-muted truncate">{me?.email ?? ''}</span>
+        </span>
+      </a>
       {children}
     </div>
   );
@@ -131,7 +133,7 @@ export default function Sidebar({ activePath = '/dashboard', onLogout }: { activ
 
       <div className="px-4 py-3.5 border-t border-border">
         <UserLine>
-          <IconButton label="로그아웃" size="lg" onClick={onLogout}><IconLogout /></IconButton>
+          <IconButton label="로그아웃" title="로그아웃" size="lg" onClick={onLogout}><IconLogout /></IconButton>
         </UserLine>
       </div>
     </aside>

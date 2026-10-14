@@ -34,7 +34,8 @@ const ITEM: Record<Variant, { base: string; on: string; off: string }> = {
   },
   joined: {
     base: 'px-3 py-1.5 transition-colors cursor-pointer whitespace-nowrap',
-    on: 'ring-1 ring-inset ring-accent text-accent-dark',
+    // 안쪽 테두리(ring)는 묶음의 둥근 모서리에 잘려 끝 칸 꼭지가 사라지므로 바탕색으로만 표시
+    on: 'bg-accent-dim text-accent-dark font-semibold',
     off: 'text-primary hover:bg-surface',
   },
 };

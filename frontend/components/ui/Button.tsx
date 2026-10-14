@@ -19,14 +19,15 @@ const VARIANT: Record<Variant, string> = {
   // 삭제로 가는 첫 단계 — 지출 색 테두리. 채운 버튼(solid-danger)은 확인 창 안에서만
   danger: 'bg-transparent text-danger border border-danger hover:bg-danger-dim',
   'solid-danger': 'bg-danger text-on-solid border border-danger font-semibold hover:bg-danger-dark hover:border-danger-dark',
-  link: 'bg-transparent text-accent-dark underline underline-offset-[3px] hover:text-accent',
+  // 글줄 · 카드 머리의 이동 링크 — 평소엔 보조 글자색, 올렸을 때만 진해지고 밑줄
+  link: 'bg-transparent text-secondary hover:text-primary hover:underline underline-offset-[3px]',
 };
 
 const SIZE: Record<Size, string> = {
   md: 'min-h-9 px-3.5 py-1.5 text-[0.875rem]',
   sm: 'min-h-[30px] px-2.5 py-1 text-[0.8125rem]',
   lg: 'min-h-11 px-5 py-2.5 text-[0.9375rem]',
-  inline: 'p-0 text-[length:inherit]',
+  inline: 'p-0',
 };
 
 // variant/size → 클래스 문자열 (다른 컴포넌트에서 a 태그 등에 직접 쓸 때 재사용)

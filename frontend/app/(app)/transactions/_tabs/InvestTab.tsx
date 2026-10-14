@@ -9,7 +9,7 @@ import MoreMenu from '@/components/ui/MoreMenu';
 import Segmented from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
 import Badge from '@/components/ui/Badge';
-import { CardTitle } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
   IconTrendUp, IconWon, IconChart, IconPlus, IconRepeat, IconTransfer, IconEdit, IconTrash,
@@ -223,18 +223,18 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
       )}
 
       <div className="grid grid-cols-2 gap-6 mb-7 max-lg:grid-cols-1">
-        <div className="min-w-0 flex flex-col">
-          <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
+        <Card clip className="min-w-0 flex flex-col">
+          <CardHeader>
             <CardTitle>투자 계좌</CardTitle>
             <Button variant="ghost" size="sm" onClick={() => setAccountModal({ open: true, mode: 'add' })}><IconPlus />계좌 추가</Button>
-          </div>
+          </CardHeader>
           {accounts.length === 0 && <EmptyState size="sm" message="투자 계좌가 없습니다. 계좌를 먼저 추가하세요." />}
           {accounts.map((a) => {
             const dleft = daysUntil(a.maturityDate);
             const near = dleft !== null && dleft >= 0 && dleft <= 30;
             const matured = dleft !== null && dleft < 0;
             return (
-              <div key={a.id} className="flex items-center gap-3 min-h-14 py-3 border-b border-border-subtle">
+              <div key={a.id} className="flex items-center gap-3 min-h-14 px-4.5 py-3 border-b border-border-subtle last:border-b-0">
                 <div className="flex-1 min-w-0 flex flex-col leading-snug">
                   <span>{a.name}{a.accountNumber && <span className="text-[0.75rem] text-muted tabular-nums ml-1.5">{a.accountNumber}</span>}</span>
                   <span className="text-[0.75rem] text-muted">
@@ -270,19 +270,19 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
               </div>
             );
           })}
-        </div>
+        </Card>
 
-        <div className="min-w-0 flex flex-col">
-          <div className="flex items-center justify-between gap-2 pb-2 border-b border-border">
+        <Card clip className="min-w-0 flex flex-col">
+          <CardHeader>
             <CardTitle>반복매수 자동화</CardTitle>
             <Button variant="ghost" size="sm" onClick={() => setRecurringModal({ open: true })}><IconPlus />설정 추가</Button>
-          </div>
+          </CardHeader>
           {recurringSchedules.length === 0 && <EmptyState size="sm" message="등록된 반복매수 설정이 없습니다." />}
           {recurringSchedules.map((s) => {
             const inv = rows.find((r) => r.id === s.investmentId);
             const isForeign = inv ? isForeignType(inv.type) : false;
             return (
-              <div className="flex items-center gap-3 min-h-14 py-3 border-b border-border-subtle" key={s.id}>
+              <div className="flex items-center gap-3 min-h-14 px-4.5 py-3 border-b border-border-subtle last:border-b-0" key={s.id}>
                 <div className="flex-1 min-w-0 flex flex-col leading-snug">
                   <span className="flex items-center gap-1.5">
                     {s.investmentName ?? `#${s.investmentId}`}
@@ -313,7 +313,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
               </div>
             );
           })}
-        </div>
+        </Card>
       </div>
 
       <FilterPanel className="mb-0 border-b-0">

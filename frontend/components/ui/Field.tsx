@@ -20,6 +20,29 @@ export function Field({ label, required, error, children }: { label: string; req
   );
 }
 
+// 라벨 + 묶음 선택(Segmented) 칸 — Field(label)에 넣으면 라벨을 눌러도 첫 칸이 눌려서 span 라벨로 따로 둔다
+export function FieldGroup({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[0.78rem] text-muted flex items-center gap-1">{label}{required && <span className="text-danger">*</span>}</span>
+      {children}
+    </div>
+  );
+}
+
+// 긴 창의 입력 묶음 — 한 묶음 = 한 질문(무엇을 · 언제 …). no 를 주면 번호를 붙이고, 첫 묶음이 아니면 위에 선을 긋는다
+export function FormGroup({ no, title, first, children }: { no?: number; title: string; first?: boolean; children: ReactNode }) {
+  return (
+    <section className={`flex flex-col gap-3 ${first ? '' : 'pt-4 border-t border-border-subtle'}`}>
+      <div className="flex items-baseline gap-2 text-[0.8125rem] font-semibold text-accent-dark">
+        {no !== undefined && <span className="font-bold text-[1.0625rem]">{no}</span>}
+        {title}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 // 모달 공통 푸터 (취소/저장) — 저장 중 비활성화
 export function ModalFooter({ onClose, onSave, saving, saveLabel = '저장', saveDisabled }: { onClose: () => void; onSave: () => void; saving: boolean; saveLabel?: string; saveDisabled?: boolean }) {
   return (

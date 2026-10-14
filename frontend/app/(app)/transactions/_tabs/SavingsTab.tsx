@@ -68,7 +68,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
     const dleft = daysUntil(row?.maturityDate ?? null);
     const matured = dleft !== null && dleft < 0;
     const message = matured
-      ? '만기가 지난 예적금입니다. 삭제하면 목록에서 사라지며 잔액은 자동으로 이관되지 않습니다. 필요하면 먼저 가계부에 입금 내역을 기록하세요. 삭제할까요?'
+      ? '만기가 지난 예적금을 삭제할까요? 목록에서 사라지며 잔액은 자동으로 옮겨지지 않습니다. 필요하면 먼저 가계부에 입금 내역을 기록하세요.'
       : '이 예적금을 삭제할까요?';
     if (!await confirm(message, 'danger')) return;
     try {

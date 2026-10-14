@@ -26,7 +26,7 @@ export default function VaultStrip() {
   if (!status.enabled) {
     return (
       <Strip tone="off" icon={<IconUnlock />} title="마스터 잠금이 꺼져 있습니다" sub="비밀번호와 2FA 시크릿을 열 때 마스터 비밀번호를 묻지 않습니다.">
-        <Button variant="link" size="inline" href="/security">보안에서 잠금 켜기</Button>
+        <Button variant="ghost" size="sm" href="/security">보안에서 잠금 켜기</Button>
       </Strip>
     );
   }

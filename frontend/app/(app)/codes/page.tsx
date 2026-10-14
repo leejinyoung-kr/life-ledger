@@ -236,7 +236,7 @@ export default function CodesPage() {
 
   // 기본값 복원
   async function handleSeed() {
-    if (!await confirm('기본 항목으로 복원할까요? 기존 항목은 유지됩니다.', 'primary')) return;
+    if (!await confirm('기본 항목으로 복원할까요? 기존 항목은 유지됩니다.', 'primary', '복원')) return;
     try {
       await api.post(`/categories/seed?domain=${domain}`, {});
       notify.success('기본값이 복원됐습니다.');

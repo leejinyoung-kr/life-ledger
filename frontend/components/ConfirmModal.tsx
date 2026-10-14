@@ -5,7 +5,7 @@
  * window.confirm() 대체 — createPortal로 body에 렌더해 z-index 문제를 방지하며
  * 백드롭 fade-in + 박스 slide-up 애니메이션을 적용한다.
  */
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { IconAlertCircle, IconCheck } from './icons';
 import Button from './ui/Button';
@@ -50,7 +50,24 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  // Esc 로 취소 — 다른 모달 위에 떠 있을 때 그 모달까지 닫히지 않게 먼저(capture) 받아 멈춘다
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || loading) return;
+      e.stopPropagation();
+      onCancel();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [open, loading, onCancel]);
+
   if (!open) return null;
+
+  // 제목이 없으면 메시지의 첫 물음(…할까요?)을 제목으로, 나머지를 설명으로 나눈다
+  const q = message.indexOf('?');
+  const head = title ?? (q >= 0 ? message.slice(0, q + 1) : message);
+  const body = title ? message : (q >= 0 ? message.slice(q + 1).trim() : '');
 
   // createPortal — body에 직접 마운트해 모달 위에도 정상 표시
   return createPortal(
@@ -64,15 +81,15 @@ export default function ConfirmModal({
         aria-modal="true"
         aria-describedby="cm-msg"
       >
-        {/* 제목(아이콘) + 메시지 — 제목이 없으면 위험 · 확인 기본 제목 */}
-        <div className="px-5 pt-[18px] pb-1.5 flex flex-col gap-1.5">
-          <p className="flex items-center gap-2 text-[1.25rem] font-bold leading-tight text-primary">
-            <span className={`inline-flex shrink-0 [&_svg]:w-[18px] [&_svg]:h-[18px] ${variant === 'danger' ? 'text-danger' : 'text-accent'}`}>
+        {/* 제목(아이콘 + 물음) + 설명 */}
+        <div className="px-5 pt-5 pb-1.5 flex flex-col gap-1.5">
+          <p className="flex items-start gap-2 text-[1.0625rem] font-bold leading-snug text-primary break-keep">
+            <span className={`inline-flex shrink-0 mt-0.5 [&_svg]:w-4.5 [&_svg]:h-4.5 ${variant === 'danger' ? 'text-danger' : 'text-accent-dark'}`}>
               {icon ?? (variant === 'danger' ? <IconAlertCircle /> : <IconCheck />)}
             </span>
-            {title ?? (variant === 'danger' ? '계속할까요?' : '확인')}
+            <span id={body ? undefined : 'cm-msg'}>{head}</span>
           </p>
-          <p id="cm-msg" className="text-[0.84rem] text-muted leading-[1.6] [word-break:keep-all]">{message}</p>
+          {body && <p id="cm-msg" className="pl-6.5 text-[0.84rem] text-muted leading-[1.6] break-keep">{body}</p>}
         </div>
         {children && <div className="px-5 pt-2.5 flex flex-col gap-2">{children}</div>}
 
@@ -94,12 +111,13 @@ interface ConfirmState {
   open: boolean;
   message: string;
   variant: 'danger' | 'primary';
+  confirmLabel?: string;
   resolve: ((v: boolean) => void) | null;
 }
 
 /**
  * window.confirm() 대체 훅.
- * confirm(message, variant) → Promise<boolean> 반환.
+ * confirm(message, variant, confirmLabel) → Promise<boolean> 반환. 버튼 이름 기본값은 위험이면 '삭제', 아니면 '확인'.
  * 반환된 confirmElement 를 컴포넌트 JSX 안에 반드시 렌더해야 한다.
  */
 export function useConfirm() {
@@ -107,10 +125,10 @@ export function useConfirm() {
     open: false, message: '', variant: 'danger', resolve: null,
   });
 
-  // 확인 모달 열기 — Promise resolve 로 결과 전달
-  function confirm(message: string, variant: 'danger' | 'primary' = 'danger'): Promise<boolean> {
+  // 확인 모달 열기 — Promise resolve 로 결과 전달. 버튼에는 실제 동작 이름(삭제 · 해지 · 로그아웃 …)을 쓴다
+  function confirm(message: string, variant: 'danger' | 'primary' = 'danger', confirmLabel?: string): Promise<boolean> {
     return new Promise((resolve) => {
-      setState({ open: true, message, variant, resolve });
+      setState({ open: true, message, variant, confirmLabel: confirmLabel ?? (variant === 'danger' ? '삭제' : '확인'), resolve });
     });
   }
 
@@ -125,6 +143,7 @@ export function useConfirm() {
       open={state.open}
       message={state.message}
       variant={state.variant}
+      confirmLabel={state.confirmLabel}
       onConfirm={() => close(true)}
       onCancel={() => close(false)}
     />

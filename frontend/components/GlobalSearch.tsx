@@ -6,6 +6,7 @@
  * 가계부/계정을 한 입력창에서 검색하고 타입별로 그룹핑해 보여준다. Esc 로 닫기.
  */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useApiQuery } from '@/lib/query';
 import { IconClock, IconKey, IconSearch, IconWon } from './icons';
 
@@ -151,8 +152,8 @@ export default function GlobalSearch() {
         <IconSearchBtn />
       </button>
 
-      {/* 검색 팔레트 모달 */}
-      {open && (
+      {/* 검색 팔레트 모달 — 상단바 안에서 그리면 그 쌓임 순서에 갇혀 사이드바를 못 덮으므로 body 에 그린다 */}
+      {open && createPortal(
         <div
           className="fixed inset-0 z-[300] bg-backdrop flex items-start justify-center pt-[12vh] px-4 animate-[fadeIn_0.2s_ease]"
           onMouseDown={() => setOpen(false)}
@@ -229,7 +230,8 @@ export default function GlobalSearch() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

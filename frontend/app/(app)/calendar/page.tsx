@@ -24,7 +24,7 @@ import IconButton from '@/components/ui/IconButton';
 import Segmented from '@/components/ui/Segmented';
 import Toggle from '@/components/ui/Toggle';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
-import { Field, ModalFooter } from '@/components/ui/Field';
+import { Field, FieldGroup, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import { api } from '@/lib/api';
 import type { Settings } from '@/lib/settings';
@@ -353,7 +353,7 @@ function EventDetailModal({ event, onClose, onEdit, onDelete }: { event: CalEven
     >
       <div className="grid grid-cols-[72px_1fr] gap-x-3 gap-y-2 text-[0.84rem]">
         <span className="text-muted">날짜</span>
-        <span>{event.date} ({DOW[new Date(`${event.date}T00:00:00`).getDay()]})</span>
+        <span className="tabular-nums">{event.date.replaceAll('-', '.')} ({DOW[new Date(`${event.date}T00:00:00`).getDay()]})</span>
         {event.isLunar && (
           <>
             <span className="text-muted">음력</span>
@@ -376,7 +376,7 @@ function EventDetailModal({ event, onClose, onEdit, onDelete }: { event: CalEven
       {linked && (
         <div className="px-3 py-2.5 bg-surface rounded-ui flex gap-2 items-center text-[0.8125rem]">
           <IconLink width={14} height={14} className="shrink-0 text-muted" />
-          <span className="flex-1">{sourceLabel} 관리에서 온 일정입니다. 수정은 원래 화면에서 합니다.</span>
+          <span className="flex-1 break-keep">{sourceLabel} 관리에서 온 일정입니다. 수정은 원래 화면에서 합니다.</span>
         </div>
       )}
     </Modal>
@@ -472,9 +472,7 @@ function EventFormModal({ state, onClose, onSaved }: { state: EventFormState; on
       <Field label="제목" required error={errors.title}>
         <input type="text" className="input" placeholder="예: 연말정산 서류 챙기기" value={title} onChange={(e) => { setTitle(e.target.value); clearError('title'); }} />
       </Field>
-      {/* 묶음 선택은 Field(label)에 넣으면 라벨을 눌러도 첫 칸이 눌려서 따로 둔다 */}
-      <div className="flex flex-col gap-1.5" role="group" aria-label="유형">
-        <span className="text-[0.78rem] text-muted">유형</span>
+      <FieldGroup label="유형">
         <Segmented
           variant="soft"
           label="유형"
@@ -483,7 +481,7 @@ function EventFormModal({ state, onClose, onSaved }: { state: EventFormState; on
           onChange={setType}
           items={EV_TYPE_OPTIONS.map((o) => ({ value: o.value, label: <span className="inline-flex items-center gap-2"><TypeMark type={o.value} />{o.label}</span> }))}
         />
-      </div>
+      </FieldGroup>
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1 items-start">
         <div className="flex flex-col gap-2">
           <Field label={editing && isRecurring ? '시작일' : '날짜'} required error={errors.date}>

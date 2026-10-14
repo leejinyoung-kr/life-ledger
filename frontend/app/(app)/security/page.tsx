@@ -44,7 +44,7 @@ export default function SecurityPage() {
 
   // 전체 세션 로그아웃 (현재 기기 제외)
   async function handleRevokeAll() {
-    if (!await confirm('현재 기기를 제외한 모든 세션을 로그아웃할까요?', 'danger')) return;
+    if (!await confirm('현재 기기를 제외한 모든 세션을 로그아웃할까요?', 'danger', '전체 로그아웃')) return;
     try { await api.post('/security/sessions/revoke-all', {}); invalidate(qk.security.all); }
     catch (e) { notify.error((e as Error).message); }
   }
