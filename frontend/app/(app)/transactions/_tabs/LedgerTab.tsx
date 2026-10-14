@@ -47,7 +47,7 @@ import {
   type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget,
   type Saving, type InvestmentAccount, type RecurringSchedule,
 } from '@/lib/finance';
-import { AMT_COLOR, toDay, monthsAgo, useAddTrigger } from '../_shared';
+import { AMT_COLOR, toDay, monthsAgo, useAddTrigger, ruleDayFor } from '../_shared';
 
 // prefill: 내역 복사(handleDuplicate) 등으로 추가 모달을 미리 채울 때 사용
 type LedgerDraft = {
@@ -693,9 +693,10 @@ function FavoriteFormModal({ state, categories, bankCats, payMethodCats, onClose
   );
 }
 
-// 즐겨찾기 관리 — 등록·수정·끌어서 순서 변경·삭제. 순서·삭제는 바로 저장한다
+// 즐겨찾기 관리 — 등록·수정·끌어서 순서 변경·삭제. 순서는 바로 저장하고, 삭제는 다른 삭제처럼 한 번 묻는다
 function FavoriteManageModal({ open, favorites, catMap, onClose, onChanged, onAdd, onEdit }: { open: boolean; favorites: TransactionFavorite[]; catMap: Record<string, string>; onClose: () => void; onChanged: () => void; onAdd: () => void; onEdit: (f: TransactionFavorite) => void }) {
   const [busy, setBusy] = useState(false);
+  const { confirm, confirmElement } = useConfirm();
   // 저장 중·재조회 전에 목록이 되돌아 보이지 않게, 바뀐 순서를 원본 목록(base)과 함께 들고 있는다
   const [pending, setPending] = useState<{ base: TransactionFavorite[]; list: TransactionFavorite[] } | null>(null);
   const list = pending && pending.base === favorites ? pending.list : favorites;
@@ -724,10 +725,11 @@ function FavoriteManageModal({ open, favorites, catMap, onClose, onChanged, onAd
     }
   }
 
-  async function remove(id: number) {
+  async function remove(f: TransactionFavorite) {
+    if (!await confirm(`즐겨찾기 '${f.title}'을(를) 삭제할까요? 이미 기록한 내역은 그대로 둡니다.`, 'danger')) return;
     setBusy(true);
     try {
-      await api.del(`/transaction-favorites/${id}`);
+      await api.del(`/transaction-favorites/${f.id}`);
       notify.deleted('즐겨찾기');
       onChanged();
     } catch {
@@ -744,11 +746,12 @@ function FavoriteManageModal({ open, favorites, catMap, onClose, onChanged, onAd
         <SortableContext items={list.map((f) => f.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col">
             {list.map((f) => (
-              <FavoriteSortableRow key={f.id} f={f} catLabel={catMap[f.category] ?? f.category} busy={busy} onEdit={() => onEdit(f)} onRemove={() => remove(f.id)} />
+              <FavoriteSortableRow key={f.id} f={f} catLabel={catMap[f.category] ?? f.category} busy={busy} onEdit={() => onEdit(f)} onRemove={() => remove(f)} />
             ))}
           </div>
         </SortableContext>
       </DndContext>
+      {confirmElement}
     </Modal>
   );
 }
@@ -803,6 +806,8 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
 
+  // 분류 · 결제수단 목록이 다 왔는지 — 대시보드 '지출 기록'이나 검색 결과로 창이 목록보다 먼저 열리면, 도착했을 때 폼을 다시 채운다
+  const listsReady = leaves.length > 0 && payMethodCats.length > 0 && bankCats.length > 0;
   const targetPickerOpen = state.open && type === 'transfer';
   // 이동 대상 후보 — 자산이동일 때만 조회(연동 없이 단순 기록도 허용하므로 항상 강제하지 않음)
   const savingsQuery = useApiQuery<Saving[]>(qk.savings.list('transfer-target'), '/savings', { enabled: targetPickerOpen && targetType === 'saving' });
@@ -835,8 +840,8 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
     setMemo(e?.memo ?? pf?.memo ?? '');
     setTargetType(e?.targetType ?? '');
     setTargetId(e?.targetId ?? '');
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
-  }, [state.open, e]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 · 목록 도착 시에만 폼 초기화
+  }, [state.open, e, listsReady]);
 
   function validate() {
     const err: Record<string, string> = {};
@@ -1017,13 +1022,23 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
     setMemo(r?.memo ?? '');
     setActive(r?.active ?? true);
     setRecurringCycle(r?.rule?.cycle ?? 'monthly');
-    setRecurringDay(r?.rule?.day ?? 1);
-    setRecurringMonth(r?.rule?.month ?? 1);
+    // 새 설정은 시작일(오늘)의 날짜 · 달을 기준일로 — 14일에 만들면 매월 14일
+    const init = ruleDayFor(r?.rule?.cycle ?? 'monthly', localDate());
+    setRecurringDay(r?.rule?.day ?? init.day);
+    setRecurringMonth(r?.rule?.month ?? init.month);
     setWeekendAdjust(r?.rule?.weekendAdjust ?? 'none');
     setTargetType(r?.targetType ?? '');
     setTargetId(r?.targetId ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 시에만 폼 초기화
   }, [state.open, r]);
+
+  // 반복 주기를 바꾸면 기준일을 시작일에 맞춘다 — 매주는 요일(0~6), 매월 · 매년은 날짜라 같은 값을 그대로 쓰면 범위를 벗어난다
+  function handleChangeCycle(c: RecurringCycle) {
+    setRecurringCycle(c);
+    const next = ruleDayFor(c, startDate);
+    setRecurringDay(next.day);
+    setRecurringMonth(next.month);
+  }
 
   function validate() {
     const err: Record<string, string> = {};
@@ -1163,7 +1178,7 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
             <input type="date" className="input" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
           </Field>
           <FieldGroup label="반복 주기" required>
-            <Segmented label="반복 주기" variant="joined" className="w-full *:flex-1" items={CYCLE_ITEMS} value={recurringCycle} onChange={setRecurringCycle} />
+            <Segmented label="반복 주기" variant="joined" className="w-full *:flex-1" items={CYCLE_ITEMS} value={recurringCycle} onChange={handleChangeCycle} />
           </FieldGroup>
         </div>
         {recurringCycle === 'weekly' ? (

@@ -451,7 +451,8 @@ export class InvestmentService {
     });
   }
 
-  // 매도 — 보유수량에서 매도수량을 차감하고, 수량×단가만큼 평가금액을 줄여 예수금으로 환입(원금은 누적 투입 기준 유지).
+  // 매도 — 보유수량에서 매도수량을 차감하고, 수량×단가만큼 평가금액을 줄여 예수금으로 환입.
+  // 원금은 평균단가 기준으로 판 수량만큼 줄인다 — 그대로 두면 이익을 보고 팔아도 남은 평가금액이 원금보다 작아져 손실로 보인다(전량 매도 시 -100%).
   // 해외종목은 환입액이 달러로 cash_balance_usd에 들어가며, current_value 차감은 원화 환산값(krwAmount) 기준
   async sell(userId: number, id: number, dto: TradeInvestmentDto) {
     const row = await this.findOwned(userId, id);
@@ -465,10 +466,16 @@ export class InvestmentService {
     const newCurrentValueUsd = isForeign && row.current_value_usd
       ? (row.current_value_usd.greaterThan(amount) ? row.current_value_usd.sub(amount) : new Prisma.Decimal(0))
       : undefined;
+    // 남는 비율 = (보유 − 매도) / 보유. 전량 매도면 원금 0
+    const keep = row.quantity.sub(dto.quantity).div(row.quantity);
+    const newPrincipal = row.principal.mul(keep).toDecimalPlaces(0);
+    const newPrincipalUsd = row.principal_usd ? row.principal_usd.mul(keep).toDecimalPlaces(4) : undefined;
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.investment.update({
         where: { id },
         data: {
+          principal: newPrincipal,
+          principal_usd: newPrincipalUsd,
           current_value: newCurrentValue,
           current_value_usd: newCurrentValueUsd,
           quantity: { decrement: dto.quantity },

@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
@@ -49,6 +49,14 @@ function TransactionsPageInner() {
   const investCats = useMemo(() => (investCatQuery.data ?? []).filter((c) => c.isActive), [investCatQuery.data]);
   const bankCats = useMemo(() => (bankCatQuery.data ?? []).filter((c) => c.isActive), [bankCatQuery.data]);
   const payMethodCats = useMemo(() => (payMethodCatQuery.data ?? []).filter((c) => c.isActive), [payMethodCatQuery.data]);
+
+  // 대시보드 '지출 기록'(?add=1)으로 들어오면 추가 창을 바로 연다. 새로고침에 다시 열리지 않게 주소에서 지운다
+  useEffect(() => {
+    if (searchParams.get('add') !== '1') return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 들어올 때 한 번만 여는 동작
+    setAddTrigger((prev) => ({ ...prev, [urlTab]: prev[urlTab] + 1 }));
+    window.history.replaceState(null, '', urlTab === 'ledger' ? '/transactions' : `/transactions?tab=${urlTab}`);
+  }, [searchParams, urlTab]);
 
   // 탭을 바꾸면 주소의 ?tab= 도 맞춘다 — 새로고침 · 주소 공유 때 같은 탭이 열리게. 뒤로 가기가 탭마다 쌓이지 않게 replace
   function changeTab(next: TabId) {

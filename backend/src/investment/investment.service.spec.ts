@@ -179,8 +179,23 @@ describe('InvestmentService', () => {
       const res = await svc().sell(1, inv.id, { quantity: 4, price: 1000 } as any);
       expect(res.quantity).toBe(6);
       expect(res.currentValue).toBe(100_000 - 4000);
-      expect(res.principal).toBe(100_000); // 원금은 누적 투입 기준 유지
+      expect(res.principal).toBe(60_000); // 평균단가 기준 — 10주 중 4주를 팔면 원금도 4/10 줄어든다
       expect(accounts[0].cash_balance.toNumber()).toBe(1_000_000 + 4000);
+    });
+
+    it('매도: 이익을 보고 팔면 남은 수익도 이익으로 남는다 (원금을 그대로 두면 손실로 보이던 문제)', async () => {
+      // 12주 · 원금 120,000(평균 10,000) · 평가 130,000 → 1주를 12,000 에 매도
+      const inv = seedInvestment({ quantity: dec(12), principal: dec(120_000), current_value: dec(130_000) });
+      const res = await svc().sell(1, inv.id, { quantity: 1, price: 12_000 } as any);
+      expect(res.principal).toBe(110_000);
+      expect(res.currentValue).toBe(118_000);
+      expect(res.currentValue - res.principal).toBeGreaterThan(0);
+    });
+
+    it('매도: 전량 매도하면 원금도 0', async () => {
+      const inv = seedInvestment();
+      const res = await svc().sell(1, inv.id, { quantity: 10, price: 1000 } as any);
+      expect(res.principal).toBe(0);
     });
 
     it('매도: 매도금액이 평가금액을 초과해도 평가금액은 0 미만으로 내려가지 않음', async () => {

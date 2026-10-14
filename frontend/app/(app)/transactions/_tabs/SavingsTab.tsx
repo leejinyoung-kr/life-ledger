@@ -291,7 +291,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
 
   function validate() {
     const err: Record<string, string> = {};
-    if (!bank.trim()) err.bank = '은행/기관을 입력하세요.';
+    if (!bank.trim()) err.bank = '은행/기관을 선택하세요.';
     if (!name.trim()) err.name = '상품명을 입력하세요.';
     if (!startDate) err.startDate = '가입일을 선택하세요.';
     setErrors(err);

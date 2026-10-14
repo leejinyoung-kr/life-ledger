@@ -221,9 +221,10 @@ export const INVEST_TYPE_LABEL: Record<InvestmentType, string> = {
 };
 
 // ── 포맷 유틸 ────────────────────────────────────────────────────
-// 원화 표시 (₩1,234,000 · 음수는 -₩1,234,000) — 부호를 따로 붙이는 곳은 Math.abs 로 넘긴다
+// 원화 표시 (₩1,234,000 · 음수는 -₩1,234,000) — 부호를 따로 붙이는 곳은 Math.abs 로 넘긴다. 원 아래는 반올림(평균단가 계산 등에서 소수가 생긴다)
 export function won(n: number): string {
-  return `${n < 0 ? '-' : ''}₩${Math.abs(n).toLocaleString('ko-KR')}`;
+  const r = Math.round(n);
+  return `${r < 0 ? '-' : ''}₩${Math.abs(r).toLocaleString('ko-KR')}`;
 }
 
 // 만 원 단위로 줄인 금액 (7,312,000 → "731만") — 막대 이름표처럼 좁은 자리용

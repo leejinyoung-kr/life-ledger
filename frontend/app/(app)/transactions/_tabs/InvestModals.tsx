@@ -17,7 +17,7 @@ import {
   type Investment, type InvestmentAccount, type InvestmentType,
   type RecurringCycle, type WeekendAdjust, type RecurringSchedule,
 } from '@/lib/finance';
-import { toDay } from '../_shared';
+import { toDay, ruleDayFor } from '../_shared';
 import { UnitInput } from './modalParts';
 
 export type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Investment; prefill?: Investment };
@@ -570,8 +570,10 @@ export function RecurringInvestmentModal({ state, onClose, onSaved }: { state: R
     setStartDate(r?.startDate ?? localDate());
     setActive(r?.active ?? true);
     setRecurringCycle(r?.rule?.cycle ?? 'monthly');
-    setRecurringDay(r?.rule?.day ?? 1);
-    setRecurringMonth(r?.rule?.month ?? 1);
+    // 새 설정은 시작일(오늘)의 날짜 · 달을 기준일로
+    const init = ruleDayFor(r?.rule?.cycle ?? 'monthly', localDate());
+    setRecurringDay(r?.rule?.day ?? init.day);
+    setRecurringMonth(r?.rule?.month ?? init.month);
     setWeekendAdjust(r?.rule?.weekendAdjust ?? 'none');
     setRecurringMode(r?.buyQuantity ? 'quantity' : 'amount');
     setRecurringAmount(r?.buyAmount ? String(r.buyAmount) : '');
@@ -617,6 +619,14 @@ export function RecurringInvestmentModal({ state, onClose, onSaved }: { state: R
     }
   }
 
+  // 반복 주기를 바꾸면 기준일을 시작일에 맞춘다 (매주는 요일, 매월 · 매년은 날짜)
+  function handleChangeCycle(c: RecurringCycle) {
+    setRecurringCycle(c);
+    const next = ruleDayFor(c, startDate);
+    setRecurringDay(next.day);
+    setRecurringMonth(next.month);
+  }
+
   const showWeekend = recurringCycle !== 'weekly' && recurringCycle !== 'daily';
 
   return (
@@ -641,7 +651,7 @@ export function RecurringInvestmentModal({ state, onClose, onSaved }: { state: R
           <input type="date" className="input" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
         </Field>
         <FieldGroup label="반복 주기" required>
-          <Segmented label="반복 주기" variant="joined" fill value={recurringCycle} onChange={setRecurringCycle} items={CYCLE_ITEMS} />
+          <Segmented label="반복 주기" variant="joined" fill value={recurringCycle} onChange={handleChangeCycle} items={CYCLE_ITEMS} />
         </FieldGroup>
         {recurringCycle === 'yearly' && (
           <Field label="월" required>

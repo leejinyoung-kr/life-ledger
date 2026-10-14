@@ -160,8 +160,8 @@ export default function DashboardPage() {
       <PageHeader
         title="대시보드"
         description={`${todayText} · 이번 달 돈 흐름과 곧 다가오는 날짜`}
-        // 보는 화면이라 자주 하는 지출 기록만 둔다 — 계정 · 파일 추가는 각 화면에서
-        actions={<Button href="/transactions"><IconPlus />지출 기록</Button>}
+        // 보는 화면이라 자주 하는 지출 기록만 둔다 — 누르면 가계부에서 추가 창이 바로 열린다. 계정 · 파일 추가는 각 화면에서
+        actions={<Button href="/transactions?add=1"><IconPlus />지출 기록</Button>}
       />
 
       {(summaryQuery.isError || forecastQuery.isError || deadlinesQuery.isError) && (
