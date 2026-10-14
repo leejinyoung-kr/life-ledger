@@ -20,14 +20,14 @@ function CountBadge({ count }: { count: number }) {
   return <span className="min-w-[18px] h-[18px] px-[5px] rounded-full bg-danger text-on-solid text-[0.68rem] leading-[18px] text-center">{count > 99 ? '99+' : count}</span>;
 }
 
-// 메뉴 한 줄 — 고른 메뉴는 왼쪽 금빛 선 + 옅은 금빛 바탕. sub 는 사이드바 2차 메뉴(들여 씀)
+// 메뉴 한 줄 — 고른 메뉴는 둥근 옅은 초록 바탕 + 진한 초록 굵은 글자. sub 는 사이드바 2차 메뉴(들여 씀)
 export function NavLink({ href, icon, label, active, count, size = 'md', sub, onClick }: { href: string; icon: React.ReactNode; label: string; active: boolean; count?: number; size?: 'md' | 'lg'; sub?: boolean; onClick?: () => void }) {
   return (
     <a
       href={href}
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
-      className={`flex items-center gap-2.5 border-l-2 rounded-r-ui transition-colors [&_svg]:shrink-0 ${sub ? 'pl-8 pr-2.5' : 'px-2.5'} ${size === 'lg' ? 'min-h-11 text-[0.94rem] [&_svg]:w-[19px] [&_svg]:h-[19px]' : 'min-h-9 text-[0.875rem] [&_svg]:w-[17px] [&_svg]:h-[17px]'} ${active ? 'border-accent bg-accent-dim text-accent-dark' : 'border-transparent text-primary hover:bg-surface'}`}
+      className={`flex items-center gap-2.5 rounded-ui transition-colors [&_svg]:shrink-0 ${sub ? 'pl-8 pr-2.5' : 'px-2.5'} ${size === 'lg' ? 'min-h-11 text-[0.94rem] [&_svg]:w-[19px] [&_svg]:h-[19px]' : 'min-h-9 text-[0.875rem] [&_svg]:w-[17px] [&_svg]:h-[17px]'} ${active ? 'bg-accent-dim text-accent-dark font-semibold' : 'text-secondary hover:bg-surface hover:text-primary'}`}
     >
       {icon}
       <span className="flex-1">{label}</span>
@@ -71,7 +71,7 @@ function NavGroup({ section, open, activePath, unread, onToggle, onPick }: {
         onClick={onToggle}
         aria-expanded={open}
         aria-controls={id}
-        className={`flex items-center gap-2.5 px-2.5 min-h-9 border-l-2 border-transparent rounded-r-ui text-[0.875rem] text-left transition-colors hover:bg-surface [&_svg]:shrink-0 [&_svg]:w-[17px] [&_svg]:h-[17px] ${hasActive ? 'text-accent-dark' : 'text-primary'}`}
+        className={`flex items-center gap-2.5 px-2.5 min-h-9 rounded-ui text-[0.875rem] text-left transition-colors hover:bg-surface hover:text-primary [&_svg]:shrink-0 [&_svg]:w-[17px] [&_svg]:h-[17px] ${hasActive ? 'text-primary font-semibold' : 'text-secondary'}`}
       >
         {section.icon}
         <span className="flex-1">{section.label}</span>
@@ -105,7 +105,7 @@ export default function Sidebar({ activePath = '/dashboard', onLogout }: { activ
   });
 
   return (
-    <aside className="w-[var(--sidebar-w)] h-screen bg-page border-r border-border flex flex-col fixed top-0 left-0 z-[100] max-md:hidden">
+    <aside className="w-[var(--sidebar-w)] h-screen bg-background border-r border-border flex flex-col fixed top-0 left-0 z-[100] max-md:hidden">
       <a href="/dashboard" className="h-[var(--header-h)] flex items-center px-5 border-b border-border shrink-0">
         <Wordmark />
       </a>

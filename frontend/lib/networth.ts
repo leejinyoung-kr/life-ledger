@@ -42,7 +42,7 @@ export const ASSET_TYPE_LABEL: Record<AssetType, string> = {
   investment: '투자',
 };
 
-// 자산 구성 띠/점 색 — 금빛은 돈에 쓰지 않으니 글자색의 진하기로만 구분한다
+// 자산 구성 띠/점 색 — 강조색(초록)은 수입 색과 헷갈리니 글자색의 진하기로만 구분한다
 export const ASSET_TYPE_COLOR: Record<AssetType, string> = {
   cash: 'color-mix(in srgb, var(--text-muted) 55%, transparent)',
   savings: 'var(--text-muted)',

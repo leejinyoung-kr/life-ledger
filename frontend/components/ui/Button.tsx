@@ -13,9 +13,9 @@ const BASE =
   'inline-flex items-center justify-center gap-1.5 rounded-ui font-medium whitespace-nowrap transition-all cursor-pointer [&_svg]:w-[15px] [&_svg]:h-[15px] disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none';
 
 const VARIANT: Record<Variant, string> = {
-  // 주 버튼은 채우지 않고 금빛 테두리 + 진한 금빛 글자 (판정 D2 — 금빛 글자는 대비가 모자라다)
-  primary: 'bg-transparent text-accent-dark border border-accent hover:bg-accent-dim',
-  ghost: 'bg-transparent text-primary border border-border hover:bg-surface',
+  // 주 버튼은 진한 초록으로 채우고 흰 글자 (밝은 초록 바탕은 흰 글자 대비가 모자라 accent-dark 를 쓴다)
+  primary: 'bg-accent-dark text-on-solid border border-accent-dark font-semibold hover:bg-accent-press hover:border-accent-press',
+  ghost: 'bg-background text-primary border border-border hover:bg-surface',
   // 삭제로 가는 첫 단계 — 지출 색 테두리. 채운 버튼(solid-danger)은 확인 창 안에서만
   danger: 'bg-transparent text-danger border border-danger hover:bg-danger-dim',
   'solid-danger': 'bg-danger text-on-solid border border-danger font-semibold hover:bg-danger-dark hover:border-danger-dark',

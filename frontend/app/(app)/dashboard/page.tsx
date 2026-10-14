@@ -234,7 +234,7 @@ export default function DashboardPage() {
                 <span className="text-[0.75rem] text-muted">예측</span>
               </CardHeader>
               <div className="px-[18px] pt-4 pb-1.5 flex flex-col gap-3">
-                <span className="text-[1.75rem] leading-tight tracking-[-0.01em] text-danger tabular-nums">−{won(forecast.totalMonthly)}</span>
+                <span className="text-[1.75rem] font-bold leading-tight tracking-[-0.02em] text-danger tabular-nums">−{won(forecast.totalMonthly)}</span>
                 <div className="grid grid-cols-2 border-y border-border-subtle">
                   <div className="py-2 flex flex-col">
                     <span className="text-[0.75rem] text-muted">구독 {forecast.subscriptions.count}건</span>

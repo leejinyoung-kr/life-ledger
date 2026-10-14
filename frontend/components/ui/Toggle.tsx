@@ -1,6 +1,6 @@
 /**
  * 공통 토글 스위치 (Tailwind). controlled.
- * 켜짐은 금빛 테두리 + 옅은 금빛 바탕 + 금빛 손잡이, 꺼짐은 선만.
+ * 켜짐은 초록 테두리 + 옅은 초록 바탕 + 초록 손잡이, 꺼짐은 선만.
  */
 export default function Toggle({ on, onToggle, label = '토글', disabled = false }: { on: boolean; onToggle: () => void; label?: string; disabled?: boolean }) {
   return (

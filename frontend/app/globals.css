@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Noto+Serif+KR:wght@500;600;700&display=swap');
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 @import "tailwindcss";
 
@@ -10,52 +9,53 @@
 }
 
 :root {
-  /* Colors — 이름은 그대로 두고 값은 디자인 시안(docs/design/source/theme.js) 값. 강조(금빛)와 돈 색(수입 · 지출 · 이동)을 나눈다 */
-  --bg-page:        #F3F2F2;              /* 종이 바탕 */
-  --bg-base:        #FAF9F8;              /* 카드 · 모달 · 사이드바 (raised) */
-  --bg-surface:     #F2F0EE;              /* 표 머리 · hover */
-  --bg-elevated:    #EAE7E7;              /* 입력 안쪽 · 막대 바탕 */
-  --border:         rgba(32, 31, 29, 0.15);
-  --border-subtle:  rgba(32, 31, 29, 0.08);
-  --accent:         #B68235;
-  --accent-dark:    #7D5411;              /* accent-ink — 금빛 위 글자 · 주 버튼 글자(AA) */
-  --accent-dim:     rgba(182, 130, 53, 0.11);
-  --accent-hover:   rgba(182, 130, 53, 0.18);
-  --accent-glow:    rgba(182, 130, 53, 0.09);
-  --text-primary:   #201F1D;
-  --text-secondary: #444141;
-  --text-muted:     #5F5B58;              /* 글자는 여기까지 — 시안의 faint(#86817D)는 대비 미달이라 글자에 쓰지 않는다 */
-  --danger:         #A3412E;              /* 지출 · 위험 */
-  --danger-dark:    #8A3524;
-  --danger-dim:     rgba(163, 65, 46, 0.08);
-  --warning:        #A65A12;
-  --warning-dim:    rgba(166, 90, 18, 0.09);
-  --success:        #2F6A4C;              /* 수입 · 성공 */
-  --success-dim:    rgba(47, 106, 76, 0.09);
-  --blue:           #47607E;              /* 자산이동 · 정보 */
-  --blue-dim:       rgba(71, 96, 126, 0.09);
-  --amber:          #B68235;
-  --amber-dim:      rgba(182, 130, 53, 0.11);
+  /* Colors — 개편 전 초록 강조 · 흰 카드 느낌으로 되돌리되, 글자에 쓰는 색은 흰 바탕 대비 4.5:1 이상으로 진하게 */
+  --bg-page:        #F5F6F8;              /* 본문 바탕 — 흰 카드가 떠 보이게 옅은 회색 */
+  --bg-base:        #FFFFFF;              /* 카드 · 모달 · 사이드바 · 상단바 */
+  --bg-surface:     #F8F9FB;              /* 표 머리 · hover */
+  --bg-elevated:    #F0F2F5;              /* 입력 안쪽 · 막대 바탕 */
+  --border:         #E4E7EC;
+  --border-subtle:  #EEF0F3;
+  --accent:         #00C07F;              /* 채우는 데만(막대 · 아이콘 · 포커스) — 글자로 쓰면 대비 미달 */
+  --accent-dark:    #007A4D;              /* 강조 글자 · 주 버튼 바탕 (흰 글자 5.4:1) */
+  --accent-press:   #006B43;              /* 주 버튼 hover */
+  --accent-dim:     rgba(0, 192, 127, 0.10);
+  --accent-hover:   rgba(0, 192, 127, 0.16);
+  --accent-glow:    rgba(0, 192, 127, 0.09);
+  --text-primary:   #0F1923;
+  --text-secondary: #4E5968;
+  --text-muted:     #667085;
+  --danger:         #D92D20;              /* 지출 · 위험 */
+  --danger-dark:    #B42318;
+  --danger-dim:     rgba(240, 68, 56, 0.08);
+  --warning:        #B54708;
+  --warning-dim:    rgba(247, 144, 9, 0.10);
+  --success:        #007A4D;              /* 수입 · 성공 */
+  --success-dim:    rgba(0, 192, 127, 0.10);
+  --blue:           #2563EB;              /* 자산이동 · 정보 */
+  --blue-dim:       rgba(59, 130, 246, 0.10);
+  --amber:          #F59E0B;
+  --amber-dim:      rgba(245, 158, 11, 0.12);
   --on-solid:       #FFFFFF;              /* 채운 버튼 위 글자 */
-  --backdrop:       rgba(32, 31, 29, 0.42);
+  --backdrop:       rgba(15, 25, 35, 0.45);
 
-  /* Typography — 제목만 명조(D1), 본문 · 표 · 숫자는 Pretendard */
-  --font-display: 'Cormorant Garamond', 'Noto Serif KR', serif;
+  /* Typography — 제목 · 본문 · 숫자 모두 Pretendard. --font-display 는 제목 자리 이름으로만 남긴다 */
+  --font-display: var(--font-body);
   --font-body:    'Pretendard Variable', Pretendard, system-ui, sans-serif;
   --font-mono:    var(--font-body);       /* 금액은 본문 글꼴 + tabular-nums */
   --font-code:    ui-monospace, SFMono-Regular, Consolas, monospace; /* 코드 · 시크릿 */
 
   /* Layout */
-  --sidebar-w:   232px;
-  --header-h:    56px;
-  --radius:      4px;
-  --radius-lg:   7px;
+  --sidebar-w:   240px;
+  --header-h:    60px;
+  --radius:      8px;
+  --radius-lg:   14px;
   --radius-full: 999px;
 
-  /* Shadows — 카드는 그림자 없이 선만, 떠 있는 것(메뉴 · 모달)만 그림자 */
-  --shadow-sm: none;
-  --shadow-md: 0 4px 16px rgba(32, 31, 29, 0.08);
-  --shadow-lg: 0 12px 40px rgba(32, 31, 29, 0.16);
+  /* Shadows — 카드는 옅은 그림자, 떠 있는 것(메뉴 · 모달)은 진하게 */
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 16px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 12px 40px rgba(16, 24, 40, 0.14);
 
   /* Transitions */
   --ease: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
@@ -63,33 +63,35 @@
 
 /* 다크 모드 — data-theme="dark" 를 html 엘리먼트에 부착 */
 [data-theme="dark"] {
-  --bg-page:        #191816;
-  --bg-base:        #23211F;
-  --bg-surface:     #262422;
-  --bg-elevated:    #2E2C29;
-  --border:         rgba(235, 231, 225, 0.14);
-  --border-subtle:  rgba(235, 231, 225, 0.07);
-  --accent:         #D2A15A;
-  --accent-dark:    #E6C08A;
-  --accent-dim:     rgba(210, 161, 90, 0.13);
-  --accent-hover:   rgba(210, 161, 90, 0.20);
-  --accent-glow:    rgba(210, 161, 90, 0.10);
-  --text-primary:   #EBE7E1;
-  --text-secondary: #D8D3CC;
-  --text-muted:     #AAA49D;
-  --danger:         #E48C78;
-  --danger-dark:    #EDA493;
-  --danger-dim:     rgba(228, 140, 120, 0.11);
-  --warning:        #E3A463;
-  --warning-dim:    rgba(227, 164, 99, 0.12);
-  --success:        #7FB896;
-  --success-dim:    rgba(127, 184, 150, 0.12);
-  --blue:           #9DB1CC;
-  --blue-dim:       rgba(157, 177, 204, 0.12);
-  --amber:          #D2A15A;
-  --amber-dim:      rgba(210, 161, 90, 0.13);
-  --on-solid:       #191816;
+  --bg-page:        #0D1117;
+  --bg-base:        #161B22;
+  --bg-surface:     #1C2128;
+  --bg-elevated:    #21262D;
+  --border:         #30363D;
+  --border-subtle:  #262C34;
+  --accent:         #2BC48A;
+  --accent-dark:    #3DDC9B;
+  --accent-press:   #5BE6AE;
+  --accent-dim:     rgba(43, 196, 138, 0.14);
+  --accent-hover:   rgba(43, 196, 138, 0.20);
+  --accent-glow:    rgba(43, 196, 138, 0.10);
+  --text-primary:   #E6EDF3;
+  --text-secondary: #B1BAC4;
+  --text-muted:     #8B949E;
+  --danger:         #FF7A6E;
+  --danger-dark:    #FF968C;
+  --danger-dim:     rgba(255, 122, 110, 0.12);
+  --warning:        #F5A84A;
+  --warning-dim:    rgba(245, 168, 74, 0.12);
+  --success:        #3DDC9B;
+  --success-dim:    rgba(61, 220, 155, 0.12);
+  --blue:           #6CA4FF;
+  --blue-dim:       rgba(108, 164, 255, 0.14);
+  --amber:          #F5B544;
+  --amber-dim:      rgba(245, 181, 68, 0.14);
+  --on-solid:       #0D1117;
   --backdrop:       rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
@@ -106,6 +108,7 @@
   --color-accent: var(--accent);
   --color-accent-dark: var(--accent-dark);
   --color-accent-dim: var(--accent-dim);
+  --color-accent-press: var(--accent-press);
   --color-primary: var(--text-primary);
   --color-secondary: var(--text-secondary);
   --color-muted: var(--text-muted);
@@ -144,8 +147,6 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* 제목 글꼴(Cormorant)의 숫자는 올드스타일이라 줄 높이에 맞춘 숫자로 */
-  h1, h2, h3, h4 { font-variant-numeric: lining-nums tabular-nums; }
   a { color: inherit; text-decoration: none; }
   ul, ol { list-style: none; }
   button { cursor: pointer; border: none; background: none; font: inherit; }
@@ -201,25 +202,30 @@ input[type="date"].input, input[type="time"].input, input[type="datetime-local"]
   appearance: none;
 }
 
-/* 공통 체크박스 — 선만 있는 네모, 고르면 금빛 테두리 + 진한 금빛 체크 */
+/* 공통 체크박스 — 둥근 네모, 고르면 초록으로 채우고 흰 체크 */
 .checkbox {
   appearance: none; -webkit-appearance: none; flex-shrink: 0;
-  width: 16px; height: 16px; border: 1px solid var(--border); border-radius: 2px;
-  background: transparent; cursor: pointer; position: relative;
+  width: 16px; height: 16px; border: 1.5px solid var(--border); border-radius: 4px;
+  background: var(--bg-base); cursor: pointer; position: relative;
   transition: background var(--ease), border-color var(--ease);
 }
 .checkbox:hover { border-color: var(--accent); }
-.checkbox:checked { background: var(--accent-dim); border-color: var(--accent); }
+.checkbox:checked { background: var(--accent-dark); border-color: var(--accent-dark); }
 .checkbox:checked::after {
   content: ''; position: absolute; left: 6px; top: 3px; width: 4px; height: 8px;
-  border: solid var(--accent-dark); border-width: 0 2px 2px 0; transform: rotate(45deg);
+  border: solid var(--on-solid); border-width: 0 2px 2px 0; transform: rotate(45deg);
 }
 
-.table-wrap { width: 100%; overflow-x: auto; }
+/* 표 바깥 — 흰 카드 모양. 이미 카드 안에 넣은 표는 flat 으로 테두리 · 그림자를 뺀다 */
+.table-wrap {
+  width: 100%; overflow-x: auto; background: var(--bg-base);
+  border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+}
+.table-wrap.flat { border: none; border-radius: 0; box-shadow: none; background: transparent; }
 table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-/* 표 — 머리 행 36 · 보조 글자(굵게 하지 않음), 줄무늬 없이 행 사이 머리카락 선, 행 44 */
+/* 표 — 머리 행 38 · 옅은 바탕 + 보조 글자, 줄무늬 없이 행 사이 옅은 선, 행 48 */
 thead th {
-  text-align: center; height: 36px; padding: 0 12px; font-size: 0.75rem; font-weight: 400;
+  text-align: center; height: 38px; padding: 0 12px; font-size: 0.75rem; font-weight: 600; background: var(--bg-surface);
   color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap;
 }
 thead th.td-right, thead th.th-right { text-align: right; }
@@ -227,13 +233,13 @@ thead th.th-left { text-align: left; }
 tbody tr { border-bottom: 1px solid var(--border-subtle); transition: background var(--ease); }
 tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: var(--bg-surface); }
-tbody td { height: 44px; padding: 6px 12px; color: var(--text-primary); vertical-align: middle; }
+tbody td { height: 48px; padding: 6px 12px; color: var(--text-primary); vertical-align: middle; }
 .td-muted { color: var(--text-secondary); }
 .td-mono  { font-variant-numeric: tabular-nums; }
 .td-right { text-align: right; }
 .td-center { text-align: center; }
-.td-name { font-weight: 400; }
-.td-strong { font-weight: 500; }
+.td-name { font-weight: 500; }
+.td-strong { font-weight: 600; }
 
 /* 엑셀 줄 · 업로드 라벨 — 테두리 없는 작은 글자 버튼 */
 .excel-btn {
@@ -259,9 +265,9 @@ tbody td { height: 44px; padding: 6px 12px; color: var(--text-primary); vertical
    가계부 (transactions) 전용
    ════════════════════════════════════════ */
 
-.amount-income  { color: var(--success); font-variant-numeric: tabular-nums; }
-.amount-expense { color: var(--danger); font-variant-numeric: tabular-nums; }
-.amount-transfer { color: var(--blue); font-variant-numeric: tabular-nums; }
+.amount-income  { color: var(--success); font-weight: 600; font-variant-numeric: tabular-nums; }
+.amount-expense { color: var(--danger); font-weight: 600; font-variant-numeric: tabular-nums; }
+.amount-transfer { color: var(--blue); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .cat-chip {
   display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px;

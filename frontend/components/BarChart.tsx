@@ -1,6 +1,6 @@
 /**
  * 막대 차트 — 값 · 막대 · 이름표 영역을 나눠, 막대 높이가 실제 값 비율대로 그려진다(시안 점검 §3-1).
- * tone 은 막대의 뜻: out(지출 색) · neutral(글자색 계열). 이번 달(current) 막대만 진하게 칠한다.
+ * tone 은 이번 달(current) 막대의 뜻: out(지출 색) · neutral(글자색 계열). 지난 막대는 모두 옅은 회색이다.
  */
 import type { ReactNode } from 'react';
 
@@ -8,8 +8,8 @@ import type { ReactNode } from 'react';
 export type BarItem = { key: string; label: string; value: number; valueLabel?: string; current?: boolean; delta?: ReactNode };
 
 const TONE = {
-  out: { bar: 'bg-danger/25', current: 'bg-danger' },
-  neutral: { bar: 'bg-primary/15', current: 'bg-primary/70' },
+  out: { bar: 'bg-primary/12', current: 'bg-danger' },
+  neutral: { bar: 'bg-primary/12', current: 'bg-primary/70' },
 } as const;
 
 export default function BarChart({ items, tone = 'neutral', height = 140, label }: {
@@ -24,13 +24,13 @@ export default function BarChart({ items, tone = 'neutral', height = 140, label 
   const hasDelta = items.some((it) => it.delta != null);
   const fill = height === 'fill';
   return (
-    <div role="img" aria-label={label} className={`flex gap-2.5 items-end ${fill ? 'h-full' : ''}`}>
+    <div role="img" aria-label={label} className={`flex gap-2.5 items-end justify-around ${fill ? 'h-full' : ''}`}>
       {items.map((it) => (
-        <div key={it.key} className={`flex-1 min-w-0 flex flex-col items-center gap-1.5 ${fill ? 'h-full' : ''}`}>
-          <span className={`text-[0.7rem] h-4 leading-4 truncate max-w-full ${it.current ? 'text-primary' : 'text-muted'}`}>{it.valueLabel ?? ''}</span>
+        <div key={it.key} className={`flex-1 min-w-0 max-w-24 flex flex-col items-center gap-1.5 ${fill ? 'h-full' : ''}`}>
+          <span className={`text-[0.7rem] h-4 leading-4 truncate max-w-full ${it.current ? 'text-primary font-semibold' : 'text-muted'}`}>{it.valueLabel ?? ''}</span>
           <div className={`w-full flex items-end ${fill ? 'flex-1 min-h-0' : ''}`} style={fill ? undefined : { height }}>
             <div
-              className={`w-full rounded-t-[2px] ${it.current ? TONE[tone].current : TONE[tone].bar}`}
+              className={`w-full rounded-t-md ${it.current ? TONE[tone].current : TONE[tone].bar}`}
               style={{ height: `${Math.max(2, Math.round((Math.max(0, it.value) / max) * 100))}%` }}
             />
           </div>

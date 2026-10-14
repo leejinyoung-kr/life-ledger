@@ -221,7 +221,7 @@ export default function SubscriptionsPage() {
 
       <Card clip className="mb-4">
         {/* PC: 표 */}
-        <div className="table-wrap max-md:hidden">
+        <div className="table-wrap flat max-md:hidden">
           <table>
             <colgroup>
               <col />

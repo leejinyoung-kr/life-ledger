@@ -31,7 +31,7 @@ export default function TopBar() {
   }, [qc]);
 
   return (
-    <div className="h-[var(--header-h)] max-md:h-[52px] border-b border-border flex items-center gap-2 pl-8 pr-6 max-md:pl-4 max-md:pr-1.5 max-md:gap-0.5 bg-page sticky top-0 z-50">
+    <div className="h-[var(--header-h)] max-md:h-[52px] border-b border-border flex items-center gap-2 pl-8 pr-6 max-md:pl-4 max-md:pr-1.5 max-md:gap-0.5 bg-background sticky top-0 z-50">
       <a href="/dashboard" className="hidden max-md:block flex-1"><Wordmark /></a>
       <GlobalSearch />
       <span className="flex-1 max-md:hidden" />

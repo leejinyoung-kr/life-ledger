@@ -8,14 +8,14 @@ import { clickable } from '@/lib/a11y';
 type CardHover = 'lift' | 'accent' | 'tile';
 type CardTone = 'default' | 'accent' | 'danger';
 
-// tone: accent 는 고른 카드(금빛 테두리), danger 는 위험 구역(위쪽 지출 색 선)
+// tone: accent 는 고른 카드(초록 테두리), danger 는 위험 구역(위쪽 지출 색 선)
 const TONE: Record<CardTone, string> = {
   default: 'border-border',
   accent: 'border-accent',
   danger: 'border-border border-t-2 border-t-danger',
 };
 
-// hover: 누를 수 있는 카드는 테두리만 금빛(lift · accent), tile 은 옅은 금빛 바탕까지(폴더 타일)
+// hover: 누를 수 있는 카드는 테두리만 초록(lift · accent), tile 은 옅은 초록 바탕까지(폴더 타일)
 const HOVER: Record<CardHover, string> = {
   lift: 'transition-colors hover:border-accent',
   accent: 'transition-colors hover:border-accent',
@@ -34,7 +34,7 @@ export function Card({
 }: Omit<HTMLAttributes<HTMLDivElement>, 'onClick'> & { clip?: boolean; hover?: CardHover; onClick?: () => void; tone?: CardTone }) {
   const h = hover ?? (onClick ? 'accent' : undefined);
   const cls = [
-    'border rounded-ui',
+    'border rounded-panel bg-background shadow-card',
     TONE[tone ?? 'default'],
     clip ? 'overflow-hidden' : '',
     onClick ? 'cursor-pointer' : '',
@@ -57,7 +57,7 @@ export function CardHeader({ className = '', children }: { className?: string; c
 }
 
 export function CardTitle({ children }: { children: ReactNode }) {
-  return <span className="[font-family:var(--font-display)] text-[1.1875rem] font-semibold leading-tight lining-nums text-primary flex items-center gap-2">{children}</span>;
+  return <span className="text-[1.0625rem] font-bold leading-tight text-primary flex items-center gap-2">{children}</span>;
 }
 
 // padding 기본 20px. compact=상단 8px, flush=0
