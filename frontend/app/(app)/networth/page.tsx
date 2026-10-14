@@ -1,30 +1,27 @@
 'use client';
 
+import Link from 'next/link';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
-import StatCard, { StatStrip } from '@/components/StatCard';
 import BarChart from '@/components/BarChart';
-import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
+import { Card, CardTitle } from '@/components/ui/Card';
+import { IconChevronRight } from '@/components/icons';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
 import { won } from '@/lib/finance';
 import {
-  ASSET_TYPE_LABEL, ASSET_TYPE_COLOR, BY_TYPE_CARD,
+  ASSET_TYPE_COLOR, BY_TYPE_NAME, ASSET_TYPE_ORDER,
   wonM, millionsLabel,
-  type NetWorthSummary, type TrendPoint, type AllocationItem,
+  type NetWorthSummary, type TrendPoint, type ByTypeItem,
 } from '@/lib/networth';
 
-// 도넛 conic-gradient 문자열 생성 (누적 percent 기준)
-function buildDonutGradient(items: AllocationItem[]): string {
-  let acc = 0;
-  const stops = items.map((it) => {
-    const color = ASSET_TYPE_COLOR[it.type];
-    const seg = `${color} ${acc}% ${acc + it.percent}%`;
-    acc += it.percent;
-    return seg;
-  });
-  return `conic-gradient(${stops.join(', ')})`;
+// 유형별 보조 글자 (건수 · 평균 금리)
+function typeSubText(b: ByTypeItem | undefined): string {
+  if (!b) return '';
+  if (b.type === 'cash') return `입출금 ${b.count}건`;
+  if (b.type === 'savings') return b.avgRate !== null ? `평균 금리 ${b.avgRate}%` : `${b.count}건`;
+  return `${b.count}종목`;
 }
 
 export default function NetworthPage() {
@@ -38,16 +35,10 @@ export default function NetworthPage() {
   const change = summary?.changeAmount ?? null;
   const up = (change ?? 0) >= 0;
 
-  // 유형별 카드 — byType 항목에 카드 메타(아이콘/톤/라벨) 결합
-  const cards = (summary?.byType ?? []).map((b) => {
-    const meta = BY_TYPE_CARD[b.type];
-    const change =
-      b.type === 'cash' ? `입출금 ${b.count}건`
-      : b.type === 'savings' ? (b.avgRate !== null ? `평균 ${b.avgRate}%` : `${b.count}건`)
-      : b.type === 'investment' ? `${b.count}종목`
-      : `${b.count}건`;
-    return { ...b, ...meta, value: wonM(b.amount), change };
-  });
+  // 자산 구성 — 현금 · 예적금 · 투자 순서 고정
+  const rows = ASSET_TYPE_ORDER
+    .map((type) => ({ a: summary?.allocation.find((x) => x.type === type), b: summary?.byType.find((x) => x.type === type), type }))
+    .filter((r) => r.a);
 
   return (
     <AppShell activePath="/networth">
@@ -55,62 +46,75 @@ export default function NetworthPage() {
 
       <ErrorBanner message={error} />
 
-      {summary && (
-        <>
-          {/* 히어로 — 총 순자산 + 도넛 + 범례 */}
-          <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left gap-7 p-7 bg-[linear-gradient(135deg,var(--accent-dim),transparent)] border border-border rounded-panel mb-6">
-            <div className="flex-1 min-w-[200px]">
-              <div className="text-[0.8rem] text-secondary font-semibold uppercase tracking-[0.06em] mb-2">총 순자산</div>
-              <div className="[font-family:var(--font-display)] text-[2.6rem] font-extrabold tracking-[-0.04em] text-primary leading-none">{won(summary.netWorth)}</div>
-              {change !== null && (
-                <div className={`mt-2.5 text-[0.875rem] font-semibold ${up ? 'text-success' : 'text-danger'}`}>
-                  {up ? '▲' : '▼'} {won(Math.abs(change))} ({Math.abs(summary.changeRate ?? 0)}%) 지난달 말 대비
-                </div>
-              )}
-            </div>
-            <div className="flex items-center justify-center md:justify-start gap-7 flex-wrap">
-              <div
-                className="w-40 h-40 rounded-full shrink-0 flex items-center justify-center relative after:content-[''] after:w-24 after:h-24 after:rounded-full after:bg-background"
-                style={{ background: buildDonutGradient(summary.allocation) }}
-              >
-                <div className="absolute text-center">
-                  <div className="text-[0.7rem] text-muted">자산</div>
-                  <div className="[font-family:var(--font-display)] font-bold text-base">{wonM(summary.totalAssets)}</div>
-                </div>
-              </div>
-              <div className="flex flex-col items-center md:items-start gap-2">
-                {summary.allocation.map((a) => (
-                  <div className="flex items-center gap-2 text-[0.82rem]" key={a.type}>
-                    <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: ASSET_TYPE_COLOR[a.type] }} />
-                    {ASSET_TYPE_LABEL[a.type]} {wonM(a.amount)} ({a.percent}%)
-                  </div>
-                ))}
-              </div>
-            </div>
+      <Card className="mb-7">
+        {/* 총 순자산 + 지난달 대비 */}
+        <div className="flex flex-wrap items-end justify-between gap-4 px-5 py-5 border-b border-border-subtle">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[0.8125rem] text-muted">총 순자산</span>
+            {summary && (
+              <>
+                <span className="text-[2rem] md:text-[2.5rem] tabular-nums tracking-[-0.015em] leading-tight">{won(summary.netWorth)}</span>
+                {change !== null && (
+                  <span className={`text-[0.84rem] tabular-nums ${up ? 'text-success' : 'text-danger'}`}>
+                    {up ? '▲' : '▼'} {won(Math.abs(change))} ({Math.abs(summary.changeRate ?? 0)}%) 지난달 대비
+                  </span>
+                )}
+              </>
+            )}
           </div>
+          <span className="text-[0.75rem] text-muted">순자산 추이 · 6개월 · 매월 1일 스냅샷</span>
+        </div>
 
-          {/* 자산 유형별 통계 */}
-          <StatStrip>
-            {cards.map((c) => (
-              <StatCard key={c.type} icon={c.icon} tone={c.tone} value={c.value} label={c.label} change={c.change} changeDir="neutral" />
+        {/* 추이 막대 + 전월 대비 증감 */}
+        <div className="px-5 pt-6 pb-5 flex flex-col gap-1.5">
+          <BarChart
+            label="순자산 추이"
+            height={180}
+            items={trend.map((t) => ({ key: t.month, label: t.label, value: t.netWorth, valueLabel: `₩${millionsLabel(t.netWorth)}`, current: t.current }))}
+          />
+          {/* BarChart 와 같은 칸 배치 — 막대 아래에 늘어난 달 ▲ 수입 색, 줄어든 달 ▼ 지출 색 */}
+          <div className="flex gap-2.5" aria-hidden>
+            {trend.map((t, i) => {
+              const d = i === 0 ? null : Math.round((t.netWorth - trend[i - 1].netWorth) / 1_000_000);
+              return (
+                <span key={t.month} className={`flex-1 min-w-0 text-center text-[0.72rem] tabular-nums min-h-4 ${d === null ? '' : d >= 0 ? 'text-success' : 'text-danger'}`}>
+                  {d === null ? '' : `${d >= 0 ? '▲' : '▼'} ${Math.abs(d)}M`}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
+
+      {summary && rows.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <CardTitle>자산 구성</CardTitle>
+          {/* 비중 띠 */}
+          <div className="flex h-3.5 gap-0.5" role="img" aria-label="자산 구성 비중">
+            {rows.map((r) => (
+              <div key={r.type} style={{ flex: r.a?.percent ?? 0, background: ASSET_TYPE_COLOR[r.type] }} />
             ))}
-          </StatStrip>
-        </>
+          </div>
+          <div className="flex flex-col border-t border-border">
+            {rows.map((r) => (
+              <Link
+                key={r.type}
+                href="/transactions"
+                className="flex items-center gap-3 px-1 py-3 min-h-14 border-b border-border-subtle transition-colors hover:bg-surface"
+              >
+                <span className="w-2.5 h-2.5 shrink-0" style={{ background: ASSET_TYPE_COLOR[r.type] }} />
+                <span className="flex-1 min-w-0 flex flex-col leading-snug">
+                  <span>{BY_TYPE_NAME[r.type]}</span>
+                  <span className="text-[0.75rem] text-muted">{typeSubText(r.b)}</span>
+                </span>
+                <span className="w-11 text-right text-[0.8125rem] text-muted tabular-nums">{r.a?.percent}%</span>
+                <span className="w-28 text-right tabular-nums">{wonM(r.a?.amount ?? 0)}</span>
+                <IconChevronRight className="text-muted" width={16} height={16} />
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
-
-      {/* 추이 막대 */}
-      <div className="mb-6">
-        <Card>
-          <CardHeader><CardTitle>순자산 추이 (6개월)</CardTitle></CardHeader>
-          <CardBody>
-            <BarChart
-              label="순자산 추이"
-              items={trend.map((t) => ({ key: t.month, label: t.label, value: t.netWorth, valueLabel: millionsLabel(t.netWorth), current: t.current }))}
-            />
-          </CardBody>
-        </Card>
-      </div>
-
     </AppShell>
   );
 }

@@ -42,18 +42,21 @@ export const ASSET_TYPE_LABEL: Record<AssetType, string> = {
   investment: '투자',
 };
 
-// 도넛/범례 색상 (CSS 변수)
+// 자산 구성 띠/점 색 — 금빛은 돈에 쓰지 않으니 글자색의 진하기로만 구분한다
 export const ASSET_TYPE_COLOR: Record<AssetType, string> = {
-  investment: 'var(--accent)',
-  savings: 'var(--amber)',
-  cash: 'var(--text-muted)',
+  cash: 'color-mix(in srgb, var(--text-muted) 55%, transparent)',
+  savings: 'var(--text-muted)',
+  investment: 'var(--text-primary)',
 };
 
-// 유형별 통계 카드 메타 (아이콘/톤/라벨)
-export const BY_TYPE_CARD: Record<string, { icon: string; tone: 'green' | 'red' | 'blue' | 'amber'; label: string }> = {
-  cash: { icon: '💵', tone: 'green', label: '현금성 자산' },
-  savings: { icon: '🏦', tone: 'blue', label: '예적금' },
-  investment: { icon: '📈', tone: 'amber', label: '투자' },
+// 자산 구성 표시 순서
+export const ASSET_TYPE_ORDER: AssetType[] = ['cash', 'savings', 'investment'];
+
+// 자산 구성 줄 이름
+export const BY_TYPE_NAME: Record<AssetType, string> = {
+  cash: '현금성 자산',
+  savings: '예적금',
+  investment: '투자',
 };
 
 // ── 포맷 유틸 ────────────────────────────────────────────────────

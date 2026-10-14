@@ -44,18 +44,6 @@ export const SUB_CATEGORY_LABEL: Record<string, string> = {
   etc: '기타',
 };
 
-// 카테고리 코드 → 카드 로고 이모지
-export const SUB_CATEGORY_EMOJI: Record<string, string> = {
-  ott: '📺',
-  music: '🎵',
-  cloud: '☁️',
-  shopping: '📦',
-  ai: '🤖',
-  software: '💻',
-  news: '📰',
-  etc: '🧩',
-};
-
 // 구독 입력 폼 카테고리 옵션
 export const SUB_CATEGORY_OPTIONS: { value: string; label: string }[] = [
   { value: 'ott', label: 'OTT · 엔터테인먼트' },
@@ -83,6 +71,6 @@ export const STATUS_LABEL: Record<SubscriptionStatus, string> = {
 export const SUB_PAY_METHODS = ['신한카드', '카카오페이', '쿠페이', '해외결제', '계좌이체'];
 
 export const SUB_CURRENCY_LABEL: Record<'KRW' | 'USD', string> = {
-  KRW: '원화',
-  USD: '달러',
+  KRW: 'KRW ₩',
+  USD: 'USD $',
 };
