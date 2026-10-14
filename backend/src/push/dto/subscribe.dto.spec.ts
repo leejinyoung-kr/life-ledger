@@ -18,7 +18,7 @@ describe('PUSH_ENDPOINT_PATTERN', () => {
     'https://evilpush.apple.com.attacker.net/x',
     'https://127.0.0.1/x',
     'https://mariadb/x',
-    'https://homeserver.tailba78c1.ts.net/x',
+    'https://homeserver.example.ts.net/x', // 사설망(tailnet) 주소
   ])('그 밖의 주소 %s 는 거부', (url) => {
     expect(PUSH_ENDPOINT_PATTERN.test(url)).toBe(false);
   });
