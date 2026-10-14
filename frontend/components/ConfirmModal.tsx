@@ -66,7 +66,7 @@ export default function ConfirmModal({
       >
         {/* 제목(아이콘) + 메시지 — 제목이 없으면 위험 · 확인 기본 제목 */}
         <div className="px-5 pt-[18px] pb-1.5 flex flex-col gap-1.5">
-          <p className="flex items-center gap-2 [font-family:var(--font-display)] text-[1.25rem] font-semibold leading-tight lining-nums text-primary">
+          <p className="flex items-center gap-2 text-[1.25rem] font-bold leading-tight text-primary">
             <span className={`inline-flex shrink-0 [&_svg]:w-[18px] [&_svg]:h-[18px] ${variant === 'danger' ? 'text-danger' : 'text-accent'}`}>
               {icon ?? (variant === 'danger' ? <IconAlertCircle /> : <IconCheck />)}
             </span>

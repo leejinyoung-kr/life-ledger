@@ -77,7 +77,7 @@ export default function SecurityPage() {
         {/* 로그인 기기 / 세션 */}
         <Card clip>
           <CardHeader>
-            <CardTitle>1 · 로그인 기기 / 세션</CardTitle>
+            <CardTitle>로그인 기기 · 세션</CardTitle>
             <Button variant="danger" size="sm" onClick={handleRevokeAll}>전체 로그아웃</Button>
           </CardHeader>
           <div>
@@ -113,7 +113,7 @@ export default function SecurityPage() {
         {/* 최근 열람 (접근 감사 로그) */}
         <Card clip>
           <CardHeader>
-            <CardTitle>3 · 최근 열람</CardTitle>
+            <CardTitle>최근 열람</CardTitle>
             <span className="text-[0.78rem] text-muted max-md:hidden">복호화할 때마다 한 줄씩 남습니다</span>
           </CardHeader>
           <div>

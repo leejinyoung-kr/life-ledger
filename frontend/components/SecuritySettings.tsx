@@ -93,7 +93,7 @@ export default function SecuritySettings() {
   }
 
   return (
-    <SettingGroup title="2 · 보관함 잠금">
+    <SettingGroup title="보관함 잠금">
       <SettingRow label="암호화 방식" desc="계정 보관함 비밀번호 · 2FA 시크릿 암호화 알고리즘">
         <Badge tone="neutral">AES-256-GCM</Badge>
       </SettingRow>

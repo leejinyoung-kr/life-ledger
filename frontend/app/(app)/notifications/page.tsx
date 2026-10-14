@@ -18,6 +18,7 @@ import Segmented from '@/components/ui/Segmented';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
+import { Card } from '@/components/ui/Card';
 import { useConfirm } from '@/components/ConfirmModal';
 import { IconCheck, IconChevronRight, IconClose } from '@/components/icons';
 import { api } from '@/lib/api';
@@ -151,10 +152,10 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* 알림 목록 — 클릭 시 상세 창 */}
-      <div className="flex flex-col">
+      {/* 알림 목록 — 흰 카드 안 줄 목록, 클릭 시 상세 창 */}
+      <Card clip className="flex flex-col">
         {paged.length > 0 && (
-          <div className="flex items-center gap-3 h-9 px-2 border-y border-border text-[0.78rem] text-muted">
+          <div className="flex items-center gap-3 h-10 px-4 bg-surface border-b border-border text-[0.78rem] text-muted">
             <input
               type="checkbox"
               className="checkbox"
@@ -170,7 +171,7 @@ export default function NotificationsPage() {
           return (
             <div
               key={n.id}
-              className="flex items-start gap-3 px-2 py-3 border-b border-border-subtle cursor-pointer transition-colors hover:bg-surface max-md:min-h-11"
+              className="flex items-start gap-3 px-4 py-3 border-b border-border-subtle last:border-b-0 cursor-pointer transition-colors hover:bg-surface max-md:min-h-11"
               onClick={() => handleOpenDetail(n)}
             >
               <input
@@ -193,8 +194,8 @@ export default function NotificationsPage() {
             </div>
           );
         })}
-        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
-      </div>
+      </Card>
+      <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
 
       {/* 알림 상세 창 */}
       {detail && (
@@ -209,7 +210,7 @@ export default function NotificationsPage() {
                 <SourceIcon source={detail.source} size={18} />
               </span>
               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <span className="[font-family:var(--font-display)] text-[1.25rem] font-semibold leading-tight lining-nums text-primary break-keep">{detail.title}</span>
+                <span className="text-[1.25rem] font-bold leading-tight text-primary break-keep">{detail.title}</span>
                 <span className="text-[0.78rem] text-muted">{relativeTime(detail.occurredAt)} · {detail.source}</span>
               </div>
               <IconButton label="닫기" variant="bordered" size="lg" onClick={() => setDetail(null)}>

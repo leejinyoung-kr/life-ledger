@@ -226,6 +226,11 @@ export function won(n: number): string {
   return `${n < 0 ? '-' : ''}₩${Math.abs(n).toLocaleString('ko-KR')}`;
 }
 
+// 만 원 단위로 줄인 금액 (7,312,000 → "731만") — 막대 이름표처럼 좁은 자리용
+export function manwon(n: number): string {
+  return `${Math.round(n / 10000).toLocaleString('ko-KR')}만`;
+}
+
 // 달러 표시 ($1,234.56)
 export function usd(n: number): string {
   return `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

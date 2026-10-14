@@ -17,7 +17,7 @@ export function FormGroup({ no, title, first, children }: { no: number; title: s
   return (
     <section className={`flex flex-col gap-3 ${first ? '' : 'pt-4 border-t border-border-subtle'}`}>
       <div className="flex items-baseline gap-2 text-[0.78rem] text-accent-dark">
-        <span className="[font-family:var(--font-display)] font-semibold text-[1.0625rem] lining-nums">{no}</span>
+        <span className="font-bold text-[1.0625rem]">{no}</span>
         {title}
       </div>
       {children}

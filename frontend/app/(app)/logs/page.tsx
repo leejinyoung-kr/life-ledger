@@ -16,6 +16,7 @@ import { qk } from '@/lib/queryKeys';
 import { usePagination } from '@/lib/usePagination';
 import { localDate } from '@/lib/finance';
 import FilterPanel from '@/components/FilterPanel';
+import { Card } from '@/components/ui/Card';
 
 type LogLevel = 'info' | 'warn' | 'error';
 type LogCategory = 'recurring_buy' | 'recurring_tx' | 'cron' | 'asset' | 'file' | 'security' | 'notification';
@@ -248,8 +249,8 @@ export default function LogsPage() {
         <LimitSelect limit={limit} onLimitChange={(l) => { changeLimit(l); }} />
       </div>
 
-      {/* 로그 목록 — 행을 누르면 상세(metadata)가 펼쳐진다 */}
-      <div className="flex flex-col mb-4">
+      {/* 로그 목록 — 흰 카드 안 줄 목록, 행을 누르면 상세(metadata)가 펼쳐진다 */}
+      <Card clip className="flex flex-col mt-3">
         {!logsQuery.isLoading && items.length === 0 && (
           <EmptyState size="lg" message="해당하는 로그가 없습니다." />
         )}
@@ -257,10 +258,10 @@ export default function LogsPage() {
           const isOpen = expanded.has(log.id);
           const full = formatLogTime(log.created_at);
           return (
-            <div key={log.id} className={`flex flex-col border-b border-border-subtle ${log.level === 'error' ? 'bg-danger-dim shadow-[inset_2px_0_0_var(--color-danger)]' : ''}`}>
+            <div key={log.id} className={`flex flex-col border-b border-border-subtle last:border-b-0 ${log.level === 'error' ? 'bg-danger-dim shadow-[inset_2px_0_0_var(--color-danger)]' : ''}`}>
               <button
                 type="button"
-                className="flex items-center gap-2.5 flex-wrap px-2 py-2.5 max-md:min-h-11 text-left cursor-pointer transition-colors hover:bg-surface"
+                className="flex items-center gap-2.5 flex-wrap px-4 py-2.5 max-md:min-h-11 text-left cursor-pointer transition-colors hover:bg-surface"
                 aria-expanded={isOpen}
                 onClick={() => toggleExpand(log.id)}
               >
@@ -273,7 +274,7 @@ export default function LogsPage() {
 
               {/* 상세(metadata) */}
               {isOpen && (
-                <div className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-1.5 pl-2 pr-2 pt-1 pb-3.5 text-[0.78rem] md:pl-[82px]">
+                <div className="grid grid-cols-[110px_1fr] gap-x-4 gap-y-1.5 pl-4 pr-4 pt-1 pb-3.5 text-[0.78rem] md:pl-24">
                   <span className="text-muted">시각</span>
                   <span className="text-primary">{full}</span>
                   {log.metadata && Object.entries(log.metadata).map(([k, v]) => (
@@ -287,8 +288,8 @@ export default function LogsPage() {
             </div>
           );
         })}
-        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
-      </div>
+      </Card>
+      <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
     </AppShell>
   );
 }

@@ -40,7 +40,7 @@ export default function ViewerModal({ file, onClose, onDownload, onDelete }: {
   const header = (
     <div className="flex items-start gap-3 px-5 py-3.5 border-b border-border-subtle shrink-0">
       <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-        <span className="[font-family:var(--font-display)] text-[1.25rem] font-semibold leading-tight text-primary truncate">{file.name}</span>
+        <span className="text-[1.25rem] font-bold leading-tight text-primary truncate">{file.name}</span>
         <span className="text-[0.78rem] text-muted">{ext && `${ext} · `}{formatBytes(file.size)} · {fmtFileDate(file.createdAt)}</span>
       </div>
       <IconButton label="닫기" variant="bordered" size="lg" onClick={onClose}><IconClose width={16} height={16} /></IconButton>
@@ -81,7 +81,7 @@ export default function ViewerModal({ file, onClose, onDownload, onDelete }: {
         ) : (
           <div className="flex flex-col items-center gap-2.5 px-4 py-12 text-center">
             <IconDoc width={32} height={32} className="text-muted" />
-            <span className="[font-family:var(--font-display)] text-[1.125rem] font-semibold text-primary">미리보기를 지원하지 않는 형식입니다</span>
+            <span className="text-[1.125rem] font-bold text-primary">미리보기를 지원하지 않는 형식입니다</span>
             <span className="text-[0.8125rem] text-muted">내려받아서 여세요.</span>
           </div>
         )}

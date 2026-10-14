@@ -2,7 +2,7 @@
 export default function ServiceTile({ name, size = 'md' }: { name: string; size?: 'md' | 'lg' }) {
   const box = size === 'lg' ? 'w-9 h-9 text-[1.125rem]' : 'w-7 h-7 text-[0.875rem]';
   return (
-    <span aria-hidden className={`${box} shrink-0 border border-border rounded-ui grid place-items-center [font-family:var(--font-display)] text-muted`}>
+    <span aria-hidden className={`${box} shrink-0 border border-border rounded-ui grid place-items-center text-muted`}>
       {name.trim().charAt(0).toUpperCase()}
     </span>
   );

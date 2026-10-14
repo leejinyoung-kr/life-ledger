@@ -15,7 +15,7 @@ export default function ErrorBanner({
 }) {
   if (!message) return null;
   return (
-    <div role="alert" className={`flex gap-2.5 items-start px-3.5 py-3 border-t-2 border-danger bg-danger-dim text-[0.8125rem] text-primary ${className}`}>
+    <div role="alert" className={`flex gap-2.5 items-start px-4 py-3 rounded-ui border border-danger/25 bg-danger-dim text-[0.8125rem] text-primary ${className}`}>
       <AlertCircle size={16} className="text-danger shrink-0 mt-0.5" aria-hidden />
       <span className="flex-1">{message}</span>
     </div>

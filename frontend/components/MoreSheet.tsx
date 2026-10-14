@@ -33,7 +33,7 @@ export default function MoreSheet({ open, activePath, onClose, onLogout }: { ope
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-1 py-1.5">
-          <span className="[font-family:var(--font-display)] font-semibold text-[1.1875rem]">전체 메뉴</span>
+          <span className="font-bold text-[1.1875rem]">전체 메뉴</span>
           <IconButton label="닫기" size="lg" onClick={onClose}><IconClose /></IconButton>
         </div>
         {NAV.map((section) => (

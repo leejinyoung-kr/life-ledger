@@ -108,7 +108,7 @@ export default function Modal({ open, title, onClose, children, footer, header, 
         {header ?? (
           <div className="flex items-start gap-3 px-5 py-4 border-b border-border-subtle">
             <div className="flex-1 min-w-0">
-              <div className="[font-family:var(--font-display)] text-[1.25rem] font-semibold leading-tight lining-nums text-primary">{title}</div>
+              <div className="text-[1.25rem] font-bold leading-tight text-primary">{title}</div>
               {subtitle && <div className="text-[0.78rem] text-muted mt-1">{subtitle}</div>}
             </div>
             {headerAction}

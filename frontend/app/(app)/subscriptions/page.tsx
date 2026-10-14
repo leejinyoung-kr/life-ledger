@@ -154,7 +154,7 @@ export default function SubscriptionsPage() {
 
       {/* 체험 종료 임박 경고 상자 */}
       {trial && (
-        <div className="flex items-start gap-2.5 px-3.5 py-3 border-t-2 border-warning bg-warning-dim mb-7 flex-wrap">
+        <div className="flex items-start gap-2.5 px-4 py-3 rounded-ui border border-warning/25 bg-warning-dim mb-7 flex-wrap">
           <IconAlertTriangle width={16} height={16} className="text-warning shrink-0 mt-1" />
           <div className="flex-1 basis-60 text-[0.84rem]">
             <div className="font-semibold text-primary">무료 체험 종료 임박 — {trial.name}</div>
@@ -176,15 +176,15 @@ export default function SubscriptionsPage() {
         {payStrip.length === 0 ? (
           <EmptyState size="sm" message="이번 달 남은 결제가 없습니다." />
         ) : (
-          <div className="flex overflow-x-auto border-y border-border">
+          <div className="flex overflow-x-auto bg-background border border-border rounded-panel shadow-card">
             {payStrip.map((s) => {
               const dd = daysUntil(s.nextPaymentDate);
               const soon = s.status === 'trial' || (dd !== null && dd <= SOON_DAYS);
               return (
-                <div key={s.id} className="flex-[1_0_108px] flex flex-col gap-0.5 px-3 py-2.5 border-l border-border-subtle first:border-l-0">
-                  <span className="text-[1.25rem] leading-tight tabular-nums">
+                <div key={s.id} className="flex-[1_0_108px] flex flex-col gap-0.5 px-3.5 py-3 border-l border-border-subtle first:border-l-0">
+                  <span className="text-[1.25rem] font-bold leading-tight tabular-nums">
                     {Number(s.nextPaymentDate.slice(8, 10))}
-                    <span className="text-[0.72rem] text-muted ml-1">{WEEKDAY[new Date(`${s.nextPaymentDate}T00:00:00`).getDay()]}</span>
+                    <span className="text-[0.72rem] font-normal text-muted ml-1">{WEEKDAY[new Date(`${s.nextPaymentDate}T00:00:00`).getDay()]}</span>
                   </span>
                   <span className="text-[0.8125rem] truncate">{s.name}</span>
                   <span className="text-[0.78rem] tabular-nums text-danger">−{amountText(s)}</span>
@@ -328,7 +328,7 @@ function FormGroup({ no, title, first, children }: { no: number; title: string; 
   return (
     <div className={`flex flex-col gap-3 ${first ? '' : 'pt-4 border-t border-border-subtle'}`}>
       <div className="flex items-baseline gap-2 text-[0.78rem] text-accent-dark">
-        <span className="[font-family:var(--font-display)] font-semibold text-[1.0625rem] lining-nums">{no}</span>{title}
+        <span className="font-bold text-[1.0625rem]">{no}</span>{title}
       </div>
       {children}
     </div>

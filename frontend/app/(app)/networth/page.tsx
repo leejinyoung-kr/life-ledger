@@ -5,14 +5,13 @@ import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
 import BarChart from '@/components/BarChart';
-import { Card, CardTitle } from '@/components/ui/Card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { IconChevronRight } from '@/components/icons';
 import { useApiQuery } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
-import { won } from '@/lib/finance';
+import { won, manwon } from '@/lib/finance';
 import {
   ASSET_TYPE_COLOR, BY_TYPE_NAME, ASSET_TYPE_ORDER,
-  wonM, millionsLabel,
   type NetWorthSummary, type TrendPoint, type ByTypeItem,
 } from '@/lib/networth';
 
@@ -53,7 +52,7 @@ export default function NetworthPage() {
             <span className="text-[0.8125rem] text-muted">총 순자산</span>
             {summary && (
               <>
-                <span className="text-[2rem] md:text-[2.5rem] tabular-nums tracking-[-0.015em] leading-tight">{won(summary.netWorth)}</span>
+                <span className="text-[2rem] md:text-[2.5rem] font-bold tabular-nums tracking-[-0.02em] leading-tight">{won(summary.netWorth)}</span>
                 {change !== null && (
                   <span className={`text-[0.84rem] tabular-nums ${up ? 'text-success' : 'text-danger'}`}>
                     {up ? '▲' : '▼'} {won(Math.abs(change))} ({Math.abs(summary.changeRate ?? 0)}%) 지난달 대비
@@ -72,42 +71,44 @@ export default function NetworthPage() {
             height={180}
             items={trend.map((t, i) => {
               // 막대 아래 전월 대비 — 늘어난 달 ▲ 수입 색, 줄어든 달 ▼ 지출 색
-              const d = i === 0 ? null : Math.round((t.netWorth - trend[i - 1].netWorth) / 1_000_000);
-              const delta = d === null ? undefined : <span className={d >= 0 ? 'text-success' : 'text-danger'}>{`${d >= 0 ? '▲' : '▼'} ${Math.abs(d)}M`}</span>;
-              return { key: t.month, label: t.label, value: t.netWorth, valueLabel: `₩${millionsLabel(t.netWorth)}`, current: t.current, delta };
+              const d = i === 0 ? null : t.netWorth - trend[i - 1].netWorth;
+              const delta = d === null ? undefined : <span className={d >= 0 ? 'text-success' : 'text-danger'}>{`${d >= 0 ? '▲' : '▼'} ${manwon(Math.abs(d))}`}</span>;
+              return { key: t.month, label: t.label, value: t.netWorth, valueLabel: manwon(t.netWorth), current: t.current, delta };
             })}
           />
         </div>
       </Card>
 
       {summary && rows.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <CardTitle>자산 구성</CardTitle>
+        <Card>
+          <CardHeader><CardTitle>자산 구성</CardTitle></CardHeader>
           {/* 비중 띠 */}
-          <div className="flex h-3.5 gap-0.5" role="img" aria-label="자산 구성 비중">
-            {rows.map((r) => (
-              <div key={r.type} style={{ flex: r.a?.percent ?? 0, background: ASSET_TYPE_COLOR[r.type] }} />
-            ))}
+          <div className="px-5 pt-4 pb-2">
+            <div className="flex h-3 gap-0.5 rounded-full overflow-hidden" role="img" aria-label="자산 구성 비중">
+              {rows.map((r) => (
+                <div key={r.type} style={{ flex: r.a?.percent ?? 0, background: ASSET_TYPE_COLOR[r.type] }} />
+              ))}
+            </div>
           </div>
-          <div className="flex flex-col border-t border-border">
+          <div className="flex flex-col">
             {rows.map((r) => (
               <Link
                 key={r.type}
                 href="/transactions"
-                className="flex items-center gap-3 px-1 py-3 min-h-14 border-b border-border-subtle transition-colors hover:bg-surface"
+                className="flex items-center gap-3 px-5 py-3 min-h-14 border-b border-border-subtle last:border-b-0 transition-colors hover:bg-surface"
               >
-                <span className="w-2.5 h-2.5 shrink-0" style={{ background: ASSET_TYPE_COLOR[r.type] }} />
+                <span className="w-2.5 h-2.5 shrink-0 rounded-full" style={{ background: ASSET_TYPE_COLOR[r.type] }} />
                 <span className="flex-1 min-w-0 flex flex-col leading-snug">
-                  <span>{BY_TYPE_NAME[r.type]}</span>
+                  <span className="font-medium">{BY_TYPE_NAME[r.type]}</span>
                   <span className="text-[0.75rem] text-muted">{typeSubText(r.b)}</span>
                 </span>
                 <span className="w-11 text-right text-[0.8125rem] text-muted tabular-nums">{r.a?.percent}%</span>
-                <span className="w-28 text-right tabular-nums">{wonM(r.a?.amount ?? 0)}</span>
+                <span className="w-32 max-md:w-auto text-right font-semibold tabular-nums">{won(r.a?.amount ?? 0)}</span>
                 <IconChevronRight className="text-muted" width={16} height={16} />
               </Link>
             ))}
           </div>
-        </section>
+        </Card>
       )}
     </AppShell>
   );

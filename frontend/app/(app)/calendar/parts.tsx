@@ -19,11 +19,11 @@ export function TypeMark({ type, size = 'md' }: { type: EvType; size?: 'md' | 's
   return <span aria-hidden className={`${dim} shrink-0 inline-block ${MARK[type][size]}`} />;
 }
 
-// 그리드 칩 색 — 글자는 유형 색, 테두리는 같은 색 45% (공휴일은 테두리 없음). 점선/실선은 연동 여부로 호출부에서 정한다
+// 그리드 칩 색 — 유형 색 글자 + 같은 색 옅은 바탕 (공휴일은 바탕 없이 빨간 글자만). 연동 여부는 호출부의 연결 아이콘으로 구분한다
 export const CHIP_TONE: Record<EvType, string> = {
-  pay: 'text-danger border-danger/45',
-  due: 'text-blue border-blue/45',
-  exp: 'text-warning border-warning/45',
-  task: 'text-primary border-primary/45',
-  holiday: 'text-danger border-transparent',
+  pay: 'bg-danger-dim text-danger',
+  due: 'bg-blue-dim text-blue',
+  exp: 'bg-amber-dim text-warning',
+  task: 'bg-elevated text-primary',
+  holiday: 'text-danger',
 };

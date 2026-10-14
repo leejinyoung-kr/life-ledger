@@ -50,9 +50,9 @@ export function FolderTrail({ crumbs, onNavigate, size = 'md' }: { crumbs: Bread
 // 파일이 없을 때 쓰는 점선 안내 상자 — 아이콘 · 제목 · 설명
 export function FileEmpty({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="border border-dashed border-border rounded-ui px-5 py-9 flex flex-col items-center gap-2 text-center">
+    <div className="bg-background border border-border rounded-panel shadow-card px-5 py-9 flex flex-col items-center gap-2 text-center">
       <IconInbox width={28} height={28} className="text-muted" />
-      <span className="[font-family:var(--font-display)] text-[1.125rem] font-semibold text-primary">{title}</span>
+      <span className="text-[1.125rem] font-bold text-primary">{title}</span>
       {hint && <span className="text-[0.8125rem] text-muted">{hint}</span>}
     </div>
   );

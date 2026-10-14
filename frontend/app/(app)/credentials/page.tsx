@@ -22,7 +22,7 @@ import IconButton from '@/components/ui/IconButton';
 import MoreMenu from '@/components/ui/MoreMenu';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
-import { IconEdit, IconTrash, IconCopy, IconAlertTriangle, IconChevronRight } from '@/components/icons';
+import { IconEdit, IconTrash, IconCopy, IconAlertTriangle, IconChevronRight, IconPlus } from '@/components/icons';
 import { api, apiDownload } from '@/lib/api';
 import { CRED_CATEGORIES, fmtCredDate, type Credential } from '@/lib/credential';
 import type { Settings } from '@/lib/settings';
@@ -173,7 +173,7 @@ export default function CredentialsPage() {
       <PageHeader
         title="계정 보관함"
         description="비밀번호와 2FA 시크릿은 AES-256-GCM 으로 암호화되어 있고, 열 때마다 기록됩니다. 행을 누르면 상세 정보를 봅니다."
-        actions={<Button onClick={() => setEdit({ open: true, mode: 'add', editing: null })}>계정 추가</Button>}
+        actions={<Button onClick={() => setEdit({ open: true, mode: 'add', editing: null })}><IconPlus />계정 추가</Button>}
       />
 
       <VaultStrip />
@@ -198,19 +198,15 @@ export default function CredentialsPage() {
         </div>
       )}
 
-      {/* 총 개수 · 엑셀 */}
-      <div className="flex items-start justify-between gap-x-4 flex-wrap">
-        <div className="flex items-center gap-x-4 gap-y-1 flex-wrap mb-3 text-[0.8125rem]">
-          <span>총 <b className="font-semibold">{total}</b>개</span>
+      {/* 총 개수 + 선택삭제 · 페이지 크기 한 줄, 그 아래 엑셀 (가계부와 같은 순서) */}
+      <div className="flex items-center justify-between gap-3 flex-wrap py-2.5 border-b border-border text-[0.8125rem]">
+        <span>총 <b className="font-semibold">{total}</b>개</span>
+        <div className="flex items-center gap-2">
+          <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+          <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
-        <ExcelToolbar onDownloadTemplate={handleDownloadTemplate} onUpload={handleUploadExcel} onDownloadData={handleDownloadDataAsk} />
       </div>
-
-      {/* 선택삭제 + 페이지 크기 */}
-      <div className="flex items-center justify-end gap-2 mb-2">
-        <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
-        <LimitSelect limit={limit} onLimitChange={changeLimit} />
-      </div>
+      <ExcelToolbar onDownloadTemplate={handleDownloadTemplate} onUpload={handleUploadExcel} onDownloadData={handleDownloadDataAsk} />
 
       {/* 표 + 휴대폰 줄 */}
       <div className="table-wrap max-md:hidden">

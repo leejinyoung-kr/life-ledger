@@ -1,6 +1,6 @@
 /**
  * 막대 차트 — 값 · 막대 · 이름표 영역을 나눠, 막대 높이가 실제 값 비율대로 그려진다(시안 점검 §3-1).
- * tone 은 이번 달(current) 막대의 뜻: out(지출 색) · neutral(글자색 계열). 지난 막대는 모두 옅은 회색이다.
+ * tone 은 이번 달(current) 막대의 뜻: out(지출 색) · neutral(강조색 초록 — 순자산처럼 부호 없는 값). 지난 막대는 모두 옅은 회색이다.
  */
 import type { ReactNode } from 'react';
 
@@ -9,7 +9,7 @@ export type BarItem = { key: string; label: string; value: number; valueLabel?: 
 
 const TONE = {
   out: { bar: 'bg-primary/12', current: 'bg-danger' },
-  neutral: { bar: 'bg-primary/12', current: 'bg-primary/70' },
+  neutral: { bar: 'bg-primary/12', current: 'bg-accent' },
 } as const;
 
 export default function BarChart({ items, tone = 'neutral', height = 140, label }: {

@@ -11,7 +11,7 @@ import StatCard, { StatStrip } from '@/components/StatCard';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { IconPlus, IconKey, IconRepeat, IconPie, IconArrowUp, IconArrowDown } from '@/components/icons';
-import { won, usd, currentMonth, daysUntil, WEEKDAY_LABEL, type TransactionType, type TrendBucket } from '@/lib/finance';
+import { won, manwon, usd, currentMonth, daysUntil, WEEKDAY_LABEL, type TransactionType, type TrendBucket } from '@/lib/finance';
 import type { NetWorthSummary } from '@/lib/networth';
 import type { SubscriptionSummary } from '@/lib/subscription';
 
@@ -135,9 +135,10 @@ export default function DashboardPage() {
     }
     return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
   }, [deadlinesQuery.data, summaryQuery.data]);
-  const thisWeek = upcoming.filter((u) => u.dday <= 7);
-  // 그 이후는 가까운 6건만 — 나머지는 캘린더에서 본다
-  const later = upcoming.filter((u) => u.dday > 7).slice(0, 6);
+  // 카드 높이에 다 들어가는 가까운 6건만 — 카드 안 스크롤로 줄이 잘려 보이지 않게, 나머지는 캘린더에서 본다
+  const nearest = upcoming.slice(0, 6);
+  const thisWeek = nearest.filter((u) => u.dday <= 7);
+  const later = nearest.filter((u) => u.dday > 7);
 
   const now = new Date();
   const todayText = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 ${WEEKDAY_LABEL[now.getDay()]}요일`;
@@ -203,7 +204,7 @@ export default function DashboardPage() {
                 height="fill"
                 items={trend.map((b) => {
                   const isCurrent = b.month === month;
-                  return { key: b.month, label: b.label, value: b.total, valueLabel: isCurrent ? won(b.total) : `${Math.round(b.total / 10000).toLocaleString('ko-KR')}만`, current: isCurrent };
+                  return { key: b.month, label: b.label, value: b.total, valueLabel: isCurrent ? won(b.total) : manwon(b.total), current: isCurrent };
                 })}
               />
             </CardBody>

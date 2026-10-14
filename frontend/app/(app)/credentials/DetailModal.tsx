@@ -101,7 +101,7 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
     <div className="flex items-start gap-3 px-5 py-4 border-b border-border-subtle">
       <ServiceTile name={cred.name} size="lg" />
       <div className="flex-1 min-w-0">
-        <div className="[font-family:var(--font-display)] text-[1.25rem] font-semibold leading-tight text-primary truncate">{cred.name}</div>
+        <div className="text-[1.25rem] font-bold leading-tight text-primary truncate">{cred.name}</div>
         <div className="text-[0.78rem] text-muted mt-1 truncate">{cred.url ?? '—'} · {cred.category}</div>
       </div>
       <IconButton label="닫기" variant="bordered" size="lg" onClick={onClose}><IconClose width={16} height={16} /></IconButton>

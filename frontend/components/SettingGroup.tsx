@@ -7,11 +7,11 @@
 import type { ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 
-// 설정 그룹 (헤더 + 행 묶음). tone="danger" 는 위험 구역 — 위쪽 지출 색 선 + 지출 색 제목
+// 설정 그룹 (헤더 + 행 묶음). tone="danger" 는 위험 구역 — 옅은 지출 색 테두리 + 지출 색 제목
 export function SettingGroup({ title, tone, children }: { title: string; tone?: 'danger'; children: ReactNode }) {
   return (
     <Card clip tone={tone}>
-      <div className={`px-[18px] py-3.5 border-b border-border-subtle [font-family:var(--font-display)] font-semibold text-[1.1875rem] leading-tight lining-nums ${tone === 'danger' ? 'text-danger' : 'text-primary'}`}>{title}</div>
+      <div className={`px-4.5 py-3.5 border-b border-border-subtle font-bold text-[1.0625rem] leading-tight ${tone === 'danger' ? 'text-danger' : 'text-primary'}`}>{title}</div>
       {children}
     </Card>
   );
@@ -21,7 +21,7 @@ export function SettingGroup({ title, tone, children }: { title: string; tone?: 
 // stack: 컨트롤이 select/button 등으로 넓어 모바일에서 라벨과 줄바꿈이 필요한 행에만 true (기본은 토글류처럼 한 줄 유지)
 export function SettingRow({ label, desc, labelClass, stack, children }: { label: string; desc?: string; labelClass?: string; stack?: boolean; children: ReactNode }) {
   return (
-    <div className={`flex px-[18px] py-3.5 border-b border-border-subtle last:border-b-0 gap-6 ${stack ? 'flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between' : 'items-center justify-between'}`}>
+    <div className={`flex px-4.5 py-3.5 border-b border-border-subtle last:border-b-0 gap-6 ${stack ? 'flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between' : 'items-center justify-between'}`}>
       <div className={stack ? 'min-w-0' : 'flex-1 min-w-0'}>
         <div className={`text-[0.875rem] font-medium ${labelClass === 'danger' ? 'text-danger' : 'text-primary'}`}>{label}</div>
         {desc && <div className="text-[0.78rem] text-muted mt-0.5 break-keep">{desc}</div>}

@@ -366,7 +366,7 @@ export default function FilesPage() {
         role="button"
         tabIndex={0}
         aria-label="파일 업로드 — 드래그하거나 클릭"
-        className={`border border-dashed rounded-ui px-4 py-7 flex flex-col items-center gap-1.5 text-center cursor-pointer transition-colors mb-4 [&>svg]:text-muted ${dragOver ? 'border-accent bg-accent-dim' : 'border-border hover:border-accent'}`}
+        className={`border-[1.5px] border-dashed rounded-panel px-4 py-7 flex flex-col items-center gap-1.5 text-center cursor-pointer transition-colors mb-4 [&>svg]:text-muted ${dragOver ? 'border-accent bg-accent-dim' : 'border-border bg-background hover:border-accent'}`}
         onClick={() => fileInputRef.current?.click()}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -493,7 +493,7 @@ export default function FilesPage() {
                     <div
                       {...clickable(() => setFolderModal(true))}
                       aria-label="새 폴더 생성"
-                      className="flex flex-col items-center justify-center gap-1.5 min-h-14 border border-dashed border-border rounded-ui text-muted text-[0.8125rem] cursor-pointer transition-colors hover:border-accent hover:text-accent-dark"
+                      className="flex flex-col items-center justify-center gap-1.5 min-h-14 border border-dashed border-border rounded-ui bg-background text-muted text-[0.8125rem] cursor-pointer transition-colors hover:border-accent hover:text-accent-dark"
                       onClick={() => setFolderModal(true)}
                     >
                       <IconFolderPlus width={20} height={20} />

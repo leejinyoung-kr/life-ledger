@@ -7,19 +7,20 @@ import type { HTMLAttributes, ReactNode } from 'react';
 type Tone = 'success' | 'warning' | 'danger' | 'neutral' | 'blue' | 'solid-warning' | 'overlay';
 type Size = 'md' | 'sm';
 
+// 테두리 없이 옅은 바탕 + 같은 색 글자 (흰 카드 위에서 네모 틀이 겹쳐 보이지 않게)
 const TONE: Record<Tone, string> = {
-  success: 'bg-success-dim text-success ring-1 ring-inset ring-success/35',
-  warning: 'bg-warning-dim text-warning ring-1 ring-inset ring-warning/35',
-  danger: 'bg-danger-dim text-danger ring-1 ring-inset ring-danger/35',
-  neutral: 'text-muted ring-1 ring-inset ring-border',
-  blue: 'bg-blue-dim text-blue ring-1 ring-inset ring-blue/35',
+  success: 'bg-success-dim text-success',
+  warning: 'bg-warning-dim text-warning',
+  danger: 'bg-danger-dim text-danger',
+  neutral: 'bg-elevated text-secondary',
+  blue: 'bg-blue-dim text-blue',
   'solid-warning': 'bg-warning text-on-solid',
   overlay: 'bg-white/20',
 };
 
 const SIZE: Record<Size, string> = {
-  md: 'px-[7px] py-1 text-[0.72rem] leading-none gap-1',
-  sm: 'px-1.5 py-[3px] text-[0.6875rem] leading-none gap-1',
+  md: 'px-2 py-1 text-[0.72rem] font-semibold leading-none gap-1',
+  sm: 'px-1.5 py-0.75 text-[0.6875rem] font-semibold leading-none gap-1',
 };
 
 export default function Badge({
@@ -30,7 +31,7 @@ export default function Badge({
   ...rest
 }: { tone?: Tone; size?: Size; children: ReactNode } & HTMLAttributes<HTMLSpanElement>) {
   return (
-    <span className={`inline-flex items-center rounded-[2px] whitespace-nowrap ${SIZE[size]} ${TONE[tone]} ${className}`.trim()} {...rest}>
+    <span className={`inline-flex items-center rounded-full whitespace-nowrap ${SIZE[size]} ${TONE[tone]} ${className}`.trim()} {...rest}>
       {children}
     </span>
   );

@@ -182,22 +182,21 @@ export default function CalendarPage() {
       <ErrorBanner message={error} />
 
       <div className="grid grid-cols-1 min-[900px]:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
-        <div className="flex flex-col gap-2.5 min-w-0">
-          {/* 월 이동 */}
-          <div className="flex items-center gap-1.5">
-            <IconButton label="이전 달" variant="bordered" size="lg" onClick={() => handleMoveMonth(-1)}><IconChevronLeft /></IconButton>
-            <span className="[font-family:var(--font-display)] text-[1.375rem] font-semibold px-2 lining-nums text-primary">
+        {/* 달력 카드 — 머리에 달 이동, 칸 사이 선은 바탕색이 비쳐 보이는 1px 틈으로 그린다 */}
+        <div className="min-w-0 bg-background border border-border rounded-panel shadow-card overflow-hidden">
+          <div className="flex items-center gap-1 px-3 py-2.5 max-md:px-2">
+            <IconButton label="이전 달" size="lg" onClick={() => handleMoveMonth(-1)}><IconChevronLeft /></IconButton>
+            <span className="text-[1.25rem] font-bold tracking-[-0.02em] px-1 text-primary tabular-nums">
               {view ? `${view.year}년 ${view.month + 1}월` : ''}
             </span>
-            <IconButton label="다음 달" variant="bordered" size="lg" onClick={() => handleMoveMonth(1)}><IconChevronRight /></IconButton>
+            <IconButton label="다음 달" size="lg" onClick={() => handleMoveMonth(1)}><IconChevronRight /></IconButton>
             <span className="flex-1" />
             <Button variant="ghost" size="sm" onClick={handleGoToday}>오늘</Button>
           </div>
 
-          {/* 월 그리드 */}
-          <div className="grid grid-cols-7 border-t border-l border-border-subtle">
+          <div className="grid grid-cols-7 gap-px bg-border-subtle border-t border-border-subtle">
             {DOW.map((d, i) => (
-              <div key={d} className={`px-2 py-1.5 text-[0.75rem] border-r border-b border-r-border-subtle border-b-border${i === 0 ? 'text-danger' : 'text-muted'}`}>{d}</div>
+              <div key={d} className={`bg-surface px-2.5 py-2 max-md:px-0 max-md:text-center text-[0.75rem] font-medium ${i === 0 ? 'text-danger' : 'text-muted'}`}>{d}</div>
             ))}
             {cells.map((cell, i) => {
               const events = cell.iso ? eventsByDate[cell.iso] : undefined;
@@ -208,26 +207,29 @@ export default function CalendarPage() {
               const isRedDate = !cell.dim && (i % 7 === 0 || isHoliday);
               const shown = events?.slice(0, 2) ?? [];
               const more = (events?.length ?? 0) - shown.length;
+              const cellTone = cell.dim ? 'bg-surface' : isSel ? 'bg-accent-dim cursor-pointer' : 'bg-background cursor-pointer hover:bg-surface';
+              const dayTone = isToday ? 'bg-accent-dark text-on-solid font-semibold' : cell.dim ? 'text-muted/60' : isRedDate ? 'text-danger' : 'text-primary';
               return (
                 <div
                   key={cell.key}
-                  className={`min-h-[96px] max-md:min-h-[54px] min-w-0 px-[5px] py-1 flex flex-col gap-[3px] border-r border-b border-border-subtle ${cell.dim ? 'opacity-40' : 'cursor-pointer hover:bg-surface transition-colors'} ${isSel ? 'ring-[1.5px] ring-inset ring-accent' : ''}`}
-                  {...(cell.iso ? { onClick: () => setPicked(cell.iso!), ...clickable(() => setPicked(cell.iso!)), 'aria-label': `${cell.day}일${events?.length ? ` 일정 ${events.length}건` : ''}` } : {})}
+                  className={`min-h-26 max-md:min-h-14 min-w-0 px-1.5 py-1.5 max-md:px-0.5 flex flex-col gap-1 transition-colors ${cellTone}`}
+                  {...(cell.iso ? { onClick: () => setPicked(cell.iso!), ...clickable(() => setPicked(cell.iso!)), 'aria-label': `${cell.day}일${events?.length ? ` 일정 ${events.length}건` : ''}`, 'aria-pressed': isSel } : {})}
                 >
-                  <span className={`self-start max-md:self-center w-6 h-6 grid place-items-center rounded-full text-[0.78rem] border ${isToday ? 'border-accent text-accent-dark' : `border-transparent ${isRedDate ? 'text-danger' : 'text-primary'}`}`}>{cell.day}</span>
+                  <span className={`self-start max-md:self-center w-6.5 h-6.5 grid place-items-center rounded-full text-[0.8125rem] tabular-nums ${dayTone}`}>{cell.day}</span>
                   {/* PC/태블릿 — 제목 칩 (좁은 화면은 글자가 안 들어가 점으로 대체) */}
-                  <div className="max-md:hidden flex flex-col gap-[3px] min-w-0">
+                  <div className="max-md:hidden flex flex-col gap-0.5 min-w-0">
                     {shown.map((ev) => (
                       <span
                         key={ev.id}
-                        className={`flex items-center gap-[3px] text-[0.6875rem] leading-[1.3] px-1 py-px border rounded-[2px] min-w-0 whitespace-nowrap overflow-hidden ${isLinked(ev) ? 'border-dashed' : 'border-solid'} ${CHIP_TONE[ev.type]}`}
+                        title={ev.title}
+                        className={`flex items-center gap-1 text-[0.6875rem] font-medium leading-[1.4] px-1.5 py-px rounded min-w-0 whitespace-nowrap overflow-hidden ${CHIP_TONE[ev.type]}`}
                       >
-                        {isLinked(ev) && <IconLink width={10} height={10} className="shrink-0" />}
-                        {ev.isLunar && <IconMoon width={10} height={10} className="shrink-0" />}
+                        {isLinked(ev) && <IconLink width={10} height={10} className="shrink-0 opacity-70" />}
+                        {ev.isLunar && <IconMoon width={10} height={10} className="shrink-0 opacity-70" />}
                         <span className="overflow-hidden text-ellipsis">{ev.title}</span>
                       </span>
                     ))}
-                    {more > 0 && <span className="text-[0.6875rem] text-muted">+{more}</span>}
+                    {more > 0 && <span className="px-1.5 text-[0.6875rem] text-muted">+{more}건</span>}
                   </div>
                   {/* 휴대폰 — 유형 표식 점만 표시 */}
                   {!!events?.length && (
@@ -239,10 +241,6 @@ export default function CalendarPage() {
               );
             })}
           </div>
-          <p className="text-[0.75rem] text-muted flex gap-1.5 items-start">
-            <IconLink width={13} height={13} className="shrink-0 mt-[3px]" />
-            <span>점선 + 연결 표시 = 연동 일정(구독 결제 · 예적금 · 투자 계좌 만기 · 공휴일). 수정은 원래 화면에서, 삭제하면 원본도 삭제됩니다. 날짜를 누르면 그날 목록이 열립니다.</span>
-          </p>
         </div>
 
         {/* 우측(휴대폰은 아래) — 고른 날 목록 + 범례 */}
@@ -256,7 +254,7 @@ export default function CalendarPage() {
             {selEvents.map((ev) => {
               const path = sourcePath(ev);
               return (
-                <div key={ev.id} className="flex items-center gap-2.5 pl-[18px] pr-3 py-2.5 border-b border-border-subtle">
+                <div key={ev.id} className="flex items-center gap-2.5 pl-4.5 pr-3 py-2.5 border-b border-border-subtle">
                   <button type="button" className="flex flex-1 min-w-0 items-center gap-2.5 text-left cursor-pointer" onClick={() => setDetailEvent(ev)}>
                     <TypeMark type={ev.type} />
                     <span className="flex flex-col min-w-0 leading-[1.35]">
@@ -275,7 +273,7 @@ export default function CalendarPage() {
                 </div>
               );
             })}
-            <div className="px-[18px] py-3">
+            <div className="px-4.5 py-3">
               <Button variant="ghost" className="w-full" onClick={() => setAddModal({ open: true, date: selIso })}><IconCalendarPlus />이 날에 일정 추가</Button>
             </div>
           </Card>
@@ -287,14 +285,15 @@ export default function CalendarPage() {
                 {EV_LEGEND.map((l) => (
                   <span className="flex items-center gap-2" key={l.type}><TypeMark type={l.type} />{l.label}</span>
                 ))}
-                <span className="flex items-center gap-2 text-danger"><span className="text-[0.75rem] w-[9px] text-center">3</span>공휴일</span>
+                <span className="flex items-center gap-2 text-danger"><span className="text-[0.75rem] w-2.25 text-center">3</span>공휴일</span>
                 <span className="flex items-center gap-2"><IconMoon width={12} height={12} />음력</span>
-                <span className="flex items-center gap-1.5 col-span-2 text-[0.75rem] text-muted">
-                  <span className="px-1 border border-dashed border-border">점선</span>연동 · <span className="px-1 border border-border">실선</span>직접 입력
-                </span>
               </div>
+              <p className="flex gap-2 items-start mt-3.5 pt-3 border-t border-border-subtle text-[0.75rem] text-muted break-keep">
+                <IconLink width={13} height={13} className="shrink-0 mt-0.75" />
+                <span>연결 표시는 구독 · 예적금 · 투자 화면에서 온 일정입니다. 수정은 원래 화면에서 하고, 여기서 지우면 원본도 지워집니다.</span>
+              </p>
             </CardBody>
-            <div className="flex items-center justify-between px-[18px] py-3 border-t border-border-subtle">
+            <div className="flex items-center justify-between px-4.5 py-3 border-t border-border-subtle">
               <span className="text-[0.8125rem]">공휴일 표시</span>
               <Toggle on={showHolidays} onToggle={handleToggleHolidays} label="공휴일 표시" />
             </div>
@@ -335,7 +334,7 @@ function EventDetailModal({ event, onClose, onEdit, onDelete }: { event: CalEven
         <div className="flex items-start gap-3 px-5 py-4 border-b border-border-subtle">
           <span className="mt-2.5 shrink-0"><TypeMark type={event.type} /></span>
           <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-            <span className="[font-family:var(--font-display)] text-[1.25rem] font-semibold leading-tight lining-nums text-primary break-words">{event.title}</span>
+            <span className="text-[1.25rem] font-bold leading-tight text-primary wrap-break-word">{event.title}</span>
             <span className="text-[0.78rem] text-muted">{EV_TYPE_LABEL[event.type]}</span>
           </div>
           <IconButton label="닫기" variant="bordered" size="lg" onClick={onClose}><IconClose width={16} height={16} /></IconButton>
@@ -375,7 +374,7 @@ function EventDetailModal({ event, onClose, onEdit, onDelete }: { event: CalEven
         )}
       </div>
       {linked && (
-        <div className="px-3 py-2.5 border border-dashed border-border rounded-ui flex gap-2 items-center text-[0.8125rem]">
+        <div className="px-3 py-2.5 bg-surface rounded-ui flex gap-2 items-center text-[0.8125rem]">
           <IconLink width={14} height={14} className="shrink-0 text-muted" />
           <span className="flex-1">{sourceLabel} 관리에서 온 일정입니다. 수정은 원래 화면에서 합니다.</span>
         </div>
@@ -512,7 +511,7 @@ function EventFormModal({ state, onClose, onSaved }: { state: EventFormState; on
           )}
         </div>
       </div>
-      <Field label="메모 (선택)"><textarea className="input min-h-[72px]" placeholder="추가 정보" value={memo} onChange={(e) => setMemo(e.target.value)} /></Field>
+      <Field label="메모 (선택)"><textarea className="input min-h-18" placeholder="추가 정보" value={memo} onChange={(e) => setMemo(e.target.value)} /></Field>
     </Modal>
   );
 }
