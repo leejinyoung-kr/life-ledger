@@ -45,6 +45,8 @@ COPY --from=build /app/backend/package.json ./backend/package.json
 COPY --from=build /app/backend/prisma.config.ts ./backend/prisma.config.ts
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/prisma ./backend/prisma
+# 데모 매일 초기화(prisma/demo-reset.ts → seed.ts)가 tsx 로 시드를 돌리는데, 시드가 src/crypto(암호화 문맥 · 키 설정)를 import 한다
+COPY --from=build /app/backend/src ./backend/src
 RUN rm -f /tmp/.test-ok
 USER app
 

@@ -12,7 +12,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
 import 'dotenv/config';
 
-// src/common/demo.ts 와 같은 값 — 실행 이미지에는 src 가 없어(dist · prisma 만 복사) seed.ts 처럼 src 를 import 하지 않는다.
+// src/common/demo.ts 와 같은 값 — src/common/demo.ts 는 env 검증까지 끌고 와서 여기서는 import 하지 않는다.
 // 데모 사용자 이메일 · 마스터 잠금 비밀번호(화면의 데모 띠에 보이는 값이라 비밀이 아니다)
 const DEMO_EMAIL = 'demo@life-ledger.local';
 const DEMO_VAULT_PASSWORD = 'demo1234';
