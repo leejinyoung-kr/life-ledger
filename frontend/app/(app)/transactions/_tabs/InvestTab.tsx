@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import StatCard, { StatStrip } from '@/components/StatCard';
 import Pagination, { LimitSelect } from '@/components/Pagination';
+import ListToolbar from '@/components/ListToolbar';
 import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
 import MoreMenu from '@/components/ui/MoreMenu';
@@ -328,25 +329,24 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
         </div>
       </FilterPanel>
 
-      <div className="flex items-center justify-between flex-wrap gap-2 py-2 border-y border-border-subtle text-[0.8125rem]">
-        <span>총 <b className="font-semibold">{total}</b>건</span>
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          {hasForeign && (
-            <Segmented
-              label="통화"
-              variant="joined"
-              value={currency}
-              onChange={setCurrency}
-              items={[{ value: 'KRW', label: '₩ KRW' }, { value: 'USD', label: '$ USD' }]}
-            />
-          )}
-          <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
-          <LimitSelect limit={limit} onLimitChange={changeLimit} />
-        </div>
-      </div>
+      <ListToolbar
+        total={total}
+        tools={hasForeign && (
+          <Segmented
+            label="통화"
+            variant="joined"
+            value={currency}
+            onChange={setCurrency}
+            items={[{ value: 'KRW', label: '₩ KRW' }, { value: 'USD', label: '$ USD' }]}
+          />
+        )}
+      >
+        <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+        <LimitSelect limit={limit} onLimitChange={changeLimit} />
+      </ListToolbar>
 
       <div className="mb-6">
-        <div className="table-wrap max-md:hidden">
+        <div className="table-wrap max-md:hidden mt-3">
           {/* 1280 미만에서는 투자원금 칸을 숨기고 평가금액 아래 작은 줄로 옮긴다 — 종목 이름이 쪼개지지 않게 */}
           <table>
             <thead>

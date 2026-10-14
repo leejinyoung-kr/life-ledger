@@ -41,6 +41,7 @@ import ErrorBanner from '@/components/ErrorBanner';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import FilterPanel from '@/components/FilterPanel';
 import ExcelToolbar from '@/components/ExcelToolbar';
+import ListToolbar from '@/components/ListToolbar';
 import {
   TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
   won, dotDate, localDate,
@@ -393,18 +394,14 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
         </div>
       </FilterPanel>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap py-2.5 border-b border-border text-[0.8125rem]">
-        <div className="flex items-baseline gap-x-3.5 gap-y-1 flex-wrap">
-          <span>총 <b className="font-semibold">{total}</b>건</span>
-          <span className="amount-income">수입 +{won(sumIncome)}</span>
-          <span className="amount-expense">지출 −{won(sumExpense)}</span>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <ExcelToolbar onDownloadTemplate={downloadTemplate} onUpload={handleUpload} onDownloadData={downloadData} accept=".xlsx,.xls,.csv" />
-          <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
-          <LimitSelect limit={limit} onLimitChange={changeLimit} />
-        </div>
-      </div>
+      <ListToolbar
+        total={total}
+        summary={<><span className="amount-income">수입 +{won(sumIncome)}</span><span className="amount-expense">지출 −{won(sumExpense)}</span></>}
+        tools={<ExcelToolbar onDownloadTemplate={downloadTemplate} onUpload={handleUpload} onDownloadData={downloadData} accept=".xlsx,.xls,.csv" />}
+      >
+        <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+        <LimitSelect limit={limit} onLimitChange={changeLimit} />
+      </ListToolbar>
 
       <div className="table-wrap max-md:hidden mt-3">
         <table>

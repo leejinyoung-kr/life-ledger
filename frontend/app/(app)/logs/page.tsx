@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge';
 import Segmented from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
 import Pagination, { LimitSelect } from '@/components/Pagination';
+import ListToolbar from '@/components/ListToolbar';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
 import { IconCaret } from '@/components/icons';
@@ -244,10 +245,9 @@ export default function LogsPage() {
 
       <ErrorBanner message={logsQuery.error?.message ?? null} />
 
-      <div className="flex items-center justify-between py-2.5 border-y border-border-subtle text-[0.8125rem]">
-        <span>총 <b className="font-semibold">{total}</b>건</span>
+      <ListToolbar total={total}>
         <LimitSelect limit={limit} onLimitChange={(l) => { changeLimit(l); }} />
-      </div>
+      </ListToolbar>
 
       {/* 로그 목록 — 흰 카드 안 줄 목록, 행을 누르면 상세(metadata)가 펼쳐진다 */}
       <Card clip className="flex flex-col mt-3">
@@ -261,21 +261,15 @@ export default function LogsPage() {
             <div key={log.id} className={`flex flex-col border-b border-border-subtle last:border-b-0 ${log.level === 'error' ? 'bg-danger-dim shadow-[inset_2px_0_0_var(--color-danger)]' : ''}`}>
               <button
                 type="button"
-                className="flex items-center gap-2.5 px-4 py-2.5 max-md:min-h-11 text-left cursor-pointer transition-colors hover:bg-hover"
+                className="flex items-center gap-2.5 px-4 py-2.5 max-md:flex-wrap max-md:gap-y-1.5 max-md:min-h-11 text-left cursor-pointer transition-colors hover:bg-hover"
                 aria-expanded={isOpen}
                 onClick={() => toggleExpand(log.id)}
               >
-                {/* 휴대폰은 등급 · 구분을 위아래로 쌓아 메시지 칸을 넓힌다 */}
-                <span className="flex items-center gap-2.5 shrink-0 max-md:flex-col max-md:items-start max-md:gap-1">
-                  <Badge tone={LEVEL_TONE[log.level]}>{LEVEL_LABEL[log.level]}</Badge>
-                  <span className="w-15 text-[0.78rem] text-muted">{CATEGORY_LABEL[log.category] ?? log.category}</span>
-                </span>
-                <span className="flex-1 min-w-0 text-[0.84rem] text-primary break-keep">{log.message}</span>
-                {/* 날짜 · 시각 두 줄 — 한 줄이면 휴대폰에서 메시지 아래로 밀려 줄이 하나 더 생긴다 */}
-                <span className="flex flex-col items-end shrink-0 text-[0.78rem] leading-snug text-muted tabular-nums">
-                  <span>{full.slice(0, 10)}</span>
-                  <span>{full.slice(11)}</span>
-                </span>
+                <Badge tone={LEVEL_TONE[log.level]}>{LEVEL_LABEL[log.level]}</Badge>
+                <span className="w-15 max-md:w-auto text-[0.78rem] text-muted">{CATEGORY_LABEL[log.category] ?? log.category}</span>
+                {/* 휴대폰은 메시지를 둘째 줄 전체로 내리고, 첫 줄은 등급 · 구분 ··· 시각 */}
+                <span className="flex-1 min-w-0 max-md:order-last max-md:basis-full text-[0.84rem] text-primary break-keep">{log.message}</span>
+                <span className="max-md:ml-auto shrink-0 text-[0.78rem] text-muted tabular-nums whitespace-nowrap">{full}</span>
                 <IconCaret className={`w-3.75 h-3.75 text-muted transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
 

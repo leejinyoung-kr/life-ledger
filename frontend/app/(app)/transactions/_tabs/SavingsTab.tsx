@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import StatCard, { StatStrip } from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
+import ListToolbar from '@/components/ListToolbar';
 import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
 import Badge from '@/components/ui/Badge';
@@ -129,16 +130,13 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
         </div>
       </FilterPanel>
 
-      <div className="flex items-center justify-between gap-2 py-2.5 border-y border-border-subtle text-[0.8125rem]">
-        <span>총 <b className="font-semibold">{total}</b>건 <span className="text-muted ml-2 max-md:hidden">가입일 · 메모는 행을 누르면 수정 창에서</span></span>
-        <div className="flex items-center gap-2">
-          <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
-          <LimitSelect limit={limit} onLimitChange={changeLimit} />
-        </div>
-      </div>
+      <ListToolbar total={total} summary={<span className="text-muted max-md:hidden">가입일 · 메모는 행을 누르면 수정 창에서</span>}>
+        <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+        <LimitSelect limit={limit} onLimitChange={changeLimit} />
+      </ListToolbar>
 
       <div className="mb-6">
-        <div className="table-wrap max-md:hidden">
+        <div className="table-wrap max-md:hidden mt-3">
           {/* 1280 미만(사이드바 옆 본문 730px 안팎)에서는 월 납입 · 금리 칸을 숨기고 상품 아래 줄로 옮긴다 — 상품 이름이 세로로 쪼개지지 않게 */}
           <table>
             <thead>

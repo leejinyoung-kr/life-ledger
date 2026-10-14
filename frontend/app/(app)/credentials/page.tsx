@@ -27,6 +27,7 @@ import type { Settings } from '@/lib/settings';
 import MobileCard, { MobileCardList } from '@/components/MobileCard';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import ExcelToolbar from '@/components/ExcelToolbar';
+import ListToolbar from '@/components/ListToolbar';
 import ServiceTile, { TwoFaMark } from './ServiceTile';
 import VaultStrip from './VaultStrip';
 import DetailModal from './DetailModal';
@@ -196,18 +197,18 @@ export default function CredentialsPage() {
         </div>
       )}
 
-      {/* 총 개수 + 엑셀 · 선택삭제 · 페이지 크기 한 줄 (가계부와 같은 순서) */}
-      <div className="flex items-center justify-between gap-3 flex-wrap py-2.5 mb-3 border-b border-border text-[0.8125rem]">
-        <span>총 <b className="font-semibold">{total}</b>개</span>
-        <div className="flex items-center gap-2 flex-wrap">
-          <ExcelToolbar onDownloadTemplate={handleDownloadTemplate} onUpload={handleUploadExcel} onDownloadData={handleDownloadDataAsk} />
-          <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
-          <LimitSelect limit={limit} onLimitChange={changeLimit} />
-        </div>
-      </div>
+      {/* 총 개수 · 엑셀 · 선택삭제 · 페이지 크기 (가계부와 같은 도구 줄) */}
+      <ListToolbar
+        total={total}
+        unit="개"
+        tools={<ExcelToolbar onDownloadTemplate={handleDownloadTemplate} onUpload={handleUploadExcel} onDownloadData={handleDownloadDataAsk} />}
+      >
+        <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+        <LimitSelect limit={limit} onLimitChange={changeLimit} />
+      </ListToolbar>
 
       {/* 표 + 휴대폰 줄 */}
-      <div className="table-wrap max-md:hidden">
+      <div className="table-wrap max-md:hidden mt-3">
         <table>
           <thead>
             <tr>
@@ -248,7 +249,7 @@ export default function CredentialsPage() {
         </table>
       </div>
 
-      <MobileCardList className="pt-0" empty={paged.length === 0 && '저장된 계정이 없습니다.'} selection={{ all: allChecked, count: selected.size, onToggleAll: toggleAll }}>
+      <MobileCardList empty={paged.length === 0 && '저장된 계정이 없습니다.'} selection={{ all: allChecked, count: selected.size, onToggleAll: toggleAll }}>
         {paged.map((c) => (
           <MobileCard
             key={c.id}

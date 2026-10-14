@@ -16,6 +16,7 @@ import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
 import Segmented from '@/components/ui/Segmented';
 import Pagination, { LimitSelect } from '@/components/Pagination';
+import ListToolbar from '@/components/ListToolbar';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
 import SelectAllBar from '@/components/SelectAllBar';
@@ -138,23 +139,22 @@ export default function NotificationsPage() {
 
       <ErrorBanner message={error} />
 
-      {/* 거르기 알약 + 선택삭제/전체삭제 + 페이지당 항목 수 */}
-      <div className="flex items-center justify-between gap-2 pb-3 flex-wrap">
-        <Segmented
-          label="알림 구분"
-          value={tab}
-          onChange={handleChangeTab}
-          items={NOTI_TABS.map((t) => ({ value: t.kind, label: t.label }))}
-        />
-        <div className="flex items-center gap-1 flex-wrap justify-end">
-          <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
-          <Button variant="danger" size="sm" onClick={handleRemoveAll}>전체삭제</Button>
-          <LimitSelect limit={limit} onLimitChange={changeLimit} />
-        </div>
-      </div>
+      {/* 거르기 알약 — 도구 줄은 다른 목록처럼 총 n건 ··· 선택삭제 · 개수 */}
+      <Segmented
+        label="알림 구분"
+        className="mb-2"
+        value={tab}
+        onChange={handleChangeTab}
+        items={NOTI_TABS.map((t) => ({ value: t.kind, label: t.label }))}
+      />
+      <ListToolbar total={total}>
+        <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+        <Button variant="danger" size="sm" onClick={handleRemoveAll}>전체삭제</Button>
+        <LimitSelect limit={limit} onLimitChange={changeLimit} />
+      </ListToolbar>
 
       {/* 알림 목록 — 흰 카드 안 줄 목록, 클릭 시 상세 창 */}
-      <Card clip className="flex flex-col">
+      <Card clip className="flex flex-col mt-3">
         {paged.length > 0 && <SelectAllBar checked={allChecked} onToggle={toggleAll} count={selected.size} />}
         {paged.length === 0 && <EmptyState size="lg" message="알림이 없습니다." />}
         {paged.map((n) => {

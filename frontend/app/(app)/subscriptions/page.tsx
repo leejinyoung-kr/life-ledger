@@ -15,6 +15,7 @@ import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import { useConfirm } from '@/components/ConfirmModal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
+import ListToolbar from '@/components/ListToolbar';
 import StatCard, { StatStrip } from '@/components/StatCard';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
@@ -208,18 +209,15 @@ export default function SubscriptionsPage() {
         </div>
       </FilterPanel>
       {/* 총건 + 안 쓴 구독 + 페이지 크기 */}
-      <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-        <span className="text-[0.8125rem]">총 <b className="font-semibold">{total}</b>건</span>
-        <div className="flex items-center gap-3">
-          {staleCount > 0 && (
-            <span className="text-warning text-[0.8125rem] flex items-center gap-1.5"><IconClock width={13} height={13} />{STALE_DAYS}일 넘게 안 쓴 구독 {staleCount}건</span>
-          )}
-          <LimitSelect limit={limit} onLimitChange={changeLimit} />
-        </div>
-      </div>
+      <ListToolbar
+        total={total}
+        summary={staleCount > 0 && <span className="text-warning flex items-center gap-1.5"><IconClock width={13} height={13} />{STALE_DAYS}일 넘게 안 쓴 구독 {staleCount}건</span>}
+      >
+        <LimitSelect limit={limit} onLimitChange={changeLimit} />
+      </ListToolbar>
 
       {/* PC: 표 */}
-      <Card clip className="max-md:hidden">
+      <Card clip className="max-md:hidden mt-3">
         <div className="table-wrap flat">
           {/* 1280 미만에서는 결제수단 칸을 숨기고 서비스 아래 줄로 옮긴다 — 서비스 이름이 여러 줄로 쪼개지지 않게 */}
           <table>
@@ -281,7 +279,7 @@ export default function SubscriptionsPage() {
 
       </Card>
       {/* 휴대폰: 카드 */}
-      <MobileCardList className="pt-0" empty={subs.length === 0 && '등록된 구독이 없습니다.'}>
+      <MobileCardList empty={subs.length === 0 && '등록된 구독이 없습니다.'}>
         {subs.map((sub) => {
           const dd = daysUntil(sub.nextPaymentDate);
           const ago = daysAgo(sub.lastUsedAt);
