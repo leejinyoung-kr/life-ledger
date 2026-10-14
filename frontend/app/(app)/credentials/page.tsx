@@ -9,7 +9,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { notify, copyToClipboard } from '@/lib/toast';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
-import { clickable } from '@/lib/a11y';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import ErrorBanner from '@/components/ErrorBanner';
@@ -21,11 +20,11 @@ import SearchInput from '@/components/ui/SearchInput';
 import IconButton from '@/components/ui/IconButton';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
-import { IconEdit, IconTrash, IconCopy, IconAlertTriangle, IconChevronRight, IconPlus } from '@/components/icons';
+import { IconEdit, IconTrash, IconCopy, IconAlertTriangle, IconPlus } from '@/components/icons';
 import { api, apiDownload } from '@/lib/api';
 import { CRED_CATEGORIES, fmtCredDate, type Credential } from '@/lib/credential';
 import type { Settings } from '@/lib/settings';
-import EmptyState from '@/components/EmptyState';
+import MobileCard, { MobileCardList } from '@/components/MobileCard';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import ExcelToolbar from '@/components/ExcelToolbar';
 import ServiceTile, { TwoFaMark } from './ServiceTile';
@@ -249,28 +248,29 @@ export default function CredentialsPage() {
         </table>
       </div>
 
-      <div className="hidden max-md:flex flex-col">
-        {paged.length === 0 && <EmptyState message="저장된 계정이 없습니다." />}
+      <MobileCardList className="pt-0" empty={paged.length === 0 && '저장된 계정이 없습니다.'}>
         {paged.map((c) => (
-          <div
+          <MobileCard
             key={c.id}
-            {...clickable(() => setDetail(c))}
-            className="flex items-center gap-3 min-h-14 py-1.5 border-b border-border-subtle cursor-pointer"
-            onClick={() => setDetail(c)}
-          >
-            <span className="p-2 -m-2" onClick={(e) => e.stopPropagation()}>
-              <input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" />
-            </span>
-            <ServiceTile name={c.name} />
-            <div className="flex-1 min-w-0 flex flex-col leading-[1.35]">
-              <span className="text-[0.9rem] text-primary truncate">{c.name}</span>
-              <span className="text-[0.75rem] text-muted truncate">{c.username}</span>
-            </div>
-            <TwoFaMark on={c.has2fa} />
-            <IconChevronRight width={16} height={16} className="text-muted shrink-0" />
-          </div>
+            checked={selected.has(c.id)}
+            onCheck={() => toggle(c.id)}
+            icon={<ServiceTile name={c.name} />}
+            title={c.name}
+            sub={c.url ?? '—'}
+            aside={<TwoFaMark on={c.has2fa} />}
+            fields={[
+              { label: '아이디', value: c.username },
+              { label: '카테고리', value: c.category },
+              { label: '수정일', value: fmtCredDate(c.updatedAt) },
+            ]}
+            actions={[
+              { label: '열기', onClick: () => setDetail(c) },
+              { label: '수정', onClick: () => openEdit(c) },
+              { label: '삭제', danger: true, onClick: () => handleRemove(c) },
+            ]}
+          />
         ))}
-      </div>
+      </MobileCardList>
 
       <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
 

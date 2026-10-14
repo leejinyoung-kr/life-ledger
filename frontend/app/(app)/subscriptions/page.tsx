@@ -11,7 +11,6 @@ import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { useFormErrors } from '@/lib/useFormErrors';
 import { usePagination } from '@/lib/usePagination';
 import { qk } from '@/lib/queryKeys';
-import { clickable } from '@/lib/a11y';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
 import { useConfirm } from '@/components/ConfirmModal';
@@ -19,6 +18,7 @@ import Pagination, { LimitSelect } from '@/components/Pagination';
 import StatCard, { StatStrip } from '@/components/StatCard';
 import ErrorBanner from '@/components/ErrorBanner';
 import EmptyState from '@/components/EmptyState';
+import MobileCard, { MobileCardList } from '@/components/MobileCard';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import FilterPanel from '@/components/FilterPanel';
 import Modal from '@/components/Modal';
@@ -175,7 +175,7 @@ export default function SubscriptionsPage() {
         {payStrip.length === 0 ? (
           <EmptyState size="sm" message="이번 달 남은 결제가 없습니다." />
         ) : (
-          <div className="flex overflow-x-auto bg-background border border-border rounded-panel shadow-card">
+          <div className="flex overflow-x-auto scrollbar-none bg-background border border-border rounded-panel shadow-card">
             {payStrip.map((s) => {
               const dd = daysUntil(s.nextPaymentDate);
               const soon = s.status === 'trial' || (dd !== null && dd <= SOON_DAYS);
@@ -218,9 +218,9 @@ export default function SubscriptionsPage() {
         </div>
       </div>
 
-      <Card clip>
-        {/* PC: 표 */}
-        <div className="table-wrap flat max-md:hidden">
+      {/* PC: 표 */}
+      <Card clip className="max-md:hidden">
+        <div className="table-wrap flat">
           {/* 1280 미만에서는 결제수단 칸을 숨기고 서비스 아래 줄로 옮긴다 — 서비스 이름이 여러 줄로 쪼개지지 않게 */}
           <table>
             <thead>
@@ -279,31 +279,42 @@ export default function SubscriptionsPage() {
           </table>
         </div>
 
-        {/* 휴대폰: 카드 줄 */}
-        <div className="md:hidden">
-          {subs.length === 0 && <EmptyState message="등록된 구독이 없습니다." />}
-          {subs.map((sub) => (
-            <div
-              key={sub.id}
-              className="flex items-center gap-3 px-4 py-2.5 min-h-14 border-b border-border-subtle last:border-b-0 cursor-pointer"
-              onClick={() => setModal({ open: true, mode: 'edit', editing: sub })}
-              {...clickable(() => setModal({ open: true, mode: 'edit', editing: sub }))}
-            >
-              <div className="flex-1 min-w-0 flex flex-col leading-snug">
-                <span className="truncate">{sub.name}</span>
-                <span className="text-[0.75rem] text-muted truncate">
-                  {SUB_CATEGORY_LABEL[sub.category] ?? sub.category} · {STATUS_LABEL[sub.status]}
-                </span>
-              </div>
-              <div className="flex flex-col items-end leading-snug shrink-0">
-                <span className="tabular-nums">{amountText(sub)}<span className="text-[0.72rem] text-muted">/{CYCLE_LABEL[sub.cycle]}</span></span>
-                <span className="text-[0.75rem] text-muted tabular-nums">{dotDate(sub.nextPaymentDate)}</span>
-              </div>
-              <IconButton label="해지" variant="danger" size="lg" onClick={(e) => { e.stopPropagation(); handleCancel(sub.id); }}><IconTrash /></IconButton>
-            </div>
-          ))}
-        </div>
       </Card>
+      {/* 휴대폰: 카드 */}
+      <MobileCardList className="pt-0" empty={subs.length === 0 && '등록된 구독이 없습니다.'}>
+        {subs.map((sub) => {
+          const dd = daysUntil(sub.nextPaymentDate);
+          const ago = daysAgo(sub.lastUsedAt);
+          const stale = ago !== null && ago > STALE_DAYS;
+          return (
+            <MobileCard
+              key={sub.id}
+              title={sub.name}
+              sub={SUB_CATEGORY_LABEL[sub.category] ?? sub.category}
+              aside={<>
+                <span className="text-[0.95rem] font-semibold tabular-nums">{amountText(sub)}<span className="text-[0.72rem] font-normal text-muted">/{CYCLE_LABEL[sub.cycle]}</span></span>
+                <Badge tone={STATUS_TONE[sub.status]}>{STATUS_LABEL[sub.status]}</Badge>
+              </>}
+              fields={[
+                {
+                  label: '다음 결제',
+                  value: <>{dotDate(sub.nextPaymentDate)}{dd !== null && dd >= 0 && <span className={`ml-1.5 ${dd <= SOON_DAYS ? 'text-warning' : 'text-muted'}`}>D-{dd}</span>}</>,
+                },
+                { label: '결제수단', value: sub.payMethod },
+                {
+                  label: '마지막 사용',
+                  value: ago === null ? null : ago === 0 ? '오늘' : stale ? `${ago}일 전` : dotDate(sub.lastUsedAt ?? ''),
+                  tone: stale ? 'warning' : undefined,
+                },
+              ]}
+              actions={[
+                { label: '수정', onClick: () => setModal({ open: true, mode: 'edit', editing: sub }) },
+                { label: '해지', danger: true, onClick: () => handleCancel(sub.id) },
+              ]}
+            />
+          );
+        })}
+      </MobileCardList>
       {/* 쪽 번호는 다른 목록처럼 카드 밖 아래에 */}
       <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
 

@@ -3,7 +3,7 @@
 /**
  * 데스크톱 좌측 메뉴 (232px). 글자 로고 · 묶음별 메뉴 · 아래 사용자 줄(누르면 로그아웃).
  * 묶음(1차 메뉴)은 접혀 있고 누르면 항목(2차 메뉴)이 펼쳐진다. 지금 화면이 속한 묶음만 처음에 펼쳐 둔다.
- * 1024 미만(휴대폰 · 태블릿)에서는 숨기고 아래 메뉴 + '전체 메뉴' 시트(MoreSheet)가 대신한다.
+ * 1024 미만(휴대폰 · 태블릿)에서는 숨기고 아래 메뉴 + 같은 내용의 왼쪽 서랍(MoreSheet)이 대신한다.
  */
 import { useState } from 'react';
 import Link from 'next/link';
@@ -62,11 +62,12 @@ export function UserLine({ onLogout, size = 'md' }: { onLogout?: () => void; siz
 }
 
 // 1차 메뉴(묶음) 한 개 — 이름 줄을 누르면 2차 메뉴를 펼치거나 접는다. 접혀 있어도 안 읽은 알림 수는 이름 줄에 보인다
-function NavGroup({ section, open, activePath, unread, onToggle, onPick }: {
+function NavGroup({ section, open, activePath, unread, size = 'md', onToggle, onPick }: {
   section: NavSection;
   open: boolean;
   activePath: string;
   unread: number;
+  size?: 'md' | 'lg';
   onToggle: () => void;
   onPick: () => void;
 }) {
@@ -80,7 +81,7 @@ function NavGroup({ section, open, activePath, unread, onToggle, onPick }: {
         onClick={onToggle}
         aria-expanded={open}
         aria-controls={id}
-        className={`flex items-center gap-2.5 px-2.5 min-h-9 rounded-ui text-[0.875rem] text-left transition-colors hover:bg-hover hover:text-primary [&_svg]:shrink-0 [&_svg]:w-[17px] [&_svg]:h-[17px] ${hasActive ? 'text-primary font-semibold' : 'text-secondary'}`}
+        className={`flex items-center gap-2.5 px-2.5 rounded-ui text-left transition-colors hover:bg-hover hover:text-primary [&_svg]:shrink-0 ${size === 'lg' ? 'min-h-11 text-[0.94rem] [&_svg]:w-[19px] [&_svg]:h-[19px]' : 'min-h-9 text-[0.875rem] [&_svg]:w-[17px] [&_svg]:h-[17px]'} ${hasActive ? 'text-primary font-semibold' : 'text-secondary'}`}
       >
         {section.icon}
         <span className="flex-1">{section.label}</span>
@@ -91,7 +92,7 @@ function NavGroup({ section, open, activePath, unread, onToggle, onPick }: {
       <div id={id} inert={!open} className={`grid transition-[grid-template-rows] duration-200 ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
         <div className="overflow-hidden flex flex-col gap-px">
           {section.items.map((it) => (
-            <NavLink key={it.href} sub href={it.href} icon={it.icon} label={it.label} active={activePath === it.href} count={it.badge === 'unread' ? unread : undefined} onClick={onPick} />
+            <NavLink key={it.href} sub size={size} href={it.href} icon={it.icon} label={it.label} active={activePath === it.href} count={it.badge === 'unread' ? unread : undefined} onClick={onPick} />
           ))}
         </div>
       </div>
@@ -99,7 +100,8 @@ function NavGroup({ section, open, activePath, unread, onToggle, onPick }: {
   );
 }
 
-export default function Sidebar({ activePath = '/dashboard', onLogout }: { activePath?: string; onLogout?: () => void }) {
+// 사이드바 · 휴대폰 메뉴 서랍이 같이 쓰는 안쪽 — 글자 로고(+ headerAction) · 묶음별 메뉴 · 사용자 줄. onPick 은 메뉴를 고른 뒤 (서랍 닫기)
+export function SideMenu({ activePath = '/dashboard', onLogout, onPick, headerAction, size = 'md' }: { activePath?: string; onLogout?: () => void; onPick?: () => void; headerAction?: React.ReactNode; size?: 'md' | 'lg' }) {
   const unread = useUnreadCount();
   // 펼친 1차 메뉴 — 처음에는 지금 화면이 속한 묶음만
   const [openGroups, setOpenGroups] = useState<Set<string>>(
@@ -114,10 +116,11 @@ export default function Sidebar({ activePath = '/dashboard', onLogout }: { activ
   });
 
   return (
-    <aside className="w-[var(--sidebar-w)] h-screen bg-background border-r border-border flex flex-col fixed top-0 left-0 z-[100] max-lg:hidden">
-      <Link href="/dashboard" className="h-[var(--header-h)] flex items-center px-5 border-b border-border shrink-0">
-        <Wordmark />
-      </Link>
+    <>
+      <div className="h-[var(--header-h)] flex items-center gap-2 pl-5 pr-2 border-b border-border shrink-0">
+        <Link href="/dashboard" onClick={onPick} className="flex-1 flex items-center"><Wordmark /></Link>
+        {headerAction}
+      </div>
 
       <nav className="flex-1 overflow-y-auto px-2.5 py-3.5 flex flex-col gap-1" aria-label="주 메뉴">
         {NAV.map((section) => section.label ? (
@@ -127,20 +130,29 @@ export default function Sidebar({ activePath = '/dashboard', onLogout }: { activ
             open={openGroups.has(section.label)}
             activePath={activePath}
             unread={unread}
+            size={size}
             onToggle={() => toggle(section.label)}
             // 2차 메뉴를 고르면 그 묶음만 펼쳐 두고 나머지는 접는다
-            onPick={() => setOpenGroups(new Set([section.label]))}
+            onPick={() => { setOpenGroups(new Set([section.label])); onPick?.(); }}
           />
         ) : (
           section.items.map((it) => (
-            <NavLink key={it.href} href={it.href} icon={it.icon} label={it.label} active={activePath === it.href} count={it.badge === 'unread' ? unread : undefined} />
+            <NavLink key={it.href} size={size} href={it.href} icon={it.icon} label={it.label} active={activePath === it.href} count={it.badge === 'unread' ? unread : undefined} onClick={onPick} />
           ))
         ))}
       </nav>
 
       <div className="px-2.5 py-2.5 border-t border-border">
-        <UserLine onLogout={onLogout} />
+        <UserLine size={size} onLogout={onLogout} />
       </div>
+    </>
+  );
+}
+
+export default function Sidebar({ activePath = '/dashboard', onLogout }: { activePath?: string; onLogout?: () => void }) {
+  return (
+    <aside className="w-[var(--sidebar-w)] h-screen bg-background border-r border-border flex flex-col fixed top-0 left-0 z-[100] max-lg:hidden">
+      <SideMenu activePath={activePath} onLogout={onLogout} />
     </aside>
   );
 }

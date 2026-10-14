@@ -36,6 +36,7 @@ import { downloadTransactionTemplate } from '@/lib/excel';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import EmptyState from '@/components/EmptyState';
+import MobileCard, { MobileCardList } from '@/components/MobileCard';
 import ErrorBanner from '@/components/ErrorBanner';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import FilterPanel from '@/components/FilterPanel';
@@ -451,30 +452,34 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
           </tbody>
         </table>
       </div>
-      <div className="md:hidden">
-        {pagedRows.length === 0 && <EmptyState message="내역이 없습니다." />}
+      <MobileCardList empty={pagedRows.length === 0 && '내역이 없습니다.'}>
         {pagedRows.map((row) => (
-          <div key={row.id} className="flex items-center border-b border-border-subtle">
-            <label className="w-11 h-11 flex items-center justify-center shrink-0">
-              <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" />
-            </label>
-            <button type="button" className="flex-1 min-w-0 min-h-12 py-2.5 flex items-center gap-3 text-left cursor-pointer" onClick={() => setModal({ open: true, mode: 'edit', editing: row })}>
-              <span className="flex-1 min-w-0 flex flex-col leading-snug">
-                <span className="flex items-center gap-1.5 text-[0.9rem] text-primary">
-                  <span className="truncate">{row.title}</span>
-                  {row.recurringScheduleId != null && <IconRepeat width={13} height={13} className="shrink-0 text-muted" aria-label="자동이체로 생성됨" />}
-                </span>
-                <span className="text-[0.75rem] text-muted truncate">{catMap[row.category] ?? row.category}{payLabel(row) ? ` · ${payLabel(row)}` : ''}</span>
+          <MobileCard
+            key={row.id}
+            checked={selected.has(row.id)}
+            onCheck={() => toggle(row.id)}
+            title={
+              <span className="flex items-center gap-1.5">
+                {row.title}
+                {row.recurringScheduleId != null && <IconRepeat width={13} height={13} className="shrink-0 text-muted" aria-label="자동이체로 생성됨" />}
               </span>
-              <span className="flex flex-col items-end leading-snug">
-                <span className={`text-[0.9rem] ${AMT_COLOR[row.type]}`}>{ledgerAmount(row.type, row.amount)}</span>
-                <span className="text-[0.75rem] text-muted">{dotDate(row.date)}</span>
-              </span>
-            </button>
-            <EntryActions compact onCopy={() => handleDuplicate(row)} onDelete={() => handleRemove(row.id)} />
-          </div>
+            }
+            aside={<span className={`text-[0.95rem] font-semibold tabular-nums ${AMT_COLOR[row.type]}`}>{ledgerAmount(row.type, row.amount)}</span>}
+            fields={[
+              { label: '유형', value: <span className={`amount-${row.type}`}>{TX_TYPE_LABEL[row.type]}</span> },
+              { label: '카테고리', value: catMap[row.category] ?? row.category },
+              { label: '결제수단', value: payLabel(row) },
+              { label: '날짜', value: dotDate(row.date) },
+              { label: '메모', value: row.memo },
+            ]}
+            actions={[
+              { label: '복사', onClick: () => handleDuplicate(row) },
+              { label: '수정', onClick: () => setModal({ open: true, mode: 'edit', editing: row }) },
+              { label: '삭제', danger: true, onClick: () => handleRemove(row.id) },
+            ]}
+          />
         ))}
-      </div>
+      </MobileCardList>
       <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
 
       <LedgerModal
@@ -536,14 +541,13 @@ const CYCLE_ITEMS: SegmentedItem<RecurringCycle>[] = [
   { value: 'daily', label: '매일' }, { value: 'weekly', label: '매주' }, { value: 'monthly', label: '매월' }, { value: 'yearly', label: '매년' },
 ];
 
-// 내역 한 줄의 관리 — 같은 지출을 다시 적는 복사를 메뉴에 숨기지 않고 바로 보인다. 휴대폰은 줄을 누르면 수정이라 수정 버튼을 뺀다
-function EntryActions({ onEdit, onCopy, onDelete, compact }: { onEdit?: () => void; onCopy: () => void; onDelete: () => void; compact?: boolean }) {
-  const size = compact ? 'lg' : 'md';
+// 표 한 줄의 관리 — 같은 지출을 다시 적는 복사를 메뉴에 숨기지 않고 바로 보인다
+function EntryActions({ onEdit, onCopy, onDelete }: { onEdit: () => void; onCopy: () => void; onDelete: () => void }) {
   return (
     <div className="flex justify-end shrink-0">
-      <IconButton label="복사" size={size} onClick={onCopy}><IconCopy /></IconButton>
-      {onEdit && <IconButton label="수정" size={size} onClick={onEdit}><IconEdit /></IconButton>}
-      <IconButton label="삭제" variant="danger" size={size} onClick={onDelete}><IconTrash /></IconButton>
+      <IconButton label="복사" onClick={onCopy}><IconCopy /></IconButton>
+      <IconButton label="수정" onClick={onEdit}><IconEdit /></IconButton>
+      <IconButton label="삭제" variant="danger" onClick={onDelete}><IconTrash /></IconButton>
     </div>
   );
 }

@@ -6,7 +6,6 @@ import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
-import MoreMenu from '@/components/ui/MoreMenu';
 import Badge from '@/components/ui/Badge';
 import Segmented from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
@@ -16,12 +15,11 @@ import { IconBank, IconWon, IconTrendUp, IconAlertTriangle, IconEdit, IconCopy, 
 import { notify } from '@/lib/toast';
 import { useFormErrors } from '@/lib/useFormErrors';
 import { api } from '@/lib/api';
-import { clickable } from '@/lib/a11y';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
-import EmptyState from '@/components/EmptyState';
+import MobileCard, { MobileCardList } from '@/components/MobileCard';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import FilterPanel from '@/components/FilterPanel';
 import {
@@ -105,19 +103,6 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
   const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(paged.map((r) => r.id));
 
   const openEdit = (c: Saving) => setModal({ open: true, mode: 'edit', editing: c });
-
-  // 휴대폰 줄의 더보기 메뉴(복사 · 삭제) — 수정은 줄을 누르면 열린다
-  function rowMenu(c: Saving) {
-    return (
-      <MoreMenu
-        size="lg"
-        items={[
-          { label: '복사', icon: <IconCopy />, onSelect: () => handleDuplicate(c) },
-          { label: '삭제', icon: <IconTrash />, danger: true, onSelect: () => handleRemove(c.id) },
-        ]}
-      />
-    );
-  }
 
   return (
     <>
@@ -215,35 +200,43 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
             </tbody>
           </table>
         </div>
-        <div className="hidden max-md:flex flex-col">
-          {paged.length === 0 && <EmptyState message="예적금 내역이 없습니다." />}
+        <MobileCardList empty={paged.length === 0 && '예적금 내역이 없습니다.'}>
           {paged.map((c) => {
             const dleft = daysUntil(c.maturityDate);
             const near = dleft !== null && dleft >= 0 && dleft <= 30;
             const matured = dleft !== null && dleft < 0;
             const maturityAmt = calcMaturityAmount(c);
             return (
-              <div key={c.id} className="flex items-center gap-1 min-h-14 py-1 border-b border-border-subtle cursor-pointer" onClick={() => openEdit(c)} {...clickable(() => openEdit(c))}>
-                <label className="flex items-center justify-center w-11 h-11 shrink-0" onClick={(ev) => ev.stopPropagation()}>
-                  <input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" />
-                </label>
-                <div className="flex-1 min-w-0 flex flex-col leading-snug">
-                  <span className="break-all">{c.name}</span>
-                  <span className="text-[0.75rem] text-muted">{c.bank} · {SAVING_TYPE_LABEL[c.type]} · {c.interestRate}%</span>
-                </div>
-                <div className="flex flex-col items-end leading-snug shrink-0 tabular-nums">
-                  <span>{won(c.balance)}</span>
-                  {c.maturityDate ? (
-                    <span className={`text-[0.72rem] ${near || matured ? 'text-warning' : 'text-muted'}`}>
-                      {matured ? '만기됨' : `${dotDate(c.maturityDate)}${near ? ` · D-${dleft}` : ''}`}
-                    </span>
-                  ) : maturityAmt !== null && <span className="text-[0.72rem] text-muted">만기예상 {won(maturityAmt)}</span>}
-                </div>
-                {rowMenu(c)}
-              </div>
+              <MobileCard
+                key={c.id}
+                checked={selected.has(c.id)}
+                onCheck={() => toggle(c.id)}
+                title={c.name}
+                sub={`${c.bank} · ${SAVING_TYPE_LABEL[c.type]}`}
+                aside={<>
+                  <span className="text-[0.95rem] font-semibold tabular-nums">{won(c.balance)}</span>
+                  {maturityAmt !== null && <span className="text-[0.72rem] text-muted tabular-nums">만기예상 {won(maturityAmt)}</span>}
+                </>}
+                fields={[
+                  { label: '금리', value: <span className="text-accent-dark font-medium">{c.interestRate}%</span> },
+                  { label: '월 납입', value: c.monthlyAmount > 0 ? won(c.monthlyAmount) : null },
+                  { label: '가입일', value: dotDate(c.startDate) },
+                  {
+                    label: '만기일',
+                    value: c.maturityDate ? `${dotDate(c.maturityDate)}${near ? ` · D-${dleft}` : matured ? ' · 만기됨' : ''}` : null,
+                    tone: near || matured ? 'warning' : undefined,
+                  },
+                  { label: '메모', value: c.memo },
+                ]}
+                actions={[
+                  { label: '복사', onClick: () => handleDuplicate(c) },
+                  { label: '수정', onClick: () => openEdit(c) },
+                  { label: '삭제', danger: true, onClick: () => handleRemove(c.id) },
+                ]}
+              />
             );
           })}
-        </div>
+        </MobileCardList>
         <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
       </div>
 

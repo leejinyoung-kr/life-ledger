@@ -1,19 +1,15 @@
 'use client';
 
 /**
- * 휴대폰 '전체 메뉴' 시트 — 아래 메뉴의 더보기를 누르면 아래에서 올라온다. 사이드바와 같은 메뉴 정의(NAV)를 쓴다.
- * Esc · X · 바깥 누름으로 닫힌다(입력이 없는 메뉴라 바깥 누름도 허용).
+ * 휴대폰 · 태블릿 메뉴 서랍 — 아래 메뉴의 더보기를 누르면 왼쪽에서 나온다. 사이드바와 같은 안쪽(SideMenu)을 쓴다.
+ * 아래 메뉴는 가리지 않아 더보기를 다시 눌러도 닫힌다. Esc · X · 바깥 누름으로 닫힌다(입력이 없는 메뉴라 바깥 누름도 허용).
  */
 import { useEffect } from 'react';
-import { NAV } from '@/lib/nav';
-import { useUnreadCount } from '@/lib/useUnreadCount';
 import { IconClose } from './icons';
 import IconButton from './ui/IconButton';
-import { NavLink, UserLine } from './Sidebar';
+import { SideMenu } from './Sidebar';
 
 export default function MoreSheet({ open, activePath, onClose, onLogout }: { open: boolean; activePath?: string; onClose: () => void; onLogout?: () => void }) {
-  const unread = useUnreadCount();
-
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -23,29 +19,21 @@ export default function MoreSheet({ open, activePath, onClose, onLogout }: { ope
 
   if (!open) return null;
   return (
-    <div className="hidden max-lg:flex fixed inset-0 z-[150] bg-backdrop items-end [animation:fadeIn_0.15s_ease]" onClick={onClose}>
+    <div className="hidden max-lg:block fixed inset-x-0 top-0 bottom-[calc(60px+env(safe-area-inset-bottom))] z-[150] bg-backdrop [animation:fadeIn_0.15s_ease]" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label="전체 메뉴"
-        className="w-full max-h-[80vh] overflow-y-auto bg-background rounded-t-xl px-3 pt-2 pb-[calc(80px+env(safe-area-inset-bottom))] flex flex-col gap-3 [animation:slideUp_0.2s_ease]"
+        className="h-full w-[264px] max-w-[85vw] bg-background border-r border-border shadow-overlay flex flex-col [animation:slideInLeft_0.2s_ease]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-1 py-1.5">
-          <span className="font-bold text-[1.1875rem]">전체 메뉴</span>
-          <IconButton label="닫기" size="lg" onClick={onClose}><IconClose /></IconButton>
-        </div>
-        {NAV.map((section) => (
-          <div key={section.label || 'top'} className="flex flex-col">
-            {section.label && <div className="text-[0.72rem] text-muted tracking-[0.06em] px-2 pb-0.5">{section.label}</div>}
-            {section.items.map((it) => (
-              <NavLink key={it.href} size="lg" href={it.href} icon={it.icon} label={it.label} active={activePath === it.href} count={it.badge === 'unread' ? unread : undefined} />
-            ))}
-          </div>
-        ))}
-        <div className="pt-2 border-t border-border">
-          <UserLine size="lg" onLogout={onLogout} />
-        </div>
+        <SideMenu
+          size="lg"
+          activePath={activePath}
+          onLogout={onLogout}
+          onPick={onClose}
+          headerAction={<IconButton label="닫기" size="lg" onClick={onClose}><IconClose /></IconButton>}
+        />
       </div>
     </div>
   );

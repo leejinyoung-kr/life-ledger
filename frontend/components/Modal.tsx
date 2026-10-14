@@ -22,7 +22,7 @@ interface ModalProps {
   subtitle?: string;
   /** 기본 헤더에서 닫기 버튼 왼쪽에 놓는 요소 (배지 등) */
   headerAction?: ReactNode;
-  /** 박스 너비: sm 380px · md 520px(기본) · lg 720px — 휴대폰에서는 모두 아래에서 올라오는 시트 */
+  /** 박스 너비: sm 380px · md 520px(기본) · lg 720px — 휴대폰에서는 양옆 16px 여백을 두고 가운데 뜬다 */
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -94,13 +94,13 @@ export default function Modal({ open, title, onClose, children, footer, header, 
     // 오버레이 클릭으로 닫히지 않음 — 폼 입력 중 실수 방지
     // 닫혀 있을 때는 접근성 트리에서 제외 + 포커스/상호작용 차단 (ghost dialog 방지)
     <div
-      className={`fixed inset-0 bg-backdrop z-[200] flex items-center justify-center p-6 max-md:items-end max-md:p-0 transition-opacity ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      className={`fixed inset-0 bg-backdrop z-[200] flex items-center justify-center p-6 max-md:p-4 transition-opacity ${open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       aria-hidden={!open}
       inert={!open}
     >
       <div
         ref={dialogRef}
-        className={`bg-background border border-border rounded-panel w-full ${SIZE[size]} shadow-overlay max-h-[calc(100vh-48px)] flex flex-col max-md:max-w-none max-md:max-h-[92vh] max-md:rounded-b-none max-md:border-b-0 ${open ? '[animation:slideUp_0.25s_ease]' : ''}`}
+        className={`bg-background border border-border rounded-panel w-full ${SIZE[size]} shadow-overlay max-h-[calc(100dvh-48px)] flex flex-col max-md:max-h-[calc(100dvh-32px)] ${open ? '[animation:slideUp_0.25s_ease]' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -118,7 +118,7 @@ export default function Modal({ open, title, onClose, children, footer, header, 
           </div>
         )}
         <div className="px-5 py-[18px] flex flex-col gap-4 overflow-y-auto">{children}</div>
-        {footer && <div className="px-5 py-3.5 flex gap-2 justify-end border-t border-border-subtle max-md:pb-[calc(14px+env(safe-area-inset-bottom))]">{footer}</div>}
+        {footer && <div className="px-5 py-3.5 flex gap-2 justify-end border-t border-border-subtle">{footer}</div>}
       </div>
     </div>
   );

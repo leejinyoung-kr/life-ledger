@@ -17,12 +17,12 @@ import {
 } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
-import { clickable } from '@/lib/a11y';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { qk } from '@/lib/queryKeys';
 import EmptyState from '@/components/EmptyState';
+import MobileCard, { MobileCardList } from '@/components/MobileCard';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import FilterPanel from '@/components/FilterPanel';
 import {
@@ -190,19 +190,11 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
 
   const openEdit = (row: Investment) => setModal({ open: true, mode: 'edit', editing: row });
 
-  // 종목 행 더보기 — 표(매수 · 매도 버튼이 따로 있음)와 휴대폰(전부 담음)에서 항목이 다르다
-  function rowMenu(row: Investment, size: 'md' | 'lg') {
-    const buySell = size === 'lg'
-      ? [
-        { label: '매수', onSelect: () => setTrade({ open: true, mode: 'buy', target: row }) },
-        { label: '매도', onSelect: () => setTrade({ open: true, mode: 'sell', target: row }) },
-      ]
-      : [];
+  // 표 종목 행 더보기 — 매수 · 매도는 옆에 버튼이 따로 있다
+  function rowMenu(row: Investment) {
     return (
       <MoreMenu
-        size={size}
         items={[
-          ...buySell,
           ...(row.symbol ? [{ label: '시세조회', icon: <IconRefresh />, onSelect: () => setPriceLookup({ open: true, target: row }) }] : []),
           { label: '수정', icon: <IconEdit />, onSelect: () => openEdit(row) },
           { label: '복사', icon: <IconCopy />, onSelect: () => handleDuplicate(row) },
@@ -397,7 +389,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                       <div className="flex justify-end items-center gap-1">
                         <Button size="sm" variant="ghost" onClick={() => setTrade({ open: true, mode: 'buy', target: row })}>매수</Button>
                         <Button size="sm" variant="ghost" onClick={() => setTrade({ open: true, mode: 'sell', target: row })}>매도</Button>
-                        {rowMenu(row, 'md')}
+                        {rowMenu(row)}
                       </div>
                     </td>
                   </tr>
@@ -406,32 +398,47 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
             </tbody>
           </table>
         </div>
-        <div className="hidden max-md:flex flex-col">
-          {paged.length === 0 && <EmptyState message="투자 항목이 없습니다." />}
+        <MobileCardList empty={paged.length === 0 && '투자 항목이 없습니다.'}>
           {paged.map((row) => {
-            const recurring = scheduleByInvestmentId.has(row.id);
+            const recurringSchedule = scheduleByInvestmentId.get(row.id);
             const profit = fmtProfit(row);
             return (
-              <div key={row.id} className="flex items-center gap-1 min-h-14 py-1 border-b border-border-subtle cursor-pointer" onClick={() => openEdit(row)} {...clickable(() => openEdit(row))}>
-                <label className="flex items-center justify-center w-11 h-11 shrink-0" onClick={(ev) => ev.stopPropagation()}>
-                  <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" />
-                </label>
-                <div className="flex-1 min-w-0 flex flex-col leading-snug">
-                  <span className="flex items-center gap-1.5 break-all">
+              <MobileCard
+                key={row.id}
+                checked={selected.has(row.id)}
+                onCheck={() => toggle(row.id)}
+                title={
+                  <span className="flex items-center gap-1.5">
                     {row.name}
-                    {recurring && <IconRepeat className="w-3.25 h-3.25 text-muted shrink-0" aria-label="반복매수" />}
+                    {recurringSchedule && <IconRepeat className="w-3.25 h-3.25 text-muted shrink-0" aria-label="반복매수" />}
                   </span>
-                  <span className="text-[0.75rem] text-muted">{accountMap.get(row.accountId)?.name ?? '-'} · {INVEST_TYPE_LABEL[row.type]}</span>
-                </div>
-                <div className="flex flex-col items-end leading-snug shrink-0 tabular-nums">
-                  <span className={`amount-${profit.up ? 'income' : 'expense'}`}>{profit.up ? '+' : ''}{row.profitRate}%</span>
-                  <span className="text-[0.75rem] text-muted">{fmtCurrentValue(row)}</span>
-                </div>
-                {rowMenu(row, 'lg')}
-              </div>
+                }
+                sub={`${accountMap.get(row.accountId)?.name ?? '-'} · ${INVEST_TYPE_LABEL[row.type]}`}
+                aside={<>
+                  <span className="text-[0.95rem] font-semibold tabular-nums">{fmtCurrentValue(row)}</span>
+                  <span className={`return-pill ${profit.up ? 'up' : 'down'}`}>{profit.up ? '+' : ''}{row.profitRate}%</span>
+                </>}
+                fields={[
+                  { label: '원금', value: fmtPrincipal(row) },
+                  { label: '수익', value: <span className={`amount-${profit.up ? 'income' : 'expense'}`}>{profit.text}</span> },
+                  { label: '반복매수', value: recurringSchedule ? recurringBuyLabel(recurringSchedule, isForeignType(row.type)) : null },
+                ]}
+                actions={[
+                  [
+                    { label: '매수', onClick: () => setTrade({ open: true, mode: 'buy', target: row }) },
+                    { label: '매도', onClick: () => setTrade({ open: true, mode: 'sell', target: row }) },
+                    ...(row.symbol ? [{ label: '시세조회', onClick: () => setPriceLookup({ open: true, target: row }) }] : []),
+                  ],
+                  [
+                    { label: '복사', onClick: () => handleDuplicate(row) },
+                    { label: '수정', onClick: () => openEdit(row) },
+                    { label: '삭제', danger: true, onClick: () => handleRemove(row.id) },
+                  ],
+                ]}
+              />
             );
           })}
-        </div>
+        </MobileCardList>
         <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
       </div>
 

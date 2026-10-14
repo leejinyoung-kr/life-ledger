@@ -22,9 +22,9 @@ export default async function LoginPage({
 
   return (
     <LoginGate>
-      {/* 넓은 화면은 가운데 흰 카드, 휴대폰은 카드 없이 바탕 위에 */}
-      <div className="flex justify-center items-start sm:items-center min-h-screen bg-page px-4 py-10">
-        <div className="w-full max-w-110 flex flex-col gap-6 sm:px-8 sm:py-9 sm:bg-background sm:border sm:border-border sm:rounded-panel sm:shadow-raised">
+      {/* 어느 폭이든 가운데 흰 카드 — 휴대폰은 안쪽 여백만 줄인다 */}
+      <div className="flex justify-center items-center min-h-dvh bg-page px-4 py-10">
+        <div className="w-full max-w-110 flex flex-col gap-6 px-5 py-7 sm:px-8 sm:py-9 bg-background border border-border rounded-panel shadow-raised">
           <div className="flex flex-col gap-2">
             <h1><Wordmark size="lg" /></h1>
             <p className="text-[0.875rem] text-secondary break-keep">가계부 · 구독 · 계정 · 파일을 한곳에 모아 두는 개인 장부입니다.</p>
