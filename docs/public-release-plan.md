@@ -226,7 +226,9 @@ FROM net_worth_snapshot s ORDER BY s.user_id, s.month;
 | 시드 | 순자산 스냅샷에 그 달 말 현금(수입 − 지출 − 자산이동)을 넣는다 — 수입/지출 시드 뒤에 계산. 추이 차트 이번 달 막대가 더 이상 튀지 않는다 |
 | 배포 | `docker-compose.demo.yml`(운영 compose 위에 덮는다 — 프로젝트 `life-ledger-demo`, 포트 3010 · 8010, DB `lifeledger_demo`, Tailscale `lifeledger-demo`, 볼륨 이름 분리). 배포 워크플로는 홈서버에 `.env.demo` · `backend/.env.demo` 가 있을 때만 운영 배포 뒤 데모도 다시 띄운다 |
 | 로컬 확인 | 데모 env 로 띄워 로그인 → 대시보드 · 데모 띠 · 잠금 풀기(demo1234) · 잠금 해제/계정 삭제 403 확인. 정상 env 로 다시 띄우면 데모 버튼 · 띠 · 라우트가 없다 |
-| 남은 것 | 아래 운영 절차(홈서버 · B2 · Tailscale) — 사용자 확인 뒤. 파일 보관함 샘플 파일은 시드에 없다(빈 목록) |
+| 남은 것 | ~~아래 운영 절차(홈서버 · B2 · Tailscale)~~ → 2026-10-15 완료(아래). 파일 보관함 샘플 파일은 시드에 없다(빈 목록) |
+
+**데모 운영 시작 (2026-10-15)** — 아래 절차 1 ~ 7 완료. `https://lifeledger-demo.tailba78c1.ts.net` (Funnel 켬). 처음 띄우기는 손으로 하지 않고 main push 의 배포 워크플로 "Deploy demo" 단계로 했다(패키지 토큰이 워크플로에만 있다). 겪은 것: 실행 이미지에 `src` 가 없어 `demo-reset` 의 시드가 `src/crypto` import 에서 `MODULE_NOT_FOUND` — 로컬은 `src` 가 있어 통과했다. 실행 이미지에 `backend/src` 를 넣어 고쳤다. env 점검은 값을 출력하지 않는 스크립트로(채워짐 · 운영 값과 다른지 · DB 접속).
 
 #### 5단계 운영 절차 (홈서버 — 한 번)
 
