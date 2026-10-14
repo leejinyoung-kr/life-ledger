@@ -5,7 +5,7 @@
 import type { ChangeEvent, ReactNode } from 'react';
 import { Download, FileSpreadsheet, Upload } from 'lucide-react';
 
-const ITEM = 'inline-flex items-center gap-1.5 h-full px-2.5 text-[0.8125rem] text-secondary whitespace-nowrap cursor-pointer transition-colors hover:bg-hover hover:text-accent-dark [&_svg]:w-3.5 [&_svg]:h-3.5';
+const ITEM = 'inline-flex items-center gap-1.5 h-full px-2.5 text-[0.8125rem] text-secondary whitespace-nowrap cursor-pointer transition-colors hover:bg-hover hover:text-primary [&_svg]:w-3.5 [&_svg]:h-3.5';
 
 export default function ExcelToolbar({
   onDownloadTemplate,

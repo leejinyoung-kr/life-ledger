@@ -11,10 +11,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const LIMIT_OPTIONS = [10, 20, 30];
 
 const PAG_BASE = 'min-w-8 h-8 px-2 rounded-ui text-[0.8125rem] tabular-nums inline-flex items-center justify-center transition-colors';
-// 지금 쪽 / 다른 쪽(올리면 옅은 초록) / 이전 · 다음(테두리 칸, 끝이면 흐리게)
+// 지금 쪽(초록) / 다른 쪽(올리면 회색) / 이전 · 다음(테두리 칸, 끝이면 흐리게)
 const PAG_ON = 'bg-accent-dark text-on-solid font-semibold';
-const PAG_OFF = 'text-secondary cursor-pointer hover:bg-hover hover:text-accent-dark';
-const PAG_STEP = 'w-8 px-0 border border-border bg-background text-secondary cursor-pointer enabled:hover:border-accent/50 enabled:hover:bg-hover enabled:hover:text-accent-dark disabled:opacity-40 disabled:cursor-not-allowed';
+const PAG_OFF = 'text-secondary cursor-pointer hover:bg-hover hover:text-primary';
+const PAG_STEP = 'w-8 px-0 border border-border bg-background text-secondary cursor-pointer enabled:hover:border-border-hover enabled:hover:bg-hover enabled:hover:text-primary disabled:opacity-40 disabled:cursor-not-allowed';
 
 // ── 페이지 번호 내비게이션 ────────────────────────────────────────
 interface PaginationProps {

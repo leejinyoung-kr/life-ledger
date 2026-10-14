@@ -15,11 +15,11 @@ const TONE: Record<CardTone, string> = {
   danger: 'border-danger/35',
 };
 
-// hover: 누를 수 있는 카드는 테두리만 초록(lift · accent), tile 은 옅은 초록 바탕까지(폴더 타일)
+// hover: 누를 수 있는 카드는 테두리만 진하게(lift · accent), tile 은 회색 바탕까지(폴더 타일). 초록 테두리는 고른 카드(tone accent)만
 const HOVER: Record<CardHover, string> = {
-  lift: 'transition-colors hover:border-accent',
-  accent: 'transition-colors hover:border-accent',
-  tile: 'transition-colors hover:border-accent hover:bg-accent-dim',
+  lift: 'transition-colors hover:border-border-hover',
+  accent: 'transition-colors hover:border-border-hover',
+  tile: 'transition-colors hover:border-border-hover hover:bg-hover',
 };
 
 // clip: 자식이 모서리 밖으로 나가지 않게 자른다. onClick 을 주면 키보드로도 누를 수 있는 클릭 카드가 되고 hover 기본값은 accent

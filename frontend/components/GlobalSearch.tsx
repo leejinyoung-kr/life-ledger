@@ -185,7 +185,7 @@ export default function GlobalSearch() {
                     key={f.key}
                     type="button"
                     onClick={() => setFilter(f.key)}
-                    className={`px-2.5 py-1 rounded-full text-[0.72rem] font-medium whitespace-nowrap transition-colors ${filter === f.key ? 'border border-accent bg-accent-dim text-accent-dark' : 'border border-border text-muted hover:text-primary'}`}
+                    className={`px-2.5 py-1 rounded-full text-[0.72rem] font-medium whitespace-nowrap transition-colors ${filter === f.key ? 'border border-accent bg-accent-dim text-accent-dark' : 'border border-border text-muted hover:bg-hover hover:border-border-hover hover:text-primary'}`}
                   >
                     {f.label}
                   </button>

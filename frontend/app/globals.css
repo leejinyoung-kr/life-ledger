@@ -14,7 +14,8 @@
   --bg-base:        #FFFFFF;              /* 카드 · 모달 · 사이드바 · 상단바 */
   --bg-surface:     #F8F9FB;              /* 표 머리 · 안쪽 상자 */
   --bg-elevated:    #F0F2F5;              /* 입력 안쪽 · 막대 바탕 */
-  --bg-hover:       rgba(0, 192, 127, 0.06); /* 누를 수 있는 것에 올렸을 때 — surface 는 흰 바탕과 거의 같아 안 보여서 따로 둔다 */
+  --bg-hover:       #EDF0F3;              /* 올렸을 때 바탕 — 고른 것(옅은 초록)과 헷갈리지 않게 회색. surface 는 흰 바탕과 거의 같아 따로 둔다 */
+  --border-hover:   #B9C1CC;              /* 올렸을 때 테두리 */
   --border:         #E4E7EC;
   --border-subtle:  #EEF0F3;
   --accent:         #00C07F;              /* 채우는 데만(막대 · 아이콘 · 포커스) — 글자로 쓰면 대비 미달 */
@@ -68,7 +69,8 @@
   --bg-base:        #161B22;
   --bg-surface:     #1C2128;
   --bg-elevated:    #21262D;
-  --bg-hover:       rgba(43, 196, 138, 0.09);
+  --bg-hover:       #262D36;
+  --border-hover:   #4D5664;
   --border:         #30363D;
   --border-subtle:  #262C34;
   --accent:         #2BC48A;
@@ -106,6 +108,7 @@
   --color-surface: var(--bg-surface);
   --color-elevated: var(--bg-elevated);
   --color-hover: var(--bg-hover);
+  --color-border-hover: var(--border-hover);
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
   --color-accent: var(--accent);
@@ -196,8 +199,8 @@
 }
 textarea.input { min-height: 72px; }
 .input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-/* 고르는 칸(날짜 · 선택 · 입력)도 올리면 테두리가 옅은 초록으로 — 누를 수 있다는 표시 */
-.input:hover:not(:focus):not(:disabled) { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); }
+/* 고르는 칸(날짜 · 선택 · 입력)도 올리면 테두리가 진해진다 — 누를 수 있다는 표시 */
+.input:hover:not(:focus):not(:disabled) { border-color: var(--border-hover); }
 select.input:not(:disabled) { cursor: pointer; }
 /* 금액 · 수량 칸은 오르내림 화살표 없이 (마우스를 올리면 생겨 칸이 흔들려 보인다) */
 .input[type=number] { appearance: textfield; }
@@ -223,7 +226,7 @@ input[type="date"].input, input[type="time"].input, input[type="datetime-local"]
   background: var(--bg-base); cursor: pointer; position: relative;
   transition: background var(--ease), border-color var(--ease);
 }
-.checkbox:hover { border-color: var(--accent); }
+.checkbox:hover { border-color: var(--border-hover); }
 .checkbox:checked { background: var(--accent-dark); border-color: var(--accent-dark); }
 .checkbox:checked::after {
   content: ''; position: absolute; left: 6px; top: 3px; width: 4px; height: 8px;

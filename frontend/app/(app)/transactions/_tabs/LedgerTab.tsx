@@ -8,6 +8,7 @@ import {
   SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useSearchParams } from 'next/navigation';
 import StatCard, { StatStrip } from '@/components/StatCard';
 import BarChart from '@/components/BarChart';
 import Modal from '@/components/Modal';
@@ -57,15 +58,24 @@ type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Transaction; 
 type RecurringModalState = { open: boolean; editing?: RecurringSchedule };
 
 export default function LedgerTab({ categories, bankCats, payMethodCats, addTrigger }: { categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; addTrigger: number }) {
-  const [pendingFrom, setPendingFrom] = useState(() => monthsAgo(1));
-  const [pendingTo, setPendingTo] = useState(toDay);
+  // 통합 검색에서 온 경우(?q=&date=&focus=) — 그날 · 그 내역으로 거른 목록으로 시작하고, 그 줄의 수정 창을 연다
+  const searchParams = useSearchParams();
+  const [focus] = useState(() => {
+    const date = searchParams.get('date') ?? '';
+    const id = Number(searchParams.get('focus'));
+    return /^\d{4}-\d{2}-\d{2}$/.test(date) && id ? { id, date, q: searchParams.get('q') ?? '' } : null;
+  });
+  const [pendingFrom, setPendingFrom] = useState(() => focus?.date ?? monthsAgo(1));
+  const [pendingTo, setPendingTo] = useState(() => focus?.date ?? toDay());
   const [pendingType, setPendingType] = useState('');
   const [pendingCat, setPendingCat] = useState('');
-  const [pendingQ, setPendingQ] = useState('');
-  const [applied, setApplied] = useState(() => ({ from: monthsAgo(1), to: toDay(), type: '', cat: '', q: '' }));
+  const [pendingQ, setPendingQ] = useState(() => focus?.q ?? '');
+  const [applied, setApplied] = useState(() => (focus
+    ? { from: focus.date, to: focus.date, type: '', cat: '', q: focus.q }
+    : { from: monthsAgo(1), to: toDay(), type: '', cat: '', q: '' }));
   const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
-  const [activePreset, setActivePreset] = useState<number | null>(1);
+  const [activePreset, setActivePreset] = useState<number | null>(focus ? null : 1);
   const [modal, setModal] = useState<ModalState>({ open: false, mode: 'add' });
   const [recurringModal, setRecurringModal] = useState<RecurringModalState>({ open: false });
   const invalidate = useInvalidate();
@@ -114,6 +124,17 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
   const recurringQuery = useApiQuery<RecurringSchedule[]>(qk.recurringSchedules.list('transaction'), '/recurring-schedules?kind=transaction');
   const rows = useMemo(() => rowsQuery.data?.items ?? [], [rowsQuery.data]);
   const total = rowsQuery.data?.total ?? 0;
+
+  // 검색에서 고른 내역이 목록에 오면 수정 창을 한 번 열고, 새로고침해도 다시 열리지 않게 주소의 검색 조건을 지운다
+  const [focusDone, setFocusDone] = useState(false);
+  useEffect(() => {
+    if (!focus || focusDone || !rowsQuery.data) return;
+    const row = rows.find((r) => r.id === focus.id);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 목록이 도착한 뒤 한 번만 여는 동작
+    if (row) setModal({ open: true, mode: 'edit', editing: row });
+    setFocusDone(true);
+    window.history.replaceState(null, '', '/transactions');
+  }, [focus, focusDone, rows, rowsQuery.data]);
   const sumIncome = rowsQuery.data?.sumIncome ?? 0;
   const sumExpense = rowsQuery.data?.sumExpense ?? 0;
   const summary = summaryQuery.data ?? null;

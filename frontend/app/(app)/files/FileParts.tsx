@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useApiQuery } from '@/lib/query';
 import Button from '@/components/ui/Button';
+import IconButton from '@/components/ui/IconButton';
 import MoreMenu, { type MoreMenuItem } from '@/components/ui/MoreMenu';
 import { Card } from '@/components/ui/Card';
 import {
@@ -79,7 +80,10 @@ export function FolderCard({ folder, onOpen, onDelete, onNavigate }: {
           </div>
         )}
       </div>
-      <MoreMenu items={[{ label: '삭제', icon: <IconTrash />, danger: true, onSelect: onDelete }]} />
+      {/* 관리가 삭제 하나뿐이라 더보기 대신 바로 둔다. 카드를 누른 것으로 번지지 않게 막는다 */}
+      <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+        <IconButton label="폴더 삭제" variant="danger" onClick={onDelete}><IconTrash /></IconButton>
+      </div>
     </Card>
   );
 }
@@ -167,7 +171,7 @@ export function FileList({ folders, files, onOpenFolder, onView, onDownload, onD
               <td className="td-right td-mono text-muted max-md:hidden">파일 {f.fileCount}개</td>
               <td className="td-mono text-muted max-md:hidden">{fmtFileDate(f.createdAt)}</td>
               <td onClick={(e) => e.stopPropagation()}>
-                <div className="flex justify-end"><MoreMenu items={[{ label: '삭제', icon: <IconTrash />, danger: true, onSelect: () => onDeleteFolder(f) }]} /></div>
+                <div className="flex justify-end"><IconButton label="폴더 삭제" variant="danger" onClick={() => onDeleteFolder(f)}><IconTrash /></IconButton></div>
               </td>
             </tr>
           ))}
@@ -212,11 +216,10 @@ function FileRow({ file, onView, onDownload, onDelete, onNavigate }: {
       <td className="td-right td-mono text-muted max-md:hidden">{formatBytes(file.size)}</td>
       <td className="td-mono text-muted max-md:hidden">{fmtFileDate(file.createdAt)}</td>
       <td onClick={(e) => e.stopPropagation()}>
+        {/* 표 줄은 자리가 넉넉해 받기 · 삭제를 바로 보인다 (격자 카드만 더보기로 접는다) */}
         <div className="flex justify-end">
-          <MoreMenu items={[
-            { label: '다운로드', icon: <IconDownload />, onSelect: onDownload },
-            { label: '삭제', icon: <IconTrash />, danger: true, onSelect: onDelete },
-          ]} />
+          <IconButton label="다운로드" onClick={onDownload}><IconDownload /></IconButton>
+          <IconButton label="삭제" variant="danger" onClick={onDelete}><IconTrash /></IconButton>
         </div>
       </td>
     </tr>

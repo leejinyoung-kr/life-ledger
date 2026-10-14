@@ -10,7 +10,7 @@ export default function Toggle({ on, onToggle, label = '토글', disabled = fals
       aria-label={label}
       onClick={onToggle}
       disabled={disabled}
-      className={`relative w-9 h-5 rounded-full border transition-colors shrink-0 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:w-3 after:h-3 after:rounded-full after:transition-transform ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${on ? 'bg-accent-dim border-accent after:translate-x-4 after:bg-accent enabled:hover:bg-accent-hover' : 'bg-transparent border-border after:bg-muted enabled:hover:border-accent enabled:hover:bg-hover'}`}
+      className={`relative w-9 h-5 rounded-full border transition-colors shrink-0 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:w-3 after:h-3 after:rounded-full after:transition-transform ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${on ? 'bg-accent-dim border-accent after:translate-x-4 after:bg-accent enabled:hover:bg-accent-hover' : 'bg-transparent border-border after:bg-muted enabled:hover:border-border-hover enabled:hover:bg-hover'}`}
     />
   );
 }

@@ -19,7 +19,6 @@ import ConfirmModal, { useConfirm } from '@/components/ConfirmModal';
 import Button from '@/components/ui/Button';
 import SearchInput from '@/components/ui/SearchInput';
 import IconButton from '@/components/ui/IconButton';
-import MoreMenu from '@/components/ui/MoreMenu';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { IconEdit, IconTrash, IconCopy, IconAlertTriangle, IconChevronRight, IconPlus } from '@/components/icons';
@@ -237,12 +236,11 @@ export default function CredentialsPage() {
                 <td><TwoFaMark on={c.has2fa} /></td>
                 <td className="td-mono text-muted">{fmtCredDate(c.updatedAt)}</td>
                 <td onClick={(e) => e.stopPropagation()}>
-                  <div className="flex justify-end gap-1">
+                  {/* 가계부 줄처럼 복사 · 수정 · 삭제를 바로 보인다 */}
+                  <div className="flex justify-end">
                     <IconButton label="아이디 복사" onClick={() => copyToClipboard(c.username)}><IconCopy /></IconButton>
-                    <MoreMenu items={[
-                      { label: '수정', icon: <IconEdit />, onSelect: () => openEdit(c) },
-                      { label: '삭제', icon: <IconTrash />, danger: true, onSelect: () => handleRemove(c) },
-                    ]} />
+                    <IconButton label="수정" onClick={() => openEdit(c)}><IconEdit /></IconButton>
+                    <IconButton label="삭제" variant="danger" onClick={() => handleRemove(c)}><IconTrash /></IconButton>
                   </div>
                 </td>
               </tr>

@@ -33,14 +33,16 @@ export class SearchService {
       }),
     ]);
 
+    // href 는 그 항목을 바로 여는 주소 — 가계부는 그날 · 그 내역으로 거른 목록 + 수정 창, 계정은 상세 창
     return [
-      ...txs.map((t): SearchResult => ({
-        type: 'tx', icon: '💰', title: t.title,
-        sub: `${t.date.toISOString().slice(0, 10)} · 가계부`, href: '/transactions',
-      })),
+      ...txs.map((t): SearchResult => {
+        const date = t.date.toISOString().slice(0, 10);
+        const qs = new URLSearchParams({ q: t.title, date, focus: String(t.id) });
+        return { type: 'tx', icon: '💰', title: t.title, sub: `${date} · 가계부`, href: `/transactions?${qs.toString()}` };
+      }),
       ...creds.map((c): SearchResult => ({
         type: 'cred', icon: '🔑', title: c.name,
-        sub: `${c.username} · 계정`, href: '/credentials',
+        sub: `${c.username} · 계정`, href: `/credentials?focus=${c.id}`,
       })),
     ];
   }

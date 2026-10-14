@@ -52,7 +52,7 @@ export function UserLine({ onLogout, size = 'md' }: { onLogout?: () => void; siz
         <span className="text-[0.84rem] font-medium text-primary truncate">{name}</span>
         <span className="text-[0.75rem] text-muted truncate">{me?.email ?? ''}</span>
       </span>
-      <span className="flex items-center gap-1 shrink-0 text-muted text-[0.75rem] transition-colors group-hover:text-accent-dark [&_svg]:w-[18px] [&_svg]:h-[18px]">
+      <span className="flex items-center gap-1 shrink-0 text-muted text-[0.75rem] transition-colors group-hover:text-primary [&_svg]:w-[18px] [&_svg]:h-[18px]">
         {size === 'lg' && '로그아웃'}<IconLogout />
       </span>
     </button>

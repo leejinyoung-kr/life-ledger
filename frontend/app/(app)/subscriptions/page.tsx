@@ -24,7 +24,6 @@ import FilterPanel from '@/components/FilterPanel';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
-import MoreMenu from '@/components/ui/MoreMenu';
 import Segmented from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
 import Badge from '@/components/ui/Badge';
@@ -219,7 +218,7 @@ export default function SubscriptionsPage() {
         </div>
       </div>
 
-      <Card clip className="mb-4">
+      <Card clip>
         {/* PC: 표 */}
         <div className="table-wrap flat max-md:hidden">
           <table>
@@ -275,7 +274,7 @@ export default function SubscriptionsPage() {
                     <td>
                       <div className="flex justify-end gap-0.5">
                         <IconButton label="수정" onClick={(e) => { e.stopPropagation(); setModal({ open: true, mode: 'edit', editing: sub }); }}><IconEdit /></IconButton>
-                        <MoreMenu items={[{ label: '해지', icon: <IconTrash />, danger: true, onSelect: () => handleCancel(sub.id) }]} />
+                        <IconButton label="해지" variant="danger" onClick={(e) => { e.stopPropagation(); handleCancel(sub.id); }}><IconTrash /></IconButton>
                       </div>
                     </td>
                   </tr>
@@ -305,12 +304,13 @@ export default function SubscriptionsPage() {
                 <span className="tabular-nums">{amountText(sub)}<span className="text-[0.72rem] text-muted">/{CYCLE_LABEL[sub.cycle]}</span></span>
                 <span className="text-[0.75rem] text-muted tabular-nums">{dotDate(sub.nextPaymentDate)}</span>
               </div>
-              <MoreMenu size="lg" items={[{ label: '해지', icon: <IconTrash />, danger: true, onSelect: () => handleCancel(sub.id) }]} />
+              <IconButton label="해지" variant="danger" size="lg" onClick={(e) => { e.stopPropagation(); handleCancel(sub.id); }}><IconTrash /></IconButton>
             </div>
           ))}
         </div>
-        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
       </Card>
+      {/* 쪽 번호는 다른 목록처럼 카드 밖 아래에 */}
+      <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
 
       {confirmElement}
       {/* 구독 추가/수정 모달 */}
