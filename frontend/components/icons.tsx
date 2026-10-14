@@ -9,6 +9,7 @@ import {
   Landmark, TrendingUp, FolderPlus, Image, ChartColumn, Clock, GripVertical, Check, Star, Copy, Eye,
   CircleAlert, TriangleAlert, House, CreditCard, KeyRound, ScrollText, Tag, Sun, Moon, Ellipsis, ExternalLink,
   Inbox, ArrowUp, ArrowDown, ArrowLeftRight, RefreshCw, ChevronRight, Info, Minus, LockOpen, List, LayoutGrid,
+  Pause, Play, Ban, Link, Mail, User, Monitor, Smartphone, ShieldCheck, CalendarPlus, Archive, Send, CircleCheck, Funnel, ArrowUpRight, Percent, PiggyBank, Coins, RotateCcw, Hourglass, Loader, FolderOpen, FileImage, FileArchive, Paperclip, BellOff,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -79,3 +80,29 @@ export const IconMinus = wrap(Minus);
 export const IconUnlock = wrap(LockOpen);
 export const IconList = wrap(List);
 export const IconTiles = wrap(LayoutGrid);
+export const IconPause = wrap(Pause);
+export const IconPlay = wrap(Play);
+export const IconBan = wrap(Ban);
+export const IconLink = wrap(Link);
+export const IconMail = wrap(Mail);
+export const IconUser = wrap(User);
+export const IconMonitor = wrap(Monitor);
+export const IconPhone = wrap(Smartphone);
+export const IconShieldCheck = wrap(ShieldCheck);
+export const IconCalendarPlus = wrap(CalendarPlus);
+export const IconArchive = wrap(Archive);
+export const IconSend = wrap(Send);
+export const IconCircleCheck = wrap(CircleCheck);
+export const IconFilter = wrap(Funnel);
+export const IconArrowUpRight = wrap(ArrowUpRight);
+export const IconPercent = wrap(Percent);
+export const IconPiggyBank = wrap(PiggyBank);
+export const IconCoins = wrap(Coins);
+export const IconUndo = wrap(RotateCcw);
+export const IconHourglass = wrap(Hourglass);
+export const IconLoader = wrap(Loader);
+export const IconFolderOpen = wrap(FolderOpen);
+export const IconFileImage = wrap(FileImage);
+export const IconFileArchive = wrap(FileArchive);
+export const IconPaperclip = wrap(Paperclip);
+export const IconBellOff = wrap(BellOff);
