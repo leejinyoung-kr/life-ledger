@@ -16,6 +16,8 @@ interface StatCardProps {
   label: string;
   change?: string;
   changeDir?: 'up' | 'down' | 'neutral';
+  /** 주면 칸 전체가 그 화면으로 가는 링크 */
+  href?: string;
 }
 
 const ICON_TONE: Record<Tone, string> = {
@@ -37,9 +39,9 @@ const CHANGE_TONE: Record<NonNullable<StatCardProps['changeDir']>, string> = {
   neutral: 'text-muted',
 };
 
-export default function StatCard({ icon, tone, value, valueTone, label, change, changeDir = 'neutral' }: StatCardProps) {
-  return (
-    <div className="bg-page px-[18px] py-4 flex flex-col gap-1 min-w-0">
+export default function StatCard({ icon, tone, value, valueTone, label, change, changeDir = 'neutral', href }: StatCardProps) {
+  const body = (
+    <>
       <span className="text-[0.78rem] text-muted flex items-center gap-1.5">
         <span className={`inline-flex shrink-0 [&_svg]:w-3.25 [&_svg]:h-3.25 ${ICON_TONE[tone]}`}>{icon}</span>
         {label}
@@ -48,8 +50,12 @@ export default function StatCard({ icon, tone, value, valueTone, label, change, 
         {value}
       </span>
       {change && <span className={`text-[0.75rem] ${CHANGE_TONE[changeDir]}`}>{change}</span>}
-    </div>
+    </>
   );
+  const cls = 'bg-page px-[18px] py-4 flex flex-col gap-1 min-w-0';
+  // href 가 있으면 칸 전체가 링크 — 띠 칸 높이를 다 채우고 hover 때 옅은 바탕
+  if (href) return <a href={href} className={`${cls} transition-colors hover:bg-surface`}>{body}</a>;
+  return <div className={cls}>{body}</div>;
 }
 
 // 숫자 카드 띠 — 넓은 화면은 한 줄, 좁으면 2열(홀수면 마지막 칸이 두 칸)
