@@ -248,7 +248,7 @@ export default function CredentialsPage() {
         </table>
       </div>
 
-      <MobileCardList className="pt-0" empty={paged.length === 0 && '저장된 계정이 없습니다.'}>
+      <MobileCardList className="pt-0" empty={paged.length === 0 && '저장된 계정이 없습니다.'} selection={{ all: allChecked, count: selected.size, onToggleAll: toggleAll }}>
         {paged.map((c) => (
           <MobileCard
             key={c.id}

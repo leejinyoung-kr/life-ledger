@@ -200,7 +200,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
             </tbody>
           </table>
         </div>
-        <MobileCardList empty={paged.length === 0 && '예적금 내역이 없습니다.'}>
+        <MobileCardList empty={paged.length === 0 && '예적금 내역이 없습니다.'} selection={{ all: allChecked, count: selected.size, onToggleAll: toggleAll }}>
           {paged.map((c) => {
             const dleft = daysUntil(c.maturityDate);
             const near = dleft !== null && dleft >= 0 && dleft <= 30;

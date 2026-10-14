@@ -398,7 +398,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
             </tbody>
           </table>
         </div>
-        <MobileCardList empty={paged.length === 0 && '투자 항목이 없습니다.'}>
+        <MobileCardList empty={paged.length === 0 && '투자 항목이 없습니다.'} selection={{ all: allChecked, count: selected.size, onToggleAll: toggleAll }}>
           {paged.map((row) => {
             const recurringSchedule = scheduleByInvestmentId.get(row.id);
             const profit = fmtProfit(row);

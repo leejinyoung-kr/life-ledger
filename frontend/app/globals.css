@@ -8,6 +8,12 @@
   &::-webkit-scrollbar { display: none; }
 }
 
+/* 가로로 넘치는 줄 — 오른쪽에 더 있다는 걸 알 수 있게 얇은 막대를 보인다 */
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
+
 :root {
   /* Colors — 개편 전 초록 강조 · 흰 카드 느낌으로 되돌리되, 글자에 쓰는 색은 흰 바탕 대비 4.5:1 이상으로 진하게 */
   --bg-page:        #F5F6F8;              /* 본문 바탕 — 흰 카드가 떠 보이게 옅은 회색 */

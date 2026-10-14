@@ -175,7 +175,7 @@ export default function SubscriptionsPage() {
         {payStrip.length === 0 ? (
           <EmptyState size="sm" message="이번 달 남은 결제가 없습니다." />
         ) : (
-          <div className="flex overflow-x-auto scrollbar-none bg-background border border-border rounded-panel shadow-card">
+          <div className="flex overflow-x-auto scrollbar-thin bg-background border border-border rounded-panel shadow-card">
             {payStrip.map((s) => {
               const dd = daysUntil(s.nextPaymentDate);
               const soon = s.status === 'trial' || (dd !== null && dd <= SOON_DAYS);

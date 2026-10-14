@@ -84,10 +84,22 @@ export default function MobileCard({ checked, onCheck, icon, title, sub, aside, 
 }
 
 // 휴대폰 목록 — 카드를 띄워 쌓는다. md 이상에서는 숨긴다(표가 대신). 비었으면 안내 글
-export function MobileCardList({ empty, className = '', children }: { empty?: string | false; className?: string; children: ReactNode }) {
+export function MobileCardList({ empty, selection, className = '', children }: {
+  empty?: string | false;
+  /** 카드에 체크박스가 있을 때 맨 위 전체선택 줄 — 표 머리의 전체선택이 휴대폰에선 숨으므로 */
+  selection?: { all: boolean; count: number; onToggleAll: () => void };
+  className?: string;
+  children: ReactNode;
+}) {
   return (
     <div className={`md:hidden flex flex-col gap-3 py-3 ${className}`.trim()}>
       {empty && <EmptyState message={empty} />}
+      {!empty && selection && (
+        <label className="flex items-center gap-3 min-h-11 px-4 bg-background border border-border rounded-panel text-[0.8125rem] text-muted cursor-pointer">
+          <input type="checkbox" className="checkbox" checked={selection.all} onChange={selection.onToggleAll} aria-label="전체선택" />
+          {selection.count > 0 ? `${selection.count}건 선택됨` : '전체선택'}
+        </label>
+      )}
       {children}
     </div>
   );

@@ -452,7 +452,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
           </tbody>
         </table>
       </div>
-      <MobileCardList empty={pagedRows.length === 0 && '내역이 없습니다.'}>
+      <MobileCardList empty={pagedRows.length === 0 && '내역이 없습니다.'} selection={{ all: allChecked, count: selected.size, onToggleAll: toggleAll }}>
         {pagedRows.map((row) => (
           <MobileCard
             key={row.id}
