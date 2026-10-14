@@ -117,14 +117,15 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
       )}
 
       <FilterPanel className="mb-0 border-b-0">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:flex-wrap">
-          <select className="input w-full md:w-auto md:min-w-30 shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
-            <option value="">전체 유형</option>
-            {savingCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
-          </select>
-          <div className="flex gap-2 flex-1">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          {/* 유형 · 검색 · 조회 한 줄 (휴대폰도) */}
+          <div className="flex gap-2 items-center flex-1 min-w-0">
+            <select className="input w-24 shrink-0 md:w-auto md:min-w-30" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
+              <option value="">전체</option>
+              {savingCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+            </select>
             <SearchInput label="상품명 검색" className="flex-1 min-w-0" placeholder="상품명 검색" value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onEnter={handleSearch} />
-            <Button onClick={handleSearch}>조회</Button>
+            <Button className="shrink-0" onClick={handleSearch}>조회</Button>
           </div>
           <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
         </div>

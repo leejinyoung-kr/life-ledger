@@ -32,6 +32,7 @@ import IconButton from '@/components/ui/IconButton';
 import MoreMenu from '@/components/ui/MoreMenu';
 import Badge from '@/components/ui/Badge';
 import Segmented from '@/components/ui/Segmented';
+import DragScroll from '@/components/DragScroll';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { IconBan, IconDrag, IconEdit, IconPlay, IconPlus, IconRefresh, IconTrash } from '@/components/icons';
 import { api } from '@/lib/api';
@@ -256,14 +257,16 @@ export default function CodesPage() {
     <AppShell activePath="/codes">
       <PageHeader title="코드 관리" description="선택박스 항목을 종류별로 관리합니다. 끌어서 순서를 바꿉니다." />
 
-      {/* 종류 알약 — 모바일은 가로 스크롤, 데스크탑은 줄바꿈 */}
-      <Segmented
-        label="종류"
-        className="mb-4 max-md:overflow-x-auto max-md:scrollbar-thin max-md:pb-2 max-md:flex-nowrap md:flex-wrap"
-        value={domain}
-        onChange={setDomain}
-        items={DOMAINS.map((d) => ({ value: d.key, label: d.label }))}
-      />
+      {/* 종류 알약 — 모바일은 가로 스크롤(끌어서도), 데스크탑은 줄바꿈 */}
+      <DragScroll className="mb-4 max-md:pb-2">
+        <Segmented
+          label="종류"
+          className="max-md:flex-nowrap md:flex-wrap"
+          value={domain}
+          onChange={setDomain}
+          items={DOMAINS.map((d) => ({ value: d.key, label: d.label }))}
+        />
+      </DragScroll>
 
       <Card>
         <CardHeader>
@@ -350,7 +353,7 @@ export default function CodesPage() {
         <div className="flex flex-col gap-2 px-4.5 py-3 border-t border-border md:flex-row md:items-center">
           {hierDomain && (
             <select
-              className="input max-md:w-full md:w-auto! md:min-w-[120px] shrink-0"
+              className="input max-md:w-full md:w-auto! md:min-w-30 shrink-0"
               value={newParent}
               onChange={(e) => setNewParent(e.target.value)}
               aria-label="대분류"

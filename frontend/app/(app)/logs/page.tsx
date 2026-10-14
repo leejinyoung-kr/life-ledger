@@ -223,23 +223,24 @@ export default function LogsPage() {
           />
         </div>
         {/* 2행: 카테고리 + 메시지 검색 + 조회/초기화 */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap">
-          <select
-            className="input w-full sm:w-auto sm:min-w-30 shrink-0 text-[0.875rem]"
-            value={pendingCategory}
-            onChange={(e) => setPendingCategory(e.target.value as LogCategory | '')}
-            aria-label="카테고리 필터"
-          >
-            <option value="">전체 카테고리</option>
-            {(Object.keys(CATEGORY_LABEL) as LogCategory[]).map((c) => (
-              <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
-            ))}
-          </select>
-          <div className="flex gap-2 flex-1">
-            <SearchInput label="메시지 검색" className="flex-1 min-w-0" placeholder="메시지 검색..." value={pendingQ} onChange={(e) => setPendingQ(e.target.value)} onEnter={handleSearch} />
-            <Button onClick={handleSearch}>조회</Button>
+        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+          {/* 카테고리 · 검색 · 조회 한 줄 (휴대폰도) */}
+          <div className="flex gap-2 items-center flex-1 min-w-0">
+            <select
+              className="input w-24 shrink-0 md:w-auto md:min-w-30 text-[0.875rem]"
+              value={pendingCategory}
+              onChange={(e) => setPendingCategory(e.target.value as LogCategory | '')}
+              aria-label="카테고리 필터"
+            >
+              <option value="">전체</option>
+              {(Object.keys(CATEGORY_LABEL) as LogCategory[]).map((c) => (
+                <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
+              ))}
+            </select>
+            <SearchInput label="메시지 검색" className="flex-1 min-w-0" placeholder="메시지 검색" value={pendingQ} onChange={(e) => setPendingQ(e.target.value)} onEnter={handleSearch} />
+            <Button className="shrink-0" onClick={handleSearch}>조회</Button>
           </div>
-          <Button variant="ghost" className="w-full sm:w-auto" onClick={handleReset}>초기화</Button>
+          <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
         </div>
       </FilterPanel>
 
