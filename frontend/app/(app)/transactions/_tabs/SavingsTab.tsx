@@ -5,18 +5,21 @@ import StatCard, { StatStrip } from '@/components/StatCard';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
+import IconButton from '@/components/ui/IconButton';
+import MoreMenu from '@/components/ui/MoreMenu';
+import Segmented from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
-import { IconBank, IconWon, IconTrendUp, IconAlertTriangle } from '@/components/icons';
+import { IconBank, IconWon, IconTrendUp, IconAlertTriangle, IconEdit, IconCopy, IconTrash } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { useFormErrors } from '@/lib/useFormErrors';
 import { api } from '@/lib/api';
+import { clickable } from '@/lib/a11y';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { useApiQuery, useInvalidate, type Paginated } from '@/lib/query';
 import { qk } from '@/lib/queryKeys';
-import { Card } from '@/components/ui/Card';
 import EmptyState from '@/components/EmptyState';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import FilterPanel from '@/components/FilterPanel';
@@ -24,10 +27,8 @@ import {
   SAVING_TYPE_LABEL, won, dotDate, daysUntil, calcMaturityAmount,
   type Category, type Saving, type SavingSummary, type SavingType,
 } from '@/lib/finance';
-import {
-  TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT,
-  RowActions, CardActions, toDay, useAddTrigger,
-} from '../_shared';
+import { toDay, useAddTrigger } from '../_shared';
+import { SEG_FILL, UnitInput } from './modalParts';
 
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Saving; prefill?: Saving };
 
@@ -102,104 +103,120 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
   const paged = rows; // 서버가 이미 필터+페이지 단위로 잘라서 보냄
   const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(paged.map((r) => r.id));
 
+  const openEdit = (c: Saving) => setModal({ open: true, mode: 'edit', editing: c });
+
+  // 더보기 메뉴(복사 · 삭제) — 수정은 행을 누르거나 표의 수정 버튼으로 연다
+  function rowMenu(c: Saving, size: 'md' | 'lg') {
+    return (
+      <MoreMenu
+        size={size}
+        items={[
+          { label: '복사', icon: <IconCopy />, onSelect: () => handleDuplicate(c) },
+          { label: '삭제', icon: <IconTrash />, danger: true, onSelect: () => handleRemove(c.id) },
+        ]}
+      />
+    );
+  }
+
   return (
     <>
       {summary && (
         <StatStrip>
           <StatCard icon={<IconBank />} tone="green" value={won(summary.totalBalance)} label="총 예적금" change="전체 잔액 합계" changeDir="neutral" />
-          <StatCard icon={<IconWon />} tone="blue" value={won(summary.monthlyDeposit)} label="이번 달 납입" change="월 납입액 합계" changeDir="neutral" />
-          <StatCard icon={<IconTrendUp />} tone="amber" value={`${summary.avgRate}%`} label="평균 금리" change="보유 상품 평균" changeDir="up" />
+          <StatCard icon={<IconWon />} tone="blue" value={won(summary.monthlyDeposit)} valueTone="move" label="이번 달 납입" change="⇄ 월 납입액 합계" changeDir="neutral" />
+          <StatCard icon={<IconTrendUp />} tone="amber" value={`${summary.avgRate}%`} label="평균 금리" change="보유 상품 평균" changeDir="neutral" />
           <StatCard icon={<IconAlertTriangle />} tone={summary.maturityNear > 0 ? 'red' : 'green'} value={`${summary.maturityNear}건`} label="만기 임박" change={summary.maturityNear > 0 ? '30일 이내 만기' : '이상 없음'} changeDir={summary.maturityNear > 0 ? 'down' : 'neutral'} />
         </StatStrip>
       )}
 
-      <FilterPanel>
+      <FilterPanel className="mb-0 border-b-0">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:flex-wrap">
           <select className="input w-full md:w-auto md:min-w-30 shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
             <option value="">전체 유형</option>
             {savingCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
           </select>
           <div className="flex gap-2 flex-1">
-            <SearchInput label="상품명 검색" className="flex-1 min-w-0" placeholder="상품명 검색..." value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onEnter={handleSearch} />
+            <SearchInput label="상품명 검색" className="flex-1 min-w-0" placeholder="상품명 검색" value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onEnter={handleSearch} />
             <Button onClick={handleSearch}>조회</Button>
           </div>
           <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
         </div>
       </FilterPanel>
 
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[0.78rem] text-secondary">총 {total}건</span>
+      <div className="flex items-center justify-between gap-2 py-2.5 border-y border-border-subtle text-[0.8125rem]">
+        <span>총 <b className="font-semibold">{total}</b>건 <span className="text-muted ml-2 max-md:hidden">가입일 · 메모는 행을 누르면 수정 창에서</span></span>
         <div className="flex items-center gap-2">
           <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
 
-      <Card clip className="mb-4">
+      <div className="mb-6">
         <div className="table-wrap max-md:hidden">
           <table>
             <colgroup>
               <col style={{ width: '40px' }} />
-              <col style={{ width: '64px' }} />
-              <col style={{ width: '88px' }} />
-              <col style={{ width: '140px' }} />
               <col />
+              <col style={{ width: '140px' }} />
               <col style={{ width: '120px' }} />
-              <col style={{ width: '110px' }} />
               <col style={{ width: '80px' }} />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '110px' }} />
-              <col style={{ width: '150px' }} />
-              <col style={{ width: '180px' }} />
-              <col style={{ width: '72px' }} />
+              <col style={{ width: '160px' }} />
+              <col style={{ width: '88px' }} />
             </colgroup>
             <thead>
               <tr>
-                <th className="td-center"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
-                <th>번호</th><th>유형</th><th>은행/기관</th><th>상품명</th>
-                <th>잔액</th><th>월 납입</th>
-                <th>금리</th><th>만기예상</th><th>가입일</th><th>만기일</th>
-                <th>메모</th>
-                <th>관리</th>
+                <th className="th-left"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
+                <th className="th-left">상품</th>
+                <th className="td-right">잔액</th>
+                <th className="td-right">월 납입</th>
+                <th className="td-right">금리</th>
+                <th className="td-right">만기예상</th>
+                <th className="td-right">관리</th>
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 && <TableEmptyRow colSpan={13} message="예적금 내역이 없습니다." />}
-              {paged.map((c, i) => {
+              {paged.length === 0 && <TableEmptyRow colSpan={7} message="예적금 내역이 없습니다." />}
+              {paged.map((c) => {
                 const dleft = daysUntil(c.maturityDate);
                 const near = dleft !== null && dleft >= 0 && dleft <= 30;
                 const matured = dleft !== null && dleft < 0;
                 const maturityAmt = calcMaturityAmount(c);
+                const warn = near || matured;
                 return (
-                  <tr key={c.id}>
-                    <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" /></td>
-                    <td className="td-center td-muted">{total - (page - 1) * limit - i}</td>
-                    <td className="td-center"><span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span></td>
-                    <td className="td-center td-muted">{c.bank}</td>
-                    <td className="td-name">{c.name}</td>
-                    <td className="td-mono td-right">{won(c.balance)}</td>
-                    <td className="td-mono td-right">{c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-'}</td>
-                    <td className="td-right"><span className="savings-meta-value accent">{c.interestRate}%</span></td>
-                    <td className="td-mono td-right">{maturityAmt !== null ? won(maturityAmt) : '-'}</td>
-                    <td className="td-center td-muted">{dotDate(c.startDate)}</td>
-                    <td className={`td-center ${near || matured ? 'savings-meta-value warning' : 'td-muted'}`}>
-                      {c.maturityDate ? (
-                        <span className="flex flex-col items-center leading-tight">
-                          <span>{dotDate(c.maturityDate)}</span>
-                          {near && <span className="text-xs mt-0.5">⚠️ D-{dleft}</span>}
-                          {matured && <span className="text-xs mt-0.5">만기됨</span>}
-                        </span>
-                      ) : '-'}
+                  <tr key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
+                    <td onClick={(ev) => ev.stopPropagation()}><input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" /></td>
+                    <td>
+                      <div className="flex flex-col leading-snug min-w-0">
+                        <span>{c.name}</span>
+                        <span className="text-[0.75rem] text-muted">{c.bank} · {SAVING_TYPE_LABEL[c.type]}</span>
+                      </div>
                     </td>
-                    <td className="td-center td-muted">{c.memo ?? '-'}</td>
-                    <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => handleRemove(c.id)} onCopy={() => handleDuplicate(c)} /></td>
+                    <td className="td-mono td-right">{won(c.balance)}</td>
+                    <td className="td-mono td-right text-muted">{c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-'}</td>
+                    <td className="td-mono td-right">{c.interestRate}%</td>
+                    <td className="td-mono td-right">
+                      <div className="flex flex-col leading-snug">
+                        <span className={warn ? 'text-warning' : undefined}>{maturityAmt !== null ? won(maturityAmt) : '-'}</span>
+                        {c.maturityDate && (
+                          <span className={`text-[0.72rem] ${warn ? 'text-warning' : 'text-muted'}`}>
+                            {dotDate(c.maturityDate)}{near && ` · D-${dleft}`}{matured && ' · 만기됨'}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td onClick={(ev) => ev.stopPropagation()}>
+                      <div className="flex justify-end gap-1">
+                        <IconButton label="수정" variant="bordered" onClick={() => openEdit(c)}><IconEdit /></IconButton>
+                        {rowMenu(c, 'md')}
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-        <div className={TXCARDS}>
+        <div className="hidden max-md:flex flex-col">
           {paged.length === 0 && <EmptyState message="예적금 내역이 없습니다." />}
           {paged.map((c) => {
             const dleft = daysUntil(c.maturityDate);
@@ -207,40 +224,29 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
             const matured = dleft !== null && dleft < 0;
             const maturityAmt = calcMaturityAmount(c);
             return (
-              <div className={TXCARD} key={c.id}>
-                <div className="flex items-center gap-2 mb-1.5">
+              <div key={c.id} className="flex items-center gap-1 min-h-14 py-1 border-b border-border-subtle cursor-pointer" onClick={() => openEdit(c)} {...clickable(() => openEdit(c))}>
+                <label className="flex items-center justify-center w-11 h-11 shrink-0" onClick={(ev) => ev.stopPropagation()}>
                   <input type="checkbox" className="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} aria-label="선택" />
-                  <div className="flex-1 flex justify-between items-center gap-2.5">
-                    <span className={TXCARD_TITLE}>{c.name}</span>
-                    <div className="flex flex-col items-end shrink-0">
-                      <span className={TXCARD_AMT}>{won(c.balance)}</span>
-                      {maturityAmt !== null && <span className="text-[0.7rem] text-secondary">만기예상 {won(maturityAmt)}</span>}
-                    </div>
-                  </div>
+                </label>
+                <div className="flex-1 min-w-0 flex flex-col leading-snug">
+                  <span className="break-all">{c.name}</span>
+                  <span className="text-[0.75rem] text-muted">{c.bank} · {SAVING_TYPE_LABEL[c.type]} · {c.interestRate}%</span>
                 </div>
-                <div className="mt-2 pt-2 border-t border-border flex flex-col gap-1.5 text-[0.78rem]">
-                  {[
-                    { label: '유형', value: <span className={`savings-type-badge ${c.type === 'deposit' ? 'badge-deposit' : 'badge-savings'}`}>{SAVING_TYPE_LABEL[c.type]}</span> },
-                    { label: '은행', value: c.bank },
-                    { label: '금리', value: <span className="savings-meta-value accent">{c.interestRate}%</span> },
-                    { label: '월납입', value: c.monthlyAmount > 0 ? won(c.monthlyAmount) : '-' },
-                    { label: '가입일', value: dotDate(c.startDate) },
-                    { label: '만기일', value: <span className={near || matured ? 'savings-meta-value warning' : undefined}>{c.maturityDate ? `${dotDate(c.maturityDate)}${near ? ` ⚠️ D-${dleft}` : matured ? ' 만기됨' : ''}` : '-'}</span> },
-                    ...(c.memo ? [{ label: '메모', value: c.memo }] : []),
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex gap-2">
-                      <span className="text-muted w-14 shrink-0">{label}</span>
-                      <span>{value}</span>
-                    </div>
-                  ))}
+                <div className="flex flex-col items-end leading-snug shrink-0 tabular-nums">
+                  <span>{won(c.balance)}</span>
+                  {c.maturityDate ? (
+                    <span className={`text-[0.72rem] ${near || matured ? 'text-warning' : 'text-muted'}`}>
+                      {matured ? '만기됨' : `${dotDate(c.maturityDate)}${near ? ` · D-${dleft}` : ''}`}
+                    </span>
+                  ) : maturityAmt !== null && <span className="text-[0.72rem] text-muted">만기예상 {won(maturityAmt)}</span>}
                 </div>
-                <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: c })} onDelete={() => handleRemove(c.id)} onCopy={() => handleDuplicate(c)} />
+                {rowMenu(c, 'lg')}
               </div>
             );
           })}
         </div>
         <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
-      </Card>
+      </div>
 
       <SavingsModal
         state={modal}
@@ -253,6 +259,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
   );
 }
 
+// 예적금 추가/수정 창 — 행을 누르면 같은 창이 수정 모드로 열린다 (상세 창은 따로 없다)
 function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState; bankCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
   const [bank, setBank] = useState('');
@@ -317,35 +324,46 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
 
   return (
     <Modal open={state.open} onClose={onClose} title={state.mode === 'edit' ? '예적금 수정' : '예적금 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
-      <Field label="은행/기관" required error={errors.bank}>
-        <select className="input" aria-label="은행/기관" value={bank} onChange={(ev) => { setBank(ev.target.value); clearError('bank'); }}>
-          <option value="" disabled>은행/기관 선택</option>
-          {/* 기존 자유텍스트 값이 목록에 없으면 그대로 옵션으로 노출 */}
-          {bank && !bankCats.some((b) => b.label === bank) && <option value={bank}>{bank}</option>}
-          {bankCats.map((b) => <option key={b.code} value={b.label}>{b.label}</option>)}
-        </select>
-      </Field>
-      <Field label="상품명" required error={errors.name}>
-        <input type="text" className="input" placeholder="예: 26주 적금" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
-      </Field>
-      <Field label="유형" required>
-        <select className="input" value={type} onChange={(ev) => setType(ev.target.value as SavingType)}>
-          <option value="savings">적금</option><option value="deposit">예금</option><option value="subscription">청약</option><option value="etc">기타</option>
-        </select>
-      </Field>
-      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-        <Field label="금리 (%)">
-          <input type="number" className="input" placeholder="3.5" step="0.1" value={interestRate} onChange={(ev) => setInterestRate(ev.target.value)} />
-        </Field>
-        <Field label="월 납입액 (원)"><input type="number" className="input" placeholder="200000" value={monthlyAmount} onChange={(ev) => setMonthlyAmount(ev.target.value)} /></Field>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-[0.78rem] text-muted">유형<span className="text-danger"> *</span></span>
+        <Segmented
+          label="유형"
+          variant="joined"
+          className={SEG_FILL}
+          value={type}
+          onChange={setType}
+          items={[{ value: 'savings', label: '적금' }, { value: 'deposit', label: '예금' }, { value: 'subscription', label: '청약' }, { value: 'etc', label: '기타' }]}
+        />
       </div>
-      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+      <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+        <Field label="은행/기관" required error={errors.bank}>
+          <select className="input" aria-label="은행/기관" value={bank} onChange={(ev) => { setBank(ev.target.value); clearError('bank'); }}>
+            <option value="" disabled>은행/기관 선택</option>
+            {/* 기존 자유텍스트 값이 목록에 없으면 그대로 옵션으로 노출 */}
+            {bank && !bankCats.some((b) => b.label === bank) && <option value={bank}>{bank}</option>}
+            {bankCats.map((b) => <option key={b.code} value={b.label}>{b.label}</option>)}
+          </select>
+        </Field>
+        <Field label="상품명" required error={errors.name}>
+          <input type="text" className="input" placeholder="예: 26주 적금" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
+        </Field>
+        <Field label="잔액">
+          <UnitInput unit="₩" placeholder="0" value={balance} onChange={(ev) => setBalance(ev.target.value)} />
+        </Field>
+        <Field label="월 납입">
+          <UnitInput unit="₩" placeholder="0" value={monthlyAmount} onChange={(ev) => setMonthlyAmount(ev.target.value)} />
+        </Field>
+        <Field label="금리">
+          <UnitInput unit="%" side="right" step="0.1" placeholder="3.5" value={interestRate} onChange={(ev) => setInterestRate(ev.target.value)} />
+        </Field>
+        <div className="max-md:hidden" />
         <Field label="가입일" required error={errors.startDate}>
           <input type="date" className="input" aria-label="가입일" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
         </Field>
-        <Field label="만기일"><input type="date" className="input" aria-label="만기일" value={maturityDate} onChange={(ev) => setMaturityDate(ev.target.value)} /></Field>
+        <Field label="만기일">
+          <input type="date" className="input" aria-label="만기일" value={maturityDate} onChange={(ev) => setMaturityDate(ev.target.value)} />
+        </Field>
       </div>
-      <Field label="현재 잔액 (원)"><input type="number" className="input" placeholder="0" value={balance} onChange={(ev) => setBalance(ev.target.value)} /></Field>
       <Field label="메모 (선택)"><input type="text" className="input" placeholder="추가 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
     </Modal>
   );

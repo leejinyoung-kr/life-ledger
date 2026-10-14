@@ -212,12 +212,12 @@ export const SAVING_TYPE_LABEL: Record<SavingType, string> = {
 };
 
 export const INVEST_TYPE_LABEL: Record<InvestmentType, string> = {
-  domestic_stock: '📈 국내주식',
-  foreign_stock: '🌎 해외주식',
-  foreign_etf: '🌍 해외ETF',
-  domestic_etf: '📊 국내ETF',
-  crypto: '₿ 가상자산',
-  etc: '📦 기타',
+  domestic_stock: '국내주식',
+  foreign_stock: '해외주식',
+  foreign_etf: '해외ETF',
+  domestic_etf: '국내ETF',
+  crypto: '가상자산',
+  etc: '기타',
 };
 
 // ── 포맷 유틸 ────────────────────────────────────────────────────
