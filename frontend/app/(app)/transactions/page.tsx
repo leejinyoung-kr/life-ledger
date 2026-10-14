@@ -7,7 +7,7 @@ import PageHeader from '@/components/PageHeader';
 import Button from '@/components/ui/Button';
 import Tabs from '@/components/ui/Tabs';
 import {
-  IconWon, IconBank, IconTrendUp,
+  IconWon, IconBank, IconTrendUp, IconPlus,
 } from '@/components/icons';
 import { useApiQuery } from '@/lib/query';
 import type { Category } from '@/lib/finance';
@@ -53,6 +53,7 @@ function TransactionsPageInner() {
         description="수입/지출, 예적금, 투자를 한 곳에서 관리하세요."
         actions={
           <Button className="shrink-0" onClick={handleOpenAddModal}>
+            <IconPlus />
             <span className="hidden md:inline">{ADD_LABELS[tab]}</span>
             <span className="md:hidden">추가</span>
           </Button>

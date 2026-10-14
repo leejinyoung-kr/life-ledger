@@ -1,18 +1,30 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import StatCard, { StatStrip } from '@/components/StatCard';
 import BarChart from '@/components/BarChart';
 import Modal from '@/components/Modal';
 import Pagination, { LimitSelect } from '@/components/Pagination';
 import Button from '@/components/ui/Button';
+import IconButton from '@/components/ui/IconButton';
+import MoreMenu from '@/components/ui/MoreMenu';
+import Segmented, { type SegmentedItem } from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
 import Badge from '@/components/ui/Badge';
+import Toggle from '@/components/ui/Toggle';
 import { Card, CardHeader, CardTitle, CardBody } from '@/components/ui/Card';
 import { Field, ModalFooter } from '@/components/ui/Field';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
-  IconWon, IconBank, IconChart, IconStar,
+  IconWon, IconChart, IconStar, IconTransfer, IconInfo, IconPlus, IconEdit, IconCopy, IconTrash,
+  IconRepeat, IconPause, IconPlay, IconDrag,
 } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
@@ -29,15 +41,12 @@ import FilterPanel from '@/components/FilterPanel';
 import ExcelToolbar from '@/components/ExcelToolbar';
 import {
   TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
-  won, signedWon, dotDate, localDate,
+  won, dotDate, localDate,
   type Category, type Transaction, type TransactionFavorite, type TransactionSummary, type TrendBucket,
   type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget,
   type Saving, type InvestmentAccount, type RecurringSchedule,
 } from '@/lib/finance';
-import {
-  TXCARDS, TXCARD, TXCARD_TITLE, TXCARD_AMT,
-  AMT_COLOR, RowActions, CardActions, toDay, monthsAgo, useAddTrigger,
-} from '../_shared';
+import { AMT_COLOR, toDay, monthsAgo, useAddTrigger } from '../_shared';
 
 // prefill: 내역 복사(handleDuplicate) 등으로 추가 모달을 미리 채울 때 사용
 type LedgerDraft = {
@@ -234,44 +243,48 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
   const pagedRows = rows; // 서버가 이미 페이지 단위로 잘라서 보냄
   const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(pagedRows.map((r) => r.id));
 
+  // 결제수단 칸 — 지출은 결제수단, 수입은 입금 은행 이름으로 바꿔 보여준다 (자산이동은 저장된 값 그대로)
+  function payLabel(row: Transaction): string {
+    if (row.type === 'expense') return payMethodMap[row.payMethod] ?? row.payMethod;
+    if (row.type === 'income') return bankMap[row.payMethod] ?? row.payMethod;
+    return row.payMethod;
+  }
+
   return (
     <>
       <ErrorBanner message={error} />
 
+      <div className="flex items-center gap-2 flex-wrap mb-6">
+        <span className="flex items-center gap-1.5 text-[0.78rem] text-muted mr-1">
+          <IconStar width={14} height={14} className="text-accent" />빨리 기록
+        </span>
+        {favorites.length === 0 && (
+          <span className="text-[0.78rem] text-muted">자주 쓰는 수입·지출을 등록해 두면, 여기서 눌러 오늘 날짜로 바로 추가할 수 있습니다.</span>
+        )}
+        {favorites.map((f) => (
+          <Button key={f.id} size="sm" variant="ghost" onClick={() => handleUseFavorite(f)} title={`${catMap[f.category] ?? f.category} · ${won(f.amount)}`}>
+            <span className={`amount-${f.type}`}>{TYPE_SIGN[f.type]}</span>{f.title}
+          </Button>
+        ))}
+        <Button size="sm" variant="ghost" onClick={() => setFavForm({ open: true })}><IconPlus />등록</Button>
+        {favorites.length > 0 && <Button size="sm" variant="ghost" onClick={() => setFavManageOpen(true)}>관리</Button>}
+      </div>
+
       {summary && (
         <StatStrip>
-          <StatCard icon={<IconWon />} tone="green" value={won(summary.income)} valueTone="in" label="수입" change="이번 달 합계" changeDir="up" />
-          <StatCard icon={<IconWon />} tone="red" value={won(summary.expense)} valueTone="out" label="지출" change="이번 달 합계" changeDir="down" />
-          <StatCard icon={<IconBank />} tone="amber" value={won(summary.realSpend)} label="실소비" change={`자산이동 ${won(summary.transfer)} 제외`} changeDir="neutral" />
-          <StatCard icon={<IconChart />} tone="blue" value={won(summary.balance)} label="잔액" change="수입 − 지출 − 자산이동" changeDir="neutral" />
+          <StatCard icon={<IconWon />} tone="green" value={won(summary.income)} valueTone="in" label="수입" change="이번 달 합계" />
+          <StatCard icon={<IconWon />} tone="red" value={won(summary.expense)} valueTone="out" label="지출" change="이번 달 합계" />
+          <StatCard icon={<IconTransfer />} tone="blue" value={won(summary.transfer)} valueTone="move" label="자산이동" change="예적금 · 투자로 옮긴 돈" />
+          <StatCard icon={<IconChart />} tone="amber" value={won(summary.balance)} valueTone={summary.balance < 0 ? 'out' : undefined} label="잔액" change="수입 − 지출 − 자산이동" />
         </StatStrip>
       )}
 
-      <p className="text-[0.78rem] text-muted mb-6 [&_strong]:text-blue">
-        💡 <strong>자산이동</strong>은 예적금 · 투자 계좌로 옮긴 돈이라 실소비에는 들지 않고, 잔액에서는 빠집니다.
+      <p className="flex items-center gap-1.5 text-[0.75rem] text-muted mb-6">
+        <IconInfo width={13} height={13} className="shrink-0" />
+        <span><span className="text-blue">자산이동</span>은 예적금 · 투자 계좌로 옮긴 돈이라 지출에는 들지 않고, 잔액에서는 빠집니다.</span>
       </p>
 
-      <div className="flex items-start gap-3 mb-6 px-4 py-3 bg-surface border border-border rounded-ui">
-        <span className="flex items-center gap-1 text-[0.75rem] font-semibold text-muted shrink-0 pt-1.5">
-          <IconStar width={13} height={13} className="text-amber" fill="currentColor" />즐겨찾기
-        </span>
-        <div className="flex gap-1.5 flex-wrap flex-1 min-w-0">
-          {favorites.length === 0 && (
-            <span className="text-[0.75rem] text-muted pt-1.5">자주 쓰는 수입·지출을 등록해 두면, 여기서 눌러 오늘 날짜로 바로 추가할 수 있습니다.</span>
-          )}
-          {favorites.map((f) => (
-            <Button key={f.id} size="sm" variant="ghost" onClick={() => handleUseFavorite(f)} title={`${catMap[f.category] ?? f.category} · ${won(f.amount)}`}>
-              <span className={`amount-${f.type}`}>{f.type === 'income' ? '+' : '−'}</span>{f.title}
-            </Button>
-          ))}
-        </div>
-        <div className="flex gap-1.5 shrink-0">
-          <Button size="sm" variant="ghost" onClick={() => setFavForm({ open: true })}>+ 등록</Button>
-          {favorites.length > 0 && <Button size="sm" variant="ghost" onClick={() => setFavManageOpen(true)}>관리</Button>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Card>
           <CardHeader><CardTitle>월별 지출 추이</CardTitle></CardHeader>
           <CardBody>
@@ -287,41 +300,28 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>🔁 자동이체 설정</CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => setRecurringModal({ open: true })}>+ 설정 추가</Button>
+            <CardTitle>자동이체 설정</CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => setRecurringModal({ open: true })}><IconPlus />설정 추가</Button>
           </CardHeader>
-          <CardBody compact>
-            <div className="max-h-[264px] overflow-y-auto">
-              {recurring.length === 0 && <div className="text-[0.72rem] text-muted">등록된 자동이체 설정이 없습니다.</div>}
-              {recurring.map((r) => (
-                <div className="py-2.5 border-b border-border-subtle last:border-b-0 flex items-center justify-between gap-2" key={r.id}>
-                  <div className="min-w-0">
-                    <div className="text-[0.84rem] font-medium flex items-center gap-1.5">
-                      {r.title} — {won(r.amount ?? 0)}
-                      {!r.active && <Badge tone="neutral">일시정지</Badge>}
-                    </div>
-                    <div className="text-[0.72rem] text-muted">
-                      {catMap[r.category ?? ''] ?? r.category} · {r.txType && TX_TYPE_LABEL[r.txType]}
-                      {' · '}{recurringRuleSummary(r.rule)}
-                      {r.rule.weekendAdjust !== 'none' && ` · 주말→${WEEKEND_ADJUST_LABEL[r.rule.weekendAdjust]}`}
-                      {r.nextRunDate && ` · 다음 ${dotDate(r.nextRunDate)}`}
-                    </div>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button size="sm" variant="ghost" onClick={() => handleToggleRecurring(r.id)}>{r.active ? '일시정지' : '재개'}</Button>
-                    <Button size="sm" variant="ghost" onClick={() => setRecurringModal({ open: true, editing: r })}>수정</Button>
-                    <Button size="sm" variant="danger" onClick={() => handleRemoveRecurring(r.id)}>삭제</Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardBody>
+          <div className="max-h-66 overflow-y-auto">
+            {recurring.length === 0 && <EmptyState size="sm" message="등록된 자동이체 설정이 없습니다." />}
+            {recurring.map((r) => (
+              <RecurringRow
+                key={r.id}
+                r={r}
+                catLabel={catMap[r.category ?? ''] ?? r.category}
+                onToggle={() => handleToggleRecurring(r.id)}
+                onEdit={() => setRecurringModal({ open: true, editing: r })}
+                onDelete={() => handleRemoveRecurring(r.id)}
+              />
+            ))}
+          </div>
         </Card>
       </div>
 
-      <ExcelToolbar onDownloadTemplate={downloadTemplate} onUpload={handleUpload} onDownloadData={downloadData} accept=".xlsx,.xls,.csv" />
+      <div className="pb-2.5"><CardTitle>내역</CardTitle></div>
 
-      <FilterPanel>
+      <FilterPanel className="mb-0">
         <div className="flex gap-2 items-center flex-wrap">
           {/* PC: shrink-0으로 날짜 묶음 고정, 모바일: flex-1로 가득 채워 프리셋이 다음 줄로 */}
           <div className="date-range-group flex items-center gap-2 shrink-0">
@@ -329,11 +329,13 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
             <span className="text-muted text-[0.82rem] shrink-0 px-1">~</span>
             <input type="date" className="input date-range-input w-35" value={pendingTo} onChange={(ev) => { setPendingTo(ev.target.value); setActivePreset(null); }} aria-label="조회 종료일" />
           </div>
-          <div className="flex gap-1">
-            <Button size="sm" variant={activePreset === 1 ? 'primary' : 'ghost'} onClick={() => handleApplyPreset(1)}>1개월</Button>
-            <Button size="sm" variant={activePreset === 2 ? 'primary' : 'ghost'} onClick={() => handleApplyPreset(2)}>2개월</Button>
-            <Button size="sm" variant={activePreset === 3 ? 'primary' : 'ghost'} onClick={() => handleApplyPreset(3)}>3개월</Button>
-          </div>
+          <Segmented
+            label="조회 기간"
+            variant="joined"
+            items={PRESET_ITEMS}
+            value={activePreset ? String(activePreset) : ''}
+            onChange={(v) => handleApplyPreset(Number(v))}
+          />
         </div>
         {/* 유형·카테고리·검색 한 줄 */}
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:flex-wrap">
@@ -354,99 +356,103 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
             </select>
           </div>
           <div className="flex gap-2 flex-1">
-            <SearchInput label="내역 검색" className="flex-1 min-w-0" placeholder="내역 검색..." value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} onEnter={handleSearch} />
+            <SearchInput label="내역 검색" className="flex-1 min-w-0" placeholder="내역 검색" value={pendingQ} onChange={(ev) => setPendingQ(ev.target.value)} onEnter={handleSearch} />
             <Button onClick={handleSearch}>조회</Button>
           </div>
           <Button variant="ghost" className="w-full md:w-auto" onClick={handleReset}>초기화</Button>
         </div>
       </FilterPanel>
 
-      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-        <div className="flex items-baseline gap-1.5 text-[0.78rem] text-secondary">
-          <span>총 {total}건 · 필터 합계</span>
-          <span className="amount-income text-[0.95rem]">{won(sumIncome)}</span>
-          <span>/</span>
-          <span className="amount-expense text-[0.95rem]">{won(sumExpense)}</span>
+      <div className="flex items-center justify-between gap-3 flex-wrap py-2.5 border-b border-border text-[0.8125rem]">
+        <div className="flex items-baseline gap-x-3.5 gap-y-1 flex-wrap">
+          <span>총 <b className="font-semibold">{total}</b>건</span>
+          <span className="amount-income">수입 +{won(sumIncome)}</span>
+          <span className="amount-expense">지출 −{won(sumExpense)}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="danger" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
+          <Button variant="danger" size="sm" disabled={selected.size === 0} onClick={handleRemoveSelected}>선택삭제</Button>
           <LimitSelect limit={limit} onLimitChange={changeLimit} />
         </div>
       </div>
 
-      <Card clip>
-        <div className="table-wrap max-md:hidden">
-          <table>
-            <colgroup>
-              <col style={{ width: '40px' }} />
-              <col style={{ width: '64px' }} />
-              <col style={{ width: '88px' }} />
-              <col style={{ width: '130px' }} />
-              <col />
-              <col style={{ width: '112px' }} />
-              <col style={{ width: '132px' }} />
-              <col style={{ width: '200px' }} />
-              <col style={{ width: '96px' }} />
-              <col style={{ width: '72px' }} />
-            </colgroup>
-            <thead>
-              <tr>
-                <th className="td-center"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
-                <th>번호</th><th>유형</th><th>카테고리</th><th>내역</th>
-                <th>결제수단</th><th>금액</th><th>메모</th>
-                <th>날짜</th><th>관리</th>
+      <ExcelToolbar onDownloadTemplate={downloadTemplate} onUpload={handleUpload} onDownloadData={downloadData} accept=".xlsx,.xls,.csv" />
+
+      <div className="table-wrap max-md:hidden">
+        <table>
+          <colgroup>
+            <col style={{ width: '40px' }} />
+            <col style={{ width: '104px' }} />
+            <col style={{ width: '56px' }} />
+            <col />
+            <col style={{ width: '140px' }} />
+            <col style={{ width: '120px' }} />
+            <col style={{ width: '136px' }} />
+            <col style={{ width: '88px' }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th className="td-center"><input type="checkbox" className="checkbox" checked={allChecked} onChange={toggleAll} aria-label="전체선택" /></th>
+              <th className="th-left">날짜</th><th className="th-left">유형</th><th className="th-left">내역</th>
+              <th className="th-left">카테고리</th><th className="th-left">결제수단</th>
+              <th className="td-right">금액 (원)</th><th className="td-right"><span className="sr-only">관리</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedRows.length === 0 && <TableEmptyRow colSpan={8} message="내역이 없습니다." />}
+            {pagedRows.map((row) => (
+              <tr key={row.id} className="cursor-pointer" onClick={() => setModal({ open: true, mode: 'edit', editing: row })}>
+                <td className="td-center" onClick={(ev) => ev.stopPropagation()}><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" /></td>
+                <td className="td-muted td-mono">{dotDate(row.date)}</td>
+                <td className={`amount-${row.type}`} title={TX_TYPE_LABEL[row.type]} aria-label={TX_TYPE_LABEL[row.type]}>{TYPE_SIGN[row.type]}</td>
+                <td className="td-name">
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <span className="truncate">{row.title}</span>
+                    {row.recurringScheduleId != null && <IconRepeat width={13} height={13} className="shrink-0 text-muted" aria-label="자동이체로 생성됨" />}
+                  </span>
+                  {row.memo && <span className="block text-[0.75rem] text-muted truncate">{row.memo}</span>}
+                </td>
+                <td className="text-muted">{catMap[row.category] ?? row.category}</td>
+                <td className="text-muted">{payLabel(row)}</td>
+                <td className={`td-right amount-${row.type}`}>{ledgerAmount(row.type, row.amount)}</td>
+                <td onClick={(ev) => ev.stopPropagation()}>
+                  <EntryActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onCopy={() => handleDuplicate(row)} onDelete={() => handleRemove(row.id)} />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {pagedRows.length === 0 && <TableEmptyRow colSpan={10} message="내역이 없습니다." />}
-              {pagedRows.map((row, i) => (
-                <tr key={row.id}>
-                  <td className="td-center"><input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" /></td>
-                  <td className="td-center td-muted">{total - (page - 1) * limit - i}</td>
-                  <td className="td-center"><span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span></td>
-                  <td className="td-center"><span className="cat-chip">{catMap[row.category] ?? row.category}</span></td>
-                  <td className="td-name">{row.recurringScheduleId != null && <span title="자동이체로 생성됨">🔁 </span>}{row.title}</td>
-                  <td className="td-center td-muted">{row.type === 'expense' ? (payMethodMap[row.payMethod] ?? row.payMethod) : row.type === 'income' ? (bankMap[row.payMethod] ?? row.payMethod) : row.payMethod}</td>
-                  <td className={`td-right amount-${row.type}`}>{signedWon(row.type, row.amount)}</td>
-                  <td className="td-center td-muted">{row.memo ?? '-'}</td>
-                  <td className="td-center td-muted">{dotDate(row.date)}</td>
-                  <td className="td-center"><RowActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className={TXCARDS}>
-          {pagedRows.length === 0 && <EmptyState message="내역이 없습니다." />}
-          {pagedRows.map((row) => (
-            <div className={TXCARD} key={row.id}>
-              <div className="flex items-center gap-2 mb-1.5">
-                <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" />
-                <div className="flex-1 flex justify-between items-baseline gap-2.5">
-                  <span className={TXCARD_TITLE}>{row.recurringScheduleId != null && '🔁 '}{row.title}</span>
-                  <span className={`${TXCARD_AMT} ${AMT_COLOR[row.type]}`}>{signedWon(row.type, row.amount)}</span>
-                </div>
-              </div>
-              <div className="mt-2 pt-2 border-t border-border flex flex-col gap-1.5 text-[0.78rem]">
-                {[
-                  { label: '유형', value: <span className={`type-badge ${row.type}`}>{TX_TYPE_LABEL[row.type]}</span> },
-                  { label: '카테고리', value: <span className="cat-chip">{catMap[row.category] ?? row.category}</span> },
-                  ...(row.type === 'expense' ? [{ label: '결제수단', value: payMethodMap[row.payMethod] ?? row.payMethod }] : []),
-                  { label: '날짜', value: dotDate(row.date) },
-                  ...(row.memo ? [{ label: '메모', value: row.memo }] : []),
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex gap-2">
-                    <span className="text-muted w-16 shrink-0">{label}</span>
-                    <span>{value}</span>
-                  </div>
-                ))}
-              </div>
-              <CardActions onEdit={() => setModal({ open: true, mode: 'edit', editing: row })} onDelete={() => handleRemove(row.id)} onCopy={() => handleDuplicate(row)} />
-            </div>
-          ))}
-        </div>
-        <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
-      </Card>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="md:hidden">
+        {pagedRows.length === 0 && <EmptyState message="내역이 없습니다." />}
+        {pagedRows.map((row) => (
+          <div key={row.id} className="flex items-center border-b border-border-subtle">
+            <label className="w-11 h-11 flex items-center justify-center shrink-0">
+              <input type="checkbox" className="checkbox" checked={selected.has(row.id)} onChange={() => toggle(row.id)} aria-label="선택" />
+            </label>
+            <button type="button" className="flex-1 min-w-0 min-h-12 py-2.5 flex items-center gap-3 text-left cursor-pointer" onClick={() => setModal({ open: true, mode: 'edit', editing: row })}>
+              <span className="flex-1 min-w-0 flex flex-col leading-snug">
+                <span className="flex items-center gap-1.5 text-[0.9rem] text-primary">
+                  <span className="truncate">{row.title}</span>
+                  {row.recurringScheduleId != null && <IconRepeat width={13} height={13} className="shrink-0 text-muted" aria-label="자동이체로 생성됨" />}
+                </span>
+                <span className="text-[0.75rem] text-muted truncate">{catMap[row.category] ?? row.category}{payLabel(row) ? ` · ${payLabel(row)}` : ''}</span>
+              </span>
+              <span className="flex flex-col items-end leading-snug">
+                <span className={`text-[0.9rem] ${AMT_COLOR[row.type]}`}>{ledgerAmount(row.type, row.amount)}</span>
+                <span className="text-[0.75rem] text-muted">{dotDate(row.date)}</span>
+              </span>
+            </button>
+            <MoreMenu
+              size="lg"
+              items={[
+                { label: '복사', icon: <IconCopy />, onSelect: () => handleDuplicate(row) },
+                { label: '삭제', icon: <IconTrash />, onSelect: () => handleRemove(row.id), danger: true },
+              ]}
+            />
+          </div>
+        ))}
+      </div>
+      <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
 
       <LedgerModal
         state={modal}
@@ -483,6 +489,98 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
       />
       {confirmElement}
     </>
+  );
+}
+
+// 유형 부호 — 수입 + · 지출 − · 자산이동 ⇄ (돈 색과 함께 항상 같이 쓴다)
+const TYPE_SIGN: Record<TransactionType, string> = { income: '+', expense: '−', transfer: '⇄' };
+
+// 금액에 유형 부호를 붙여 보여준다
+function ledgerAmount(type: TransactionType, n: number): string {
+  return `${TYPE_SIGN[type]}${won(Math.abs(n))}`;
+}
+
+const PRESET_ITEMS: SegmentedItem<string>[] = [
+  { value: '1', label: '1개월' }, { value: '2', label: '2개월' }, { value: '3', label: '3개월' },
+];
+const TYPE_ITEMS: SegmentedItem<TransactionType>[] = [
+  { value: 'expense', label: '지출' }, { value: 'income', label: '수입' }, { value: 'transfer', label: '자산이동' },
+];
+const FAV_TYPE_ITEMS: SegmentedItem<'income' | 'expense'>[] = [
+  { value: 'expense', label: '지출' }, { value: 'income', label: '수입' },
+];
+const CYCLE_ITEMS: SegmentedItem<RecurringCycle>[] = [
+  { value: 'daily', label: '매일' }, { value: 'weekly', label: '매주' }, { value: 'monthly', label: '매월' }, { value: 'yearly', label: '매년' },
+];
+
+// 내역 한 줄의 관리 — 자주 쓰는 수정 하나 + 더보기(복사 · 삭제)
+function EntryActions({ onEdit, onCopy, onDelete }: { onEdit: () => void; onCopy: () => void; onDelete: () => void }) {
+  return (
+    <div className="flex justify-end">
+      <IconButton label="수정" onClick={onEdit}><IconEdit /></IconButton>
+      <MoreMenu
+        items={[
+          { label: '복사', icon: <IconCopy />, onSelect: onCopy },
+          { label: '삭제', icon: <IconTrash />, onSelect: onDelete, danger: true },
+        ]}
+      />
+    </div>
+  );
+}
+
+// 자동이체 설정 한 줄 — 데스크톱은 일시정지(재개) 하나 + 더보기, 휴대폰은 44px 더보기 하나로 접는다
+function RecurringRow({ r, catLabel, onToggle, onEdit, onDelete }: { r: RecurringSchedule; catLabel?: string | null; onToggle: () => void; onEdit: () => void; onDelete: () => void }) {
+  const t: TransactionType = r.txType ?? 'expense';
+  const toggleLabel = r.active ? '일시정지' : '재개';
+  const toggleIcon = r.active ? <IconPause /> : <IconPlay />;
+  const editItem = { label: '수정', icon: <IconEdit />, onSelect: onEdit };
+  const deleteItem = { label: '삭제', icon: <IconTrash />, onSelect: onDelete, danger: true };
+  return (
+    <div className={`flex items-center gap-3 py-2 pl-4.5 pr-2.5 border-b border-border-subtle last:border-b-0 ${r.active ? '' : 'opacity-70'}`}>
+      <div className="flex-1 min-w-0 flex flex-col leading-snug">
+        <span className="flex items-baseline gap-2 text-[0.84rem]">
+          <span className="truncate">{r.title}</span>
+          {!r.active && <Badge size="sm" tone="neutral">일시정지</Badge>}
+        </span>
+        <span className="text-[0.72rem] text-muted">
+          {catLabel} · {recurringRuleSummary(r.rule)}
+          {r.rule.weekendAdjust !== 'none' && ` · 주말→${WEEKEND_ADJUST_LABEL[r.rule.weekendAdjust]}`}
+          {r.nextRunDate && ` · 다음 ${dotDate(r.nextRunDate)}`}
+        </span>
+      </div>
+      <span className={`text-[0.84rem] whitespace-nowrap ${AMT_COLOR[t]}`}>{ledgerAmount(t, r.amount ?? 0)}</span>
+      <div className="flex shrink-0">
+        <div className="flex max-md:hidden">
+          <IconButton label={toggleLabel} onClick={onToggle}>{toggleIcon}</IconButton>
+          <MoreMenu items={[editItem, deleteItem]} />
+        </div>
+        <div className="md:hidden">
+          <MoreMenu size="lg" items={[{ label: toggleLabel, icon: toggleIcon, onSelect: onToggle }, editItem, deleteItem]} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 창 안의 번호 붙은 묶음 — 한 묶음이 한 질문(무엇을 · 언제)
+function FormSection({ no, title, divided, children }: { no: number; title: string; divided?: boolean; children: ReactNode }) {
+  return (
+    <section className={`flex flex-col gap-3 ${divided ? 'pt-4 border-t border-border-subtle' : ''}`}>
+      <div className="flex items-baseline gap-2 text-[0.78rem] text-accent-dark">
+        <span className="[font-family:var(--font-display)] text-[1.0625rem] font-semibold lining-nums">{no}</span>{title}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+// 이름표가 붙은 묶음 버튼 자리 — Field 는 label 이라 안의 버튼을 눌러 버리므로 div 로 만든다
+function FieldGroup({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[0.78rem] text-muted flex items-center gap-1">{label}{required && <span className="text-danger">*</span>}</span>
+      {children}
+    </div>
   );
 }
 
@@ -563,11 +661,9 @@ function FavoriteFormModal({ state, categories, bankCats, payMethodCats, onClose
 
   return (
     <Modal open={state.open} onClose={onClose} title={e ? '즐겨찾기 수정' : '즐겨찾기 등록'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
-      <Field label="유형" required>
-        <select className="input" aria-label="유형" value={type} onChange={(ev) => handleChangeType(ev.target.value as 'income' | 'expense')}>
-          <option value="expense">지출</option><option value="income">수입</option>
-        </select>
-      </Field>
+      <FieldGroup label="유형" required>
+        <Segmented label="유형" variant="joined" className="w-full *:flex-1" items={FAV_TYPE_ITEMS} value={type} onChange={handleChangeType} />
+      </FieldGroup>
       <Field label="내역" required error={errors.title}>
         <input type="text" className="input" aria-label="내역" placeholder="예: GS칼텍스 강남점" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
       </Field>
@@ -599,20 +695,31 @@ function FavoriteFormModal({ state, categories, bankCats, payMethodCats, onClose
   );
 }
 
-// 즐겨찾기 관리 — 등록·수정·순서 변경(위/아래)·삭제. 순서·삭제는 바로 저장한다
+// 즐겨찾기 관리 — 등록·수정·끌어서 순서 변경·삭제. 순서·삭제는 바로 저장한다
 function FavoriteManageModal({ open, favorites, catMap, onClose, onChanged, onAdd, onEdit }: { open: boolean; favorites: TransactionFavorite[]; catMap: Record<string, string>; onClose: () => void; onChanged: () => void; onAdd: () => void; onEdit: (f: TransactionFavorite) => void }) {
   const [busy, setBusy] = useState(false);
+  // 저장 중·재조회 전에 목록이 되돌아 보이지 않게, 바뀐 순서를 원본 목록(base)과 함께 들고 있는다
+  const [pending, setPending] = useState<{ base: TransactionFavorite[]; list: TransactionFavorite[] } | null>(null);
+  const list = pending && pending.base === favorites ? pending.list : favorites;
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
-  async function move(index: number, dir: -1 | 1) {
-    const ids = favorites.map((f) => f.id);
-    const to = index + dir;
-    if (to < 0 || to >= ids.length) return;
-    [ids[index], ids[to]] = [ids[to], ids[index]];
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const from = list.findIndex((f) => f.id === active.id);
+    const to = list.findIndex((f) => f.id === over.id);
+    if (from < 0 || to < 0) return;
+    const next = arrayMove(list, from, to);
+    setPending({ base: favorites, list: next });
     setBusy(true);
     try {
-      await api.put('/transaction-favorites/order', { ids });
+      await api.put('/transaction-favorites/order', { ids: next.map((f) => f.id) });
       onChanged();
     } catch {
+      setPending(null);
       notify.saveFailed();
     } finally {
       setBusy(false);
@@ -633,27 +740,44 @@ function FavoriteManageModal({ open, favorites, catMap, onClose, onChanged, onAd
   }
 
   return (
-    <Modal open={open} title="즐겨찾기 관리" onClose={onClose} footer={<><Button variant="ghost" onClick={onAdd}>+ 등록</Button><Button variant="ghost" onClick={onClose}>닫기</Button></>}>
-      {favorites.length === 0 && <div className="text-[0.82rem] text-muted">등록된 즐겨찾기가 없습니다.</div>}
-      <div className="flex flex-col">
-        {favorites.map((f, i) => (
-          <div key={f.id} className="py-2.5 border-b border-border-subtle last:border-b-0 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <div className="text-[0.84rem] font-medium truncate">{f.title}</div>
-              <div className="text-[0.72rem] text-muted">
-                {TX_TYPE_LABEL[f.type]} · {catMap[f.category] ?? f.category} · <span className={`amount-${f.type}`}>{won(f.amount)}</span>
-              </div>
-            </div>
-            <div className="flex gap-1 shrink-0">
-              <Button size="sm" variant="ghost" disabled={busy || i === 0} onClick={() => move(i, -1)} aria-label="위로">▲</Button>
-              <Button size="sm" variant="ghost" disabled={busy || i === favorites.length - 1} onClick={() => move(i, 1)} aria-label="아래로">▼</Button>
-              <Button size="sm" variant="ghost" disabled={busy} onClick={() => onEdit(f)}>수정</Button>
-              <Button size="sm" variant="danger" disabled={busy} onClick={() => remove(f.id)}>삭제</Button>
-            </div>
+    <Modal open={open} title="즐겨찾기 관리" subtitle="손잡이를 끌어 순서를 바꿉니다." onClose={onClose} footer={<><Button variant="ghost" onClick={onAdd}><IconPlus />등록</Button><Button variant="ghost" onClick={onClose}>닫기</Button></>}>
+      {list.length === 0 && <EmptyState size="sm" message="등록된 즐겨찾기가 없습니다." />}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={list.map((f) => f.id)} strategy={verticalListSortingStrategy}>
+          <div className="flex flex-col">
+            {list.map((f) => (
+              <FavoriteSortableRow key={f.id} f={f} catLabel={catMap[f.category] ?? f.category} busy={busy} onEdit={() => onEdit(f)} onRemove={() => remove(f.id)} />
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
     </Modal>
+  );
+}
+
+// 즐겨찾기 관리의 한 줄 — 끌기 손잡이 + 내용 + 수정·삭제
+function FavoriteSortableRow({ f, catLabel, busy, onEdit, onRemove }: { f: TransactionFavorite; catLabel: string; busy: boolean; onEdit: () => void; onRemove: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: f.id });
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 1 : undefined,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className="py-2 border-b border-border-subtle last:border-b-0 flex items-center gap-2 bg-background">
+      <IconButton label="순서 변경" variant="handle" size="lg" {...attributes} {...listeners}>
+        <IconDrag />
+      </IconButton>
+      <div className="flex-1 min-w-0">
+        <div className="text-[0.84rem] text-primary truncate">{f.title}</div>
+        <div className="text-[0.72rem] text-muted">
+          {TX_TYPE_LABEL[f.type]} · {catLabel} · <span className={`amount-${f.type}`}>{ledgerAmount(f.type, f.amount)}</span>
+        </div>
+      </div>
+      <IconButton label="수정" size="lg" disabled={busy} onClick={onEdit}><IconEdit /></IconButton>
+      <IconButton label="삭제" variant="danger" size="lg" disabled={busy} onClick={onRemove}><IconTrash /></IconButton>
+    </div>
   );
 }
 
@@ -966,81 +1090,85 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
   }
 
   return (
-    <Modal open={state.open} onClose={onClose} title={r ? '자동이체 설정 수정' : '자동이체 설정 추가'} footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}>
-      <Field label="유형" required>
-        <select className="input" value={type} onChange={(ev) => handleChangeType(ev.target.value as TransactionType)}>
-          <option value="expense">지출</option><option value="income">수입</option><option value="transfer">자산이동</option>
-        </select>
-      </Field>
-      <Field label="내역" required error={errors.title}>
-        <input type="text" className="input" placeholder="예: 월세" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
-      </Field>
-      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-        <Field label="대분류" required>
-          <select className="input" value={parentCode} onChange={(ev) => handleChangeParent(ev.target.value)}>
-            {availableParents.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
-          </select>
-        </Field>
-        <Field label="소분류" required>
-          <select className="input" value={category} onChange={(ev) => setCategory(ev.target.value)} disabled={childLeaves.length === 0}>
-            {childLeaves.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
-          </select>
-        </Field>
-      </div>
-      <Field label="금액 (원)" required error={errors.amount}>
-        <input type="number" className="input" placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
-      </Field>
-      {type === 'transfer' && (
-        <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
-          <Field label="이동 대상">
-            <select className="input" value={targetType} onChange={(ev) => handleChangeTargetType(ev.target.value as TransferTarget | '')}>
-              <option value="">연동 없음(단순 기록)</option>
-              {(Object.entries(TRANSFER_TARGET_LABEL) as [TransferTarget, string][]).map(([v, label]) => (
-                <option key={v} value={v}>{label}</option>
-              ))}
+    <Modal
+      open={state.open}
+      onClose={onClose}
+      size="lg"
+      title={r ? '자동이체 설정 수정' : '자동이체 설정 추가'}
+      subtitle={r ? `${r.title}${r.nextRunDate ? ` · 다음 실행 ${dotDate(r.nextRunDate)}` : ''}` : undefined}
+      footer={<ModalFooter onClose={onClose} onSave={handleSave} saving={saving} />}
+    >
+      <FormSection no={1} title="무엇을">
+        <FieldGroup label="유형" required>
+          <Segmented label="유형" variant="joined" className="w-full *:flex-1" items={TYPE_ITEMS} value={type} onChange={handleChangeType} />
+        </FieldGroup>
+        <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+          <Field label="내역" required error={errors.title}>
+            <input type="text" className="input" placeholder="예: 월세" value={title} onChange={(ev) => { setTitle(ev.target.value); clearError('title'); }} />
+          </Field>
+          <Field label="금액 (원)" required error={errors.amount}>
+            <input type="number" className="input" placeholder="0" value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }} />
+          </Field>
+        </div>
+        <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+          <Field label="대분류" required>
+            <select className="input" value={parentCode} onChange={(ev) => handleChangeParent(ev.target.value)}>
+              {availableParents.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
             </select>
           </Field>
-          <Field label="이동 대상 항목">
-            <select className="input" value={targetId} onChange={(ev) => setTargetId(ev.target.value ? Number(ev.target.value) : '')} disabled={!targetType}>
-              <option value="">선택 안 함</option>
-              {targetItems.map((it) => <option key={it.id} value={it.id}>{it.label}</option>)}
+          <Field label="소분류" required>
+            <select className="input" value={category} onChange={(ev) => setCategory(ev.target.value)} disabled={childLeaves.length === 0}>
+              {childLeaves.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
             </select>
           </Field>
         </div>
-      )}
-      {type === 'expense' && (
-        <Field label="결제수단" required>
-          <select className="input" aria-label="결제수단" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
-            <option value="" disabled>결제수단 선택</option>
-            {payMethod && !payMethodCats.some((m) => m.code === payMethod) && <option value={payMethod}>{payMethod}</option>}
-            {payMethodCats.map((m) => <option key={m.code} value={m.code}>{m.label}</option>)}
-          </select>
-        </Field>
-      )}
-      {type === 'income' && (
-        <Field label="입금 은행" required>
-          <select className="input" aria-label="입금 은행" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
-            <option value="" disabled>은행 선택</option>
-            {payMethod && !bankCats.some((b) => b.code === payMethod) && <option value={payMethod}>{payMethod}</option>}
-            {bankCats.map((b) => <option key={b.code} value={b.code}>{b.label}</option>)}
-          </select>
-        </Field>
-      )}
-      <Field label="메모 (선택)"><input type="text" className="input" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
+        {type === 'transfer' && (
+          <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+            <Field label="이동 대상">
+              <select className="input" value={targetType} onChange={(ev) => handleChangeTargetType(ev.target.value as TransferTarget | '')}>
+                <option value="">연동 없음(단순 기록)</option>
+                {(Object.entries(TRANSFER_TARGET_LABEL) as [TransferTarget, string][]).map(([v, label]) => (
+                  <option key={v} value={v}>{label}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="이동 대상 항목">
+              <select className="input" value={targetId} onChange={(ev) => setTargetId(ev.target.value ? Number(ev.target.value) : '')} disabled={!targetType}>
+                <option value="">선택 안 함</option>
+                {targetItems.map((it) => <option key={it.id} value={it.id}>{it.label}</option>)}
+              </select>
+            </Field>
+          </div>
+        )}
+        {type === 'expense' && (
+          <Field label="결제수단" required>
+            <select className="input" aria-label="결제수단" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
+              <option value="" disabled>결제수단 선택</option>
+              {payMethod && !payMethodCats.some((m) => m.code === payMethod) && <option value={payMethod}>{payMethod}</option>}
+              {payMethodCats.map((m) => <option key={m.code} value={m.code}>{m.label}</option>)}
+            </select>
+          </Field>
+        )}
+        {type === 'income' && (
+          <Field label="입금 은행" required>
+            <select className="input" aria-label="입금 은행" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
+              <option value="" disabled>은행 선택</option>
+              {payMethod && !bankCats.some((b) => b.code === payMethod) && <option value={payMethod}>{payMethod}</option>}
+              {bankCats.map((b) => <option key={b.code} value={b.code}>{b.label}</option>)}
+            </select>
+          </Field>
+        )}
+        <Field label="메모 (선택)"><input type="text" className="input" placeholder="간단한 메모" value={memo} onChange={(ev) => setMemo(ev.target.value)} /></Field>
+      </FormSection>
 
-      <div className="flex flex-col gap-3 p-3.5 bg-surface border border-border rounded-ui">
-        <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+      <FormSection no={2} title="언제" divided>
+        <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
           <Field label="시작일" required error={errors.startDate}>
             <input type="date" className="input" value={startDate} onChange={(ev) => { setStartDate(ev.target.value); clearError('startDate'); }} />
           </Field>
-          <Field label="반복 주기" required>
-            <select className="input" value={recurringCycle} onChange={(ev) => setRecurringCycle(ev.target.value as RecurringCycle)}>
-              <option value="daily">매일</option>
-              <option value="monthly">매월</option>
-              <option value="weekly">매주</option>
-              <option value="yearly">매년</option>
-            </select>
-          </Field>
+          <FieldGroup label="반복 주기" required>
+            <Segmented label="반복 주기" variant="joined" className="w-full *:flex-1" items={CYCLE_ITEMS} value={recurringCycle} onChange={setRecurringCycle} />
+          </FieldGroup>
         </div>
         {recurringCycle === 'weekly' ? (
           <Field label="요일" required>
@@ -1049,36 +1177,38 @@ function RecurringTransactionModal({ state, categories, bankCats, payMethodCats,
             </select>
           </Field>
         ) : recurringCycle === 'daily' ? (
-          <div className="text-[0.82rem] text-secondary">평일(월~금)에만 생성됩니다.</div>
+          <p className="flex items-center gap-1.5 text-[0.82rem] text-secondary"><IconInfo width={14} height={14} className="shrink-0 text-muted" />평일(월~금)에만 생성됩니다.</p>
         ) : (
-          <Field label="기준일" required>
-            <select className="input" value={recurringDay} onChange={(ev) => setRecurringDay(Number(ev.target.value))}>
-              {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                <option key={d} value={d}>{d}일</option>
-              ))}
-            </select>
-          </Field>
+          <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+            {recurringCycle === 'yearly' && (
+              <Field label="월" required>
+                <select className="input" value={recurringMonth} onChange={(ev) => setRecurringMonth(Number(ev.target.value))}>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m}월</option>)}
+                </select>
+              </Field>
+            )}
+            <Field label="기준일" required>
+              <select className="input" value={recurringDay} onChange={(ev) => setRecurringDay(Number(ev.target.value))}>
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>{d}일</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="주말인 경우">
+              <select className="input" value={weekendAdjust} onChange={(ev) => setWeekendAdjust(ev.target.value as WeekendAdjust)}>
+                {(Object.entries(WEEKEND_ADJUST_LABEL) as [WeekendAdjust, string][]).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+              </select>
+            </Field>
+          </div>
         )}
-        {recurringCycle === 'yearly' && (
-          <Field label="월" required>
-            <select className="input" value={recurringMonth} onChange={(ev) => setRecurringMonth(Number(ev.target.value))}>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => <option key={m} value={m}>{m}월</option>)}
-            </select>
-          </Field>
-        )}
-        {recurringCycle !== 'weekly' && recurringCycle !== 'daily' && (
-          <Field label="주말인 경우">
-            <div className="flex gap-5 flex-wrap [&_label]:flex [&_label]:items-center [&_label]:gap-1.25 [&_label]:text-[0.82rem] [&_label]:text-secondary [&_label]:cursor-pointer [&_input]:accent-accent">
-              <label><input type="radio" name="recurringWeekendAdjust" value="none" checked={weekendAdjust === 'none'} onChange={() => setWeekendAdjust('none')} />조정 안 함</label>
-              <label><input type="radio" name="recurringWeekendAdjust" value="before" checked={weekendAdjust === 'before'} onChange={() => setWeekendAdjust('before')} />전 금요일</label>
-              <label><input type="radio" name="recurringWeekendAdjust" value="after" checked={weekendAdjust === 'after'} onChange={() => setWeekendAdjust('after')} />다음 월요일</label>
-            </div>
-          </Field>
-        )}
-        <label className="flex items-center gap-2 text-[0.875rem] font-medium text-primary cursor-pointer select-none">
-          <input type="checkbox" className="checkbox" checked={active} onChange={(ev) => setActive(ev.target.checked)} />
-          활성 (일시정지하면 새 회차를 생성하지 않음)
-        </label>
+      </FormSection>
+
+      <div className="flex items-center gap-3 pt-4 border-t border-border-subtle">
+        <div className="flex-1 flex flex-col">
+          <span className="text-[0.875rem] text-primary">활성</span>
+          <span className="text-[0.78rem] text-muted">끄면 다음 회차를 만들지 않습니다</span>
+        </div>
+        <Toggle on={active} onToggle={() => setActive(!active)} label="활성" />
       </div>
     </Modal>
   );

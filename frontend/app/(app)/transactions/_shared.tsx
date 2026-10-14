@@ -26,7 +26,7 @@ export const TXCARD_AMT = 'font-bold text-base whitespace-nowrap [font-family:va
 export const TXCARD_SUB = 'mt-2 text-[0.78rem] text-secondary flex flex-wrap items-center gap-1.5';
 
 export const AMT_COLOR: Record<TransactionType, string> = {
-  income: 'text-accent',
+  income: 'text-success',
   expense: 'text-danger',
   transfer: 'text-blue',
 };
