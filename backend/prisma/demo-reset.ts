@@ -10,8 +10,12 @@ import { execFileSync } from 'node:child_process';
 import { randomBytes, scryptSync } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { env } from '../src/config/env';
-import { DEMO_EMAIL, DEMO_VAULT_PASSWORD } from '../src/common/demo';
+import 'dotenv/config';
+
+// src/common/demo.ts 와 같은 값 — 실행 이미지에는 src 가 없어(dist · prisma 만 복사) seed.ts 처럼 src 를 import 하지 않는다.
+// 데모 사용자 이메일 · 마스터 잠금 비밀번호(화면의 데모 띠에 보이는 값이라 비밀이 아니다)
+const DEMO_EMAIL = 'demo@life-ledger.local';
+const DEMO_VAULT_PASSWORD = 'demo1234';
 
 // 비우지 않는 테이블 — 마이그레이션 이력 · 공휴일 캐시(전 사용자 공용) · 예약 작업 실행 기록(운영 확인용)
 const KEEP = new Set(['_prisma_migrations', 'holiday', 'job_run']);
@@ -23,12 +27,12 @@ function hashVaultPassword(pw: string): string {
 }
 
 async function main() {
-  if (!env.DEMO_MODE) {
+  if (process.env.DEMO_MODE !== 'true') {
     console.error('DEMO_MODE=true 가 아니라 초기화하지 않습니다 (운영 DB 보호).');
     process.exit(1);
   }
 
-  const prisma = new PrismaClient({ adapter: new PrismaMariaDb(env.DATABASE_URL) });
+  const prisma = new PrismaClient({ adapter: new PrismaMariaDb(process.env.DATABASE_URL!) });
   try {
     const tables = await prisma.$queryRaw<{ name: string }[]>`
       SELECT table_name AS name FROM information_schema.tables

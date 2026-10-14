@@ -1,0 +1,31 @@
+# 데모 인스턴스 — 운영 compose(docker-compose.yml) 위에 덮어 같은 홈서버 클론(~/apps/life-ledger)에서 따로 띄운다.
+# 프로젝트 이름 · env 파일 · DB · 포트 · Tailscale 노드 · 볼륨이 전부 운영과 갈린다. 절차는 docs/public-release-plan.md "5단계 운영 절차"
+#
+#   docker compose -p life-ledger-demo --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml up -d --build
+#
+# .env.demo(루트, git 제외): DB_PASSWORD(데모 DB 사용자) · NEXT_PUBLIC_BACKEND_URL · NEXT_PUBLIC_API_URL · NEXT_PUBLIC_DEMO_MODE=true · TS_AUTHKEY · COMPOSE_PROFILES=homeserver
+# backend/.env.demo(git 제외): 운영과 다른 JWT · 암호화 키, DEMO_MODE=true, STORAGE_QUOTA_MB, 데모 B2 버킷. SMTP · VAPID 는 비운다
+services:
+  backend:
+    ports: !override
+      - "127.0.0.1:8010:8000"
+    env_file: !override
+      - backend/.env.demo
+    environment:
+      DATABASE_URL: "mysql://lifeledger_demo:${DB_PASSWORD}@mariadb:3306/lifeledger_demo?timezone=+09:00"
+    # 매일 초기화되는 샘플 데이터라 DB 백업을 볼륨에 남기지 않는다(컨테이너 안에만 쌓였다가 보관 기간이 지나면 지워진다)
+    volumes: !reset []
+
+  frontend:
+    ports: !override
+      - "127.0.0.1:3010:3000"
+
+  tailscale:
+    environment:
+      TS_HOSTNAME: lifeledger-demo
+
+volumes:
+  db_backups:
+    name: life-ledger-demo_db_backups
+  tailscale_state:
+    name: life-ledger-demo_tailscale_state

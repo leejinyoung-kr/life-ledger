@@ -146,7 +146,7 @@ compose 프로젝트 이름이 바뀌어 새 컨테이너(`life-ledger-*`)가 �
 | 운영 스냅샷 바로잡기 | 마이그레이션 `20261014090000_fix_net_worth_snapshot_label_and_cash` — 2026-07 이후 행 이름표 +1달(옛 2026-07 값은 덮어써져 비게 된다), `cash_total` 새 식으로 재계산, `total_assets` 에서 그 달 말까지 자산이동 누계를 뺀다. 배포 전 아래 SQL 로 운영 값을 확인한다 |
 | 화면 (§4.4 · §5) | 가계부 잔액 음수 부호(`won()` 이 부호를 살린다) · 잔액/실소비 문구 · 계정 추가 창 비밀번호 가림(눈 버튼, 생성하면 표시) · 최근 열람 동작 8종 한글 + 대상 이름(`vault` · `export:*` · `all:N`) + 루프백 IP '이 기기' · 자산 종합 증감 ▼ 빨강 · 알림 열 때 읽음 토스트 제거 · 대시보드 활성 구독 = 결제 중 + 체험("체험 N건 포함", D6) · 순자산 카드 설명 '자산 − 부채' → '현금 + 예적금 + 투자' |
 | 운영 확인 (2026-10-14) | 시스템 로그 · `job_run` 기준 각 이름표의 마지막 저장은 다음 달 하순 — 07 ← 8/31, 08 ← 9/28, 09 ← 10/12(KST). 이름표 +1달이 맞다. 7월 말 값(8/1 저장)은 8/24 에 덮어써져 남아 있지 않다 |
-| 남은 것 | 데모 시드 스냅샷은 현금을 빼고 적혀 있어 이번 달 막대만 튄다(5단계 시드 정리 때) |
+| 남은 것 | ~~데모 시드 스냅샷은 현금을 빼고 적혀 있어 이번 달 막대만 튄다~~ → 5단계에서 고침 |
 
 배포 전 운영 확인 (HeidiSQL, `docnexus`):
 
@@ -198,6 +198,52 @@ FROM net_worth_snapshot s ORDER BY s.user_id, s.month;
   - 대시보드 '활성 구독 13건'과 현금흐름 예측 '구독 15건' 차이는 무료 체험 2건 — 예측은 곧 과금될 체험도 센다. 디자인 점검 D6 에서 '활성 = 활성 + 체험' 으로 맞추고 "체험 N건 포함" 을 붙이기로 했다.
   - 반복매수 설정은 `last_period` 를 이번 달로 넣는다 — 비워 두면 예약 작업이 종목 매수일(최대 2년 전)부터 모든 회차를 한 번에 사들인다(시세 조회 수십 번 + 예수금 소진).
 - 메일 · 웹 푸시 발송은 끈다.
+
+#### 5단계 진행 상황 (2026-10-14, `develop` — 코드 완료, 홈서버 작업 남음)
+
+| 항목 | 결과 |
+| --- | --- |
+| 데모 로그인 | `DEMO_MODE=true` 일 때만 `DemoAuthController`(`POST /auth/demo`, 분당 10회)를 등록 — 데모 사용자(`demo@life-ledger.local`)를 만들거나 찾아 세션을 준다. 운영은 라우트 자체가 없다(부팅 로그 `Mapped` 에 안 나온다) |
+| 막는 동작 | 계정 삭제 · 마스터 잠금 변경/해제 → 403 "데모에서는 … 할 수 없습니다." (`common/demo.ts` `assertNotDemo`) |
+| 파일 한도 | `STORAGE_QUOTA_MB` — 사용자별 합계를 업로드 때 검사(미설정이면 한도 없음) |
+| 매일 초기화 | `pnpm demo:reset` (= `tsx prisma/demo-reset.ts`) — `DEMO_MODE` 가 `'true'` 가 아니면 거부. `_prisma_migrations` · `holiday` · `job_run` 을 뺀 전 테이블을 비우고 시드 → 데모 사용자 마스터 잠금(`demo1234`, 5분)을 건다. 실행 이미지에는 `src` 가 없어 `process.env` 만 읽는다 |
+| 화면 | 빌드 인자 `NEXT_PUBLIC_DEMO_MODE=true` 일 때 로그인 화면은 '데모로 둘러보기' 만(Google · 이메일 대신), 모든 화면 맨 위에 데모 띠(매일 4시 초기화 · 마스터 비밀번호 안내) |
+| 시드 | 순자산 스냅샷에 그 달 말 현금(수입 − 지출 − 자산이동)을 넣는다 — 수입/지출 시드 뒤에 계산. 추이 차트 이번 달 막대가 더 이상 튀지 않는다 |
+| 배포 | `docker-compose.demo.yml`(운영 compose 위에 덮는다 — 프로젝트 `life-ledger-demo`, 포트 3010 · 8010, DB `lifeledger_demo`, Tailscale `lifeledger-demo`, 볼륨 이름 분리). 배포 워크플로는 홈서버에 `.env.demo` · `backend/.env.demo` 가 있을 때만 운영 배포 뒤 데모도 다시 띄운다 |
+| 로컬 확인 | 데모 env 로 띄워 로그인 → 대시보드 · 데모 띠 · 잠금 풀기(demo1234) · 잠금 해제/계정 삭제 403 확인. 정상 env 로 다시 띄우면 데모 버튼 · 띠 · 라우트가 없다 |
+| 남은 것 | 아래 운영 절차(홈서버 · B2 · Tailscale) — 사용자 확인 뒤. 파일 보관함 샘플 파일은 시드에 없다(빈 목록) |
+
+#### 5단계 운영 절차 (홈서버 — 한 번)
+
+같은 클론 `~/apps/life-ledger` 에서 compose 파일 하나를 더 얹어 띄운다(폴더 규칙 `~/apps/<레포>` 유지). 아래에서 `DEMO` 는 이 명령의 줄임:
+
+```bash
+docker compose -p life-ledger-demo --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml
+```
+
+1. **DB** (HeidiSQL root 세션, 홈서버 23306) — infra README 와 같은 형식:
+
+   ```sql
+   CREATE DATABASE IF NOT EXISTS `lifeledger_demo` CHARACTER SET utf8mb4;
+   CREATE USER IF NOT EXISTS 'lifeledger_demo'@'%' IDENTIFIED BY '<비밀번호>';
+   GRANT ALL PRIVILEGES ON `lifeledger_demo`.* TO 'lifeledger_demo'@'%';
+   ```
+
+   infra `initdb/01-app-databases.sh` 에도 같은 줄을 넣어 볼륨을 새로 만들 때 다시 생기게 한다.
+2. **B2** — 데모 전용 버킷 + 그 버킷만 쓰는 애플리케이션 키. 초기화는 DB 행만 지우고 B2 파일은 남기므로, 버킷 수명 주기 규칙으로 정리한다(`daysFromUploadingToHiding: 1` · `daysFromHidingToDeleting: 1`).
+3. **env 파일** (git · docker 빌드 제외 — `.gitignore` · `.dockerignore` 에 `.env.demo`). 값은 출력하지 않는다.
+   - 루트 `.env.demo`: `DB_PASSWORD`(1의 비밀번호) · `NEXT_PUBLIC_BACKEND_URL=https://lifeledger-demo.tailba78c1.ts.net` · `NEXT_PUBLIC_API_URL`(같은 주소 + `/api/v1`) · `NEXT_PUBLIC_DEMO_MODE=true` · `TS_AUTHKEY`(tag:app 키) · `COMPOSE_PROFILES=homeserver`
+   - `backend/.env.demo`: 운영 `backend/.env` 를 복사한 뒤 바꾼다 — `JWT_*` 세 개와 `CRYPTO_KEYS` 는 **새로 만든 값**(운영 키를 데모에 두지 않는다), `CREDENTIAL_SECRET` 비움, `FRONTEND_URL` · `CORS_ORIGINS` · `GOOGLE_CALLBACK_URL` 을 데모 주소로, `GOOGLE_*` 는 아무 값(데모 화면에 Google 버튼이 없다), `ALLOWED_EMAILS=nobody@life-ledger.local`(이메일 로그인 막기), B2 는 2의 버킷 · 키, `SMTP_*` · `VAPID_*` 비움, `DEMO_MODE=true`, `STORAGE_QUOTA_MB=50`
+4. **처음 띄우기**: `DEMO build` → `DEMO run --rm --no-deps backend node dist/config/check-env.js` → `DEMO run --rm backend npx prisma migrate deploy` → `DEMO up -d` → `DEMO exec -T backend npx tsx prisma/demo-reset.ts`(샘플 데이터 · 잠금). 그 뒤로는 main push 때 워크플로가 같이 갱신한다.
+5. **매일 초기화** — 홈서버 사용자 crontab(sudo 불필요, 홈서버 시계는 UTC → KST 04:00 = UTC 19:00):
+
+   ```cron
+   0 19 * * * cd ~/apps/life-ledger && docker compose -p life-ledger-demo --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml exec -T backend npx tsx prisma/demo-reset.ts 2>&1 | logger -t life-ledger-demo
+   ```
+
+   확인: `journalctl -t life-ledger-demo --since today`
+6. **확인**: `https://lifeledger-demo.tailba78c1.ts.net` — 데모 버튼 · 띠 · 잠금 풀기 · 계정 삭제 403. Tailscale 관리 화면에서 노드 `lifeledger-demo` 의 Funnel 켜짐. 운영 `https://lifeledger…` 로그인 화면에는 데모 버튼이 없어야 한다.
+7. infra `README.md` 외부 접속 표 · 워크스페이스 `CLAUDE.md` 에 데모 주소를 적는다.
 
 ### 6. 공개
 

@@ -7,6 +7,7 @@ on:
       - 'frontend/**'
       - 'backend/**'
       - 'docker-compose.yml'
+      - 'docker-compose.demo.yml'
       - 'tailscale/**'
       - '.github/workflows/deploy-home-server.yml'
   # 코드 변경 없이 서버 .env 만 바꿨을 때(암호화 키 교체 등) 같은 점검을 거쳐 다시 배포한다.
@@ -84,3 +85,25 @@ jobs:
           NPM_READ_TOKEN: ${{ secrets.NPM_READ_TOKEN }}
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.sha }}
+
+      # 데모 인스턴스(docker-compose.demo.yml) — 홈서버에 .env.demo 가 있을 때만 같은 코드로 다시 띄운다.
+      # 운영 배포가 끝난 뒤라 여기서 실패해도 운영은 이미 새 버전으로 떠 있다. 데모 프론트는 NEXT_PUBLIC_DEMO_MODE 가 달라 따로 빌드된다
+      - name: Deploy demo
+        run: |
+          cd ~/apps/life-ledger
+          if [ ! -f .env.demo ] || [ ! -f backend/.env.demo ]; then
+            echo "데모 env 없음 — 건너뜀"
+            exit 0
+          fi
+          (
+            flock -x 200
+            export GIT_COMMIT="$(git rev-parse --short=12 HEAD)"
+            DEMO="docker compose -p life-ledger-demo --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml"
+            $DEMO build backend frontend
+            $DEMO run --rm --no-deps backend node dist/config/check-env.js
+            $DEMO run --rm backend npx prisma migrate deploy
+            $DEMO up -d
+            $DEMO ps
+          ) 200>/tmp/deploy.lock
+        env:
+          NPM_READ_TOKEN: ${{ secrets.NPM_READ_TOKEN }}
