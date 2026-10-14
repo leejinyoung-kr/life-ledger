@@ -12,6 +12,8 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // 개발 중 왼쪽 아래 'N' 표시가 휴대폰 폭에서 아래 메뉴를 가린다 — 꺼도 빌드 · 실행 오류 화면은 그대로 뜬다
+  devIndicators: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

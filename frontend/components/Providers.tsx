@@ -46,8 +46,12 @@ export default function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       {children}
-      {/* 모바일 하단 내비게이션(BottomNav)과 겹쳐 클릭을 가로채는 것을 방지하기 위해 우상단에 배치 */}
-      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />}
+      {/* 휴대폰 · 태블릿 폭에선 위 알림 버튼 · 아래 메뉴를 가려서 숨기고, 사이드바가 있는 폭에서만 오른쪽 아래에 둔다 */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="max-lg:hidden">
+          <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />
+        </div>
+      )}
     </QueryClientProvider>
   );
 }
