@@ -17,9 +17,9 @@
 
 ![대시보드 — 이번 달 돈 흐름과 다가오는 결제](docs/screenshots/dashboard.png)
 
-| 계정 보관함 | 캘린더 |
-| --- | --- |
-| ![계정 보관함 — 잠금 상태, 2FA 미설정 경고](docs/screenshots/credentials.png) | ![캘린더 — 구독 결제 · 적금 만기 · 공휴일 연동](docs/screenshots/calendar.png) |
+| 계정 보관함 | 캘린더 | 휴대폰 (PWA) |
+| --- | --- | --- |
+| ![계정 보관함 — 잠금 상태, 2FA 미설정 경고](docs/screenshots/credentials.png) | ![캘린더 — 구독 결제 · 적금 만기 · 공휴일 연동](docs/screenshots/calendar.png) | ![휴대폰 대시보드 — 아래 탭 메뉴](docs/screenshots/mobile.png) |
 
 ## 구조
 

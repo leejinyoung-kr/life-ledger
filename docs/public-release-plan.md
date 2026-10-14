@@ -278,4 +278,6 @@ docker compose -p life-ledger-demo --env-file .env.demo -f docker-compose.yml -f
 - 내용 검색(이메일 · LAN/Tailscale IP · OAuth 클라이언트 ID · 홈 경로 · 토큰 접두사): 실제 값은 `backend/.env.example` 의 `ALLOWED_EMAILS`(본인 gmail, 이력 297개 커밋)와 테스트의 홈서버 노드 주소뿐 — 지금 파일은 `you@example.com` · `homeserver.example.ts.net` 으로 바꿨다. 나머지(`me@gmail.com` · `192.168.0.10` · `1234567890-….apps.googleusercontent.com`)는 시드 · 시안의 가짜 값.
 - 커밋 작성자 이메일: 개인 naver 메일(life-ledger 281개 · young-core 6개 커밋)과 GitHub noreply.
 - tailnet 주소(`*.tailba78c1.ts.net`)는 데모 링크로 어차피 드러나서 그대로 둔다. 운영 주소는 Google · 이메일 코드 로그인이 허용 목록으로 막는다.
-- README 를 공개용으로 새로 썼다 (소개 · 데모 · 구조도 · 기술 선택 이유 · 해결한 문제 5가지). 배포 시간은 Actions 기록 기준 10 ~ 29분 → 2 ~ 5분.
+- README 를 공개용으로 새로 썼다 (소개 · 데모 · 구조도 · 기술 선택 이유 · 해결한 문제 5가지 · 데모 화면 캡처 4장). 배포 시간은 Actions 기록 기준 10 ~ 29분 → 2 ~ 5분.
+- 커밋 작성자 이메일 · 옛 `.env.example` gmail 이력은 그대로 공개하기로 했다(이력 재작성 안 함).
+- **DB · 사용자 이름 `docnexus` → `lifeledger` (2026-10-15)** — 2단계에서 "그대로 둔다" 했던 것을 공개 전에 바꿨다(compose 에 옛 이름이 보여서). infra `scripts/rename-db.sh`(새 DB + `RENAME TABLE` 한 문장, 옛 사용자 인증 복사)로 로컬 · 운영 26개 테이블을 옮기고 바로 main 배포 — 암호문 64건 복호화 · healthy 확인. 덤프 `~/backups/2026-10-15/docnexus-before-rename.sql`. 매일 덤프 접두사는 `lifeledger_`(옛 `docnexus_` 도 보관 기간 정리 대상). 옛 빈 DB · 사용자 `docnexus` 는 남겨 뒀다가 지운다.
