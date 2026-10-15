@@ -236,6 +236,6 @@ docker compose exec backend npx prisma migrate deploy
 - [docs/architecture.md](docs/architecture.md) — 구조·모듈
 - [docs/erd.md](docs/erd.md) — DB 엔티티 정의
 - [docs/api.md](docs/api.md) — API 명세
-- [docs/public-release-plan.md](docs/public-release-plan.md) — 공개 준비(포트폴리오) 계획 — 1단계 기능 정리는 `develop` 브랜치에서 진행
+- [docs/archive/2026-10-13-public-release-plan.md](docs/archive/2026-10-13-public-release-plan.md) — 공개 준비(포트폴리오) 계획 — 2026-10-15 끝남(이름 전환 · 데모 · DB 이름 · public). 데모 운영 절차는 이 문서 "5단계"
 - [docs/category-migration.md](docs/category-migration.md) — 카테고리 2계층 구조 + 엑셀→앱 매칭표(실데이터 마이그레이션용)
 - [docs/archive/](docs/archive/) — 끝난 작업의 설계·계획 문서

@@ -35,7 +35,7 @@
 - 로그인 화면은 '데모로 둘러보기' 하나 → `POST /auth/demo`(데모 모드에서만 등록되는 라우트)가 데모 사용자 세션을 준다.
 - 계정 삭제 · 마스터 잠금 변경/해제는 `assertNotDemo` 가 403 으로 막는다. 파일은 `STORAGE_QUOTA_MB` 한도.
 - 매일 KST 04:00 홈서버 crontab 이 `prisma/demo-reset.ts` 로 데이터를 비우고 시드 + 마스터 잠금(`demo1234`)을 다시 건다.
-- 운영 절차: `docs/public-release-plan.md` "5단계 운영 절차".
+- 운영 절차: `docs/archive/2026-10-13-public-release-plan.md` "5단계 운영 절차".
 
 ## 백엔드 모듈
 

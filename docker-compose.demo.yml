@@ -1,5 +1,5 @@
 # 데모 인스턴스 — 운영 compose(docker-compose.yml) 위에 덮어 같은 홈서버 클론(~/apps/life-ledger)에서 따로 띄운다.
-# 프로젝트 이름 · env 파일 · DB · 포트 · Tailscale 노드 · 볼륨이 전부 운영과 갈린다. 절차는 docs/public-release-plan.md "5단계 운영 절차"
+# 프로젝트 이름 · env 파일 · DB · 포트 · Tailscale 노드 · 볼륨이 전부 운영과 갈린다. 절차는 docs/archive/2026-10-13-public-release-plan.md "5단계 운영 절차"
 #
 #   docker compose -p life-ledger-demo --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml up -d --build
 #

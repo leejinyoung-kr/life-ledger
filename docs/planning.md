@@ -1,7 +1,7 @@
 # LifeLedger(생활 장부) — 돈 · 계정 · 파일 · 일정을 한곳에 두는 1인용 장부
 
 > 작성 2026-10-13 · 상태: **운영 중인 앱의 디자인 개편 기획** — 기능은 이미 있다(1단계 기능 정리 · 2단계 이름 변경 완료, `develop`).
-> 공개 준비 전체 순서는 [public-release-plan.md](public-release-plan.md) 4단계. 구조 · API · DB 는 [architecture.md](architecture.md) · [api.md](api.md) · [erd.md](erd.md).
+> 공개 준비 전체 순서는 [archive/2026-10-13-public-release-plan.md](archive/2026-10-13-public-release-plan.md) 4단계(끝남). 구조 · API · DB 는 [architecture.md](architecture.md) · [api.md](api.md) · [erd.md](erd.md).
 > 이 문서는 Claude 디자인에 현재 화면 캡처와 같이 넣는다. 시안 · 점검 문서는 [design/](design/) 에 둔다.
 
 ---

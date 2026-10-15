@@ -1,7 +1,7 @@
 # 공개 준비 계획 (포트폴리오용)
 
 > 작성 2026-10-13. 회사 지원 때 개인 프로젝트로 내기 위해 doc-nexus 를 공개용으로 다듬는다.
-> 끝나면 `docs/archive/` 로 옮긴다.
+> 2026-10-15 끝나서 `docs/archive/` 로 옮겼다.
 
 ## 목표
 
@@ -22,7 +22,7 @@
 | 파일 보관함 | 유지 (사용 중) |
 | 남는 화면 (12) | 대시보드 · 자산 관리 · 구독 관리 · 자산 종합 · 계정 보관함 · 파일 보관함 · 캘린더 · 보안 · 알림 · 시스템 로그 · 코드 관리 · 설정 |
 | 데모 | 운영 인스턴스에 더미 계정을 넣지 않고, 별도 인스턴스로 띄운다 |
-| young-core | ~~공개한다~~ → **비공개 유지** (2026-10-15 변경 — 개인용 라이브러리). 대신 설계와 핵심 코드 발췌를 [core-libraries.md](core-libraries.md) 로 이 레포에 둔다. npmjs 배포는 하지 않는다 |
+| young-core | ~~공개한다~~ → **비공개 유지** (2026-10-15 변경 — 개인용 라이브러리). 대신 설계와 핵심 코드 발췌를 [core-libraries.md](../core-libraries.md) 로 이 레포에 둔다. npmjs 배포는 하지 않는다 |
 | 이름 | **`life-ledger`** (생활 장부) |
 | 공개 방식 | **이 레포를 그대로 공개** — 아래 |
 | 디자인 | 다른 프로젝트처럼 기획서(`docs/planning.md`) → Claude 디자인 → 시안을 `docs/design/` 에 둔다 |
@@ -272,7 +272,7 @@ docker compose -p life-ledger-demo --env-file .env.demo -f docker-compose.yml -f
   - 홈서버 배포 16~30분 → 4분 (2026-10-13, Dockerfile `chown -R` 원인 분석)
 - ~~young-core 공개.~~ 비공개 유지 — `docs/core-libraries.md` 에 요약(2026-10-15).
 
-**공개 (2026-10-15)** — `leejinyoung-kr/life-ledger` public 전환. 바로 Actions fork PR 승인 정책을 `all_external_contributors` 로, 레포 About 에 소개 문구 · 데모 주소. 남은 것: 옛 빈 DB · 사용자 `docnexus` 삭제(운영이 새 이름으로 안정된 걸 본 뒤) → 이 문서를 `docs/archive/` 로.
+**공개 (2026-10-15)** — `leejinyoung-kr/life-ledger` public 전환. 바로 Actions fork PR 승인 정책을 `all_external_contributors` 로, 레포 About 에 소개 문구 · 데모 주소. 옛 빈 DB · 사용자 `docnexus` 도 같은 날 지웠다(운영 · 로컬) — 공개 준비 끝.
 
 **검사 결과 (2026-10-15)** — gitleaks v8.21.2(docker, 전체 이력 `--all`):
 
