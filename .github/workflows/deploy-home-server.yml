@@ -107,3 +107,13 @@ jobs:
           ) 200>/tmp/deploy.lock
         env:
           NPM_READ_TOKEN: ${{ secrets.NPM_READ_TOKEN }}
+
+      # 빌드 캐시·옛 이미지가 배포마다 쌓여 디스크를 채운다(2026-10-16 캐시만 165G — infra README).
+      # 캐시는 최근 것 20GB 만 남기고, 태그가 넘어가 이름 없이 남은 이미지는 지운다. 다른 앱 빌드와 겹치지 않게 같은 잠금 안에서 한다
+      - name: Clean up docker
+        run: |
+          (
+            flock -x 200
+            docker builder prune -f --max-used-space 20GB
+            docker image prune -f
+          ) 200>/tmp/deploy.lock
