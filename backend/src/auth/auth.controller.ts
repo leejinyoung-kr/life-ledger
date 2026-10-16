@@ -23,7 +23,7 @@ import { AuthService, GoogleUser } from './auth.service';
 import { RequestEmailCodeDto, VerifyEmailCodeDto } from './dto/email-login.dto';
 import { VaultGuard } from '../security/vault.guard';
 
-// 이름에 앱 접두사 — 같은 호스트의 다른 포트 앱(career-notes 등)과 쿠키가 섞이지 않게 (쿠키는 포트를 구분하지 않는다)
+// 이름에 앱 접두사 — 같은 호스트의 다른 포트 앱과 쿠키가 섞이지 않게 (쿠키는 포트를 구분하지 않는다)
 export const REFRESH_COOKIE = 'll_refresh_token';
 export const HAS_SESSION_COOKIE = 'll_has_session';
 
