@@ -28,6 +28,88 @@
 | Prisma Studio | 5555 |
 | 데모 인스턴스 (홈서버) | frontend 3010 · backend 8010 |
 
+## C4 다이어그램
+
+코드 · 설정에서 확인한 연결만 그렸다 (2026-10-18). 각 연결을 확인한 곳은 아래 표에 있다. 결정의 배경은 [docs/adr/](adr/README.md).
+
+### Level 1 — 시스템 맥락
+
+```mermaid
+flowchart LR
+  user([사용자 1명<br/>PC 브라우저 · 휴대폰 PWA])
+  visitor([데모 방문자])
+  ll[LifeLedger<br/>생활 장부]
+  google[Google OAuth]
+  smtp[SMTP 메일 서버]
+  pushsvc[브라우저 푸시 서비스<br/>FCM · Mozilla · Windows · Apple]
+  b2[(Backblaze B2<br/>파일 저장)]
+  holiday[공공데이터포털<br/>특일 정보 API]
+  market[시세 · 환율<br/>네이버 증권 · Yahoo Finance · Frankfurter]
+  gh[GitHub<br/>Actions · Packages]
+
+  user -->|HTTPS| ll
+  visitor -->|HTTPS · 데모 인스턴스| ll
+  user -.->|로그인 동의 화면| google
+  ll -->|OAuth 코드 교환| google
+  ll -->|이메일 인증코드| smtp
+  ll -->|웹 푸시 VAPID| pushsvc
+  pushsvc -->|알림| user
+  ll -->|파일 저장 · presigned URL 발급| b2
+  user -.->|presigned URL 로 다운로드| b2
+  ll -->|올해 · 내년 공휴일 캐싱| holiday
+  ll -->|현재가 · 환율| market
+  gh -->|main push → 홈서버 배포<br/>코어 패키지 설치| ll
+```
+
+### Level 2 — 컨테이너
+
+```mermaid
+flowchart LR
+  browser[브라우저 · PWA<br/>서비스 워커]
+
+  subgraph home[홈서버 · compose 프로젝트 life-ledger]
+    ts[tailscale 사이드카<br/>Funnel 443 · serve.json]
+    fe[frontend<br/>Next.js 16 standalone · :3000]
+    be[backend<br/>NestJS 11 + Prisma · :8000<br/>예약 작업 · 아웃박스 발송]
+    vol[(db_backups 볼륨<br/>매일 04시 덤프)]
+  end
+
+  subgraph infra[compose 프로젝트 infra · 네트워크 infra]
+    db[(MariaDB 11<br/>DB · 사용자 lifeledger)]
+  end
+
+  b2[(Backblaze B2)]
+  ext[Google OAuth · SMTP · 푸시 서비스<br/>공휴일 · 시세 · 환율 API]
+
+  browser -->|HTTPS| ts
+  ts -->|"/"| fe
+  ts -->|"/api"| be
+  be -->|Prisma · mariadb:3306| db
+  be -->|mariadb-dump| vol
+  be -->|업로드 · 삭제 · presigned 발급<br/>S3 API| b2
+  browser -.->|presigned URL| b2
+  be --> ext
+```
+
+- 화면(`/`)과 API(`/api`)가 같은 origin 이다. 브라우저가 API 를 직접 부른다 — frontend 서버는 backend 를 부르지 않는다(compose 의 `BACKEND_URL` 은 frontend 코드에서 쓰는 곳이 없다).
+- 컨테이너 포트는 `127.0.0.1` 에만 열린다. 밖에서는 사이드카로만 들어온다.
+- 로컬 개발은 사이드카 없이 frontend `:3000` · backend `:8000` 을 따로 띄운다(같은 호스트 · 다른 포트).
+- 데모 인스턴스는 같은 그림을 한 벌 더 띄운 것이다 — 프로젝트 `life-ledger-demo`, 사이드카 `lifeledger-demo`, DB `lifeledger_demo`(같은 MariaDB), 데모 B2 버킷. SMTP · VAPID 는 비운다.
+
+| 연결 | 확인한 곳 |
+| --- | --- |
+| 사이드카 → frontend · backend, Funnel | `docker-compose.yml` `tailscale` · `tailscale/serve.json` |
+| 브라우저 → API (같은 origin) | `frontend/lib/api.ts` 의 `NEXT_PUBLIC_API_URL` |
+| backend → MariaDB | `docker-compose.yml` `DATABASE_URL` · 외부 네트워크 `infra` |
+| backend → 덤프 볼륨 | `maintenance/db-backup-cron.service.ts` · 볼륨 `db_backups` |
+| backend → B2 · 브라우저 → B2 | `file/file.service.ts` (`putObject` · `getDownloadUrl` 5분) · `env.ts` `B2_*` |
+| backend → Google | `auth/` (`core-auth` Google 전략) · `env.ts` `GOOGLE_*` |
+| backend → SMTP | `mail/` · `env.ts` `SMTP_*` (비면 꺼짐) |
+| backend → 푸시 서비스 | `push/webpush.channel.ts` · `push/dto/subscribe.dto.ts`(endpoint 허용 주소) · `env.ts` `VAPID_*` |
+| backend → 공휴일 API | `holiday/holiday.service.ts` (`apis.data.go.kr`) |
+| backend → 시세 · 환율 | `investment/price-lookup.service.ts` (네이버 · Yahoo · Frankfurter) |
+| GitHub → 홈서버 | `.github/workflows/deploy-home-server.yml` (`runs-on: self-hosted`, `NPM_READ_TOKEN`) |
+
 ## 데모 인스턴스
 
 같은 코드를 `DEMO_MODE=true` · `NEXT_PUBLIC_DEMO_MODE=true` 로 따로 띄운다(`docker-compose.demo.yml`, DB `lifeledger_demo`, Tailscale `lifeledger-demo`).
