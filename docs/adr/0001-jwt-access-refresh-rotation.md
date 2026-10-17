@@ -56,7 +56,8 @@
   - refresh 는 httpOnly 라 XSS 로 읽히지 않고, access 는 메모리에만 있어 새로고침하면 사라진다.
 - **아쉬운 점 · 위험 (초안)**
   - refresh 를 DB 에서 조회하므로 "stateless" 는 access 에만 맞는 말이다. 이 규모에선 서버 세션이 더 단순했을 수 있다.
-  - 회전이 compare-and-swap 이 아니다. `refresh()` 가 `findUnique` 로 `revoked_at` 을 본 뒤 `update({ where: { id } })` 로 폐기한다 — 같은 토큰으로 동시에 두 번 부르면 둘 다 새 토큰을 받을 수 있다 (코드 읽고 확인 필요). 같은 레포의 아웃박스 · `job_run` 은 CAS 를 쓴다 ([0007](0007-transactional-outbox-and-job-run-cas.md)).
+  - ~~회전이 compare-and-swap 이 아니다~~ → **2026-10-18 고침.** 원래는 `refresh()` 가 `findUnique` 로 `revoked_at` 을 본 뒤 `update({ where: { id } })` 로 폐기해서, 같은 토큰으로 동시에 두 번 부르면 둘 다 새 토큰을 받았다. 지금은 `updateMany({ where: { id, revoked_at: null } })` 로 1행을 바꾼 요청만 새 토큰을 받는다 (pace-log `de2b2a9` 와 같은 방식, 같은 레포의 아웃박스 · `job_run` CAS 와도 같다 — [0007](0007-transactional-outbox-and-job-run-cas.md)). 진 요청은 401 이라, 프론트 `tryRefresh` 가 탭 여러 개의 동시 갱신에서 진 탭이 0.5초 뒤 새 쿠키로 한 번 더 시도한다.
+  - 폐기된 토큰이 다시 와도 401 만 돌려준다(재사용 감지 없음). 탈취된 토큰을 공격자가 먼저 쓰면 진짜 사용자만 튕기고 공격자 쪽은 이어진다. 재사용이면 그 세션 토큰을 전부 끊는 방법이 있지만, 위 동시 갱신과 구분하기 어려워 넣지 않았다.
   - 이미 폐기된 jti 가 다시 들어와도(재사용) 그 세션을 통째로 끊지 않는다 — 탈취 감지가 없다.
   - 탭 두 개가 동시에 refresh 하면 늦은 쪽이 폐기된 쿠키를 보내 로그아웃될 수 있다. `70878ff` 의 "동시 refresh 중복 방지" 는 한 탭 안에서만이다 (확인 필요).
   - `session_expiry = none` 이면 refresh 가 10년 산다.

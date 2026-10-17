@@ -319,7 +319,7 @@ export class AuthService {
     return created.id;
   }
 
-  // 갱신 토큰 검증 → 화이트리스트 확인 후 rotation(이전 jti 폐기 + 신규 access/refresh 발급)
+  // 갱신 토큰 검증 → 화이트리스트 확인 후 rotation(이전 jti 를 조건부로 폐기한 요청만 신규 access/refresh 발급)
   async refresh(refreshToken: string): Promise<{ access: string; refresh: string; refreshTtlMs: number }> {
     if (!refreshToken) throw new UnauthorizedException('갱신 토큰이 없습니다.');
     let payload: { sub: number; jti?: string; type?: string };
@@ -340,17 +340,23 @@ export class AuthService {
 
     const newJti = randomUUID();
     const { jwt: ttl, ms } = await this.sessionExpiryOf(user.id);
-    await this.prisma.$transaction([
-      this.prisma.refreshToken.update({ where: { id: stored.id }, data: { revoked_at: new Date() } }),
-      this.prisma.refreshToken.create({
+    // 위 findUnique 와 폐기 사이에 같은 토큰으로 온 다른 요청이 끼어들 수 있다 — 아직 폐기 안 된 행만 폐기하고(CAS),
+    // 1행을 바꾼 요청만 새 토큰을 받는다. 뒤 요청은 앞 요청의 행 잠금을 기다린 뒤 0행이 되어 거부된다
+    await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.refreshToken.updateMany({
+        where: { id: stored.id, revoked_at: null },
+        data: { revoked_at: new Date() },
+      });
+      if (claimed.count !== 1) throw new UnauthorizedException('갱신 토큰이 유효하지 않습니다.');
+      await tx.refreshToken.create({
         data: {
           user_id: user.id,
           session_id: stored.session_id,
           jti: newJti,
           expires_at: new Date(Date.now() + ms),
         },
-      }),
-    ]);
+      });
+    });
 
     return { access: this.signAccess(user), refresh: this.signRefresh(user.id, newJti, ttl), refreshTtlMs: ms };
   }

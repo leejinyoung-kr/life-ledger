@@ -38,8 +38,10 @@ describe('AuthService', () => {
       userSettings: { findUnique: jest.fn().mockResolvedValue(null) },
       notification: { create: jest.fn() },
       pushSubscription: { deleteMany: jest.fn() },
-      $transaction: jest.fn((ops: any[]) => Promise.all(ops)),
+      // 배열(일괄)과 콜백(interactive) 두 형태 — 콜백은 같은 가짜 prisma 를 tx 로 넘긴다
+      $transaction: jest.fn((arg: any) => (typeof arg === 'function' ? arg(prisma) : Promise.all(arg))),
     };
+    prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
     notification = { createWithPush: jest.fn().mockResolvedValue({ id: 1 }) };
   });
 
@@ -88,12 +90,29 @@ describe('AuthService', () => {
 
       expect(out.access).toBe('tok:access:7');
       expect(out.refresh).toBe('tok:refresh:7');
-      expect(prisma.refreshToken.update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 1 }, data: expect.objectContaining({ revoked_at: expect.any(Date) }) }),
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 1, revoked_at: null },
+          data: expect.objectContaining({ revoked_at: expect.any(Date) }),
+        }),
       );
       expect(prisma.refreshToken.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ user_id: 7, session_id: 9 }) }),
       );
+    });
+
+    it('같은 토큰으로 동시에 갱신하면 먼저 폐기한 요청만 통과 — 뒤 요청(조건부 폐기 0행)은 새 토큰 없이 거부', async () => {
+      jwt.verify.mockReturnValue({ sub: 7, jti: 'old-jti', type: 'refresh' });
+      // 두 요청 모두 findUnique 시점에는 아직 폐기 전으로 읽었다
+      prisma.refreshToken.findUnique.mockResolvedValue({ id: 1, user_id: 7, session_id: 9, revoked_at: null });
+      prisma.user.findUnique.mockResolvedValue({ id: 7, google_id: 'g', email: 'e', name: 'n', picture: 'p' });
+      prisma.refreshToken.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
+
+      const results = await Promise.allSettled([svc().refresh('x'), svc().refresh('x')]);
+
+      expect(results.map((r) => r.status)).toEqual(['fulfilled', 'rejected']);
+      expect((results[1] as PromiseRejectedResult).reason).toBeInstanceOf(UnauthorizedException);
+      expect(prisma.refreshToken.create).toHaveBeenCalledTimes(1);
     });
   });
 
