@@ -71,14 +71,6 @@
 > - 세션을 끊었는데 access 가 15분 살아 있는 것을 받아들일 수 있나?
 > - refresh 회전을 조건부 UPDATE(CAS)로 바꾸고 재사용 감지를 넣을까?
 
-## 면접 예상 질문
-
-- 세션 대신 JWT 를 쓴 이유는? refresh 를 DB 에 저장하면 결국 세션과 무엇이 다른가?
-- refresh 토큰을 왜 회전하나? 회전만으로 탈취를 막을 수 있나?
-- `SameSite` Lax · Strict · None 의 차이와, 이 앱에서 None 이 왜 문제였나?
-- access 를 localStorage 가 아니라 메모리에 두는 이유와 새로고침은 어떻게 처리하나?
-- 로그아웃한 기기의 access 토큰은 언제까지 유효한가?
-
 ## 참고
 
 - [api.md](../api.md) 인증 절 · [core-libraries.md](../core-libraries.md) `core-auth`
