@@ -40,7 +40,8 @@ jobs:
       - uses: actions/checkout@v7
 
       # setup-node 의 pnpm 캐시가 pnpm 을 찾으려면 먼저 켜 둬야 한다 (pace-log server-ci 와 같은 순서)
-      - run: corepack enable
+      # Node 25+ 에는 corepack 이 빠져 있다 — 러너 기본 Node 가 올라가도 돌게 먼저 설치한다 (Dockerfile 과 같은 버전)
+      - run: npm install -g corepack@0.36.0 && corepack enable
 
       - uses: actions/setup-node@v7
         with:
@@ -85,7 +86,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - run: corepack enable
+      # Node 25+ 에는 corepack 이 빠져 있다 — 러너 기본 Node 가 올라가도 돌게 먼저 설치한다 (Dockerfile 과 같은 버전)
+      - run: npm install -g corepack@0.36.0 && corepack enable
 
       - uses: actions/setup-node@v7
         with:
