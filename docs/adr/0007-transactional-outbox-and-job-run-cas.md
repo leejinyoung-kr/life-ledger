@@ -65,7 +65,7 @@
   - backend 프로세스는 하나다. "프로세스 사이" 겹침은 배포 때 옛 · 새 컨테이너가 잠깐 같이 뜰 때뿐인데, compose 교체 방식에서 실제로 겹치는지는 확인하지 않았다 (확인 필요).
   - "한 기기라도 성공하면 성공" 이라, 기기 세 대 중 하나만 실패하면 그 기기는 다시 보내지 않는다.
   - `claim` 은 후보 조회 뒤 행마다 UPDATE 한다(N+1). 지금 규모에선 문제 없다.
-  - 같은 레포의 refresh 토큰 회전은 CAS 를 쓰지 않는다 ([0001](0001-jwt-access-refresh-rotation.md)).
+  - ~~같은 레포의 refresh 토큰 회전은 CAS 를 쓰지 않는다~~ → **2026-10-18 고침.** refresh 회전도 `updateMany({ where: { id, revoked_at: null } })` 로 1행을 바꾼 요청만 새 토큰을 받는다 ([0001](0001-jwt-access-refresh-rotation.md)).
 
 ## 다시 정한다면 — 본인 작성
 
