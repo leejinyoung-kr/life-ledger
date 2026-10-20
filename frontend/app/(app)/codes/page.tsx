@@ -42,19 +42,19 @@ type Domain =
   | 'transaction'
   | 'pay_method'
   | 'subscription'
-  | 'asset'
   | 'investment'
   | 'saving'
   | 'bank'
   | 'credential_cat';
 
+// 자산 유형(asset)은 순자산 계산에 고정돼 어느 화면도 읽지 않아 탭에서 뺐다 — DB 행 · enum 은 남아 있다 (2026-10-20)
+// 투자 · 예적금 유형은 값이 백엔드 enum 이라 이름 · 순서 · 숨김만 반영된다
 const DOMAINS: { key: Domain; label: string; desc: string }[] = [
   { key: 'transaction',    label: '가계부 카테고리', desc: '수입/지출 내역의 카테고리' },
-  { key: 'pay_method',     label: '결제수단',        desc: '카드·계좌·간편결제 등' },
+  { key: 'pay_method',     label: '결제수단',        desc: '카드·계좌·간편결제 등 — 가계부 · 구독' },
   { key: 'subscription',   label: '구독 카테고리',   desc: 'OTT·음악·클라우드 등' },
-  { key: 'asset',          label: '자산 유형',        desc: '현금성·예적금·투자 등' },
-  { key: 'investment',     label: '투자 유형',        desc: '국내외 주식·ETF·코인 등' },
-  { key: 'saving',         label: '예적금 유형',      desc: '적금·예금·청약 등' },
+  { key: 'investment',     label: '투자 유형',        desc: '국내외 주식·ETF·코인 등 — 새 유형 추가는 반영 안 됨' },
+  { key: 'saving',         label: '예적금 유형',      desc: '적금·예금·청약 등 — 새 유형 추가는 반영 안 됨' },
   { key: 'bank',           label: '은행/기관',        desc: '예적금·계좌의 은행/금융기관' },
   { key: 'credential_cat', label: '계정 카테고리',    desc: '개발·금융·소셜 등' },
 ];
