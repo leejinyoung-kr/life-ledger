@@ -16,6 +16,20 @@ export interface Category {
   isActive: boolean;
 }
 
+// 선택지 — 사용 중인 항목 뒤에 기존 값(비활성이어도)을 붙인다. 수정 창을 열고 저장만 해도 값이 바뀌지 않고, 기본값([0])은 늘 사용 중인 항목
+export function activeWith(all: Category[], ...keep: (string | null | undefined)[]): Category[] {
+  return [...all.filter((c) => c.isActive), ...all.filter((c) => !c.isActive && keep.includes(c.code))];
+}
+
+// 2계층 카테고리 선택지 — 기존 소분류가 비활성이면 그 소분류와 대분류를 남긴다
+export function categoryOptions(all: Category[], keepLeaf?: string | null): { parents: Category[]; leaves: Category[] } {
+  const keepParent = keepLeaf ? all.find((c) => c.code === keepLeaf)?.parentCode : undefined;
+  return {
+    parents: activeWith(all.filter((c) => !c.parentCode), keepParent),
+    leaves: activeWith(all.filter((c) => c.parentCode), keepLeaf),
+  };
+}
+
 export type TransactionType = 'income' | 'expense' | 'transfer';
 export type RecurringCycle = 'daily' | 'monthly' | 'weekly' | 'yearly';
 export type WeekendAdjust = 'none' | 'before' | 'after';

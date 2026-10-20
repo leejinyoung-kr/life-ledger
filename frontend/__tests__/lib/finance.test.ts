@@ -1,8 +1,33 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
-  won, signedWon, dotDate, daysUntil, currentMonth, recurringRuleSummary,
-  type RecurringRule,
+  won, signedWon, dotDate, daysUntil, currentMonth, recurringRuleSummary, activeWith, categoryOptions,
+  type RecurringRule, type Category,
 } from '../../lib/finance';
+
+// 테스트용 카테고리 행
+const cat = (code: string, isActive: boolean, parentCode: string | null = null): Category =>
+  ({ id: 0, domain: 'transaction', code, label: code, parentCode, sortOrder: 0, isActive });
+
+describe('activeWith', () => {
+  const all = [cat('off', false), cat('a', true), cat('b', true)];
+  it('사용 중인 것만', () => expect(activeWith(all).map((c) => c.code)).toEqual(['a', 'b']));
+  it('기존 값은 비활성이어도 맨 뒤에 남긴다 — 첫 항목(기본값)은 사용 중인 것', () =>
+    expect(activeWith(all, 'off').map((c) => c.code)).toEqual(['a', 'b', 'off']));
+});
+
+describe('categoryOptions', () => {
+  const all = [cat('food', true), cat('food_cafe', true, 'food'), cat('old', false), cat('old_x', false, 'old')];
+  it('기존 소분류가 비활성이면 그 소분류와 대분류를 남긴다', () => {
+    const { parents, leaves } = categoryOptions(all, 'old_x');
+    expect(parents.map((c) => c.code)).toEqual(['food', 'old']);
+    expect(leaves.map((c) => c.code)).toEqual(['food_cafe', 'old_x']);
+  });
+  it('기존 값이 없으면 사용 중인 것만', () => {
+    const { parents, leaves } = categoryOptions(all);
+    expect(parents.map((c) => c.code)).toEqual(['food']);
+    expect(leaves.map((c) => c.code)).toEqual(['food_cafe']);
+  });
+});
 
 describe('won', () => {
   it('천단위 콤마 + ₩ 접두', () => expect(won(1234000)).toBe('₩1,234,000'));

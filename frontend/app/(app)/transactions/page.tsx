@@ -23,6 +23,9 @@ const ADD_LABELS: Record<TabId, string> = {
   invest: '투자 항목 추가',
 };
 
+// 목록이 오기 전 빈 배열 — 렌더마다 새 배열이 되어 useMemo 가 매번 다시 돌지 않게
+const NO_CATS: Category[] = [];
+
 function TransactionsPageInner() {
   const searchParams = useSearchParams();
   // ?tab= 은 자산 종합의 자산 구성 줄 · 탭 전환(changeTab)이 넣는다. 모르는 값이면 첫 탭
@@ -38,17 +41,18 @@ function TransactionsPageInner() {
   const [addTrigger, setAddTrigger] = useState<Record<TabId, number>>({
     ledger: 0, savings: 0, invest: 0,
   });
-  // 탭별 카테고리 (React Query 캐시 — 활성만 사용)
+  // 탭별 카테고리 (React Query 캐시). 가계부는 비활성 포함 전체를 넘긴다 — 기존 기록의 표시 · 수정에 필요하고 선택지는 안에서 거른다
   const txCatQuery = useApiQuery<Category[]>(['categories', 'transaction'], '/categories?domain=transaction');
   const savingCatQuery = useApiQuery<Category[]>(['categories', 'saving'], '/categories?domain=saving');
   const investCatQuery = useApiQuery<Category[]>(['categories', 'investment'], '/categories?domain=investment');
   const bankCatQuery = useApiQuery<Category[]>(['categories', 'bank'], '/categories?domain=bank');
   const payMethodCatQuery = useApiQuery<Category[]>(['categories', 'pay_method'], '/categories?domain=pay_method');
-  const txCats = useMemo(() => (txCatQuery.data ?? []).filter((c) => c.isActive), [txCatQuery.data]);
+  const allTxCats = txCatQuery.data ?? NO_CATS;
+  const allBankCats = bankCatQuery.data ?? NO_CATS;
+  const allPayMethodCats = payMethodCatQuery.data ?? NO_CATS;
   const savingCats = useMemo(() => (savingCatQuery.data ?? []).filter((c) => c.isActive), [savingCatQuery.data]);
   const investCats = useMemo(() => (investCatQuery.data ?? []).filter((c) => c.isActive), [investCatQuery.data]);
   const bankCats = useMemo(() => (bankCatQuery.data ?? []).filter((c) => c.isActive), [bankCatQuery.data]);
-  const payMethodCats = useMemo(() => (payMethodCatQuery.data ?? []).filter((c) => c.isActive), [payMethodCatQuery.data]);
 
   // 대시보드 '지출 기록'(?add=1)으로 들어오면 추가 창을 바로 연다. 새로고침에 다시 열리지 않게 주소에서 지운다
   useEffect(() => {
@@ -96,7 +100,7 @@ function TransactionsPageInner() {
         />
       </div>
 
-      {tab === 'ledger' && <LedgerTab categories={txCats} bankCats={bankCats} payMethodCats={payMethodCats} addTrigger={addTrigger.ledger} />}
+      {tab === 'ledger' && <LedgerTab categories={allTxCats} bankCats={allBankCats} payMethodCats={allPayMethodCats} addTrigger={addTrigger.ledger} />}
       {tab === 'savings' && <SavingsTab savingCats={savingCats} bankCats={bankCats} addTrigger={addTrigger.savings} />}
       {tab === 'invest' && <InvestTab investCats={investCats} addTrigger={addTrigger.invest} />}
     </AppShell>

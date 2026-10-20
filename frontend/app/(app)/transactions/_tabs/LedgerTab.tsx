@@ -45,6 +45,7 @@ import ListToolbar from '@/components/ListToolbar';
 import {
   TX_TYPE_LABEL, WEEKEND_ADJUST_LABEL, TRANSFER_TARGET_LABEL, recurringRuleSummary, WEEKDAY_LABEL,
   won, dotDate, localDate,
+  activeWith, categoryOptions,
   type Category, type Transaction, type TransactionFavorite, type TransactionSummary, type TrendBucket,
   type TransactionType, type RecurringCycle, type WeekendAdjust, type TransferTarget,
   type Saving, type InvestmentAccount, type RecurringSchedule,
@@ -84,12 +85,13 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
 
   useAddTrigger(addTrigger, () => setModal({ open: true, mode: 'add' }));
 
+  // 목록은 비활성 포함 전체 — 표시(코드 → 라벨)는 전체로 해야 비활성 항목이 붙은 기존 기록도 라벨로 보인다
   const catMap = Object.fromEntries(categories.map((c) => [c.code, c.label]));
   const payMethodMap = Object.fromEntries(payMethodCats.map((c) => [c.code, c.label]));
   const bankMap = Object.fromEntries(bankCats.map((c) => [c.code, c.label]));
-  // 2계층: 대분류(parentCode 없음) / 소분류(parentCode 있음) 분리. 필터·엑셀·표시에 사용
-  const parentCats = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
-  const leafCats = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
+  // 2계층: 대분류(parentCode 없음) / 소분류(parentCode 있음) 분리 — 필터 · 엑셀 양식은 사용 중인 것만
+  const parentCats = useMemo(() => categories.filter((c) => c.isActive && !c.parentCode), [categories]);
+  const leafCats = useMemo(() => categories.filter((c) => c.isActive && c.parentCode), [categories]);
 
   function handleSearch() { setApplied({ from: pendingFrom, to: pendingTo, type: pendingType, cat: pendingCat, q: pendingQ }); setPage(1); }
 
@@ -223,7 +225,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
 
   async function downloadTemplate() {
     try {
-      await downloadTransactionTemplate(leafCats.map((c) => c.label), payMethodCats.map((c) => c.label));
+      await downloadTransactionTemplate(leafCats.map((c) => c.label), payMethodCats.filter((c) => c.isActive).map((c) => c.label));
       notify.excelDownloaded();
     } catch {
       notify.error('양식 생성에 실패했습니다.');
@@ -587,10 +589,12 @@ function RecurringRow({ r, catLabel, onToggle, onEdit, onDelete }: { r: Recurrin
 type FavoriteFormState = { open: boolean; editing?: TransactionFavorite; fromManage?: boolean };
 
 // 즐겨찾기 등록/수정 — 날짜 없이 유형(수입·지출)·내역·카테고리·기본 금액·결제수단(입금 은행)·메모만 저장
-function FavoriteFormModal({ state, categories, bankCats, payMethodCats, onClose, onSaved }: { state: FavoriteFormState; categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; onClose: () => void; onSaved: () => void }) {
+function FavoriteFormModal({ state, categories, bankCats: allBanks, payMethodCats: allPays, onClose, onSaved }: { state: FavoriteFormState; categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
-  const parents = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
-  const leaves = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
+  // 목록은 비활성 포함 전체 — 선택지는 사용 중인 것 + 기존 값
+  const { parents, leaves } = useMemo(() => categoryOptions(categories, e?.category), [categories, e]);
+  const bankCats = useMemo(() => activeWith(allBanks, e?.payMethod), [allBanks, e]);
+  const payMethodCats = useMemo(() => activeWith(allPays, e?.payMethod), [allPays, e]);
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [title, setTitle] = useState('');
   const [parentCode, setParentCode] = useState('');
@@ -790,10 +794,14 @@ function parentTypeOf(parentCode: string | null | undefined): TransactionType {
   return 'expense';
 }
 
-function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSaved }: { state: ModalState; categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; onClose: () => void; onSaved: () => void }) {
+function LedgerModal({ state, categories, bankCats: allBanks, payMethodCats: allPays, onClose, onSaved }: { state: ModalState; categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
-  const parents = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
-  const leaves = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
+  // 목록은 비활성 포함 전체 — 선택지는 사용 중인 것 + 기존 값(수정 대상 또는 불러온 즐겨찾기)
+  const keepCategory = e?.category ?? state.prefill?.category;
+  const keepPay = e?.payMethod ?? state.prefill?.payMethod;
+  const { parents, leaves } = useMemo(() => categoryOptions(categories, keepCategory), [categories, keepCategory]);
+  const bankCats = useMemo(() => activeWith(allBanks, keepPay), [allBanks, keepPay]);
+  const payMethodCats = useMemo(() => activeWith(allPays, keepPay), [allPays, keepPay]);
   const [type, setType] = useState<TransactionType>('expense');
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
@@ -973,10 +981,12 @@ function LedgerModal({ state, categories, bankCats, payMethodCats, onClose, onSa
 
 // 자동이체 설정 모달 — "데이터는 그냥 생성만" 원칙에 따라 거래 생성 모달과 완전히 분리된 반복 규칙 등록/수정 전용 모달.
 // 저장 시 실제 거래는 만들지 않고 RecurringSchedule만 생성/수정 — 회차 생성은 크론이 규칙에 따라 처리한다.
-function RecurringTransactionModal({ state, categories, bankCats, payMethodCats, onClose, onSaved }: { state: RecurringModalState; categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; onClose: () => void; onSaved: () => void }) {
+function RecurringTransactionModal({ state, categories, bankCats: allBanks, payMethodCats: allPays, onClose, onSaved }: { state: RecurringModalState; categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const r = state.editing;
-  const parents = useMemo(() => categories.filter((c) => !c.parentCode), [categories]);
-  const leaves = useMemo(() => categories.filter((c) => c.parentCode), [categories]);
+  // 목록은 비활성 포함 전체 — 선택지는 사용 중인 것 + 기존 값
+  const { parents, leaves } = useMemo(() => categoryOptions(categories, r?.category), [categories, r]);
+  const bankCats = useMemo(() => activeWith(allBanks, r?.payMethod), [allBanks, r]);
+  const payMethodCats = useMemo(() => activeWith(allPays, r?.payMethod), [allPays, r]);
   const [type, setType] = useState<TransactionType>('expense');
   const [startDate, setStartDate] = useState('');
   const [title, setTitle] = useState('');
