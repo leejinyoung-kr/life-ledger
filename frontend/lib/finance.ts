@@ -30,6 +30,21 @@ export function categoryOptions(all: Category[], keepLeaf?: string | null): { pa
   };
 }
 
+// 값이 고정(백엔드 enum)인 유형의 선택지 — 라벨 · 순서 · 숨김은 코드 관리를 따르고, 코드 관리에 없는 고정 값은 고정 라벨로 뒤에 붙인다.
+// 코드 관리에서 새 코드를 추가해도 백엔드가 받지 못하므로 고정 값에 없는 코드는 빼낸다
+export function enumOptions<T extends string>(fixed: Record<T, string>, all: Category[], keep?: T): { value: T; label: string }[] {
+  const listed = new Set(all.map((c) => c.code));
+  return [
+    ...activeWith(all, keep).filter((c) => c.code in fixed).map((c) => ({ value: c.code as T, label: c.label })),
+    ...(Object.keys(fixed) as T[]).filter((k) => !listed.has(k)).map((k) => ({ value: k, label: fixed[k] })),
+  ];
+}
+
+// 고정 값의 화면 라벨 — 코드 관리 라벨(비활성 포함), 없으면 고정 라벨
+export function enumLabel<T extends string>(fixed: Record<T, string>, all: Category[], value: T): string {
+  return all.find((c) => c.code === value)?.label ?? fixed[value] ?? value;
+}
+
 export type TransactionType = 'income' | 'expense' | 'transfer';
 export type RecurringCycle = 'daily' | 'monthly' | 'weekly' | 'yearly';
 export type WeekendAdjust = 'none' | 'before' | 'after';

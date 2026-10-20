@@ -24,7 +24,7 @@ import MobileCard, { MobileCardList } from '@/components/MobileCard';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import FilterPanel from '@/components/FilterPanel';
 import {
-  SAVING_TYPE_LABEL, won, dotDate, daysUntil, calcMaturityAmount,
+  SAVING_TYPE_LABEL, enumOptions, enumLabel, won, dotDate, daysUntil, calcMaturityAmount,
   type Category, type Saving, type SavingSummary, type SavingType,
 } from '@/lib/finance';
 import { toDay, useAddTrigger } from '../_shared';
@@ -122,7 +122,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
           <div className="flex gap-2 items-center flex-1 min-w-0">
             <select className="input w-24 shrink-0 md:w-auto md:min-w-30" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
               <option value="">전체</option>
-              {savingCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+              {enumOptions(SAVING_TYPE_LABEL, savingCats).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             <SearchInput label="상품명 검색" className="flex-1 min-w-0" placeholder="상품명 검색" value={pendingName} onChange={(ev) => setPendingName(ev.target.value)} onEnter={handleSearch} />
             <Button className="shrink-0" onClick={handleSearch}>조회</Button>
@@ -167,7 +167,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                       <div className="flex flex-col leading-snug min-w-0">
                         <span>{c.name}</span>
                         <span className="text-[0.75rem] text-muted">
-                          {c.bank} · {SAVING_TYPE_LABEL[c.type]}
+                          {c.bank} · {enumLabel(SAVING_TYPE_LABEL, savingCats, c.type)}
                           <span className="xl:hidden"> · {c.interestRate}%{c.monthlyAmount > 0 ? ` · 월 ${won(c.monthlyAmount)}` : ''}</span>
                         </span>
                       </div>
@@ -211,7 +211,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                 checked={selected.has(c.id)}
                 onCheck={() => toggle(c.id)}
                 title={c.name}
-                sub={`${c.bank} · ${SAVING_TYPE_LABEL[c.type]}`}
+                sub={`${c.bank} · ${enumLabel(SAVING_TYPE_LABEL, savingCats, c.type)}`}
                 aside={<>
                   <span className="text-[0.95rem] font-semibold tabular-nums">{won(c.balance)}</span>
                   {maturityAmt !== null && <span className="text-[0.72rem] text-muted tabular-nums">만기예상 {won(maturityAmt)}</span>}
@@ -241,6 +241,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
 
       <SavingsModal
         state={modal}
+        savingCats={savingCats}
         bankCats={bankCats}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setModal((s) => ({ ...s, open: false })); reload(); }}
@@ -251,8 +252,10 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
 }
 
 // 예적금 추가/수정 창 — 행을 누르면 같은 창이 수정 모드로 열린다 (상세 창은 따로 없다)
-function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState; bankCats: Category[]; onClose: () => void; onSaved: () => void }) {
+function SavingsModal({ state, savingCats, bankCats, onClose, onSaved }: { state: ModalState; savingCats: Category[]; bankCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
+  // 유형 선택지 — 라벨 · 순서는 코드 관리, 기존 값은 비활성이어도 남긴다
+  const typeItems = useMemo(() => enumOptions(SAVING_TYPE_LABEL, savingCats, (e ?? state.prefill)?.type), [savingCats, e, state.prefill]);
   const [bank, setBank] = useState('');
   const [name, setName] = useState('');
   const [type, setType] = useState<SavingType>('savings');
@@ -323,7 +326,7 @@ function SavingsModal({ state, bankCats, onClose, onSaved }: { state: ModalState
           fill
           value={type}
           onChange={setType}
-          items={[{ value: 'savings', label: '적금' }, { value: 'deposit', label: '예금' }, { value: 'subscription', label: '청약' }, { value: 'etc', label: '기타' }]}
+          items={typeItems}
         />
       </div>
       <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">

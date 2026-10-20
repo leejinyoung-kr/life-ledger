@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
-  won, signedWon, dotDate, daysUntil, currentMonth, recurringRuleSummary, activeWith, categoryOptions,
+  won, signedWon, dotDate, daysUntil, currentMonth, recurringRuleSummary, activeWith, categoryOptions, enumOptions, enumLabel,
   type RecurringRule, type Category,
 } from '../../lib/finance';
 
@@ -13,6 +13,20 @@ describe('activeWith', () => {
   it('사용 중인 것만', () => expect(activeWith(all).map((c) => c.code)).toEqual(['a', 'b']));
   it('기존 값은 비활성이어도 맨 뒤에 남긴다 — 첫 항목(기본값)은 사용 중인 것', () =>
     expect(activeWith(all, 'off').map((c) => c.code)).toEqual(['a', 'b', 'off']));
+});
+
+describe('enumOptions · enumLabel', () => {
+  const fixed = { a: '고정A', b: '고정B', c: '고정C' };
+  // 코드 관리: b 를 앞에 두고 라벨 변경, a 는 숨김, c 는 없음, x 는 백엔드가 모르는 새 코드
+  const all = [{ ...cat('b', true), label: '바뀐B' }, cat('a', false), cat('x', true)];
+  it('라벨 · 순서 · 숨김은 코드 관리, 없는 고정 값은 뒤에, 모르는 코드는 뺀다', () =>
+    expect(enumOptions(fixed, all)).toEqual([{ value: 'b', label: '바뀐B' }, { value: 'c', label: '고정C' }]));
+  it('기존 값은 숨김이어도 남긴다', () =>
+    expect(enumOptions(fixed, all, 'a').map((o) => o.value)).toEqual(['b', 'a', 'c']));
+  it('라벨은 코드 관리(숨김 포함), 없으면 고정 라벨', () => {
+    expect(enumLabel(fixed, all, 'b')).toBe('바뀐B');
+    expect(enumLabel(fixed, all, 'c')).toBe('고정C');
+  });
 });
 
 describe('categoryOptions', () => {

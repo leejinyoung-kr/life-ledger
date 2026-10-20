@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import Segmented, { type SegmentedItem } from '@/components/ui/Segmented';
@@ -13,8 +13,8 @@ import { api } from '@/lib/api';
 import { useApiQuery } from '@/lib/query';
 import { useFormErrors } from '@/lib/useFormErrors';
 import {
-  won, localDate, WEEKDAY_LABEL,
-  type Investment, type InvestmentAccount, type InvestmentType,
+  won, localDate, WEEKDAY_LABEL, INVEST_TYPE_LABEL, enumOptions,
+  type Category, type Investment, type InvestmentAccount, type InvestmentType,
   type RecurringCycle, type WeekendAdjust, type RecurringSchedule,
 } from '@/lib/finance';
 import { toDay, ruleDayFor } from '../_shared';
@@ -184,8 +184,10 @@ export function PriceLookupModal({ state, onClose, onSaved }: { state: PriceStat
 }
 
 // 투자 항목 추가/수정 — 종목 · 금액 · 날짜 세 묶음. 해외 종목이면 원금 · 평가금액 · 도우미가 모두 달러($)
-export function InvestModal({ state, accounts, onClose, onSaved }: { state: ModalState; accounts: InvestmentAccount[]; onClose: () => void; onSaved: () => void }) {
+export function InvestModal({ state, accounts, investCats, onClose, onSaved }: { state: ModalState; accounts: InvestmentAccount[]; investCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
+  // 유형 선택지 — 라벨 · 순서는 코드 관리, 기존 값은 비활성이어도 남긴다
+  const typeItems = useMemo(() => enumOptions(INVEST_TYPE_LABEL, investCats, (e ?? state.prefill)?.type), [investCats, e, state.prefill]);
   const [accountId, setAccountId] = useState<number | ''>('');
   const [name, setName] = useState('');
   const [type, setType] = useState<InvestmentType>('domestic_stock');
@@ -311,10 +313,7 @@ export function InvestModal({ state, accounts, onClose, onSaved }: { state: Moda
             fill
             value={type}
             onChange={setType}
-            items={[
-              { value: 'domestic_stock', label: '국내주식' }, { value: 'foreign_stock', label: '해외주식' }, { value: 'foreign_etf', label: '해외ETF' },
-              { value: 'domestic_etf', label: '국내ETF' }, { value: 'crypto', label: '가상자산' }, { value: 'etc', label: '기타' },
-            ]}
+            items={typeItems}
           />
         </div>
         <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">

@@ -27,7 +27,7 @@ import MobileCard, { MobileCardList } from '@/components/MobileCard';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import FilterPanel from '@/components/FilterPanel';
 import {
-  INVEST_TYPE_LABEL, won, usd, dotDate, daysUntil, recurringRuleSummary,
+  INVEST_TYPE_LABEL, enumOptions, enumLabel, won, usd, dotDate, daysUntil, recurringRuleSummary,
   type Category, type Investment, type InvestmentAccount, type InvestmentSummary, type RecurringSchedule,
 } from '@/lib/finance';
 import { useAddTrigger } from '../_shared';
@@ -318,7 +318,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
             </select>
             <select className="input flex-1 md:flex-none md:w-auto md:min-w-30 shrink-0" value={pendingType} onChange={(ev) => setPendingType(ev.target.value)} aria-label="유형 필터">
               <option value="">전체 유형</option>
-              {investCats.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
+              {enumOptions(INVEST_TYPE_LABEL, investCats).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <div className="flex gap-2 items-center flex-1">
@@ -375,7 +375,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                           {row.name}
                           {recurring && <IconRepeat className="w-3.25 h-3.25 text-muted shrink-0" aria-label={`반복매수 · ${recurring}`} />}
                         </span>
-                        <span className="text-[0.75rem] text-muted">{accountMap.get(row.accountId)?.name ?? '-'} · {INVEST_TYPE_LABEL[row.type]}</span>
+                        <span className="text-[0.75rem] text-muted">{accountMap.get(row.accountId)?.name ?? '-'} · {enumLabel(INVEST_TYPE_LABEL, investCats, row.type)}</span>
                       </div>
                     </td>
                     <td className="td-mono td-right text-muted max-xl:hidden">{fmtPrincipal(row)}</td>
@@ -413,7 +413,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
                     {recurringSchedule && <IconRepeat className="w-3.25 h-3.25 text-muted shrink-0" aria-label="반복매수" />}
                   </span>
                 }
-                sub={`${accountMap.get(row.accountId)?.name ?? '-'} · ${INVEST_TYPE_LABEL[row.type]}`}
+                sub={`${accountMap.get(row.accountId)?.name ?? '-'} · ${enumLabel(INVEST_TYPE_LABEL, investCats, row.type)}`}
                 aside={<>
                   <span className="text-[0.95rem] font-semibold tabular-nums">{fmtCurrentValue(row)}</span>
                   <span className={`return-pill ${profit.up ? 'up' : 'down'}`}>{profit.up ? '+' : ''}{row.profitRate}%</span>
@@ -445,6 +445,7 @@ export default function InvestTab({ investCats, addTrigger }: { investCats: Cate
       <InvestModal
         state={modal}
         accounts={accounts}
+        investCats={investCats}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setModal((s) => ({ ...s, open: false })); reload(); }}
       />

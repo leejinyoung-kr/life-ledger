@@ -50,8 +50,10 @@ function TransactionsPageInner() {
   const allTxCats = txCatQuery.data ?? NO_CATS;
   const allBankCats = bankCatQuery.data ?? NO_CATS;
   const allPayMethodCats = payMethodCatQuery.data ?? NO_CATS;
-  const savingCats = useMemo(() => (savingCatQuery.data ?? []).filter((c) => c.isActive), [savingCatQuery.data]);
-  const investCats = useMemo(() => (investCatQuery.data ?? []).filter((c) => c.isActive), [investCatQuery.data]);
+  // 예적금 · 투자 유형은 값이 고정(enum)이라 라벨 · 순서만 코드 관리에서 — 비활성 포함 전체를 넘기고 선택지는 안에서 거른다
+  const allSavingCats = savingCatQuery.data ?? NO_CATS;
+  const allInvestCats = investCatQuery.data ?? NO_CATS;
+  // 예적금 은행은 라벨로 저장된다 — 선택지용 사용 중인 것만
   const bankCats = useMemo(() => (bankCatQuery.data ?? []).filter((c) => c.isActive), [bankCatQuery.data]);
 
   // 대시보드 '지출 기록'(?add=1)으로 들어오면 추가 창을 바로 연다. 새로고침에 다시 열리지 않게 주소에서 지운다
@@ -101,8 +103,8 @@ function TransactionsPageInner() {
       </div>
 
       {tab === 'ledger' && <LedgerTab categories={allTxCats} bankCats={allBankCats} payMethodCats={allPayMethodCats} addTrigger={addTrigger.ledger} />}
-      {tab === 'savings' && <SavingsTab savingCats={savingCats} bankCats={bankCats} addTrigger={addTrigger.savings} />}
-      {tab === 'invest' && <InvestTab investCats={investCats} addTrigger={addTrigger.invest} />}
+      {tab === 'savings' && <SavingsTab savingCats={allSavingCats} bankCats={bankCats} addTrigger={addTrigger.savings} />}
+      {tab === 'invest' && <InvestTab investCats={allInvestCats} addTrigger={addTrigger.invest} />}
     </AppShell>
   );
 }
