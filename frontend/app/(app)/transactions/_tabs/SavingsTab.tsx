@@ -24,7 +24,7 @@ import MobileCard, { MobileCardList } from '@/components/MobileCard';
 import TableEmptyRow from '@/components/TableEmptyRow';
 import FilterPanel from '@/components/FilterPanel';
 import {
-  SAVING_TYPE_LABEL, enumOptions, enumLabel, won, dotDate, daysUntil, calcMaturityAmount,
+  SAVING_TYPE_LABEL, enumOptions, enumLabel, activeWith, won, dotDate, daysUntil, calcMaturityAmount,
   type Category, type Saving, type SavingSummary, type SavingType,
 } from '@/lib/finance';
 import { toDay, useAddTrigger } from '../_shared';
@@ -43,6 +43,8 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
   const [applied, setApplied] = useState({ type: '', name: '' });
 
   useAddTrigger(addTrigger, () => setModal({ open: true, mode: 'add' }));
+  // 은행 code → 이름 (비활성 포함 전체). 예적금에는 code 가 저장된다 (ADR 0009)
+  const bankLabel = useMemo(() => Object.fromEntries(bankCats.map((b) => [b.code, b.label])), [bankCats]);
 
   function handleSearch() { setApplied({ type: pendingType, name: pendingName }); setPage(1); }
   function handleReset() { setPendingType(''); setPendingName(''); setApplied({ type: '', name: '' }); setPage(1); }
@@ -167,7 +169,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                       <div className="flex flex-col leading-snug min-w-0">
                         <span>{c.name}</span>
                         <span className="text-[0.75rem] text-muted">
-                          {c.bank} · {enumLabel(SAVING_TYPE_LABEL, savingCats, c.type)}
+                          {bankLabel[c.bank] ?? c.bank} · {enumLabel(SAVING_TYPE_LABEL, savingCats, c.type)}
                           <span className="xl:hidden"> · {c.interestRate}%{c.monthlyAmount > 0 ? ` · 월 ${won(c.monthlyAmount)}` : ''}</span>
                         </span>
                       </div>
@@ -211,7 +213,7 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
                 checked={selected.has(c.id)}
                 onCheck={() => toggle(c.id)}
                 title={c.name}
-                sub={`${c.bank} · ${enumLabel(SAVING_TYPE_LABEL, savingCats, c.type)}`}
+                sub={`${bankLabel[c.bank] ?? c.bank} · ${enumLabel(SAVING_TYPE_LABEL, savingCats, c.type)}`}
                 aside={<>
                   <span className="text-[0.95rem] font-semibold tabular-nums">{won(c.balance)}</span>
                   {maturityAmt !== null && <span className="text-[0.72rem] text-muted tabular-nums">만기예상 {won(maturityAmt)}</span>}
@@ -252,8 +254,10 @@ export default function SavingsTab({ savingCats, bankCats, addTrigger }: { savin
 }
 
 // 예적금 추가/수정 창 — 행을 누르면 같은 창이 수정 모드로 열린다 (상세 창은 따로 없다)
-function SavingsModal({ state, savingCats, bankCats, onClose, onSaved }: { state: ModalState; savingCats: Category[]; bankCats: Category[]; onClose: () => void; onSaved: () => void }) {
+function SavingsModal({ state, savingCats, bankCats: allBanks, onClose, onSaved }: { state: ModalState; savingCats: Category[]; bankCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
+  // 은행 선택지 — 사용 중인 것 + 기존 값(비활성이어도)
+  const bankCats = useMemo(() => activeWith(allBanks, (e ?? state.prefill)?.bank), [allBanks, e, state.prefill]);
   // 유형 선택지 — 라벨 · 순서는 코드 관리, 기존 값은 비활성이어도 남긴다
   const typeItems = useMemo(() => enumOptions(SAVING_TYPE_LABEL, savingCats, (e ?? state.prefill)?.type), [savingCats, e, state.prefill]);
   const [bank, setBank] = useState('');
@@ -333,9 +337,9 @@ function SavingsModal({ state, savingCats, bankCats, onClose, onSaved }: { state
         <Field label="은행/기관" required error={errors.bank}>
           <select className="input" aria-label="은행/기관" value={bank} onChange={(ev) => { setBank(ev.target.value); clearError('bank'); }}>
             <option value="" disabled>은행/기관 선택</option>
-            {/* 기존 자유텍스트 값이 목록에 없으면 그대로 옵션으로 노출 */}
-            {bank && !bankCats.some((b) => b.label === bank) && <option value={bank}>{bank}</option>}
-            {bankCats.map((b) => <option key={b.code} value={b.label}>{b.label}</option>)}
+            {/* 코드 관리에 없는 값(지운 코드 · 옮기지 못한 옛 이름)이면 그대로 노출 */}
+            {bank && !bankCats.some((b) => b.code === bank) && <option value={bank}>{bank}</option>}
+            {bankCats.map((b) => <option key={b.code} value={b.code}>{b.label}</option>)}
           </select>
         </Field>
         <Field label="상품명" required error={errors.name}>

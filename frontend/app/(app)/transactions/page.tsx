@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import PageHeader from '@/components/PageHeader';
@@ -41,7 +41,7 @@ function TransactionsPageInner() {
   const [addTrigger, setAddTrigger] = useState<Record<TabId, number>>({
     ledger: 0, savings: 0, invest: 0,
   });
-  // 탭별 카테고리 (React Query 캐시). 가계부는 비활성 포함 전체를 넘긴다 — 기존 기록의 표시 · 수정에 필요하고 선택지는 안에서 거른다
+  // 탭별 카테고리 (React Query 캐시). 모두 비활성 포함 전체를 넘긴다 — 기존 기록의 표시 · 수정에 필요하고 선택지는 각 탭 안에서 거른다
   const txCatQuery = useApiQuery<Category[]>(['categories', 'transaction'], '/categories?domain=transaction');
   const savingCatQuery = useApiQuery<Category[]>(['categories', 'saving'], '/categories?domain=saving');
   const investCatQuery = useApiQuery<Category[]>(['categories', 'investment'], '/categories?domain=investment');
@@ -53,8 +53,6 @@ function TransactionsPageInner() {
   // 예적금 · 투자 유형은 값이 고정(enum)이라 라벨 · 순서만 코드 관리에서 — 비활성 포함 전체를 넘기고 선택지는 안에서 거른다
   const allSavingCats = savingCatQuery.data ?? NO_CATS;
   const allInvestCats = investCatQuery.data ?? NO_CATS;
-  // 예적금 은행은 라벨로 저장된다 — 선택지용 사용 중인 것만
-  const bankCats = useMemo(() => (bankCatQuery.data ?? []).filter((c) => c.isActive), [bankCatQuery.data]);
 
   // 대시보드 '지출 기록'(?add=1)으로 들어오면 추가 창을 바로 연다. 새로고침에 다시 열리지 않게 주소에서 지운다
   useEffect(() => {
@@ -103,7 +101,7 @@ function TransactionsPageInner() {
       </div>
 
       {tab === 'ledger' && <LedgerTab categories={allTxCats} bankCats={allBankCats} payMethodCats={allPayMethodCats} addTrigger={addTrigger.ledger} />}
-      {tab === 'savings' && <SavingsTab savingCats={allSavingCats} bankCats={bankCats} addTrigger={addTrigger.savings} />}
+      {tab === 'savings' && <SavingsTab savingCats={allSavingCats} bankCats={allBankCats} addTrigger={addTrigger.savings} />}
       {tab === 'invest' && <InvestTab investCats={allInvestCats} addTrigger={addTrigger.invest} />}
     </AppShell>
   );

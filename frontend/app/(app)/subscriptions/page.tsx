@@ -35,7 +35,7 @@ import { IconRepeat, IconAlertTriangle, IconPlus, IconEdit, IconTrash, IconCalen
 import { api } from '@/lib/api';
 import { won, usd, dotDate, daysUntil, localDate, activeWith, type Category } from '@/lib/finance';
 import {
-  CYCLE_LABEL, STATUS_LABEL, SUB_PAY_METHODS, SUB_CURRENCY_LABEL,
+  CYCLE_LABEL, STATUS_LABEL, SUB_CURRENCY_LABEL,
   type Subscription, type SubscriptionSummary,
   type SubscriptionCycle, type SubscriptionStatus,
 } from '@/lib/subscription';
@@ -78,6 +78,10 @@ export default function SubscriptionsPage() {
   const catQuery = useApiQuery<Category[]>(['categories', 'subscription'], '/categories?domain=subscription');
   const subCats = catQuery.data ?? NO_CATS;
   const catLabel = useMemo(() => Object.fromEntries(subCats.map((c) => [c.code, c.label])), [subCats]);
+  // 결제수단 — 코드 관리(pay_method, 가계부와 같은 목록). 구독에는 code 가 저장된다 (ADR 0009)
+  const payQuery = useApiQuery<Category[]>(['categories', 'pay_method'], '/categories?domain=pay_method');
+  const payCats = payQuery.data ?? NO_CATS;
+  const payLabel = useMemo(() => Object.fromEntries(payCats.map((c) => [c.code, c.label])), [payCats]);
 
   // 조회 버튼(또는 Enter) 클릭 시에만 실제 필터에 반영
   function handleSearch() {
@@ -251,7 +255,7 @@ export default function SubscriptionsPage() {
                         <span>{sub.name}</span>
                         <span className="text-[0.75rem] text-muted">
                           {catLabel[sub.category] ?? sub.category}
-                          {sub.payMethod && <span className="xl:hidden"> · {sub.payMethod}</span>}
+                          {sub.payMethod && <span className="xl:hidden"> · {payLabel[sub.payMethod] ?? sub.payMethod}</span>}
                         </span>
                       </div>
                     </td>
@@ -261,7 +265,7 @@ export default function SubscriptionsPage() {
                       {dotDate(sub.nextPaymentDate)}
                       {dd !== null && dd >= 0 && <span className={`text-[0.75rem] ml-1 ${dd <= SOON_DAYS ? 'text-warning' : 'text-muted'}`}>D-{dd}</span>}
                     </td>
-                    <td className="td-muted max-xl:hidden">{sub.payMethod}</td>
+                    <td className="td-muted max-xl:hidden">{payLabel[sub.payMethod] ?? sub.payMethod}</td>
                     <td className={`td-mono ${stale ? 'text-warning' : 'td-muted'}`}>
                       {ago === null ? '-' : (
                         <span className="flex items-center gap-1.5">
@@ -304,7 +308,7 @@ export default function SubscriptionsPage() {
                   label: '다음 결제',
                   value: <>{dotDate(sub.nextPaymentDate)}{dd !== null && dd >= 0 && <span className={`ml-1.5 ${dd <= SOON_DAYS ? 'text-warning' : 'text-muted'}`}>D-{dd}</span>}</>,
                 },
-                { label: '결제수단', value: sub.payMethod },
+                { label: '결제수단', value: payLabel[sub.payMethod] ?? sub.payMethod },
                 {
                   label: '마지막 사용',
                   value: ago === null ? null : ago === 0 ? '오늘' : stale ? `${ago}일 전` : dotDate(sub.lastUsedAt ?? ''),
@@ -327,6 +331,7 @@ export default function SubscriptionsPage() {
       <SubscriptionModal
         state={modal}
         subCats={subCats}
+        payCats={payCats}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setModal((s) => ({ ...s, open: false })); bump(); }}
       />
@@ -335,10 +340,11 @@ export default function SubscriptionsPage() {
 }
 
 // 구독 추가·수정 모달
-function SubscriptionModal({ state, subCats, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing?: Subscription }; subCats: Category[]; onClose: () => void; onSaved: () => void }) {
+function SubscriptionModal({ state, subCats, payCats, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing?: Subscription }; subCats: Category[]; payCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
-  // 카테고리 선택지 — 사용 중인 것 + 기존 값(비활성이어도)
+  // 카테고리 · 결제수단 선택지 — 사용 중인 것 + 기존 값(비활성이어도)
   const catOptions = useMemo(() => activeWith(subCats, e?.category), [subCats, e]);
+  const payOptions = useMemo(() => activeWith(payCats, e?.payMethod), [payCats, e]);
   const [name, setName] = useState('');
   // 비어 있으면 아직 고르지 않은 것 — 선택지 첫 항목을 쓴다 (목록이 모달보다 늦게 와도 맞게)
   const [category, setCategory] = useState('');
@@ -347,7 +353,8 @@ function SubscriptionModal({ state, subCats, onClose, onSaved }: { state: { open
   const [cycle, setCycle] = useState<SubscriptionCycle>('monthly');
   const [nextPaymentDate, setNextPaymentDate] = useState('');
   const [status, setStatus] = useState<SubscriptionStatus>('active');
-  const [payMethod, setPayMethod] = useState(SUB_PAY_METHODS[0]);
+  // 비어 있으면 선택지 첫 항목 — 카테고리와 같은 방식
+  const [payMethod, setPayMethod] = useState('');
   const [lastUsedAt, setLastUsedAt] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
@@ -364,7 +371,7 @@ function SubscriptionModal({ state, subCats, onClose, onSaved }: { state: { open
     setCycle(e?.cycle ?? 'monthly');
     setNextPaymentDate(e?.nextPaymentDate ?? localDate());
     setStatus(e?.status ?? 'active');
-    setPayMethod(e?.payMethod ?? SUB_PAY_METHODS[0]);
+    setPayMethod(e?.payMethod ?? '');
     setLastUsedAt(e?.lastUsedAt ?? '');
     setMemo(e?.memo ?? '');
   }, [state.open, e, reset]);
@@ -379,6 +386,7 @@ function SubscriptionModal({ state, subCats, onClose, onSaved }: { state: { open
   }
 
   const chosenCategory = category || catOptions[0]?.code || '';
+  const chosenPay = payMethod || payOptions[0]?.code || '';
 
   async function handleSave() {
     if (!validate()) return;
@@ -386,7 +394,7 @@ function SubscriptionModal({ state, subCats, onClose, onSaved }: { state: { open
     try {
       const payload = {
         name, category: chosenCategory, amount: Number(amount), currency, cycle, status,
-        nextPaymentDate, payMethod,
+        nextPaymentDate, payMethod: chosenPay,
         lastUsedAt: lastUsedAt || undefined, memo: memo || undefined,
       };
       if (state.mode === 'edit' && e) await api.put(`/subscriptions/${e.id}`, payload);
@@ -446,8 +454,10 @@ function SubscriptionModal({ state, subCats, onClose, onSaved }: { state: { open
             </div>
           </Field>
           <Field label="결제수단">
-            <select className="input" aria-label="결제수단" value={payMethod} onChange={(ev) => setPayMethod(ev.target.value)}>
-              {SUB_PAY_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+            <select className="input" aria-label="결제수단" value={chosenPay} onChange={(ev) => setPayMethod(ev.target.value)}>
+              {/* 코드 관리에 없는 값(지운 코드 · 바꾸기 전 이름)이면 그대로 노출 */}
+              {chosenPay && !payOptions.some((m) => m.code === chosenPay) && <option value={chosenPay}>{chosenPay}</option>}
+              {payOptions.map((m) => <option key={m.code} value={m.code}>{m.label}</option>)}
             </select>
           </Field>
           <FieldGroup label="주기" required>

@@ -823,7 +823,7 @@ function LedgerModal({ state, categories, bankCats: allBanks, payMethodCats: all
   // 투자는 종목(Investment)이 아니라 예수금을 보유한 투자 계좌(InvestmentAccount)가 자산이동 대상
   const investmentAccountsQuery = useApiQuery<InvestmentAccount[]>(qk.investmentAccounts.list('transfer-target'), '/investment-accounts', { enabled: targetPickerOpen && targetType === 'investment' });
   const targetItems: { id: number; label: string }[] = targetType === 'saving'
-    ? (savingsQuery.data ?? []).map((s) => ({ id: s.id, label: `${s.bank} · ${s.name}` }))
+    ? (savingsQuery.data ?? []).map((s) => ({ id: s.id, label: `${allBanks.find((b) => b.code === s.bank)?.label ?? s.bank} · ${s.name}` }))
     : targetType === 'investment'
       ? (investmentAccountsQuery.data ?? []).map((a) => ({ id: a.id, label: a.name }))
       : [];
@@ -1009,7 +1009,7 @@ function RecurringTransactionModal({ state, categories, bankCats: allBanks, payM
   const savingsQuery = useApiQuery<Saving[]>(qk.savings.list('transfer-target'), '/savings', { enabled: targetPickerOpen && targetType === 'saving' });
   const investmentAccountsQuery = useApiQuery<InvestmentAccount[]>(qk.investmentAccounts.list('transfer-target'), '/investment-accounts', { enabled: targetPickerOpen && targetType === 'investment' });
   const targetItems: { id: number; label: string }[] = targetType === 'saving'
-    ? (savingsQuery.data ?? []).map((s) => ({ id: s.id, label: `${s.bank} · ${s.name}` }))
+    ? (savingsQuery.data ?? []).map((s) => ({ id: s.id, label: `${allBanks.find((b) => b.code === s.bank)?.label ?? s.bank} · ${s.name}` }))
     : targetType === 'investment'
       ? (investmentAccountsQuery.data ?? []).map((a) => ({ id: a.id, label: a.name }))
       : [];

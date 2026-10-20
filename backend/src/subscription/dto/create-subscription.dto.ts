@@ -38,6 +38,7 @@ export class CreateSubscriptionDto {
   @IsDateString()
   nextPaymentDate: string;
 
+  // 코드 관리 pay_method code (ADR 0009)
   @IsString()
   @MaxLength(50)
   payMethod: string;

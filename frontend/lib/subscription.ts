@@ -32,7 +32,7 @@ export interface SubscriptionSummary {
 }
 
 // ── 라벨맵 (코드 ↔ 화면 표시) ────────────────────────────────────
-// 카테고리 라벨 · 선택지는 코드 관리(subscription)에서 읽는다 — subscriptions/page.tsx
+// 카테고리 · 결제수단 라벨과 선택지는 코드 관리(subscription · pay_method)에서 읽는다 — subscriptions/page.tsx
 export const CYCLE_LABEL: Record<SubscriptionCycle, string> = {
   monthly: '월',
   yearly: '년',
@@ -44,8 +44,6 @@ export const STATUS_LABEL: Record<SubscriptionStatus, string> = {
   trial: '체험',
   paused: '일시정지',
 };
-
-export const SUB_PAY_METHODS = ['신한카드', '카카오페이', '쿠페이', '해외결제', '계좌이체'];
 
 export const SUB_CURRENCY_LABEL: Record<'KRW' | 'USD', string> = {
   KRW: 'KRW ₩',

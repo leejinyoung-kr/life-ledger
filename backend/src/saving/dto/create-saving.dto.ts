@@ -9,6 +9,7 @@ import {
 } from 'class-validator';
 
 export class CreateSavingDto {
+  // 코드 관리 bank code (ADR 0009)
   @IsString()
   @MaxLength(100)
   bank: string;

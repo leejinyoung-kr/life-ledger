@@ -116,7 +116,7 @@ enum SavingType {
 model Saving {
   id             Int        @id @default(autoincrement())
   user_id        Int /// user.id FK
-  bank           String     @db.VarChar(100)
+  bank           String     @db.VarChar(100) /// 은행/기관 — 코드 관리 bank code (ADR 0009)
   name           String     @db.VarChar(100)
   type           SavingType
   interest_rate  Decimal    @db.Decimal(5, 2)
@@ -280,7 +280,7 @@ model Subscription {
   status            SubscriptionStatus   @default(active)
   next_payment_date DateTime             @db.Date
   billing_day       Int                  @db.TinyInt /// 원래 결제일(1-31) — 2월 등에 말일로 줄어든 뒤 다음 달에 되돌리는 기준
-  pay_method        String               @db.VarChar(50)
+  pay_method        String               @db.VarChar(50) /// 결제수단 — 코드 관리 pay_method code (ADR 0009)
   last_used_at      DateTime?            @db.Date
   memo              String?              @db.VarChar(300)
   deleted_at        DateTime?
