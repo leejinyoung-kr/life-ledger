@@ -88,4 +88,4 @@ docker 가 알아서 지워 주는 양으로는 165G 까지 쌓이는 것을 막
 
 - 홈서버 규칙 · docker 정리: [infra README](https://github.com/leejinyoung-kr/infra) 「docker 정리」 (비공개 레포)
 - 배포 워크플로: [`.github/workflows/deploy-home-server.yml`](../../.github/workflows/deploy-home-server.yml) 의 `Clean up docker` 단계
-- 관련 개념: docker 빌드 캐시와 `builder prune`, BuildKit GC, 디스크 알람 (학습로드맵 03 도커 · 07 관측성)
+- 관련 개념: docker 빌드 캐시와 `builder prune`, BuildKit GC, 디스크 알람 (학습로드맵 02 도커 · 07 관측성)
