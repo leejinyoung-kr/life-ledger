@@ -5,13 +5,14 @@
 import type { TransactionType } from '@prisma/client';
 import type { SeedFn } from './helpers';
 
+// payMethod 는 코드 관리 pay_method code — 지출만 저장된다
 type FavoriteSeed = { type: TransactionType; title: string; category: string; amount: number; payMethod: string; memo?: string };
 
 const FAVORITES: FavoriteSeed[] = [
-  { type: 'expense', title: '스타벅스', category: 'food_cafe', amount: 6500, payMethod: '카카오페이', memo: '아메리카노' },
-  { type: 'expense', title: '점심', category: 'food_dining', amount: 10000, payMethod: '신한카드' },
-  { type: 'expense', title: '교통카드 충전', category: 'transport_transit', amount: 50000, payMethod: '카카오페이' },
-  { type: 'expense', title: '이마트 장보기', category: 'food_grocery', amount: 70000, payMethod: '신한카드' },
+  { type: 'expense', title: '스타벅스', category: 'food_cafe', amount: 6500, payMethod: 'kakao_pay', memo: '아메리카노' },
+  { type: 'expense', title: '점심', category: 'food_dining', amount: 10000, payMethod: 'shinhan_card' },
+  { type: 'expense', title: '교통카드 충전', category: 'transport_transit', amount: 50000, payMethod: 'kakao_pay' },
+  { type: 'expense', title: '이마트 장보기', category: 'food_grocery', amount: 70000, payMethod: 'shinhan_card' },
   { type: 'income', title: '중고거래 판매', category: 'income_side', amount: 30000, payMethod: '' },
 ];
 
