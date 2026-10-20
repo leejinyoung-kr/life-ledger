@@ -30,14 +30,17 @@ const TX_SEED: { code: string; label: string; parent?: string }[] = TX_TREE.flat
 // 도메인별 기본 카테고리 시드 데이터
 const SEED: Record<CategoryDomain, { code: string; label: string; parent?: string }[]> = {
   transaction: TX_SEED,
+  // prisma/seeds/categories.seed.ts 와 같은 목록 — 데모 구독 데이터가 ai · shopping 을 쓴다
   subscription: [
     { code: 'ott', label: 'OTT' },
     { code: 'music', label: '음악' },
     { code: 'software', label: '소프트웨어' },
     { code: 'game', label: '게임' },
     { code: 'cloud', label: '클라우드' },
+    { code: 'ai', label: 'AI 서비스' },
     { code: 'news', label: '뉴스/매거진' },
     { code: 'fitness', label: '피트니스' },
+    { code: 'shopping', label: '쇼핑 멤버십' },
     { code: 'etc', label: '기타' },
   ],
   asset: [

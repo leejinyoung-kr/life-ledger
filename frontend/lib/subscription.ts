@@ -32,30 +32,7 @@ export interface SubscriptionSummary {
 }
 
 // ── 라벨맵 (코드 ↔ 화면 표시) ────────────────────────────────────
-// 카테고리 코드 → 한글 라벨
-export const SUB_CATEGORY_LABEL: Record<string, string> = {
-  ott: 'OTT · 엔터테인먼트',
-  music: '음악',
-  cloud: '클라우드',
-  shopping: '쇼핑 멤버십',
-  ai: 'AI · 생산성',
-  software: '소프트웨어',
-  news: '뉴스 · 잡지',
-  etc: '기타',
-};
-
-// 구독 입력 폼 카테고리 옵션
-export const SUB_CATEGORY_OPTIONS: { value: string; label: string }[] = [
-  { value: 'ott', label: 'OTT · 엔터테인먼트' },
-  { value: 'music', label: '음악' },
-  { value: 'cloud', label: '클라우드' },
-  { value: 'shopping', label: '쇼핑 멤버십' },
-  { value: 'ai', label: 'AI · 생산성' },
-  { value: 'software', label: '소프트웨어' },
-  { value: 'news', label: '뉴스 · 잡지' },
-  { value: 'etc', label: '기타' },
-];
-
+// 카테고리 라벨 · 선택지는 코드 관리(subscription)에서 읽는다 — subscriptions/page.tsx
 export const CYCLE_LABEL: Record<SubscriptionCycle, string> = {
   monthly: '월',
   yearly: '년',

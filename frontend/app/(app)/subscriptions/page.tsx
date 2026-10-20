@@ -33,9 +33,8 @@ import { Card, CardTitle } from '@/components/ui/Card';
 import { Field, FieldGroup, FormGroup, ModalFooter } from '@/components/ui/Field';
 import { IconRepeat, IconAlertTriangle, IconPlus, IconEdit, IconTrash, IconCalendar, IconCube, IconClock } from '@/components/icons';
 import { api } from '@/lib/api';
-import { won, usd, dotDate, daysUntil, localDate } from '@/lib/finance';
+import { won, usd, dotDate, daysUntil, localDate, activeWith, type Category } from '@/lib/finance';
 import {
-  SUB_CATEGORY_LABEL, SUB_CATEGORY_OPTIONS,
   CYCLE_LABEL, STATUS_LABEL, SUB_PAY_METHODS, SUB_CURRENCY_LABEL,
   type Subscription, type SubscriptionSummary,
   type SubscriptionCycle, type SubscriptionStatus,
@@ -51,6 +50,8 @@ const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
 const STALE_DAYS = 90;
 // 결제일이 이 일수 이내면 경고색
 const SOON_DAYS = 3;
+// 카테고리 목록이 오기 전 빈 배열 — 렌더마다 새 배열이 되지 않게
+const NO_CATS: Category[] = [];
 
 // 구독 금액 표시 (통화별)
 function amountText(sub: Subscription) {
@@ -73,6 +74,10 @@ export default function SubscriptionsPage() {
   const invalidate = useInvalidate();
   // mutation 후 구독 관련 쿼리 무효화
   const bump = () => invalidate(qk.subscriptions.all);
+  // 구독 카테고리 — 코드 관리(subscription), 비활성 포함 전체. 구독에는 code 가 저장되고 화면은 라벨로 보인다
+  const catQuery = useApiQuery<Category[]>(['categories', 'subscription'], '/categories?domain=subscription');
+  const subCats = catQuery.data ?? NO_CATS;
+  const catLabel = useMemo(() => Object.fromEntries(subCats.map((c) => [c.code, c.label])), [subCats]);
 
   // 조회 버튼(또는 Enter) 클릭 시에만 실제 필터에 반영
   function handleSearch() {
@@ -245,7 +250,7 @@ export default function SubscriptionsPage() {
                       <div className="flex flex-col leading-snug">
                         <span>{sub.name}</span>
                         <span className="text-[0.75rem] text-muted">
-                          {SUB_CATEGORY_LABEL[sub.category] ?? sub.category}
+                          {catLabel[sub.category] ?? sub.category}
                           {sub.payMethod && <span className="xl:hidden"> · {sub.payMethod}</span>}
                         </span>
                       </div>
@@ -289,7 +294,7 @@ export default function SubscriptionsPage() {
             <MobileCard
               key={sub.id}
               title={sub.name}
-              sub={SUB_CATEGORY_LABEL[sub.category] ?? sub.category}
+              sub={catLabel[sub.category] ?? sub.category}
               aside={<>
                 <span className="text-[0.95rem] font-semibold tabular-nums">{amountText(sub)}<span className="text-[0.72rem] font-normal text-muted">/{CYCLE_LABEL[sub.cycle]}</span></span>
                 <Badge tone={STATUS_TONE[sub.status]}>{STATUS_LABEL[sub.status]}</Badge>
@@ -321,6 +326,7 @@ export default function SubscriptionsPage() {
       {/* 구독 추가/수정 모달 */}
       <SubscriptionModal
         state={modal}
+        subCats={subCats}
         onClose={() => setModal((s) => ({ ...s, open: false }))}
         onSaved={() => { setModal((s) => ({ ...s, open: false })); bump(); }}
       />
@@ -329,10 +335,13 @@ export default function SubscriptionsPage() {
 }
 
 // 구독 추가·수정 모달
-function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing?: Subscription }; onClose: () => void; onSaved: () => void }) {
+function SubscriptionModal({ state, subCats, onClose, onSaved }: { state: { open: boolean; mode: 'add' | 'edit'; editing?: Subscription }; subCats: Category[]; onClose: () => void; onSaved: () => void }) {
   const e = state.editing;
+  // 카테고리 선택지 — 사용 중인 것 + 기존 값(비활성이어도)
+  const catOptions = useMemo(() => activeWith(subCats, e?.category), [subCats, e]);
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('ott');
+  // 비어 있으면 아직 고르지 않은 것 — 선택지 첫 항목을 쓴다 (목록이 모달보다 늦게 와도 맞게)
+  const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<'KRW' | 'USD'>('KRW');
   const [cycle, setCycle] = useState<SubscriptionCycle>('monthly');
@@ -349,7 +358,7 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
     reset();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setName(e?.name ?? '');
-    setCategory(e?.category ?? 'ott');
+    setCategory(e?.category ?? '');
     setAmount(e ? String(e.amount) : '');
     setCurrency(e?.currency ?? 'KRW');
     setCycle(e?.cycle ?? 'monthly');
@@ -369,12 +378,14 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
     return !Object.keys(err).length;
   }
 
+  const chosenCategory = category || catOptions[0]?.code || '';
+
   async function handleSave() {
     if (!validate()) return;
     setSaving(true);
     try {
       const payload = {
-        name, category, amount: Number(amount), currency, cycle, status,
+        name, category: chosenCategory, amount: Number(amount), currency, cycle, status,
         nextPaymentDate, payMethod,
         lastUsedAt: lastUsedAt || undefined, memo: memo || undefined,
       };
@@ -402,8 +413,10 @@ function SubscriptionModal({ state, onClose, onSaved }: { state: { open: boolean
             <input type="text" className="input" placeholder="예: 넷플릭스" value={name} onChange={(ev) => { setName(ev.target.value); clearError('name'); }} />
           </Field>
           <Field label="카테고리">
-            <select className="input" aria-label="카테고리" value={category} onChange={(ev) => setCategory(ev.target.value)}>
-              {SUB_CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+            <select className="input" aria-label="카테고리" value={chosenCategory} onChange={(ev) => setCategory(ev.target.value)}>
+              {/* 코드 관리에서 지운 값이면 그대로 노출 */}
+              {chosenCategory && !catOptions.some((c) => c.code === chosenCategory) && <option value={chosenCategory}>{chosenCategory}</option>}
+              {catOptions.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
             </select>
           </Field>
         </div>
