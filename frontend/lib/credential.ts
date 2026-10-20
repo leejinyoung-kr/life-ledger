@@ -1,5 +1,5 @@
 /**
- * 계정 보관함 공통 타입 · 카테고리.
+ * 계정 보관함 공통 타입 · 유틸. 카테고리 목록은 코드 관리(credential_cat)에서 읽는다 — credentials/useCredentialCategories.
  * 백엔드 응답 DTO(/credentials)와 1:1 대응한다. 비밀번호/TOTP 원문은 reveal API 로만 받는다.
  */
 
@@ -40,8 +40,6 @@ export function generatePassword(length = 16, withSymbols = true): string {
   crypto.getRandomValues(arr);
   return Array.from(arr, (n) => pool[n % pool.length]).join('');
 }
-
-export const CRED_CATEGORIES = ['개발', '금융', '소셜', '쇼핑', '구독', '기타'];
 
 // ISO → 'YYYY.MM.DD'
 export function fmtCredDate(iso: string): string {

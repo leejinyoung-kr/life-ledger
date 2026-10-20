@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
-import { CRED_CATEGORIES, pwStrength, generatePassword, type Credential } from '@/lib/credential';
+import { pwStrength, generatePassword, type Credential } from '@/lib/credential';
 import { useFormErrors } from '@/lib/useFormErrors';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
 import { Field, FormGroup, ModalFooter } from '@/components/ui/Field';
 import { IconEye } from '@/components/icons';
+import { useCredentialCategories } from './useCredentialCategories';
 
 export type EditState = { open: boolean; mode: 'add' | 'edit'; editing: Credential | null };
 
@@ -22,7 +23,9 @@ export default function EditModal({ state, onClose, onSaved }: { state: EditStat
   const editing = state.editing;
   const [serviceName, setServiceName] = useState('');
   const [url, setUrl] = useState('');
-  const [category, setCategory] = useState(CRED_CATEGORIES[0]);
+  const categories = useCredentialCategories();
+  // 비어 있으면 아직 고르지 않은 것 — 목록 첫 항목을 쓴다 (목록이 모달보다 늦게 와도 맞게)
+  const [category, setCategory] = useState('');
   const [username, setUsername] = useState('');
   const [pw, setPw] = useState('');
   // 입력 중 비밀번호는 기본으로 가린다 — 화면 공유 · 어깨너머 노출 방지
@@ -38,7 +41,7 @@ export default function EditModal({ state, onClose, onSaved }: { state: EditStat
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setServiceName(editing?.name ?? '');
     setUrl(editing?.url ?? '');
-    setCategory(editing?.category ?? CRED_CATEGORIES[0]);
+    setCategory(editing?.category ?? '');
     setUsername(editing?.username ?? '');
     setPw('');
     setShowPw(false);
@@ -56,12 +59,16 @@ export default function EditModal({ state, onClose, onSaved }: { state: EditStat
     return !Object.keys(err).length;
   }
 
+  const chosenCategory = category || categories[0] || '';
+  // 코드 관리에서 비활성화 · 삭제된 카테고리를 가진 계정도 저장할 때 값이 바뀌지 않게 선택지에 남긴다
+  const categoryOptions = chosenCategory && !categories.includes(chosenCategory) ? [chosenCategory, ...categories] : categories;
+
   async function handleSave() {
     if (!validate()) return;
     const body = {
       name: serviceName.trim(),
       url: url || undefined,
-      category,
+      category: chosenCategory,
       username: username.trim(),
       ...(pw ? { password: pw } : {}),
       totp: totp || undefined,
@@ -95,8 +102,8 @@ export default function EditModal({ state, onClose, onSaved }: { state: EditStat
         </Field>
         <Field label="URL"><input type="url" className="input" placeholder="https://github.com" value={url} onChange={(e) => setUrl(e.target.value)} /></Field>
         <Field label="카테고리" required>
-          <select className="input" aria-label="카테고리" value={category} onChange={(e) => setCategory(e.target.value)}>
-            {CRED_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+          <select className="input" aria-label="카테고리" value={chosenCategory} onChange={(e) => setCategory(e.target.value)}>
+            {categoryOptions.map((c) => <option key={c}>{c}</option>)}
           </select>
         </Field>
       </FormGroup>

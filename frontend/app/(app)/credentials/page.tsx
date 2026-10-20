@@ -22,7 +22,7 @@ import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
 import { IconEdit, IconTrash, IconCopy, IconAlertTriangle, IconPlus } from '@/components/icons';
 import { api, apiDownload } from '@/lib/api';
-import { CRED_CATEGORIES, fmtCredDate, type Credential } from '@/lib/credential';
+import { fmtCredDate, type Credential } from '@/lib/credential';
 import type { Settings } from '@/lib/settings';
 import MobileCard, { MobileCardList } from '@/components/MobileCard';
 import TableEmptyRow from '@/components/TableEmptyRow';
@@ -32,8 +32,7 @@ import ServiceTile, { TwoFaMark } from './ServiceTile';
 import VaultStrip from './VaultStrip';
 import DetailModal from './DetailModal';
 import EditModal, { type EditState } from './EditModal';
-
-const FILTER_CATEGORIES = ['전체', ...CRED_CATEGORIES];
+import { useCredentialCategories } from './useCredentialCategories';
 
 // 평문 엑셀을 받기 전에 그대로 입력해야 하는 낱말 (실수로 누르는 것 막기)
 const EXPORT_WORD = '내려받기';
@@ -51,6 +50,7 @@ export default function CredentialsPage() {
   const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
+  const categories = useCredentialCategories();
 
   // 조회 버튼(또는 Enter) 클릭 시에만 실제 필터에 반영
   function handleSearch() {
@@ -182,7 +182,7 @@ export default function CredentialsPage() {
       <FilterPanel className="mb-3">
         <div className="flex gap-2 items-center">
           <select className="input w-24 shrink-0 md:w-auto md:min-w-40" value={pendingCategory} onChange={(e) => setPendingCategory(e.target.value)} aria-label="카테고리 필터">
-            {FILTER_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+            {['전체', ...categories].map((c) => <option key={c}>{c}</option>)}
           </select>
           <SearchInput label="계정 검색" className="flex-1 min-w-0" placeholder="서비스·아이디·URL" value={pendingQuery} onChange={(e) => setPendingQuery(e.target.value)} onEnter={handleSearch} />
           <Button className="shrink-0" onClick={handleSearch}>조회</Button>
