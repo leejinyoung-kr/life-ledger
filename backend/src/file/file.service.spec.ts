@@ -205,15 +205,19 @@ describe('FileService', () => {
   describe('removeFolder — 재귀삭제 단일 트랜잭션', () => {
     it('하위 폴더 전체 id를 한 트랜잭션의 in 조건으로 일괄 soft delete', async () => {
       prisma.storageFolder.findFirst.mockResolvedValue({ id: 1, user_id: 1, deleted_at: null });
-      // 1 -> [2,3], 2 -> [4], 3 -> [], 4 -> []
-      prisma.storageFolder.findMany
-        .mockResolvedValueOnce([{ id: 2 }, { id: 3 }])
-        .mockResolvedValueOnce([{ id: 4 }])
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([]);
+      // 1 -> [2,3], 2 -> [4], 5 는 다른 루트 폴더
+      prisma.storageFolder.findMany.mockResolvedValue([
+        { id: 1, name: 'a', parent_id: null },
+        { id: 2, name: 'b', parent_id: 1 },
+        { id: 3, name: 'c', parent_id: 1 },
+        { id: 4, name: 'd', parent_id: 2 },
+        { id: 5, name: 'e', parent_id: null },
+      ]);
 
       await svc().removeFolder(1, 1);
 
+      // 하위 폴더는 폴더마다 조회하지 않고 한 번에 읽는다
+      expect(prisma.storageFolder.findMany).toHaveBeenCalledTimes(1);
       expect(prisma.$transaction).toHaveBeenCalledTimes(1);
       const [fileOp, folderOp] = prisma.$transaction.mock.calls[0][0];
       expect(prisma.storageFile.updateMany).toHaveBeenCalledWith(

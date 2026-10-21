@@ -55,6 +55,11 @@ describe('TransactionService (자산이동 연동)', () => {
           applyData(row, data);
           return row;
         }),
+        updateMany: jest.fn(async ({ where, data }: any) => {
+          const matched = txs.filter((t) => where.id.in.includes(t.id) && t.user_id === where.user_id);
+          for (const row of matched) applyData(row, data);
+          return { count: matched.length };
+        }),
       },
       saving: {
         updateMany: jest.fn(async ({ where, data }: any) => {
@@ -141,13 +146,64 @@ describe('TransactionService (자산이동 연동)', () => {
       await expect(svc().removeMany(1, [])).rejects.toThrow(BadRequestException);
     });
 
-    it('각 행의 대상별로 개별 역반영 후 일괄 삭제', async () => {
+    it('각 행의 대상별로 역반영 후 일괄 삭제', async () => {
       const a = await svc().create(1, baseDto({ targetType: 'saving', targetId: 1 }) as any);
       const b = await svc().create(1, baseDto({ targetType: 'investment', targetId: 1 }) as any);
       const res = await svc().removeMany(1, [a.id, b.id]);
       expect(res.count).toBe(2);
       expect(savings[0].balance.toNumber()).toBe(10000);
       expect(investmentAccounts[0].cash_balance.toNumber()).toBe(10000);
+    });
+
+    it('같은 대상 행은 금액을 합쳐 한 번만 역반영하고, 삭제 표시도 한 번에', async () => {
+      const a = await svc().create(1, baseDto({ targetType: 'saving', targetId: 1, amount: 1000 }) as any);
+      const b = await svc().create(1, baseDto({ targetType: 'saving', targetId: 1, amount: 2000 }) as any);
+      const c = await svc().create(1, baseDto({ type: 'expense', category: 'food', amount: 3000 }) as any);
+      prisma.saving.updateMany.mockClear();
+
+      const res = await svc().removeMany(1, [a.id, b.id, c.id]);
+
+      expect(res.count).toBe(3);
+      expect(prisma.saving.updateMany).toHaveBeenCalledTimes(1);
+      expect(savings[0].balance.toNumber()).toBe(10000);
+      expect(prisma.transaction.update).not.toHaveBeenCalled();
+      expect(prisma.transaction.updateMany).toHaveBeenCalledTimes(1);
+      expect(txs.every((t) => t.deleted_at)).toBe(true);
+    });
+  });
+
+  describe('materializeRecurring', () => {
+    const schedule = (id: number) => ({
+      id, user_id: 1, deleted_at: null, kind: 'transaction', active: true,
+      rule: { cycle: 'monthly', day: 15 }, start_date: new Date('2026-01-15T00:00:00Z'),
+      tx_type: 'expense', title: `설정${id}`, category: 'food', amount: dec(1000), pay_method: 'cash', memo: null,
+      target_type: null, target_id: null,
+    });
+
+    it('이미 만든 회차는 설정마다가 아니라 한 번에 조회하고, 빠진 회차만 만든다', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-03-20T00:00:00Z'));
+      prisma.recurringSchedule = {
+        findMany: jest.fn(async () => [schedule(1), schedule(2)]),
+        update: jest.fn(async () => ({})),
+      };
+      prisma.transaction.createMany = jest.fn(async () => ({ count: 0 }));
+      // 설정 1 은 1월 회차를 이미 만들었다(삭제분 포함)
+      prisma.transaction.findMany = jest.fn(async () => [
+        { recurring_schedule_id: 1, recurring_period: '2026-01' },
+      ]);
+
+      await svc().materializeRecurring(1);
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledTimes(1);
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { user_id: 1, recurring_schedule_id: { in: [1, 2] } },
+      }));
+      const created = prisma.transaction.createMany.mock.calls.map((c: any) => c[0].data.map((d: any) => `${d.recurring_schedule_id}:${d.recurring_period}`));
+      expect(created).toEqual([
+        ['1:2026-02', '1:2026-03'],
+        ['2:2026-01', '2:2026-02', '2:2026-03'],
+      ]);
+      jest.useRealTimers();
     });
   });
 });

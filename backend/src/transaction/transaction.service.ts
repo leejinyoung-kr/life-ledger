@@ -153,16 +153,24 @@ export class TransactionService {
     if (!schedules.length) return 0;
     const now = new Date();
 
+    // 이미 생성된 회차(삭제분 포함) — 설정마다 조회하지 않고 한 번에 읽어 설정별로 나눈다
+    const existing = await this.prisma.transaction.findMany({
+      where: { user_id: userId, recurring_schedule_id: { in: schedules.map((s) => s.id) } },
+      select: { recurring_schedule_id: true, recurring_period: true },
+    });
+    const havePeriods = new Map<number, Set<string>>();
+    for (const e of existing) {
+      if (!e.recurring_schedule_id || !e.recurring_period) continue;
+      const set = havePeriods.get(e.recurring_schedule_id) ?? new Set<string>();
+      set.add(e.recurring_period);
+      havePeriods.set(e.recurring_schedule_id, set);
+    }
+
     for (const s of schedules) {
       const rule = s.rule as unknown as RRule | null;
       if (!rule?.cycle) continue;
 
-      // 이미 생성된 회차(삭제분 포함)
-      const existing = await this.prisma.transaction.findMany({
-        where: { user_id: userId, recurring_schedule_id: s.id },
-        select: { recurring_period: true },
-      });
-      const have = new Set(existing.map((e) => e.recurring_period).filter(Boolean) as string[]);
+      const have = havePeriods.get(s.id) ?? new Set<string>();
 
       const toCreate: Prisma.TransactionCreateManyInput[] = [];
       for (let i = 0; i <= 120; i++) { // 안전 상한
@@ -554,19 +562,29 @@ export class TransactionService {
     return { id };
   }
 
-  // 내역 일괄 삭제 (soft delete) — row별 target이 다를 수 있어 개별 역반영 후 삭제
+  // 내역 일괄 삭제 (soft delete) — 자산이동 행은 대상별로 금액을 합쳐 대상마다 한 번 역반영하고, 삭제 표시는 한 번에
   async removeMany(userId: number, ids: number[]) {
     if (!ids.length) throw new BadRequestException('삭제할 항목이 없습니다.');
     const rows = await this.prisma.transaction.findMany({
       where: { id: { in: ids }, user_id: userId, deleted_at: null },
     });
+    // 행마다 update 하면 행 수(자산이동이면 그 두 배)만큼 쿼리가 나간다(N+1)
+    const byTarget = new Map<string, { type: TransferTarget; id: number; sum: Prisma.Decimal }>();
+    for (const row of rows) {
+      if (!row.target_type || !row.target_id) continue;
+      const key = `${row.target_type}:${row.target_id}`;
+      const cur = byTarget.get(key) ?? { type: row.target_type, id: row.target_id, sum: new Prisma.Decimal(0) };
+      cur.sum = cur.sum.add(row.amount);
+      byTarget.set(key, cur);
+    }
     await this.prisma.$transaction(async (tx) => {
-      for (const row of rows) {
-        if (row.target_type && row.target_id) {
-          await this.applyTransferEffect(tx, userId, row.target_type, row.target_id, row.amount.negated(), false);
-        }
-        await tx.transaction.update({ where: { id: row.id }, data: { deleted_at: new Date() } });
+      for (const t of byTarget.values()) {
+        await this.applyTransferEffect(tx, userId, t.type, t.id, t.sum.negated(), false);
       }
+      await tx.transaction.updateMany({
+        where: { id: { in: rows.map((r) => r.id) }, user_id: userId },
+        data: { deleted_at: new Date() },
+      });
     });
     return { count: rows.length };
   }

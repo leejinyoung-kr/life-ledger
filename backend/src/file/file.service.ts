@@ -515,22 +515,14 @@ export class FileService {
     return purged;
   }
 
-  // BFS로 하위 폴더 id 전부 수집 후, 폴더·파일 soft delete를 단일 트랜잭션으로 일괄 처리. 지운 파일들의 오브젝트 키를 돌려준다
+  // 사용자 폴더를 한 번에 읽어 하위 폴더 id 를 메모리에서 모은 뒤, 폴더·파일 soft delete를 단일 트랜잭션으로 일괄 처리. 지운 파일들의 오브젝트 키를 돌려준다
   private async deleteFolderRecursive(userId: number, folderId: number): Promise<string[]> {
-    const ids = [folderId];
-    const queue = [folderId];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      const children = await this.prisma.storageFolder.findMany({
-        where: { user_id: userId, parent_id: current, deleted_at: null },
-        select: { id: true },
-      });
-      for (const c of children) {
-        ids.push(c.id);
-        queue.push(c.id);
-      }
-    }
+    // 폴더마다 하위 폴더를 조회하면 폴더 수만큼 쿼리가 나간다(N+1) — planZip · planClear 와 같은 방식
+    const folders = await this.prisma.storageFolder.findMany({
+      where: { user_id: userId, deleted_at: null },
+      select: { id: true, name: true, parent_id: true },
+    });
+    const ids = [...subtreeIds(folders, folderId)];
 
     const files = await this.prisma.storageFile.findMany({
       where: { user_id: userId, folder_id: { in: ids }, deleted_at: null },
