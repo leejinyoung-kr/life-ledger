@@ -18,6 +18,7 @@ export interface Subscription {
   status: SubscriptionStatus;
   nextPaymentDate: string; // YYYY-MM-DD
   payMethod: string;
+  autoLedger: boolean; // 결제일 다음 날 가계부 지출로 자동 등록
   lastUsedAt: string | null;
   memo: string | null;
 }

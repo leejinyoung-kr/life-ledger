@@ -1,4 +1,4 @@
-import { addCycle, rollForward } from './billing-date.util';
+import { addCycle, pastBillingDates, rollForward } from './billing-date.util';
 import { todayKst } from '../common/kst-date';
 
 const d = (s: string) => new Date(`${s}T00:00:00Z`);
@@ -35,5 +35,13 @@ describe('billing-date.util', () => {
 
   it('결제일이 오늘이면 넘기지 않는다', () => {
     expect(rollForward(d('2026-10-05'), 'monthly', 5, d('2026-10-05'))).toEqual(d('2026-10-05'));
+  });
+
+  it('지나간 결제일을 모두 돌려준다 — 오늘 결제일은 아직 지나지 않은 것', () => {
+    expect(pastBillingDates(d('2026-08-21'), 'monthly', 21, d('2026-10-21'))).toEqual({
+      past: [d('2026-08-21'), d('2026-09-21')],
+      next: d('2026-10-21'),
+    });
+    expect(pastBillingDates(d('2026-10-22'), 'monthly', 22, d('2026-10-21')).past).toEqual([]);
   });
 });

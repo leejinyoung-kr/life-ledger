@@ -127,7 +127,7 @@
 | 알림 + 푸시 한 트랜잭션 (`createWithPush`) | `notification/notification.service.ts` | 없음 (아웃박스 저장소만) | 롤백 시 푸시가 나가지 않아야 한다 |
 | 세션 강제 로그아웃 — refresh 폐기 + 그 기기 푸시 삭제 | `security/security.service.ts:36`~`:70` | 없음 (로그아웃 쪽은 있음) | 2026-10-15 수정("로그아웃한 기기로 알림이 가지 않게") 지점 |
 | 캘린더 반복 · 음력 일정 펼치기 | `calendar/calendar.service.ts` | 없음 | 음력 변환 · 윤달 · 반복 종료일 경계 |
-| 구독 결제일 넘기기 크론 · 휴지통 영구삭제 크론 | `maintenance/subscription-cron.service.ts`, `trash-cron.service.ts` | 없음 (결제일 유틸만) | 매일 데이터를 바꾸거나 지운다 |
+| 휴지통 영구삭제 크론 | `maintenance/trash-cron.service.ts` | 없음 | 매일 데이터를 지운다 (구독 결제일 넘기기 크론은 2026-10-22 가계부 자동 등록을 넣으면서 `subscription-cron.service.spec.ts` 를 만들었다) |
 | 대시보드 현금흐름 예측 · 통합 D-day | `dashboard/dashboard.service.ts` | 없음 | 주기 환산(주 52/12 · 평일 261/12) |
 | frontend API 클라이언트 — 401 이면 refresh 한 번 · 동시 401 공유 | `frontend/lib/api.ts:34`~`:50` | 없음 (vitest 는 `lib` 순수 함수만) | 토큰 만료 때 무한 재시도 · 중복 refresh |
 | DB 에 의존하는 규칙 전체 — UNIQUE(`running_key` · `idempotency_key` · `holiday(date,name)` · `net_worth_snapshot(user_id,month)`) | — | 통합 테스트 0개, P2002 는 mock | 이 규칙들은 코드가 아니라 DB 제약이 지킨다 |

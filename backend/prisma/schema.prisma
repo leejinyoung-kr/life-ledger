@@ -69,15 +69,18 @@ model Transaction {
   recurring_period      String?         @db.VarChar(10) /// 반복 회차 식별 (YYYY-MM / YYYY / YYYY-MM-DD, recurring_schedule_id 있을 때만 사용)
   target_type           TransferTarget? /// 이동 대상 종류(transfer 전용) — 지정 시 대상 잔액에 자동 반영
   target_id             Int? /// 대상 테이블 id (target_type 기준, FK 아님)
+  subscription_id       Int? /// subscription.id FK (구독 결제일이 지나 자동 등록된 내역인 경우 — 같은 결제일은 다시 만들지 않는다)
   deleted_at            DateTime?
   created_at            DateTime        @default(now())
   updated_at            DateTime        @updatedAt
 
-  user     User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  schedule RecurringSchedule? @relation(fields: [recurring_schedule_id], references: [id], onDelete: SetNull)
+  user         User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  schedule     RecurringSchedule? @relation(fields: [recurring_schedule_id], references: [id], onDelete: SetNull)
+  subscription Subscription?      @relation(fields: [subscription_id], references: [id], onDelete: SetNull)
 
   @@index([user_id, date])
   @@index([recurring_schedule_id])
+  @@index([subscription_id])
   @@index([user_id, type, deleted_at, date, amount]) // 자산 종합(cashTotal) 델타 집계가 date 구간으로 좁혀 스캔되며, amount까지 포함해 PK 재조회 없이 인덱스만으로 합산(커버링 인덱스)
   @@map("transaction")
 }
@@ -281,13 +284,15 @@ model Subscription {
   next_payment_date DateTime             @db.Date
   billing_day       Int                  @db.TinyInt /// 원래 결제일(1-31) — 2월 등에 말일로 줄어든 뒤 다음 달에 되돌리는 기준
   pay_method        String               @db.VarChar(50) /// 결제수단 — 코드 관리 pay_method code (ADR 0009)
+  auto_ledger       Boolean              @default(true) /// 가계부 자동 등록 — 결제일이 지나면 다음 날 00:05 크론이 지출 내역을 만든다
   last_used_at      DateTime?            @db.Date
   memo              String?              @db.VarChar(300)
   deleted_at        DateTime?
   created_at        DateTime             @default(now())
   updated_at        DateTime             @updatedAt
 
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  transactions Transaction[]
 
   @@index([user_id])
   @@map("subscription")

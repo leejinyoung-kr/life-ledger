@@ -112,7 +112,7 @@ Base URL: `http://localhost:8000/api/v1`
 | --- | --- | --- |
 | GET | /subscriptions | 구독 목록 |
 | GET | /subscriptions/summary | 요약 (월 총액/연 총액/구독 수) |
-| POST | /subscriptions | 구독 추가 |
+| POST | /subscriptions | 구독 추가 (`autoLedger?` — 가계부 자동 등록, 기본 `true`) |
 | PUT | /subscriptions/:id | 구독 수정 |
 | DELETE | /subscriptions/:id | 구독 삭제 (soft delete) |
 

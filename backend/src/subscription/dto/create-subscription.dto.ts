@@ -1,5 +1,6 @@
 import { SubscriptionCurrency, SubscriptionCycle, SubscriptionStatus } from '@prisma/client';
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsNumber,
@@ -42,6 +43,11 @@ export class CreateSubscriptionDto {
   @IsString()
   @MaxLength(50)
   payMethod: string;
+
+  // 가계부 자동 등록 — 미지정 시 켜짐
+  @IsOptional()
+  @IsBoolean()
+  autoLedger?: boolean;
 
   // 마지막 사용일 (YYYY-MM-DD)
   @IsOptional()

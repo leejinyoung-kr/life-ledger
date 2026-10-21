@@ -7,6 +7,7 @@ import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { QuerySubscriptionDto } from './dto/query-subscription.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import { todayKst } from '../common/kst-date';
+import { rollForward } from './billing-date.util';
 
 // Date → 'YYYY-MM-DD' (@db.Date 는 시각 정보 없음)
 function toDateStr(d: Date | null): string | null {
@@ -40,6 +41,7 @@ export class SubscriptionService {
       status: s.status,
       nextPaymentDate: toDateStr(s.next_payment_date),
       payMethod: s.pay_method,
+      autoLedger: s.auto_ledger,
       lastUsedAt: toDateStr(s.last_used_at),
       memo: s.memo,
     };
@@ -131,6 +133,7 @@ export class SubscriptionService {
         next_payment_date: new Date(dto.nextPaymentDate),
         billing_day: new Date(dto.nextPaymentDate).getUTCDate(),
         pay_method: dto.payMethod,
+        auto_ledger: dto.autoLedger ?? true,
         last_used_at: dto.lastUsedAt ? new Date(dto.lastUsedAt) : null,
         memo: dto.memo,
       },
@@ -149,10 +152,16 @@ export class SubscriptionService {
 
   // 구독 수정 — 결제일을 바꾼 경우에만 원래 결제일(billing_day)도 새 날짜로 맞춘다
   // (수정 폼은 결제일을 늘 함께 보내므로, 말일로 줄어든 날짜를 그대로 보냈을 때 원래 결제일을 잃지 않게)
+  // 일시정지를 풀 때 결제일이 지나 있으면 오늘 이후 첫 결제일로 넘긴다 — 쉬는 동안의 결제일이 가계부에 자동 등록되지 않게
   async update(userId: number, id: number, dto: UpdateSubscriptionDto) {
     const current = await this.findOwned(userId, id);
-    const nextDate = dto.nextPaymentDate ? new Date(dto.nextPaymentDate) : undefined;
+    let nextDate = dto.nextPaymentDate ? new Date(dto.nextPaymentDate) : undefined;
     const dateChanged = nextDate !== undefined && nextDate.getTime() !== current.next_payment_date.getTime();
+    const billingDay = nextDate && dateChanged ? nextDate.getUTCDate() : current.billing_day;
+    const resumed = current.status === 'paused' && dto.status !== undefined && dto.status !== 'paused';
+    if (resumed) {
+      nextDate = rollForward(nextDate ?? current.next_payment_date, dto.cycle ?? current.cycle, billingDay, todayKst());
+    }
     const updated = await this.prisma.subscription.update({
       where: { id },
       data: {
@@ -163,8 +172,9 @@ export class SubscriptionService {
         cycle: dto.cycle,
         status: dto.status,
         next_payment_date: nextDate,
-        billing_day: nextDate && dateChanged ? nextDate.getUTCDate() : undefined,
+        billing_day: dateChanged ? billingDay : undefined,
         pay_method: dto.payMethod,
+        auto_ledger: dto.autoLedger,
         last_used_at: dto.lastUsedAt ? new Date(dto.lastUsedAt) : undefined,
         memo: dto.memo,
       },

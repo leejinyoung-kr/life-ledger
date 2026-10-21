@@ -29,6 +29,7 @@ import IconButton from '@/components/ui/IconButton';
 import Segmented from '@/components/ui/Segmented';
 import SearchInput from '@/components/ui/SearchInput';
 import Badge from '@/components/ui/Badge';
+import Toggle from '@/components/ui/Toggle';
 import { Card, CardTitle } from '@/components/ui/Card';
 import { Field, FieldGroup, FormGroup, ModalFooter } from '@/components/ui/Field';
 import { IconRepeat, IconAlertTriangle, IconPlus, IconEdit, IconTrash, IconCalendar, IconCube, IconClock } from '@/components/icons';
@@ -355,6 +356,7 @@ function SubscriptionModal({ state, subCats, payCats, onClose, onSaved }: { stat
   const [status, setStatus] = useState<SubscriptionStatus>('active');
   // 비어 있으면 선택지 첫 항목 — 카테고리와 같은 방식
   const [payMethod, setPayMethod] = useState('');
+  const [autoLedger, setAutoLedger] = useState(true);
   const [lastUsedAt, setLastUsedAt] = useState('');
   const [memo, setMemo] = useState('');
   const [saving, setSaving] = useState(false);
@@ -372,6 +374,7 @@ function SubscriptionModal({ state, subCats, payCats, onClose, onSaved }: { stat
     setNextPaymentDate(e?.nextPaymentDate ?? localDate());
     setStatus(e?.status ?? 'active');
     setPayMethod(e?.payMethod ?? '');
+    setAutoLedger(e?.autoLedger ?? true);
     setLastUsedAt(e?.lastUsedAt ?? '');
     setMemo(e?.memo ?? '');
   }, [state.open, e, reset]);
@@ -394,7 +397,7 @@ function SubscriptionModal({ state, subCats, payCats, onClose, onSaved }: { stat
     try {
       const payload = {
         name, category: chosenCategory, amount: Number(amount), currency, cycle, status,
-        nextPaymentDate, payMethod: chosenPay,
+        nextPaymentDate, payMethod: chosenPay, autoLedger,
         lastUsedAt: lastUsedAt || undefined, memo: memo || undefined,
       };
       if (state.mode === 'edit' && e) await api.put(`/subscriptions/${e.id}`, payload);
@@ -485,6 +488,16 @@ function SubscriptionModal({ state, subCats, payCats, onClose, onSaved }: { stat
           </Field>
         </div>
       </FormGroup>
+
+      <div className="flex items-center gap-3 pt-4 border-t border-border-subtle">
+        <div className="flex-1 flex flex-col">
+          <span className="text-[0.875rem] text-primary">가계부 자동 등록</span>
+          <span className="text-[0.78rem] text-muted">
+            결제일 다음 날 가계부에 지출로 넣습니다{currency === 'USD' && ' — 그날 환율로 원화 환산'}
+          </span>
+        </div>
+        <Toggle on={autoLedger} onToggle={() => setAutoLedger(!autoLedger)} label="가계부 자동 등록" />
+      </div>
     </Modal>
   );
 }

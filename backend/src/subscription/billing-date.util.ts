@@ -11,7 +11,16 @@ export function addCycle(d: Date, cycle: SubscriptionCycle, billingDay: number):
 
 // 지난 결제일을 오늘 이후(오늘 포함) 첫 결제일로 넘긴다 — 이미 오늘 이후면 그대로
 export function rollForward(d: Date, cycle: SubscriptionCycle, billingDay: number, today: Date): Date {
+  return pastBillingDates(d, cycle, billingDay, today).next;
+}
+
+// 오늘 전에 지나간 결제일 목록과, 그 뒤 오늘 이후 첫 결제일
+export function pastBillingDates(d: Date, cycle: SubscriptionCycle, billingDay: number, today: Date): { past: Date[]; next: Date } {
+  const past: Date[] = [];
   let next = d;
-  while (next < today) next = addCycle(next, cycle, billingDay);
-  return next;
+  while (next < today) {
+    past.push(next);
+    next = addCycle(next, cycle, billingDay);
+  }
+  return { past, next };
 }
