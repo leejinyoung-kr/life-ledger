@@ -25,7 +25,7 @@ import { Field, FieldGroup, FormGroup, ModalFooter } from '@/components/ui/Field
 import { useConfirm } from '@/components/ConfirmModal';
 import {
   IconWon, IconChart, IconStar, IconTransfer, IconInfo, IconPlus, IconEdit, IconCopy, IconTrash,
-  IconRepeat, IconPause, IconPlay, IconDrag,
+  IconRepeat, IconPause, IconPlay, IconDrag, IconCreditCard,
 } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { api } from '@/lib/api';
@@ -58,6 +58,13 @@ type LedgerDraft = {
   type?: TransactionType; category?: string; payMethod?: string; memo?: string;
 };
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Transaction; prefill?: LedgerDraft };
+
+// 자동으로 만든 내역 표시 — 자동이체 회차는 반복, 구독 자동 등록은 카드 아이콘
+function AutoSourceIcon({ row }: { row: Transaction }) {
+  if (row.recurringScheduleId != null) return <IconRepeat width={13} height={13} className="shrink-0 text-muted" aria-label="자동이체로 생성됨" />;
+  if (row.subscriptionId != null) return <IconCreditCard width={13} height={13} className="shrink-0 text-muted" aria-label="구독에서 자동 등록됨" />;
+  return null;
+}
 type RecurringModalState = { open: boolean; editing?: RecurringSchedule };
 
 export default function LedgerTab({ categories, bankCats, payMethodCats, addTrigger }: { categories: Category[]; bankCats: Category[]; payMethodCats: Category[]; addTrigger: number }) {
@@ -436,7 +443,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
                 <td className="td-name">
                   <span className="flex items-center gap-1.5 min-w-0">
                     <span className="truncate">{row.title}</span>
-                    {row.recurringScheduleId != null && <IconRepeat width={13} height={13} className="shrink-0 text-muted" aria-label="자동이체로 생성됨" />}
+                    <AutoSourceIcon row={row} />
                   </span>
                   {row.memo && <span className="block text-[0.75rem] text-muted truncate">{row.memo}</span>}
                 </td>
@@ -460,7 +467,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
             title={
               <span className="flex items-center gap-1.5">
                 {row.title}
-                {row.recurringScheduleId != null && <IconRepeat width={13} height={13} className="shrink-0 text-muted" aria-label="자동이체로 생성됨" />}
+                <AutoSourceIcon row={row} />
               </span>
             }
             aside={<span className={`text-[0.95rem] font-semibold tabular-nums ${AMT_COLOR[row.type]}`}>{ledgerAmount(row.type, row.amount)}</span>}

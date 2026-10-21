@@ -70,6 +70,7 @@ export interface Transaction {
   payMethod: string;
   memo: string | null;
   recurringScheduleId: number | null; // 자동이체 설정으로 생성된 회차면 그 설정 id
+  subscriptionId: number | null; // 구독 결제일이 지나 자동 등록된 내역이면 그 구독 id
   targetType: TransferTarget | null; // 자산이동 누적 대상 종류 (transfer 전용)
   targetId: number | null; // 자산이동 누적 대상 id
 }

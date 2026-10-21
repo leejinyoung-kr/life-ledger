@@ -94,6 +94,8 @@ export class TransactionService {
       memo: t.memo,
       // 자동이체 설정(RecurringSchedule)으로 생성된 회차인지 (프론트 🔁 표시용)
       recurringScheduleId: t.recurring_schedule_id ?? null,
+      // 구독 결제일이 지나 자동 등록된 내역인지 (프론트 카드 아이콘 표시용)
+      subscriptionId: t.subscription_id ?? null,
       targetType: t.target_type ?? null,
       targetId: t.target_id ?? null,
     };
