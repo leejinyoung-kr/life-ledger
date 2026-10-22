@@ -3,7 +3,7 @@
 - **상태**: 채택 (소급 기록)
 - **결정일**: 2026-06-26 (근거 커밋 `f0d2ee1`) · 사이드카는 2026-10-10 (`40670e3`)
 - **기록일**: 2026-10-18
-- **결정 방식**: AI 제안을 그대로 채택 — 당시 대안 검토는 없었다
+- **결정 방식**: 홈서버로 간다는 것은 본인이 비용을 보고 클라우드(AWS) · 미니PC 홈서버 등을 알아본 뒤 골랐다 (2026-10-22 본인 설명, 당시 문서 기록은 없다). 배포 · 접속 구성은 AI 제안 채택
 
 ## 맥락
 
@@ -26,7 +26,7 @@
 
 당시 기록(AI 작성)에 남은 것:
 
-- 홈서버로 옮긴 이유는 **기록에 없다.** `f0d2ee1` 은 사실만 적었다 — "Fly.io hosting is no longer used — backend, frontend, and db all run via docker compose on the mini PC home server now."
+- 홈서버로 옮긴 이유는 커밋에 **없다.** 본인 설명(2026-10-22): 비용 때문에 알아보니 미니PC 는 처음 장비 값만 들이면 고장 나지 않는 한 매달 나가는 돈 없이 오래 쓸 수 있었고, 나만의 홈서버를 만들어 보고 싶었다. `f0d2ee1` 은 사실만 적었다 — "Fly.io hosting is no longer used — backend, frontend, and db all run via docker compose on the mini PC home server now."
 - 클라우드 시절 겪은 일: "consistent with an OOM kill on 256mb given sharp/pdf-lib/exceljs/AWS SDK/OpenAI SDK all loading into one process." — `d40519a`. 이것이 옮긴 이유였는지는 기록에 없다.
 - 사이드카: "Funnel 은 노드 하나에 443 · 8443 · 10000 세 포트만 연다. 앱마다 포트를 나눠 쓰면 세 개에서 막혀서 … 앱마다 노드(호스트 이름)를 따로 둔다." — infra `README.md` (비공개). "화면과 API 가 같은 origin 이 되므로 코드는 그대로 두고 운영 .env 의 주소만 바꾼다" — `40670e3`
 - 체크아웃 방식: "actions/checkout을 쓰지 않고 … .env / backend/.env 는 git에 커밋되지 않으므로, fresh checkout을 쓰면 이 파일들이 사라진다." — 워크플로 주석
@@ -54,7 +54,7 @@
   - 화면과 API 가 같은 origin 이라 CORS · 쿠키 설정이 단순하다 ([0001](0001-jwt-access-refresh-rotation.md) 의 `SameSite=Lax` 도 이 덕에 된다).
 - **아쉬운 점 · 위험 (초안)**
   - 단일 장애점이다. 2026-10-16 빌드 캐시가 165G 까지 쌓여 디스크 84% 를 채웠다 (infra README).
-  - DB 덤프(`db_backups` 볼륨)가 같은 장비에 있다. 장비 밖 백업이 있는지 문서에서 확인하지 못했다 (확인 필요).
+  - DB 덤프(`db_backups` 볼륨)가 같은 장비에 있다. 장비 밖 DB 백업과 장비가 죽었을 때 옮길 곳은 정해 두지 않았다 (2026-10-22 본인 확인). 장비 밖에 있는 것은 업로드 파일(B2)뿐이다.
   - 운영 주소도 Funnel 로 인터넷에 열려 있다. 막는 것은 허용 목록 로그인 · rate limit 이다. 안 열면 휴대폰에도 Tailscale 앱이 필요하다.
   - 빌드를 운영 장비에서 하니 배포 중 CPU 를 서비스와 나눠 쓴다 — `flock` 을 넣은 이유이기도 하다.
   - 공개 레포 + self-hosted runner 는 fork PR 승인 설정 하나에 기대고 있다.
