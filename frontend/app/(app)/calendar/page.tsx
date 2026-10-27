@@ -309,7 +309,8 @@ export default function CalendarPage() {
       </div>
 
       {/* 일정 추가/수정 모달 */}
-      <EventFormModal state={addModal} onClose={() => setAddModal({ open: false })} onSaved={() => { setAddModal({ open: false }); reload(); }} />
+      {/* 닫을 때 event · date 는 남긴다 — 닫히는 동안 제목이 '일정 추가'로 바뀌어 보이지 않게 (다음에 열 때 새 값으로 덮인다) */}
+      <EventFormModal state={addModal} onClose={() => setAddModal((s) => ({ ...s, open: false }))} onSaved={() => { setAddModal((s) => ({ ...s, open: false })); reload(); }} />
       <BulkEventModal open={bulkOpen} defaultDate={selIso || undefined} onClose={() => setBulkOpen(false)} onSaved={() => { setBulkOpen(false); reload(); }} />
 
       {/* 일정 상세 모달 (수정·삭제) */}
