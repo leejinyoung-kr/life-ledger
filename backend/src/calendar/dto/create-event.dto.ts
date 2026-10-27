@@ -39,4 +39,9 @@ export class CreateEventDto {
   @IsOptional()
   @IsDateString()
   recurUntil?: string;
+
+  // 당일 오전 9시 알림(푸시) 여부 (없으면 받지 않음)
+  @IsOptional()
+  @IsBoolean()
+  notify?: boolean;
 }

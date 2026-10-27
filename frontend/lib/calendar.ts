@@ -22,6 +22,7 @@ export interface CalEvent {
   lunarMonth?: number | null;
   lunarDay?: number | null;
   lunarLeap?: boolean;
+  notify?: boolean;       // 당일 오전 9시 알림(푸시) — 직접 등록한 일정만
 }
 
 export const RECUR_FREQ_LABEL: Record<RecurFreq, string> = {

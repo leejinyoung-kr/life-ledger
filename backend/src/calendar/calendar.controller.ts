@@ -15,6 +15,7 @@ import { CurrentUser } from '@leejinyoung-kr/core-auth';
 import { JwtAuthGuard } from '@leejinyoung-kr/core-auth';
 import type { AuthUser } from '../auth/auth-user';
 import { CalendarService } from './calendar.service';
+import { BulkCreateEventDto } from './dto/bulk-create-event.dto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { DeleteEventDto } from './dto/delete-event.dto';
 import { QueryEventDto } from './dto/query-event.dto';
@@ -43,6 +44,12 @@ export class CalendarController {
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateEventDto) {
     return this.service.create(user.id, dto);
+  }
+
+  // 일정 일괄 추가 (최대 50건, 전부 저장되거나 하나도 저장되지 않음)
+  @Post('bulk')
+  bulkCreate(@CurrentUser() user: AuthUser, @Body() dto: BulkCreateEventDto) {
+    return this.service.bulkCreate(user.id, dto.events);
   }
 
   // 일정 수정

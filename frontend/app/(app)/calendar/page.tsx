@@ -7,7 +7,7 @@
  * 날짜를 누르면 오른쪽(휴대폰은 아래)에 그날 목록과 추가 버튼이 열린다.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { IconCalendarPlus, IconChevronLeft, IconChevronRight, IconClose, IconEdit, IconExternal, IconLink, IconMoon, IconPlus } from '@/components/icons';
+import { IconBell, IconCalendarPlus, IconChevronLeft, IconChevronRight, IconClose, IconEdit, IconExternal, IconLink, IconList, IconMoon, IconPlus } from '@/components/icons';
 import { notify } from '@/lib/toast';
 import { withEulReul } from '@/lib/korean';
 import { useApiQuery, useInvalidate } from '@/lib/query';
@@ -34,7 +34,8 @@ import {
   RECUR_FREQ_LABEL, RECUR_FREQ_OPTIONS, LUNAR_RECUR_FREQ_OPTIONS,
   type CalEvent, type EvType, type RecurFreq,
 } from '@/lib/calendar';
-import { TypeMark, CHIP_TONE } from './parts';
+import { TypeMark, CHIP_TONE, NotifyCheckbox } from './parts';
+import BulkEventModal from './BulkEventModal';
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -91,6 +92,7 @@ export default function CalendarPage() {
   const [picked, setPicked] = useState<string | null>(null);
   // 일정 추가/수정 모달 — event 가 있으면 수정
   const [addModal, setAddModal] = useState<EventFormState>({ open: false });
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [detailEvent, setDetailEvent] = useState<CalEvent | null>(null);
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
@@ -176,7 +178,12 @@ export default function CalendarPage() {
       <PageHeader
         title="캘린더"
         description="구독 결제 · 예적금 만기 · 서류 만료 · 할일 · 메모를 한 곳에서 봅니다."
-        actions={<Button onClick={() => setAddModal({ open: true, date: selIso || undefined })}><IconPlus />일정 추가</Button>}
+        actions={
+          <>
+            <Button variant="ghost" onClick={() => setBulkOpen(true)}><IconList />일괄 추가</Button>
+            <Button onClick={() => setAddModal({ open: true, date: selIso || undefined })}><IconPlus />일정 추가</Button>
+          </>
+        }
       />
 
       <ErrorBanner message={error} />
@@ -303,6 +310,7 @@ export default function CalendarPage() {
 
       {/* 일정 추가/수정 모달 */}
       <EventFormModal state={addModal} onClose={() => setAddModal({ open: false })} onSaved={() => { setAddModal({ open: false }); reload(); }} />
+      <BulkEventModal open={bulkOpen} defaultDate={selIso || undefined} onClose={() => setBulkOpen(false)} onSaved={() => { setBulkOpen(false); reload(); }} />
 
       {/* 일정 상세 모달 (수정·삭제) */}
       <EventDetailModal
@@ -366,6 +374,12 @@ function EventDetailModal({ event, onClose, onEdit, onDelete }: { event: CalEven
             <span>{RECUR_FREQ_LABEL[event.recurFreq!]}{event.recurUntil ? ` · ${event.recurUntil}까지` : ''}</span>
           </>
         )}
+        {event.notify && (
+          <>
+            <span className="text-muted">알림</span>
+            <span className="flex items-center gap-1.5"><IconBell width={13} height={13} />당일 오전 9시</span>
+          </>
+        )}
         {event.memo && (
           <>
             <span className="text-muted">메모</span>
@@ -395,6 +409,7 @@ function EventFormModal({ state, onClose, onSaved }: { state: EventFormState; on
   const [isLunar, setIsLunar] = useState(false);
   const [recurFreq, setRecurFreq] = useState<RecurFreq>('none');
   const [recurUntil, setRecurUntil] = useState('');
+  const [notifyOn, setNotifyOn] = useState(false);
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
 
@@ -409,10 +424,10 @@ function EventFormModal({ state, onClose, onSaved }: { state: EventFormState; on
       // 반복 일정은 클릭한 회차가 아니라 원래 날짜(첫 회차)를 고친다
       // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
       setTitle(ev.title); setDate(ev.startDate ?? ev.date); setType(ev.type); setMemo(ev.memo ?? '');
-      setIsLunar(!!ev.isLunar); setRecurFreq(ev.recurFreq ?? 'none'); setRecurUntil(ev.recurUntil ?? '');
+      setIsLunar(!!ev.isLunar); setRecurFreq(ev.recurFreq ?? 'none'); setRecurUntil(ev.recurUntil ?? ''); setNotifyOn(!!ev.notify);
     } else {
       // 직접 넣는 일정은 대개 할일이다 — 구독 결제 · 만기는 각 화면에서 연결되어 들어온다
-      setTitle(''); setType('task'); setMemo(''); setIsLunar(false); setRecurFreq('none'); setRecurUntil('');
+      setTitle(''); setType('task'); setMemo(''); setIsLunar(false); setRecurFreq('none'); setRecurUntil(''); setNotifyOn(false);
       setDate(state.date ?? localDate());
     }
   }, [state.open, state.date, state.event, reset]);
@@ -442,6 +457,7 @@ function EventFormModal({ state, onClose, onSaved }: { state: EventFormState; on
           isLunar,
           recurFreq,
           recurUntil: isRecurring && recurUntil ? recurUntil : null,
+          notify: notifyOn,
         });
         notify.updated('일정');
       } else {
@@ -450,6 +466,7 @@ function EventFormModal({ state, onClose, onSaved }: { state: EventFormState; on
           isLunar: isLunar || undefined,
           recurFreq: isRecurring ? recurFreq : undefined,
           recurUntil: isRecurring && recurUntil ? recurUntil : undefined,
+          notify: notifyOn,
         });
         notify.added('일정');
       }
@@ -510,6 +527,7 @@ function EventFormModal({ state, onClose, onSaved }: { state: EventFormState; on
           )}
         </div>
       </div>
+      <NotifyCheckbox checked={notifyOn} onChange={setNotifyOn} />
       <Field label="메모 (선택)"><textarea className="input min-h-18" placeholder="추가 정보" value={memo} onChange={(e) => setMemo(e.target.value)} /></Field>
     </Modal>
   );

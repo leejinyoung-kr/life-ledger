@@ -4,6 +4,10 @@ import { NotiGroup, NotiTone } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { todayKst } from '../common/kst-date';
 import { NotificationService } from '../notification/notification.service';
+import { CalendarService } from '../calendar/calendar.service';
+
+// 캘린더 일정 유형 → 알림 설명에 쓰는 이름 (화면의 EV_TYPE_OPTIONS 와 같은 말)
+const CAL_TYPE_LABEL: Record<string, string> = { pay: '구독 결제', due: '입금 · 만기', exp: '서류 만료', task: '할일' };
 
 // 오늘(KST 날짜의 UTC 자정) + days 후 Date
 function addDays(base: Date, days: number): Date {
@@ -17,6 +21,7 @@ export class NotificationCronService {
   constructor(
     private prisma: PrismaService,
     private notification: NotificationService,
+    private calendar: CalendarService,
   ) {}
 
   // 매일 오전 9시 — 전 사용자 대상 임박/초과 알림 생성
@@ -29,22 +34,24 @@ export class NotificationCronService {
   }
 
   // 동일 제목의 미읽음 알림이 있으면 건너뛰고, 없으면 생성 (중복 방지)
+  // sameDescription: 설명까지 같아야 중복 — 캘린더 반복 일정은 제목이 매번 같아, 지난 회차를 안 읽었어도 새 회차는 보낸다
   private async emit(
     userId: number,
     n: { group: NotiGroup; tone: NotiTone; title: string; description: string; source: string },
+    opts: { sameDescription?: boolean; url?: string } = {},
   ): Promise<number> {
     const dup = await this.prisma.notification.findFirst({
-      where: { user_id: userId, title: n.title, read_at: null },
+      where: { user_id: userId, title: n.title, read_at: null, ...(opts.sameDescription ? { description: n.description } : {}) },
       select: { id: true },
     });
     if (dup) return 0;
     // 알림 저장과 같은 트랜잭션에 웹 푸시를 적재한다 — 저장이 롤백되면 푸시도 나가지 않는다.
     // 발송은 아웃박스가 맡는다(실패 시 재시도, VAPID 비활성이면 적재하지 않음). 민감정보 없이 제목/설명만
-    await this.notification.createWithPush(userId, n);
+    await this.notification.createWithPush(userId, n, { url: opts.url });
     return 1;
   }
 
-  // 한 사용자의 알림 후보를 생성 (예적금만기·구독결제/체험·비번회전)
+  // 한 사용자의 알림 후보를 생성 (예적금만기·구독결제/체험·캘린더 일정·비번회전)
   private async runForUser(userId: number): Promise<number> {
     const today = todayKst();
     let n = 0;
@@ -92,6 +99,17 @@ export class NotificationCronService {
           description: trial ? `무료체험이 ${daysLeft}일 후 종료되어 과금됩니다.` : `구독 결제일이 ${daysLeft}일 남았습니다.`,
           source: '구독',
         });
+      }
+    }
+
+    // 4) 캘린더 — 알림을 켠 일정의 오늘 회차 (settings.notif_deadline 켜진 경우만)
+    if (settings?.notif_deadline ?? true) {
+      const when = `${today.getUTCMonth() + 1}월 ${today.getUTCDate()}일`;
+      for (const ev of await this.calendar.notifyTargetsOn(userId, today)) {
+        n += await this.emit(userId, {
+          group: 'ledger', tone: 'info',
+          title: ev.title, description: `오늘(${when}) ${CAL_TYPE_LABEL[ev.type] ?? '일정'}입니다.`, source: '캘린더',
+        }, { sameDescription: true, url: '/calendar' });
       }
     }
 

@@ -194,6 +194,7 @@ export interface CalEventDto {
   lunarMonth?: number | null;
   lunarDay?: number | null;
   lunarLeap?: boolean;
+  notify?: boolean;
 }
 
 @Injectable()
@@ -241,6 +242,7 @@ export class CalendarService {
       lunarMonth: e.lunar_month,
       lunarDay: e.lunar_day,
       lunarLeap: e.lunar_leap,
+      notify: e.notify,
     };
   }
 
@@ -430,26 +432,63 @@ export class CalendarService {
     return { date: solar, lunarMonth: lunar.month, lunarDay: lunar.day, lunarLeap: lunar.intercalation };
   }
 
-  // 일정 추가 (수동 등록만)
-  async create(userId: number, dto: CreateEventDto) {
+  // 추가 DTO → 저장할 행 (음력이면 음력 월/일을 계산해 넣는다)
+  private toCreateData(userId: number, dto: CreateEventDto): Prisma.CalendarEventUncheckedCreateInput {
     const isLunar = dto.isLunar ?? false;
     const { date, lunarMonth, lunarDay, lunarLeap } = this.resolveEventDate(dto.date, isLunar);
-    const created = await this.prisma.calendarEvent.create({
-      data: {
-        user_id: userId,
-        date,
-        type: dto.type,
-        title: dto.title,
-        memo: dto.memo,
-        is_lunar: isLunar,
-        lunar_month: lunarMonth,
-        lunar_day: lunarDay,
-        lunar_leap: lunarLeap,
-        recur_freq: dto.recurFreq ?? 'none',
-        recur_until: dto.recurUntil ? new Date(dto.recurUntil) : null,
-      },
-    });
+    return {
+      user_id: userId,
+      date,
+      type: dto.type,
+      title: dto.title,
+      memo: dto.memo,
+      is_lunar: isLunar,
+      lunar_month: lunarMonth,
+      lunar_day: lunarDay,
+      lunar_leap: lunarLeap,
+      recur_freq: dto.recurFreq ?? 'none',
+      recur_until: dto.recurUntil ? new Date(dto.recurUntil) : null,
+      notify: dto.notify ?? false,
+    };
+  }
+
+  // 일정 추가 (수동 등록만)
+  async create(userId: number, dto: CreateEventDto) {
+    const created = await this.prisma.calendarEvent.create({ data: this.toCreateData(userId, dto) });
     return this.toDto(created);
+  }
+
+  // 일정 일괄 추가 — 한 트랜잭션이라 한 건이라도 실패하면 아무것도 저장되지 않는다
+  async bulkCreate(userId: number, dtos: CreateEventDto[]) {
+    const data = dtos.map((dto) => this.toCreateData(userId, dto));
+    const created = await this.prisma.$transaction(
+      data.map((d) => this.prisma.calendarEvent.create({ data: d })),
+    );
+    return created.map((e) => this.toDto(e));
+  }
+
+  // day 에 회차가 있고 알림을 켠 일정 — 매일 오전 9시 알림 작업이 쓴다 (반복 · 음력 회차 포함)
+  async notifyTargetsOn(userId: number, day: Date): Promise<{ id: number; type: string; title: string }[]> {
+    const range = { gte: day, lt: new Date(day.getTime() + 24 * 60 * 60 * 1000) };
+    const rows = await this.prisma.calendarEvent.findMany({
+      where: {
+        user_id: userId,
+        deleted_at: null,
+        notify: true,
+        OR: [
+          { recur_freq: 'none', date: range },
+          {
+            recur_freq: { not: 'none' },
+            date: { lt: range.lt },
+            OR: [{ recur_until: null }, { recur_until: { gte: range.gte } }],
+          },
+        ],
+      },
+      orderBy: [{ date: 'asc' }, { id: 'asc' }],
+    });
+    return rows
+      .filter((r) => occurrencesInRange(r, range).length > 0)
+      .map((r) => ({ id: r.id, type: r.type, title: r.title }));
   }
 
   // 본인 소유 + 미삭제 확인
@@ -488,6 +527,7 @@ export class CalendarService {
               ? new Date(dto.recurUntil)
               : null
             : undefined,
+        notify: dto.notify,
       },
     });
     return this.toDto(updated);

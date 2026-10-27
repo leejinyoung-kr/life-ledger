@@ -135,7 +135,7 @@ Base URL: `http://localhost:8000/api/v1`
 | DELETE | /notifications | 전체 삭제 |
 
 > 알림 자동생성 크론(매일 9시): 예적금·투자계좌 만기(D-30/14/7/1)·구독결제/체험종료(D-7/3/1)·비번회전(90일 경과 후 30일 간격 재알림). `notif_maturity` 설정으로 게이팅.
-> 캘린더 자체는 별도 알림 크론이 없다 — 대시보드 "다가오는 일정" 위젯으로 노출.
+> 캘린더 일정은 `notify` 를 켠 것만 회차 당일 알림(반복 · 음력 회차 포함, 출처 '캘린더', 푸시를 누르면 /calendar). `notif_deadline` 설정으로 게이팅. 반복 일정은 제목이 같아 설명(날짜)까지 같은 안 읽은 알림이 있을 때만 건너뛴다.
 
 ## 캘린더
 
@@ -143,7 +143,8 @@ Base URL: `http://localhost:8000/api/v1`
 | --- | --- | --- |
 | GET | /calendar | 이벤트 목록 (실제 + 구독결제·예적금만기·투자계좌만기(ISA 등)·공휴일 가상 이벤트) |
 | GET | /calendar/upcoming | 다가오는 이벤트 |
-| POST | /calendar | 이벤트 생성 (양력/음력, 음력은 매년 반복만 지원) |
+| POST | /calendar | 이벤트 생성 (양력/음력, 음력은 매년 반복만 지원, `notify` 당일 오전 9시 알림) |
+| POST | /calendar/bulk | 이벤트 일괄 생성 `{ events: [생성 본문, …] }` (1~50건, 한 트랜잭션 — 하나라도 틀리면 전부 저장 안 함) |
 | PUT | /calendar/:id | 이벤트 수정 |
 | DELETE | /calendar/:id?occurrenceDate=YYYY-MM-DD | 이벤트 삭제 (soft delete, 가상 이벤트는 원본 테이블 soft delete — 단 투자계좌만기는 계좌 자체가 아니라 `maturity_date`만 초기화, 공휴일은 삭제 불가). 반복 이벤트에서 `occurrenceDate`(클릭한 회차 날짜) 지정 시 그 회차부터 이후 반복만 중단(`recur_until` 조정)하고 이전 회차는 유지 — 첫 회차 지정 시 전체 삭제와 동일 |
 

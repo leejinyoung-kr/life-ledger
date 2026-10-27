@@ -408,6 +408,7 @@ model CalendarEvent {
   lunar_leap  Boolean      @default(false) /// 윤달 여부
   recur_freq  CalRecurFreq @default(none)
   recur_until DateTime?    @db.Date /// 반복 종료일 (null = 무기한)
+  notify      Boolean      @default(false) /// 당일 오전 9시 알림(푸시) 여부
   deleted_at  DateTime?
   created_at  DateTime     @default(now())
   updated_at  DateTime     @updatedAt

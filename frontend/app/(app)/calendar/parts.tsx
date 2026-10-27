@@ -1,7 +1,8 @@
 /**
- * 캘린더 전용 작은 요소 — 유형 표식 · 그리드 칩 스타일.
+ * 캘린더 전용 작은 요소 — 유형 표식 · 그리드 칩 스타일 · 알림 체크.
  * 유형은 색만이 아니라 모양으로도 구분한다 (구독 결제 채운 원 · 입금/만기 네모 · 서류 만료 마름모 · 할일 빈 원 · 공휴일 빨간 빈 원).
  */
+import { IconBell } from '@/components/icons';
 import type { EvType } from '@/lib/calendar';
 
 // 유형별 표식 모양 (md 9px / sm 5px — 휴대폰 날짜 칸의 점)
@@ -27,3 +28,14 @@ export const CHIP_TONE: Record<EvType, string> = {
   task: 'bg-elevated text-primary',
   holiday: 'text-danger',
 };
+
+// 당일 오전 9시 알림(푸시) 체크 — 한 건 추가 · 일괄 추가 창 공용
+export function NotifyCheckbox({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex items-center gap-2 min-h-8 text-[0.84rem] text-secondary cursor-pointer">
+      <input type="checkbox" className="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <IconBell width={14} height={14} className="text-muted" />
+      당일 오전 9시에 알림 (푸시)
+    </label>
+  );
+}

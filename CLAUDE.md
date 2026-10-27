@@ -71,7 +71,7 @@ life-ledger/
 | NetWorthSnapshot | user_id, month, total_assets, total_debt(부동산/부채 기능 제거 이후 항상 0), cash_total(현금 스냅샷 캐시) | 구현 완료 |
 | UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, categories(JSON) | 구현 완료 |
 | Notification | user_id, group, tone, title, description, source, read_at | 구현 완료 |
-| CalendarEvent | user_id, date, type(pay/due/exp/task), title, is_lunar/lunar_month/lunar_day/lunar_leap, recur_freq, recur_until | 구현 완료 |
+| CalendarEvent | user_id, date, type(pay/due/exp/task), title, is_lunar/lunar_month/lunar_day/lunar_leap, recur_freq, recur_until, notify(당일 9시 알림) | 구현 완료 |
 | Holiday | date, name, is_substitute, year (전 사용자 공용 캐시, user_id 없음) | 구현 완료 |
 | LoginSession | user_id, device, device_type, location, is_current, revoked_at | 구현 완료 |
 | Category | user_id, domain, code, label, parent_code(2계층), sort_order, is_active | 구현 완료 |

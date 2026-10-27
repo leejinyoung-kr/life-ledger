@@ -18,7 +18,7 @@
 | NetWorthSnapshot | 순자산 월별 스냅샷 |
 | UserSettings | 사용자 설정 (1:1) |
 | Notification | 알림 |
-| CalendarEvent | 캘린더 일정 (양력/음력, 매년 음력 반복 지원) |
+| CalendarEvent | 캘린더 일정 (양력/음력, 매년 음력 반복 지원, `notify` 켜면 회차 당일 오전 9시 알림 · 푸시) |
 | Holiday | 공휴일·대체공휴일 (전 사용자 공용 캐시, 공공데이터포털 특일 정보 API 연동) |
 | LoginSession | 로그인 세션 |
 | Category | 카테고리 (도메인별, 가계부는 대분류→소분류 2계층) |
@@ -78,7 +78,7 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ### 설정 — UserSettings (1:1)
 
-- 알림: `notif_upload`·`notif_maturity`·`notif_deadline`(지금 이 값으로 보내는 알림은 없음)
+- 알림: `notif_upload`·`notif_maturity`·`notif_deadline`(캘린더 일정 알림 전체 켜기 · 끄기 — 끄면 `calendar_event.notify` 를 켠 일정도 보내지 않음, 2026-10-27 다시 씀)
 - 캘린더: `show_holidays`(공휴일·대체공휴일 표시 여부)
 - 보안: `session_expiry`, `pw_auto_hide`, `master_lock_enabled`·`master_lock_hash`(scrypt)·`master_lock_timeout`
 - JSON: `categories`[{emoji,name}]

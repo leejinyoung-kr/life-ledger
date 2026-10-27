@@ -156,10 +156,11 @@ export default function SettingsPage() {
   const NOTIF_LABEL: Record<string, string> = {
     notifUpload: '파일 업로드 완료 알림',
     notifMaturity: '만기·결제 임박 알림',
+    notifDeadline: '캘린더 일정 알림',
   };
 
   // 알림 토글 — 즉시 저장
-  const handleToggleNotif = (key: 'notifUpload' | 'notifMaturity') => {
+  const handleToggleNotif = (key: 'notifUpload' | 'notifMaturity' | 'notifDeadline') => {
     const next = !s[key];
     const label = NOTIF_LABEL[key];
     patch({ [key]: next }, `${label}${eulreul(label)} ${next ? '켰습니다.' : '껐습니다.'}`);
@@ -195,7 +196,7 @@ export default function SettingsPage() {
                 label="푸시 알림 (이 기기)"
                 desc={
                   pushServerReady
-                    ? '브라우저를 닫아도 만기·결제·보안 알림을 푸시로 받습니다.'
+                    ? '브라우저를 닫아도 만기·결제·일정·보안 알림을 푸시로 받습니다.'
                     : '서버에 푸시 키(VAPID)가 설정되지 않아 사용할 수 없습니다.'
                 }
               >
@@ -209,6 +210,9 @@ export default function SettingsPage() {
             )}
             <SettingRow label="만기·결제 임박 알림" desc="예적금 만기·구독 결제/체험 종료 임박 시 알림">
               <Toggle label="만기·결제 임박 알림" on={s.notifMaturity} onToggle={() => handleToggleNotif('notifMaturity')} />
+            </SettingRow>
+            <SettingRow label="캘린더 일정 알림" desc="일정에서 알림을 켠 것을 당일 오전 9시에 알림. 끄면 하나도 보내지 않음">
+              <Toggle label="캘린더 일정 알림" on={s.notifDeadline} onToggle={() => handleToggleNotif('notifDeadline')} />
             </SettingRow>
             <SettingRow label="파일 업로드 완료 알림" desc="파일 업로드 시 알림 표시">
               <Toggle label="파일 업로드 완료 알림" on={s.notifUpload} onToggle={() => handleToggleNotif('notifUpload')} />
