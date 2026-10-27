@@ -194,6 +194,12 @@ export default function FilesPage() {
     handleUpload(items);
   }
 
+  // 폴더 생성 창 열기 — 이름은 열 때 비운다 (닫을 때 비우면 창이 흐려지는 동안 글자가 먼저 사라진다)
+  function openFolderModal() {
+    setFolderName('');
+    setFolderModal(true);
+  }
+
   // 폴더 생성
   async function handleCreateFolder() {
     if (!folderName.trim()) return;
@@ -202,7 +208,6 @@ export default function FilesPage() {
       await api.post('/files/folders', { name: folderName.trim(), parentId: currentFolderId ?? null });
       notify.success('폴더가 생성되었습니다.');
       setFolderModal(false);
-      setFolderName('');
       reload();
     } catch {
       notify.error('폴더 생성에 실패했습니다.');
@@ -338,7 +343,7 @@ export default function FilesPage() {
         description="폴더를 생성하여 파일을 정리하거나, 바로 업로드할 수 있습니다."
         actions={
           <>
-            <Button variant="ghost" onClick={() => setFolderModal(true)}><IconFolderPlus />폴더 생성</Button>
+            <Button variant="ghost" onClick={openFolderModal}><IconFolderPlus />폴더 생성</Button>
             {/* 휴대폰 브라우저는 폴더를 고를 수 없어 숨긴다 — 제목 줄에 폴더 생성 · 업로드 둘만 남는다 */}
             <label className={buttonClasses('ghost', 'md', 'max-md:hidden') + (uploading ? ' opacity-60 pointer-events-none' : '')}>
               <IconFolder />폴더 업로드
@@ -494,10 +499,10 @@ export default function FilesPage() {
                   ))}
                   {!search && (
                     <div
-                      {...clickable(() => setFolderModal(true))}
+                      {...clickable(openFolderModal)}
                       aria-label="새 폴더 생성"
                       className="flex flex-col items-center justify-center gap-1.5 min-h-14 border border-dashed border-border rounded-ui bg-background text-muted text-[0.8125rem] cursor-pointer transition-colors hover:border-border-hover hover:bg-hover hover:text-primary"
-                      onClick={() => setFolderModal(true)}
+                      onClick={openFolderModal}
                     >
                       <IconFolderPlus width={20} height={20} />
                       새 폴더
@@ -532,11 +537,11 @@ export default function FilesPage() {
       {/* 폴더 생성 모달 */}
       <Modal
         open={folderModal}
-        onClose={() => { setFolderModal(false); setFolderName(''); }}
+        onClose={() => setFolderModal(false)}
         title="새 폴더 생성"
         footer={
           <ModalFooter
-            onClose={() => { setFolderModal(false); setFolderName(''); }}
+            onClose={() => setFolderModal(false)}
             onSave={handleCreateFolder}
             saving={saving}
             saveLabel="생성"

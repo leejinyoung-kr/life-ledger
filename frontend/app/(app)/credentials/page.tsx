@@ -285,7 +285,7 @@ export default function CredentialsPage() {
       />
 
       {/* 추가/수정 모달 */}
-      <EditModal state={edit} onClose={() => setEdit((s) => ({ ...s, open: false }))} onSaved={() => { setEdit({ open: false, mode: 'add', editing: null }); reload(); }} />
+      <EditModal state={edit} onClose={() => setEdit((s) => ({ ...s, open: false }))} onSaved={() => { setEdit((s) => ({ ...s, open: false })); reload(); }} />
       {confirmElement}
 
       {/* 평문 엑셀 내려받기 확인 — 낱말을 입력해야 활성화 */}
