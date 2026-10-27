@@ -49,11 +49,15 @@ export default function Modal({ open, title, onClose, children, footer, header, 
   // 열릴 때 1회만 첫 포커스 가능한 요소로 이동 + 닫힐 때 트리거 요소로 포커스 복귀
   useEffect(() => {
     if (!open) return;
+    const dialog = dialogRef.current;
     const prevFocused = document.activeElement as HTMLElement | null;
-    focusables(dialogRef.current)[0]?.focus();
+    focusables(dialog)[0]?.focus();
 
     return () => {
-      prevFocused?.focus?.();
+      if (prevFocused?.isConnected) prevFocused.focus();
+      // 연 요소가 다시 그려졌거나 포커스를 못 받는 요소(목록 행 등)면 포커스가 닫힌(가려진) 창 안에 남는다 — 창 밖으로 뺀다
+      const active = document.activeElement as HTMLElement | null;
+      if (active && dialog?.contains(active)) active.blur();
     };
   }, [open]);
 

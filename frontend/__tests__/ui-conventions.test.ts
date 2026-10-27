@@ -88,4 +88,20 @@ describe('공통 UI 규칙', () => {
   it('직접 적은 빨간색(#dc2626 등)을 쓰지 않는다', () => {
     expect(offenders(/#dc2626|#F04438|#d32f1e/i)).toEqual([]);
   });
+
+  // Modal 은 닫혀도 남아서 흐려지므로, 닫을 때 창이 쓰던 값을 비우면 그동안 다른 제목 · 빈 내용이 보인다
+  it('모달은 닫을 때 open 만 끄고, 상세 창은 마지막 값으로 그린다', () => {
+    // set…({ open: false, … }) 대신 set…((s) => ({ ...s, open: false }))
+    expect(offenders(/\bset[A-Z]\w*\(\{\s*open:\s*false/)).toEqual([]);
+    const bad: string[] = [];
+    for (const f of FILES) {
+      for (const t of openTags(f.text, 'Modal')) {
+        // open 을 늘 켜고 바깥 조건으로 붙였다 떼면 흐려지지 않고 바로 사라진다
+        if (/\sopen(?=[\s/>])/.test(t.tag)) bad.push(`${f.rel}:${t.line} open 고정`);
+        // open={!!x} 로 여닫는 창은 x 가 null 이 돼도 useLastValue 로 마지막 값을 그린다
+        if (/\sopen=\{!!\w+\}/.test(t.tag) && !/useLastValue\(/.test(f.text)) bad.push(`${f.rel}:${t.line} useLastValue 없음`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
 });

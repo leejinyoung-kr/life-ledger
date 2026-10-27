@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { notify, copyToClipboard } from '@/lib/toast';
 import { api } from '@/lib/api';
+import { useLastValue } from '@/lib/useLastValue';
 import { fmtCredDate, type Credential, type CredentialSecret, type TotpCode, type BackupCodes } from '@/lib/credential';
 import Modal from '@/components/Modal';
 import Button from '@/components/ui/Button';
@@ -26,6 +27,9 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
   const [backupBusy, setBackupBusy] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 화면은 마지막 계정으로 그린다 — 닫혀도(cred → null) 흐려지는 동안 이름 · 아이디가 그대로 보이게.
+  // 원문 · TOTP 를 받고 지우는 아래 effect 는 실제 cred 를 따른다 (닫는 순간 원문은 지워진다)
+  const shown = useLastValue(cred);
 
   // 모달이 바뀌면 원문을 새로 받아오고 비밀번호는 다시 가린다
   useEffect(() => {
@@ -61,7 +65,7 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
     return () => { active = false; clearInterval(iv); if (next) clearTimeout(next); };
   }, [cred]);
 
-  if (!cred) return null;
+  if (!shown) return null;
 
   // 비밀번호 표시/숨김 토글 — 표시 시 설정한 시간 뒤 자동 숨김 예약(설정이 '없음'이면 예약 안 함)
   function handleTogglePw() {
@@ -103,10 +107,10 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
 
   const header = (
     <div className="flex items-start gap-3 px-5 py-4 border-b border-border-subtle">
-      <ServiceTile name={cred.name} size="lg" />
+      <ServiceTile name={shown.name} size="lg" />
       <div className="flex-1 min-w-0">
-        <div className="text-[1.25rem] font-bold leading-tight text-primary truncate">{cred.name}</div>
-        <div className="text-[0.78rem] text-muted mt-1 truncate">{cred.url ?? '—'} · {cred.category}</div>
+        <div className="text-[1.25rem] font-bold leading-tight text-primary truncate">{shown.name}</div>
+        <div className="text-[0.78rem] text-muted mt-1 truncate">{shown.url ?? '—'} · {shown.category}</div>
       </div>
       <IconButton label="닫기" variant="bordered" size="lg" onClick={onClose}><IconClose width={16} height={16} /></IconButton>
     </div>
@@ -116,7 +120,7 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
     <Modal
       open={!!cred}
       onClose={onClose}
-      title={cred.name}
+      title={shown.name}
       header={header}
       size="sm"
       footer={
@@ -130,8 +134,8 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
       <div className="flex flex-col">
         {/* 아이디 */}
         <DetailRow label="아이디">
-          <span className="text-[0.9375rem] text-primary truncate">{cred.username}</span>
-          <Button variant="ghost" onClick={() => copyToClipboard(cred.username)}><IconCopy />복사</Button>
+          <span className="text-[0.9375rem] text-primary truncate">{shown.username}</span>
+          <Button variant="ghost" onClick={() => copyToClipboard(shown.username)}><IconCopy />복사</Button>
         </DetailRow>
 
         {/* 비밀번호 — 복사는 이 창에서 유일한 주 버튼 */}
@@ -142,7 +146,7 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
         </DetailRow>
 
         {/* 2FA — 실시간 6자리 코드 + 남은 시간 */}
-        {cred.has2fa && (
+        {shown.has2fa && (
           <DetailRow label="2FA 코드 (TOTP)">
             <span className="text-[1.625rem] leading-[1.1] tracking-[0.08em] text-primary tabular-nums">{totp ? totp.code : '••••••'}</span>
             {totp && (
@@ -156,7 +160,7 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
         )}
 
         {/* 2FA 백업코드 — 분실 대비 일회용 코드 */}
-        {cred.has2fa && (
+        {shown.has2fa && (
           backupCodes ? (
             <div className="py-3 border-b border-border-subtle">
               <span className="text-[0.75rem] text-muted">2FA 백업코드</span>
@@ -172,8 +176,8 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
             </div>
           ) : (
             <DetailRow label="2FA 백업코드">
-              <span className="text-[0.84rem] text-muted">{cred.hasBackupCodes ? '백업코드가 저장되어 있습니다.' : '저장된 백업코드가 없습니다.'}</span>
-              {cred.hasBackupCodes
+              <span className="text-[0.84rem] text-muted">{shown.hasBackupCodes ? '백업코드가 저장되어 있습니다.' : '저장된 백업코드가 없습니다.'}</span>
+              {shown.hasBackupCodes
                 ? <Button variant="ghost" size="sm" onClick={handleViewBackup} disabled={backupBusy}>보기</Button>
                 : <Button variant="ghost" size="sm" onClick={handleGenBackup} disabled={backupBusy}>생성</Button>}
             </DetailRow>
@@ -183,11 +187,11 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
         {/* 메모 */}
         <div className="flex flex-col gap-0.5 py-3">
           <span className="text-[0.75rem] text-muted">메모</span>
-          <span className="text-[0.875rem] text-secondary leading-normal">{cred.memo || '—'}</span>
+          <span className="text-[0.875rem] text-secondary leading-normal">{shown.memo || '—'}</span>
         </div>
 
         <div className="flex items-center gap-1.5 text-[0.72rem] text-muted [&_svg]:w-3 [&_svg]:h-3">
-          <IconClock />이 창을 열면 열람이 기록됩니다 · 수정일 {fmtCredDate(cred.updatedAt)}
+          <IconClock />이 창을 열면 열람이 기록됩니다 · 수정일 {fmtCredDate(shown.updatedAt)}
         </div>
       </div>
     </Modal>

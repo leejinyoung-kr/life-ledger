@@ -202,7 +202,7 @@ docker compose exec backend npx prisma migrate deploy
   | 입력 그룹 · 오류 | `ui/Field` — `error` 가 있으면 안의 `.input` 이 자동으로 빨개진다. `is-invalid` 를 손으로 붙이지 않는다 (Field 밖은 `aria-invalid`) |
   | 탭 | 밑줄 · 세로 `ui/Tabs`, 알약 · 묶음 `ui/Segmented` (`role="tablist"`, 창 안에서 칸을 꽉 채우려면 `fill`) |
   | 카드 / 배지 / 토글 | `ui/Card`(`clip` · `hover` · `onClick` · `tone` accent · danger) / `ui/Badge`(`tone` · `size`, 상태에만) / `ui/Toggle` |
-  | 모달 | `Modal`(`size` · `subtitle` · `headerAction` · `footer`, 휴대폰도 여백 두고 가운데) · `ConfirmModal`(확인 · 입력이 붙는 확인은 `children` · `layer`) |
+  | 모달 | `Modal`(`size` · `subtitle` · `headerAction` · `footer`, 휴대폰도 여백 두고 가운데) · `ConfirmModal`(확인 · 입력이 붙는 확인은 `children` · `layer`). `Modal` 은 닫혀도 남아 흐려지므로 닫을 때 `open` 만 끄고(`setX((s) => ({ ...s, open: false }))`), `open={!!x}` 로 여닫는 상세 창은 `useLastValue(x)` 로 그린다 |
   | 빈 상태 · 로딩 · 오류 | `EmptyState`(`size`) · `QueryState` / `PageLoading`(`size`) · `ErrorBanner` · `QueryError`, 테이블 빈 행은 `TableEmptyRow` |
   | 조회 조건 박스 / 엑셀 버튼 줄 | `FilterPanel` / `ExcelToolbar` |
   | 목록 위 도구 줄 (총 n건 ··· 선택삭제 · n개) | `ListToolbar`(`total` · `unit`, 합계 · 안내는 `summary`, 엑셀 · 통화는 `tools` — 휴대폰은 둘째 줄로) |
@@ -239,3 +239,4 @@ docker compose exec backend npx prisma migrate deploy
 - [docs/archive/2026-10-13-public-release-plan.md](docs/archive/2026-10-13-public-release-plan.md) — 공개 준비(포트폴리오) 계획 — 2026-10-15 끝남(이름 전환 · 데모 · DB 이름 · public). 데모 운영 절차는 이 문서 "5단계"
 - [docs/category-migration.md](docs/category-migration.md) — 카테고리 2계층 구조 + 엑셀→앱 매칭표(실데이터 마이그레이션용)
 - [docs/archive/](docs/archive/) — 끝난 작업의 설계·계획 문서
+- [docs/implementation-notes.md](docs/implementation-notes.md) — 설명할 거리가 있는 개선 (문제 · 원인 · 고친 방법 · 일부러 안 고친 곳)

@@ -27,6 +27,7 @@ import { api } from '@/lib/api';
 import { NOTI_TABS, SOURCE_ICON, SOURCE_LINK, FALLBACK_SOURCE_ICON, relativeTime, type Noti, type NotiTone } from '@/lib/notification';
 import { usePagination } from '@/lib/usePagination';
 import { useRowSelection } from '@/lib/useRowSelection';
+import { useLastValue } from '@/lib/useLastValue';
 
 // tone → 종류 아이콘 색 (info 는 muted)
 const ICON_TONE: Record<NotiTone, string> = {
@@ -52,6 +53,8 @@ export default function NotificationsPage() {
   const [tab, setTab] = useState<typeof NOTI_TABS[number]['kind']>('all');
   const handleChangeTab = (t: typeof tab) => { setTab(t); setPage(1); clear(); };
   const [detail, setDetail] = useState<Noti | null>(null);
+  // 닫혀도(detail → null) 흐려지는 동안 마지막 알림을 그린다
+  const shownDetail = useLastValue(detail);
   const { page, setPage, limit, changeLimit } = usePagination();
   const { confirm, confirmElement } = useConfirm();
   const invalidate = useInvalidate();
@@ -127,7 +130,7 @@ export default function NotificationsPage() {
   const paged = items; // 서버가 이미 그룹필터+페이지 단위로 잘라서 보냄
   const { selected, toggle, toggleAll, clear, allChecked } = useRowSelection(paged.map((n) => n.id));
 
-  const detailLink = detail ? SOURCE_LINK[detail.source] : undefined;
+  const detailLink = shownDetail ? SOURCE_LINK[shownDetail.source] : undefined;
 
   return (
     <AppShell activePath="/notifications">
@@ -188,20 +191,20 @@ export default function NotificationsPage() {
       <Pagination page={page} totalPages={totalPages} totalItems={total} onPageChange={setPage} />
 
       {/* 알림 상세 창 */}
-      {detail && (
+      {shownDetail && (
         <Modal
-          open
+          open={!!detail}
           size="sm"
           title="알림 상세"
           onClose={() => setDetail(null)}
           header={(
             <div className="flex items-start gap-3 px-5 py-4 border-b border-border-subtle">
-              <span className={`w-9 h-9 shrink-0 border border-border rounded-ui flex items-center justify-center ${ICON_TONE[detail.tone]}`}>
-                <SourceIcon source={detail.source} size={18} />
+              <span className={`w-9 h-9 shrink-0 border border-border rounded-ui flex items-center justify-center ${ICON_TONE[shownDetail.tone]}`}>
+                <SourceIcon source={shownDetail.source} size={18} />
               </span>
               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <span className="text-[1.25rem] font-bold leading-tight text-primary break-keep">{detail.title}</span>
-                <span className="text-[0.78rem] text-muted">{relativeTime(detail.occurredAt)} · {detail.source}</span>
+                <span className="text-[1.25rem] font-bold leading-tight text-primary break-keep">{shownDetail.title}</span>
+                <span className="text-[0.78rem] text-muted">{relativeTime(shownDetail.occurredAt)} · {shownDetail.source}</span>
               </div>
               <IconButton label="닫기" variant="bordered" size="lg" onClick={() => setDetail(null)}>
                 <IconClose />
@@ -215,12 +218,12 @@ export default function NotificationsPage() {
             </>
           )}
         >
-          <p className="text-[0.875rem] leading-[1.65] text-primary break-keep">{detail.desc}</p>
+          <p className="text-[0.875rem] leading-[1.65] text-primary break-keep">{shownDetail.desc}</p>
           <dl className="grid grid-cols-[64px_1fr] gap-x-3 gap-y-1.5 text-[0.78rem]">
             <dt className="text-muted">받은 시각</dt>
-            <dd className="text-primary">{formatReceived(detail.occurredAt)}</dd>
+            <dd className="text-primary">{formatReceived(shownDetail.occurredAt)}</dd>
             <dt className="text-muted">출처</dt>
-            <dd className="text-primary">{detail.source}</dd>
+            <dd className="text-primary">{shownDetail.source}</dd>
           </dl>
         </Modal>
       )}

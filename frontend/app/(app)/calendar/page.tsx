@@ -12,6 +12,7 @@ import { notify } from '@/lib/toast';
 import { withEulReul } from '@/lib/korean';
 import { useApiQuery, useInvalidate } from '@/lib/query';
 import { useFormErrors } from '@/lib/useFormErrors';
+import { useLastValue } from '@/lib/useLastValue';
 import { qk } from '@/lib/queryKeys';
 import { clickable } from '@/lib/a11y';
 import AppShell from '@/components/AppShell';
@@ -327,7 +328,9 @@ export default function CalendarPage() {
 }
 
 // 일정 상세 모달 — 직접 등록한 일정은 수정, 연동 일정은 원래 화면으로 이동, 공휴일이 아니면 삭제
-function EventDetailModal({ event, onClose, onEdit, onDelete }: { event: CalEvent | null; onClose: () => void; onEdit: (ev: CalEvent) => void; onDelete: (ev: CalEvent) => void }) {
+function EventDetailModal({ event: current, onClose, onEdit, onDelete }: { event: CalEvent | null; onClose: () => void; onEdit: (ev: CalEvent) => void; onDelete: (ev: CalEvent) => void }) {
+  // 닫혀도(current → null) 흐려지는 동안 마지막 일정을 그린다
+  const event = useLastValue(current);
   if (!event) return null;
   const linked = isLinked(event);
   const path = sourcePath(event);
@@ -335,7 +338,7 @@ function EventDetailModal({ event, onClose, onEdit, onDelete }: { event: CalEven
   const recurring = !!event.recurFreq && event.recurFreq !== 'none';
   return (
     <Modal
-      open={!!event}
+      open={!!current}
       onClose={onClose}
       title="일정 상세"
       size="sm"

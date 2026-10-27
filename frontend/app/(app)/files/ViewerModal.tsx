@@ -9,15 +9,18 @@ import Button from '@/components/ui/Button';
 import IconButton from '@/components/ui/IconButton';
 import { IconClose, IconDownload, IconDoc, IconImage } from '@/components/icons';
 import { useApiQuery } from '@/lib/query';
+import { useLastValue } from '@/lib/useLastValue';
 import { fileExt, fmtFileDate, formatBytes, isImage, isPdf, isText, type FileItem } from './shared';
 
 // 파일 보기 창 — 이미지 / PDF / 글자 파일(TXT · MD · CSV · JSON …)은 미리보기, 그 밖은 내려받기 안내
-export default function ViewerModal({ file, onClose, onDownload, onDelete }: {
+export default function ViewerModal({ file: current, onClose, onDownload, onDelete }: {
   file: FileItem | null;
   onClose: () => void;
   onDownload: (f: FileItem) => void;
   onDelete: (f: FileItem) => void;
 }) {
+  // 닫혀도(current → null) 흐려지는 동안 마지막 파일을 그린다 — 미리보기도 그대로 둔다
+  const file = useLastValue(current);
   const [loadedPreview, setLoadedPreview] = useState<{ id: number; url: string } | null>(null);
   // 글자 파일은 서버가 앞부분(최대 512KB)을 글자로 돌려준다 — B2 를 직접 읽으면 CORS · 인코딩 문제가 있어서
   const textMode = !!file && isText(file.mimeType, file.name);
@@ -57,7 +60,7 @@ export default function ViewerModal({ file, onClose, onDownload, onDelete }: {
 
   return (
     <Modal
-      open={!!file}
+      open={!!current}
       onClose={onClose}
       title={file.name}
       size="lg"
