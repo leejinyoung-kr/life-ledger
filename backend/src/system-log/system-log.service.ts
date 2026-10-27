@@ -54,13 +54,10 @@ export class SystemLogService {
     if (level) where.level = level;
     if (category) where.category = category;
     if (from || to) {
+      // from · to 는 화면에서 고른 한국 날짜(YYYY-MM-DD) — 그날 KST 0시 ~ 23:59:59.999 로 자른다 (서버 TZ 와 무관)
       const dateFilter: Record<string, Date> = {};
-      if (from) dateFilter.gte = new Date(from);
-      if (to) {
-        const end = new Date(to);
-        end.setHours(23, 59, 59, 999);
-        dateFilter.lte = end;
-      }
+      if (from) dateFilter.gte = new Date(`${from}T00:00:00+09:00`);
+      if (to) dateFilter.lte = new Date(`${to}T23:59:59.999+09:00`);
       where.created_at = dateFilter;
     }
     if (q) where.message = { contains: q };

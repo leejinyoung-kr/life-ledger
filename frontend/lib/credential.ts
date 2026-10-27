@@ -41,9 +41,10 @@ export function generatePassword(length = 16, withSymbols = true): string {
   return Array.from(arr, (n) => pool[n % pool.length]).join('');
 }
 
-// ISO → 'YYYY.MM.DD'
+// ISO → 'YYYY.MM.DD' (브라우저 시간대 날짜 — 앞 10자를 자르면 UTC 날짜라 새벽 0~9시에 고친 것이 전날로 보인다)
 export function fmtCredDate(iso: string): string {
-  return iso.slice(0, 10).replace(/-/g, '.');
+  const d = new Date(iso);
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // 비밀번호 강도(0~100) 추정 — 길이·문자종류 기반

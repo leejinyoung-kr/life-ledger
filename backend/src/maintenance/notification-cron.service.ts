@@ -115,14 +115,16 @@ export class NotificationCronService {
 
     // 6) 비밀번호 회전 — 마지막 변경 90일 경과 시 알림, 이후 30일 간격으로 재알림 (매일 반복 방지)
     const MS_PER_DAY = 24 * 60 * 60 * 1000;
-    const rotateBefore = addDays(today, -90);
+    // 넉넉히 89일 전 날짜로 거르고 정확한 경과 일수는 아래에서 센다 — 90일 전 날짜(UTC 자정 = KST 9시)로 거르면
+    // 정확히 90일째(그날 9시 이후 변경)가 빠져 첫 알림이 120일째에야 갔다
+    const rotateBefore = addDays(today, -89);
     const stale = await this.prisma.credential.findMany({
       where: { user_id: userId, deleted_at: null, password_changed_at: { lt: rotateBefore } },
       select: { name: true, password_changed_at: true },
     });
     for (const c of stale) {
-      const changedAt = c.password_changed_at!;
-      const changedDay = new Date(Date.UTC(changedAt.getUTCFullYear(), changedAt.getUTCMonth(), changedAt.getUTCDate()));
+      // 바꾼 날은 한국 날짜로 센다 (UTC 날짜로 세면 KST 0~9시에 바꾼 것이 하루 더 지난 것으로 셈)
+      const changedDay = todayKst(c.password_changed_at!);
       const daysStale = Math.round((today.getTime() - changedDay.getTime()) / MS_PER_DAY);
       if (daysStale === 90 || (daysStale > 90 && (daysStale - 90) % 30 === 0)) {
         n += await this.emit(userId, {

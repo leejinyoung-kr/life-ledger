@@ -56,3 +56,60 @@ describe('NotificationCronService 캘린더 알림', () => {
     expect(notification.createWithPush).not.toHaveBeenCalled();
   });
 });
+
+// 매일 9시 알림 — 비밀번호 교체 권장 (90일째 · 이후 30일마다, 바꾼 날은 한국 날짜로 센다)
+describe('NotificationCronService 비밀번호 교체 알림', () => {
+  let creds: { name: string; password_changed_at: Date }[];
+  let prisma: any;
+  let notification: { createWithPush: jest.Mock };
+  const svc = () => new NotificationCronService(
+    prisma, notification as unknown as NotificationService, { notifyTargetsOn: jest.fn(async () => []) } as unknown as CalendarService,
+  );
+  const sentDescriptions = () => notification.createWithPush.mock.calls.map(([, n]: any) => n.description);
+
+  beforeEach(() => {
+    // KST 2026-10-27 09:00
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-27T00:00:00Z'));
+    creds = [];
+    prisma = {
+      user: { findMany: jest.fn(async () => [{ id: 1 }]) },
+      userSettings: { findUnique: jest.fn(async () => ({ notif_maturity: false, notif_deadline: false })) },
+      credential: {
+        findMany: jest.fn(async ({ where }: any) => creds.filter((c) => c.password_changed_at < where.password_changed_at.lt)),
+      },
+      notification: { findFirst: jest.fn(async () => null) },
+    };
+    notification = { createWithPush: jest.fn(async () => ({})) };
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it('정확히 90일째(오후에 바꾼 것)도 알린다', async () => {
+    // 2026-07-29 15:00 KST — 오늘(10-27)이 90일째
+    creds.push({ name: '네이버', password_changed_at: new Date('2026-07-29T06:00:00Z') });
+
+    await svc().generateDaily();
+
+    expect(sentDescriptions()).toEqual(['비밀번호를 변경한 지 90일이 지났습니다.']);
+  });
+
+  it('KST 새벽(UTC 로는 전날)에 바꾼 것도 한국 날짜로 센다', async () => {
+    // 2026-07-29 08:00 KST = 07-28 23:00 UTC — UTC 날짜로 세면 91일이라 알림이 빠졌다
+    creds.push({ name: '네이버', password_changed_at: new Date('2026-07-28T23:00:00Z') });
+
+    await svc().generateDaily();
+
+    expect(sentDescriptions()).toEqual(['비밀번호를 변경한 지 90일이 지났습니다.']);
+  });
+
+  it('89일 · 91일째는 보내지 않고, 120일째는 다시 알린다', async () => {
+    creds.push(
+      { name: '89일', password_changed_at: new Date('2026-07-30T06:00:00Z') },
+      { name: '91일', password_changed_at: new Date('2026-07-28T06:00:00Z') },
+      { name: '120일', password_changed_at: new Date('2026-06-29T06:00:00Z') },
+    );
+
+    await svc().generateDaily();
+
+    expect(sentDescriptions()).toEqual(['비밀번호를 변경한 지 120일이 지났습니다.']);
+  });
+});
