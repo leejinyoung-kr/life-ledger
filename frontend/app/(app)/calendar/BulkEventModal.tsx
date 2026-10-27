@@ -48,10 +48,11 @@ export default function BulkEventModal({ open, defaultDate, onClose, onSaved }: 
 
   const filled = rows.filter((r) => r.title.trim());
 
-  // 행 한 칸 고치기 — 고친 행의 오류 표시는 지운다
+  // 행 한 칸 고치기 — 고친 행의 빨간 표시와 오류 문구는 지운다 (다시 저장할 때 다시 검사)
   function updateRow(key: number, patch: Partial<Row>) {
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
     if (invalid.has(key)) setInvalid((s) => { const n = new Set(s); n.delete(key); return n; });
+    setError('');
   }
 
   // 맨 아래에 행 추가 (최대 MAX_ROWS)
@@ -133,7 +134,7 @@ export default function BulkEventModal({ open, defaultDate, onClose, onSaved }: 
               maxLength={200}
               autoFocus={r.key === focusKey}
               value={r.title}
-              onChange={(e) => { updateRow(r.key, { title: e.target.value }); setError(''); }}
+              onChange={(e) => updateRow(r.key, { title: e.target.value })}
               onKeyDown={(e) => handleTitleKey(e, idx)}
             />
             <input
