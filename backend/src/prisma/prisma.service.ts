@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { withKstDateTime } from '@leejinyoung-kr/core-db';
 import { encryptedFields } from '@leejinyoung-kr/core-security/prisma';
 import { env } from '../config/env';
 import { ENCRYPTED_FIELD_MAP } from '../crypto/crypto-fields';
@@ -11,7 +12,8 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor() {
-    const adapter = new PrismaMariaDb(env.DATABASE_URL);
+    // 시각 컬럼은 KST 벽시계로 쓰고 읽는다 (infra ADR 0008) — 앱이 다루는 Date 시점은 그대로
+    const adapter = withKstDateTime(new PrismaMariaDb(env.DATABASE_URL));
     super({ adapter });
     // 암호문 컬럼에 평문을 쓰면 여기서 막는다(읽기는 그대로 — 복호화는 호출부가 명시적으로 한다).
     // 확장 클라이언트를 인스턴스로 돌려줘 주입받는 쪽 코드는 그대로 둔다(모델·$transaction·수명주기 훅 모두 전달된다).

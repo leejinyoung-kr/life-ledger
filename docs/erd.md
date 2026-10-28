@@ -142,4 +142,9 @@ LoginSession   1 ─── N RefreshToken(session_id)
 
 ## 타임스탬프
 
-TiDB Cloud(프로덕션)는 트리거를 지원하지 않아 BEFORE INSERT/UPDATE 트리거 기반 KST 강제 방식은 제거됨. `created_at`/`updated_at`은 Prisma `@default(now())`/`@updatedAt` 그대로 사용(UTC 기준).
+시각(`DATETIME`) 컬럼 65개는 **KST 벽시계 값**이다 (2026-10-28 전환, infra ADR 0008). `PrismaService` 가 `@leejinyoung-kr/core-db` 의 `withKstDateTime` 으로 어댑터를 감싸 쓸 때 +9시간 · 읽을 때 −9시간 하므로, 앱 코드가 다루는 `Date` 는 그대로 올바른 시점이다. 시드 · 데모 초기화도 같은 감싸기를 쓴다 (`prisma.service.spec.ts` 가 검사).
+
+- 날짜만 있는 `@db.Date` 컬럼(12개)은 원래 한국 날짜(UTC 자정으로 표현, `todayKst()`)라 바꾸지 않았다
+- 전환 전 데이터는 마이그레이션 `20261028150000_datetime_to_kst` 가 한 트랜잭션으로 +9시간 옮겼다. 그 전 덤프(04시 자동 덤프 · PC `infra/backups/auto/` 2026-10-28 전)는 UTC 라, 복원하면 같은 UPDATE 를 한 번 돌린다
+- HeidiSQL 등으로 손으로 넣을 때도 KST 로 넣는다
+- 그 전 이력: TiDB Cloud 시절 트리거로 KST 를 강제하던 방식은 트리거 미지원으로 지웠고, 그 뒤 2026-10-28 까지는 UTC 였다

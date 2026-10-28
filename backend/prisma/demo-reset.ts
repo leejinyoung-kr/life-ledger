@@ -10,6 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { randomBytes, scryptSync } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { withKstDateTime } from '@leejinyoung-kr/core-db';
 import 'dotenv/config';
 
 // src/common/demo.ts 와 같은 값 — src/common/demo.ts 는 env 검증까지 끌고 와서 여기서는 import 하지 않는다.
@@ -32,7 +33,8 @@ async function main() {
     process.exit(1);
   }
 
-  const prisma = new PrismaClient({ adapter: new PrismaMariaDb(process.env.DATABASE_URL!) });
+  // 시각 컬럼은 KST 벽시계로 쓴다 (infra ADR 0008) — 앱과 같은 감싸기
+  const prisma = new PrismaClient({ adapter: withKstDateTime(new PrismaMariaDb(process.env.DATABASE_URL!)) });
   try {
     const tables = await prisma.$queryRaw<{ name: string }[]>`
       SELECT table_name AS name FROM information_schema.tables

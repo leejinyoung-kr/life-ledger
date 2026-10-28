@@ -2,6 +2,31 @@
 
 결정(ADR) · 사고(포스트모템)는 아니지만 설명할 거리가 있는 개선을 남긴다 — 문제 · 원인 · 고친 방법 · 일부러 안 고친 곳.
 
+## DB 시각을 KST 벽시계로 옮김 (2026-10-28)
+
+### 문제
+
+HeidiSQL 로 운영 DB 를 보면 `created_at` 등이 한국 시간보다 9시간 이르게 보였다. 컬럼 코멘트는 `생성일(KST)` 인데 실제 값은 UTC 였다. 결정은 infra ADR 0008 (UTC 유지 · TIMESTAMP · 실제 값 KST 중 KST).
+
+### 원인
+
+Prisma 7 `@prisma/adapter-mariadb` 는 시각을 늘 `getUTC*` 로 적고, 읽을 때 `Z` 를 붙인다. 연결 URL 의 `timezone=+09:00` 은 이 어댑터에 효과가 없다.
+
+### 고친 방법
+
+- 서비스 코드에서 9시간을 더하지 않고 **연결 층 한 곳**에서 바꿨다 — `withKstDateTime(new PrismaMariaDb(url))` (young-core `core-db`). 시각 인자 +9시간, 결과의 시각 열 −9시간. `@default(now())` · `@updatedAt` 도 Prisma 가 인자로 넘겨서 같이 옮겨진다
+- `@db.Date` 열은 어댑터가 넘기는 `dbType: 'DATE'` · 결과 열 종류(Date)로 걸러 옮기지 않는다 — 조건(`where date gte`) 인자에도 `dbType` 이 붙는 것을 실험으로 확인했다
+- 기존 데이터는 마이그레이션 하나에 `UPDATE … + INTERVAL 9 HOUR` 만 넣고 한 트랜잭션으로 (25개 표 · 65개 열, DB `information_schema` 와 `schema.prisma` 를 대조). 시각 열이 들어간 유니크 인덱스 · `ON UPDATE` · 트리거가 없어 행마다 바꾸는 중간에 충돌할 곳이 없다
+- 어댑터 · 클라이언트 · CLI 를 7.10.0 으로 고정 — 감싸기가 어댑터의 인자 · 행 모양에 기대서, 올릴 때는 core-db 테스트부터
+- 어댑터를 만드는 곳(앱 · `prisma/seed.ts` · `prisma/demo-reset.ts` · `scripts/`)이 감싸지 않으면 `prisma.service.spec.ts` 가 실패한다
+- 운영 전환은 백엔드를 멈춘 뒤 배포 — 옛 컨테이너가 도는 채로 마이그레이션하면 그 사이 UTC 가 섞인다
+
+### 일부러 안 고친 곳
+
+- 서비스 코드 · 화면 · API 응답(`…Z`) — 앱이 받는 시점이 그대로라 손댈 것이 없다
+- `_prisma_migrations` — Prisma CLI 가 직접 쓰는 표라 UTC 그대로 남는다
+- raw SQL 의 `Date` 인자는 `dbType` 이 없어 시각으로 본다. 지금 raw SQL(재암호화 · health · 데모 초기화)은 시각 열을 다루지 않는다
+
 ## 모달이 닫히는 동안 내용이 바뀌어 보이던 문제 (2026-10-27)
 
 ### 문제

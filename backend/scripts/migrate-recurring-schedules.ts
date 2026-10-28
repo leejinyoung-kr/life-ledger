@@ -13,9 +13,11 @@
  */
 import { PrismaClient, Prisma } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { withKstDateTime } from '@leejinyoung-kr/core-db';
 import { periodOf, type RRule } from '../src/transaction/recurring.util';
 
-const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
+// 시각 컬럼은 KST 벽시계로 쓴다 (infra ADR 0008) — 앱과 같은 감싸기
+const adapter = withKstDateTime(new PrismaMariaDb(process.env.DATABASE_URL!));
 const prisma = new PrismaClient({ adapter });
 
 interface LegacyTransactionTemplate {

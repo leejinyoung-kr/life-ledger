@@ -11,6 +11,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { withKstDateTime } from '@leejinyoung-kr/core-db';
 import 'dotenv/config';
 import type { SeedFn } from './seeds/helpers';
 import { seedTransactions } from './seeds/transactions.seed';
@@ -27,7 +28,8 @@ import { seedSystemLogs } from './seeds/system-log.seed';
 import { seedCalendarEvents } from './seeds/calendar.seed';
 import { seedFavorites } from './seeds/favorites.seed';
 
-const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
+// 시각 컬럼은 KST 벽시계로 쓴다 (infra ADR 0008) — 앱과 같은 감싸기
+const adapter = withKstDateTime(new PrismaMariaDb(process.env.DATABASE_URL!));
 const prisma = new PrismaClient({ adapter });
 
 // 등록된 도메인 시드 (실행 순서 = 배열 순서). 도메인 늘면 여기에 추가.
