@@ -154,6 +154,15 @@ describe('InvestmentAccountService', () => {
     expect(res.cashBalance).toBe(140_000);
   });
 
+  it('exchange: 받는 금액(toAmount)을 주면 환율 계산 없이 그 값을 그대로 더함', async () => {
+    (priceLookup.getExchangeRate as jest.Mock).mockClear();
+    const account = await svc().create(1, { name: 'A', accountNumber: '1', cashBalance: 605_903, cashBalanceUsd: 99.98 } as any);
+    const res = await svc().exchange(1, account.id, { direction: ExchangeDirection.KRW_TO_USD, amount: 200_590, toAmount: 150 } as any);
+    expect(priceLookup.getExchangeRate).not.toHaveBeenCalled();
+    expect(res.cashBalance).toBe(405_313);
+    expect(res.cashBalanceUsd).toBe(249.98);
+  });
+
   it('exchange: 원화 부족하면 BadRequest', async () => {
     const account = await svc().create(1, { name: 'A', accountNumber: '1', cashBalance: 1000 } as any);
     await expect(

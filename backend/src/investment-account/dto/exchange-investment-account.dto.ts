@@ -15,7 +15,13 @@ export class ExchangeInvestmentAccountDto {
   @Min(0.01)
   amount: number;
 
-  // 환율(1달러당 원화) — 미입력 시 실시간 조회
+  // 받는 통화 기준 금액 (증권사 체결 화면 값) — 주면 환율 계산 없이 그대로 더한다
+  @IsOptional()
+  @IsNumber()
+  @Min(0.01)
+  toAmount?: number;
+
+  // 환율(1달러당 원화) — toAmount 가 없을 때만 쓰고, 미입력 시 실시간 조회
   @IsOptional()
   @IsNumber()
   @Min(0.01)

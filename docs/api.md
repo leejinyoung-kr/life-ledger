@@ -63,6 +63,7 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /investment-accounts/summary | 요약 (총 예수금/계좌 수) |
 | POST | /investment-accounts | 계좌 추가 |
 | PUT | /investment-accounts/:id | 계좌 수정 |
+| POST | /investment-accounts/:id/exchange | 환전 — `direction`(krw_to_usd · usd_to_krw) · `amount`(빠지는 통화) · `toAmount`(받는 통화, 주면 그대로 반영) · `rate`(toAmount 없을 때, 비우면 실시간 환율) |
 | DELETE | /investment-accounts/:id | 계좌 삭제 (soft delete) |
 
 ## 가계부 — 투자

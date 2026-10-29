@@ -461,12 +461,27 @@ export function AccountModal({ state, onClose, onSaved }: { state: AccountModalS
   );
 }
 
-// 환전 모달 — 계좌 내 원화↔달러 예수금 상호 전환. 환율 미입력 시 서버가 실시간 조회(frankfurter.app)
+// 원화 → 달러 환산 (센트 단위)
+function krwToUsd(krw: string, rate: string): string {
+  return krw && Number(rate) > 0 ? (Number(krw) / Number(rate)).toFixed(2) : '';
+}
+
+// 달러 → 원화 환산 (원 단위)
+function usdToKrw(usd: string, rate: string): string {
+  return usd && Number(rate) > 0 ? String(Math.round(Number(usd) * Number(rate))) : '';
+}
+
+// 환전 모달 — 증권사 앱과 같게: 원화→달러는 원화 · 달러 중 한 칸을 넣으면 다른 칸을 환율로 채우고 둘 다 고칠 수 있다(저장은 두 값 그대로),
+// 달러→원화는 달러만 넣는다. 환율은 열 때 시세로 채우고 고칠 수 있다
 export function ExchangeModal({ state, onClose, onSaved }: { state: ExchangeModalState; onClose: () => void; onSaved: () => void }) {
   const a = state.account;
   const [direction, setDirection] = useState<'krw_to_usd' | 'usd_to_krw'>('krw_to_usd');
-  const [amount, setAmount] = useState('');
+  const [krw, setKrw] = useState('');
+  const [usd, setUsd] = useState('');
+  // 환율로 채워진 칸 — 사용자가 직접 넣은 칸은 다른 칸을 고쳐도 덮어쓰지 않는다
+  const [autoField, setAutoField] = useState<'krw' | 'usd' | null>(null);
   const [rate, setRate] = useState('');
+  const [rateLoading, setRateLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { errors, setErrors, clearError, reset } = useFormErrors();
 
@@ -475,18 +490,58 @@ export function ExchangeModal({ state, onClose, onSaved }: { state: ExchangeModa
     reset();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setDirection('krw_to_usd');
-    setAmount('');
+    setKrw('');
+    setUsd('');
+    setAutoField(null);
     setRate('');
+    setRateLoading(true);
+    api.get<{ rate: number }>('/investments/exchange-rate')
+      .then((r) => setRate(r.rate.toFixed(2)))
+      .catch(() => { /* 시세를 못 가져오면 비워 두고 직접 넣게 한다 */ })
+      .finally(() => setRateLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림 시에만 폼 초기화
   }, [state.open]);
 
-  const fromLabel = direction === 'krw_to_usd' ? '원화' : '달러';
-  const toLabel = direction === 'krw_to_usd' ? '달러' : '원화';
-  const available = a ? (direction === 'krw_to_usd' ? a.cashBalance : a.cashBalanceUsd) : 0;
+  const isKrwToUsd = direction === 'krw_to_usd';
+  const available = a ? (isKrwToUsd ? a.cashBalance : a.cashBalanceUsd) : 0;
+
+  // 환전 방향 바꾸기 — 금액 칸은 비운다
+  function changeDirection(d: 'krw_to_usd' | 'usd_to_krw') {
+    setDirection(d);
+    setKrw('');
+    setUsd('');
+    setAutoField(null);
+    reset();
+  }
+
+  // 원화 칸 입력 — 달러 칸이 비었거나 자동으로 채운 값이면 같이 채운다
+  function changeKrw(v: string) {
+    setKrw(v);
+    clearError('krw');
+    if (!usd || autoField === 'usd') { setUsd(krwToUsd(v, rate)); setAutoField('usd'); clearError('usd'); }
+    else setAutoField(null);
+  }
+
+  // 달러 칸 입력 — 원화→달러에서는 원화 칸이 비었거나 자동으로 채운 값이면 같이 채운다
+  function changeUsd(v: string) {
+    setUsd(v);
+    clearError('usd');
+    if (!isKrwToUsd) return;
+    if (!krw || autoField === 'krw') { setKrw(usdToKrw(v, rate)); setAutoField('krw'); clearError('krw'); }
+    else setAutoField(null);
+  }
+
+  // 환율 입력 — 자동으로 채운 칸만 다시 계산한다
+  function changeRate(v: string) {
+    setRate(v);
+    if (autoField === 'usd') setUsd(krwToUsd(krw, v));
+    if (autoField === 'krw') setKrw(usdToKrw(usd, v));
+  }
 
   function validate() {
     const err: Record<string, string> = {};
-    if (!amount || Number(amount) <= 0) err.amount = `${fromLabel} 환전 금액을 입력하세요.`;
+    if (isKrwToUsd && (!krw || Number(krw) <= 0)) err.krw = '원화 금액을 입력하세요.';
+    if (!usd || Number(usd) <= 0) err.usd = '달러 금액을 입력하세요.';
     setErrors(err);
     return !Object.keys(err).length;
   }
@@ -495,17 +550,21 @@ export function ExchangeModal({ state, onClose, onSaved }: { state: ExchangeModa
     if (!a || !validate()) return;
     setSaving(true);
     try {
-      await api.post(`/investment-accounts/${a.id}/exchange`, {
-        direction, amount: Number(amount), rate: rate ? Number(rate) : undefined,
-      });
+      await api.post(`/investment-accounts/${a.id}/exchange`, isKrwToUsd
+        ? { direction, amount: Number(krw), toAmount: Number(usd) }
+        : { direction, amount: Number(usd), rate: rate ? Number(rate) : undefined });
       notify.success('환전이 반영되었습니다.');
       onSaved();
-    } catch {
-      notify.saveFailed();
+    } catch (err) {
+      notify.error((err as Error).message || '저장에 실패했습니다.');
     } finally {
       setSaving(false);
     }
   }
+
+  // 원화→달러는 두 금액으로 실제 적용 환율을, 달러→원화는 받을 원화를 미리 보여 준다
+  const appliedRate = isKrwToUsd && Number(krw) > 0 && Number(usd) > 0 ? Number(krw) / Number(usd) : 0;
+  const expectedKrw = !isKrwToUsd ? Number(usdToKrw(usd, rate)) : 0;
 
   return (
     <Modal
@@ -521,20 +580,36 @@ export function ExchangeModal({ state, onClose, onSaved }: { state: ExchangeModa
         variant="joined"
         fill
         value={direction}
-        onChange={(d) => { setDirection(d); clearError('amount'); }}
+        onChange={changeDirection}
         items={[{ value: 'krw_to_usd', label: '원화 → 달러' }, { value: 'usd_to_krw', label: '달러 → 원화' }]}
       />
-      <Field label={`${fromLabel} 환전 금액 (보유 ${direction === 'krw_to_usd' ? won(available) : usdText(available)})`} required error={errors.amount}>
-        <UnitInput
-          unit={direction === 'krw_to_usd' ? '₩' : '$'}
-          placeholder={direction === 'krw_to_usd' ? '예: 1000000' : '예: 100'}
-          value={amount} onChange={(ev) => { setAmount(ev.target.value); clearError('amount'); }}
-        />
+      {isKrwToUsd ? (
+        <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+          <Field label={`원화 (보유 ${won(available)})`} required error={errors.krw}>
+            <UnitInput unit="₩" placeholder="예: 200000" value={krw} onChange={(ev) => changeKrw(ev.target.value)} />
+          </Field>
+          <Field label="달러" required error={errors.usd}>
+            <UnitInput unit="$" placeholder="예: 150" value={usd} onChange={(ev) => changeUsd(ev.target.value)} />
+          </Field>
+        </div>
+      ) : (
+        <Field label={`달러 (보유 ${usdText(available)})`} required error={errors.usd}>
+          <UnitInput unit="$" placeholder="예: 100" value={usd} onChange={(ev) => changeUsd(ev.target.value)} />
+        </Field>
+      )}
+      <Field label={isKrwToUsd ? '환율 (1달러당 원화) — 다른 칸 자동 채움에 쓴다' : '환율 (1달러당 원화)'}>
+        <UnitInput unit="₩" placeholder={rateLoading ? '조회 중...' : '직접 입력'} value={rate} onChange={(ev) => changeRate(ev.target.value)} />
       </Field>
-      <Field label="환율 (1달러당 원화, 선택 — 비우면 자동)">
-        <UnitInput unit="₩" placeholder="자동" value={rate} onChange={(ev) => setRate(ev.target.value)} />
-      </Field>
-      <p className="text-[0.78rem] text-muted">{fromLabel} 예수금에서 차감되어 {toLabel} 예수금으로 환산되어 더해집니다.</p>
+      <div className="flex flex-col gap-1.5 pt-4 border-t border-border-subtle">
+        {isKrwToUsd
+          ? <SummaryRow label="적용 환율" value={appliedRate > 0 ? `${won(Number(appliedRate.toFixed(2)))} / $1` : '-'} strong />
+          : <SummaryRow label="받을 원화 (예상)" value={expectedKrw > 0 ? won(expectedKrw) : '-'} strong />}
+      </div>
+      <p className="text-[0.78rem] text-muted">
+        {isKrwToUsd
+          ? '증권사 체결 화면의 원화 · 달러를 그대로 넣으면 그 두 값대로 예수금에 반영됩니다.'
+          : '달러 예수금에서 빠지고, 환율로 계산한 원화가 원화 예수금에 더해집니다.'}
+      </p>
     </Modal>
   );
 }

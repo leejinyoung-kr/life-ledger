@@ -165,15 +165,11 @@ export class InvestmentAccountService {
     return this.toDto(updated);
   }
 
-  // 환전 — 계좌 내 원화↔달러 예수금 상호 전환. rate 미입력 시 실시간 환율(frankfurter.app) 조회
+  // 환전 — 계좌 내 원화↔달러 예수금 상호 전환. 받는 금액(toAmount)이 있으면 그대로, 없으면 환율로 환산(rate 미입력 시 frankfurter.app 조회)
   async exchange(userId: number, id: number, dto: ExchangeInvestmentAccountDto) {
     const account = await this.findOwned(userId, id);
-    const rate = dto.rate ?? (await this.priceLookup.getExchangeRate('USD', 'KRW'));
     const amount = new Prisma.Decimal(dto.amount);
-
     const isKrwToUsd = dto.direction === ExchangeDirection.KRW_TO_USD;
-    const krwDelta = isKrwToUsd ? amount.negated() : amount.mul(rate);
-    const usdDelta = isKrwToUsd ? amount.div(rate) : amount.negated();
 
     if (isKrwToUsd && account.cash_balance.lessThan(amount)) {
       throw new BadRequestException('원화 예수금이 부족합니다.');
@@ -181,6 +177,17 @@ export class InvestmentAccountService {
     if (!isKrwToUsd && account.cash_balance_usd.lessThan(amount)) {
       throw new BadRequestException('달러 예수금이 부족합니다.');
     }
+
+    // 증권사 환율 · 수수료가 시세와 달라 환산값은 실제와 몇 센트씩 어긋난다 — 체결 값을 받으면 그것을 믿는다
+    let received: Prisma.Decimal;
+    if (dto.toAmount !== undefined) {
+      received = new Prisma.Decimal(dto.toAmount);
+    } else {
+      const rate = dto.rate ?? (await this.priceLookup.getExchangeRate('USD', 'KRW'));
+      received = isKrwToUsd ? amount.div(rate) : amount.mul(rate);
+    }
+    const krwDelta = isKrwToUsd ? amount.negated() : received;
+    const usdDelta = isKrwToUsd ? received : amount.negated();
 
     const updated = await this.prisma.investmentAccount.update({
       where: { id },
