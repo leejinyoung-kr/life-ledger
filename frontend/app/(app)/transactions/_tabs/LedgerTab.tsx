@@ -56,6 +56,7 @@ import { AMT_COLOR, toDay, monthsAgo, useAddTrigger, ruleDayFor } from '../_shar
 type LedgerDraft = {
   date?: string; title?: string; amount?: number;
   type?: TransactionType; category?: string; payMethod?: string; memo?: string;
+  targetType?: TransferTarget; targetId?: number;
 };
 type ModalState = { open: boolean; mode: 'add' | 'edit'; editing?: Transaction; prefill?: LedgerDraft };
 
@@ -213,6 +214,7 @@ export default function LedgerTab({ categories, bankCats, payMethodCats, addTrig
       prefill: {
         date: toDay(), title: row.title, amount: row.amount, type: row.type,
         category: row.category, payMethod: row.payMethod, memo: row.memo ?? undefined,
+        targetType: row.targetType ?? undefined, targetId: row.targetId ?? undefined,
       },
     });
   }
@@ -854,8 +856,8 @@ function LedgerModal({ state, categories, bankCats: allBanks, payMethodCats: all
     setAmount(e ? String(e.amount) : pf?.amount ? String(pf.amount) : '');
     setPayMethod(e?.payMethod ?? pf?.payMethod ?? (initType === 'income' ? (bankCats[0]?.code ?? '') : initType === 'transfer' ? '' : (payMethodCats[0]?.code ?? '')));
     setMemo(e?.memo ?? pf?.memo ?? '');
-    setTargetType(e?.targetType ?? '');
-    setTargetId(e?.targetId ?? '');
+    setTargetType(e ? (e.targetType ?? '') : (pf?.targetType ?? ''));
+    setTargetId(e ? (e.targetId ?? '') : (pf?.targetId ?? ''));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/수정대상 변경 · 목록 도착 시에만 폼 초기화
   }, [state.open, e, listsReady]);
 
