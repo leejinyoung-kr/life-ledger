@@ -159,7 +159,8 @@ cd backend && npx prisma generate
 
 ### 운영 배포 (홈서버)
 
-`.github/workflows/deploy-home-server.yml`이 `docker compose build` → `check-env`(환경변수·키 설정)
+`.github/workflows/deploy-home-server.yml`이 GitHub 러너에서 `ci.yml` 검사(lint · 타입 · build · test)를 통과시킨 뒤, 홈서버 러너에서 그 커밋으로
+`docker compose build`(이미지 안에서는 테스트하지 않는다 — infra ADR 0009) → `check-env`(환경변수·키 설정)
 → `prisma migrate deploy`(1회성 컨테이너) → `crypto-check`(암호문 전체 복호화 점검, 읽기만)
 → `docker compose up -d` → backend healthy 대기 → `crypto-check`(결과 기록) 순서로 자동 실행한다
 (2026-08-01 전환 — 원래는 배포와 마이그레이션 시점을 의도적으로 분리했었으나, 수동 적용을
@@ -219,7 +220,7 @@ docker compose exec backend npx prisma migrate deploy
 
 - **인증 전제**: `JWT_SECRET`(access)·`JWT_REFRESH_SECRET`(refresh 쿠키)·`JWT_VAULT_SECRET`(보관함 잠금해제 토큰)은 **서로 다른** 32자 이상 랜덤값이어야 한다 — 누락·중복·예시값이면 부팅 실패. access 토큰은 `iss`/`aud` = `life-ledger` 로 발급·검증한다(`auth/jwt.constants.ts`). refresh 시크릿을 바꾸면 전 기기 재로그인, vault 시크릿을 바꾸면 보관함 재잠금. `ALLOWED_EMAILS` 는 필수(비면 부팅 실패) — 목록 밖 계정은 구글·이메일 코드 로그인 모두 거부.
 
-- **환경변수**: 백엔드는 `process.env` 를 직접 읽지 않고 `backend/src/config/env.ts` 의 `env` 만 읽는다(`@leejinyoung-kr/core-config` 의 `defineEnv` — import 하는 순간 `.env` 로드 + 검증, 틀린 키를 전부 출력하고 부팅 중단). 키를 추가·삭제하면 `env.ts` 와 `backend/.env.example` 을 같이 고친다 — `src/config/env.spec.ts` 가 두 목록 일치·`process.env` 직접 사용 금지를 테스트로 강제한다(도커 빌드 테스트 단계라 배포에서도 막힘). 배포 워크플로는 컨테이너 교체 전에 새 이미지로 `node dist/config/check-env.js` 를 돌려, 서버 `.env` 가 새 스키마에 안 맞으면 기존 컨테이너를 유지한 채 멈춘다. SMTP(HOST·USER·PASS)·VAPID(공개·비공개 키)는 일부만 설정하면 부팅 실패.
+- **환경변수**: 백엔드는 `process.env` 를 직접 읽지 않고 `backend/src/config/env.ts` 의 `env` 만 읽는다(`@leejinyoung-kr/core-config` 의 `defineEnv` — import 하는 순간 `.env` 로드 + 검증, 틀린 키를 전부 출력하고 부팅 중단). 키를 추가·삭제하면 `env.ts` 와 `backend/.env.example` 을 같이 고친다 — `src/config/env.spec.ts` 가 두 목록 일치·`process.env` 직접 사용 금지를 테스트로 강제한다(배포 워크플로가 GitHub 검사 잡 `ci.yml` 을 먼저 통과시키므로 배포에서도 막힘). 배포 워크플로는 컨테이너 교체 전에 새 이미지로 `node dist/config/check-env.js` 를 돌려, 서버 `.env` 가 새 스키마에 안 맞으면 기존 컨테이너를 유지한 채 멈춘다. SMTP(HOST·USER·PASS)·VAPID(공개·비공개 키)는 일부만 설정하면 부팅 실패.
 
 - **예약 작업**: `@nestjs/schedule` 의 `@Cron` 대신 `@leejinyoung-kr/core-jobs` 의 `@Job({ name, cron, leaseMs })` 을 쓴다(`maintenance/`). 작업 코드는 결과 요약 문자열을 돌려주고, 실패는 삼키지 말고 던진다 — 실행 기록(`job_run`)·겹침 방지·lease 만료 마감·실패 시 시스템 로그는 core-jobs 와 `maintenance/job-run.store.ts` 가 맡는다. 운영에서 "며칠째 안 돈 작업"은 `GET /api/v1/_meta` 의 `jobs` 구역(작업별 마지막 성공·경과 시간)으로 본다 — 원본은 `job_run` 테이블.
 

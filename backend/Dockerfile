@@ -17,9 +17,7 @@ FROM deps AS prepare
 COPY backend ./backend
 RUN pnpm --filter backend exec prisma generate
 
-FROM prepare AS test
-RUN pnpm --filter backend run test
-
+# 테스트는 배포 워크플로의 GitHub 검사 잡(ci.yml)이 먼저 통과시킨다 — 이미지에서는 빌드만 한다 (infra ADR 0009)
 FROM prepare AS build
 RUN pnpm --filter backend run build
 
@@ -36,9 +34,6 @@ RUN apk add --no-cache mariadb-client tzdata \
 RUN addgroup -S app && adduser -S app -G app \
     && mkdir -p /app/backend/backups \
     && chown app:app /app/backend/backups
-# test 스테이지는 build와 독립적이라 BuildKit이 병렬로 실행한다.
-# 아래 COPY는 산출물이 필요해서가 아니라 test 스테이지를 빌드 그래프에 강제로 포함시켜(=반드시 통과해야 진행되도록) 넣은 것.
-COPY --from=test /app/backend/package.json /tmp/.test-ok
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/backend/node_modules ./backend/node_modules
 COPY --from=build /app/backend/package.json ./backend/package.json
@@ -47,7 +42,6 @@ COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/prisma ./backend/prisma
 # 데모 매일 초기화(prisma/demo-reset.ts → seed.ts)가 tsx 로 시드를 돌리는데, 시드가 src/crypto(암호화 문맥 · 키 설정)를 import 한다
 COPY --from=build /app/backend/src ./backend/src
-RUN rm -f /tmp/.test-ok
 USER app
 
 # 빌드된 커밋 — /_meta 가 "지금 도는 것이 어느 코드인지" 보여준다.

@@ -1,8 +1,9 @@
 name: CI
 
-# 검사만 한다 — 배포는 main push 때 deploy-home-server.yml(self-hosted)이 따로 한다.
+# 검사만 한다. main push 때는 deploy-home-server.yml 이 이 파일을 앞 잡으로 불러(workflow_call) 통과해야 배포한다 (infra ADR 0009).
 # 작업은 develop 에 push 한 뒤 main 으로 fast-forward 하므로 PR 이 없을 때가 많다 → develop push 도 같이 건다
 on:
+  workflow_call:
   push:
     branches: [develop]
     paths:

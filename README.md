@@ -156,4 +156,4 @@ pnpm run dev
 | Backend API | <http://localhost:8000/api/v1> |
 | Swagger | <http://localhost:8000/api-docs> |
 
-배포(홈서버)는 `main` push 때 [deploy-home-server.yml](.github/workflows/deploy-home-server.yml) 이 환경 변수 검사 → 마이그레이션 → 전체 복호화 점검 → 컨테이너 교체 → 데모 갱신 순서로 한다.
+배포(홈서버)는 `main` push 때 [deploy-home-server.yml](.github/workflows/deploy-home-server.yml) 이 GitHub 검사([ci.yml](.github/workflows/ci.yml) — lint · 타입 · build · test) → 홈서버에서 이미지 빌드 → 환경 변수 검사 → 마이그레이션 → 전체 복호화 점검 → 컨테이너 교체 → 데모 갱신 순서로 한다.

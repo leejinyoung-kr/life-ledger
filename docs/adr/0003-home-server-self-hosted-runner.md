@@ -35,7 +35,7 @@
 
 ## 지금 코드에 남은 것
 
-- [.github/workflows/deploy-home-server.yml](../../.github/workflows/deploy-home-server.yml) — `main` push · 수동 실행, `runs-on: [self-hosted]`, 홈서버 클론에서 `git reset --hard`, `flock /tmp/deploy.lock`, 빌드 → `check-env` → `migrate deploy` → `crypto-check` → `up -d` → healthy 대기 → 데모 → 정리
+- [.github/workflows/deploy-home-server.yml](../../.github/workflows/deploy-home-server.yml) — `main` push · 수동 실행, 앞 잡 `check`(GitHub 러너에서 `ci.yml`, 2026-10-30 — infra ADR 0009) 통과 뒤 `runs-on: [self-hosted]`, 홈서버 클론에서 검사한 커밋으로 `git reset --hard`, `flock /tmp/deploy.lock`, 빌드 → `check-env` → `migrate deploy` → `crypto-check` → `up -d` → healthy 대기 → 데모 → 정리
 - [docker-compose.yml](../../docker-compose.yml) — 포트는 `127.0.0.1` 에만, `tailscale` 서비스(프로필 `homeserver`, 호스트 이름 `lifeledger`)
 - [tailscale/serve.json](../../tailscale/serve.json) — `/` → frontend:3000, `/api` → backend:8000, `AllowFunnel: true`
 - `backend/Dockerfile` · `frontend/Dockerfile` — 홈서버에서 직접 빌드한다(이미지 레지스트리 없음)

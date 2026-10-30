@@ -14,18 +14,31 @@ on:
   # 수동 실행은 before 가 없어 diff 가 비므로 backend·frontend 를 둘 다 빌드한다
   workflow_dispatch:
 
+# 실행을 통째로 하나씩 차례로 돌린다 — 뒤 push 의 검사가 먼저 끝나 앞 push 가 옛 커밋으로 되돌려 배포하는 일을 막는다
+concurrency:
+  group: deploy-home-server
+  cancel-in-progress: false
+
 jobs:
+  # 검사는 GitHub 러너에서 ci.yml 을 그대로 부른다 — 통과해야 배포한다 (테스트는 이미지 빌드에서 돌지 않는다, infra ADR 0009)
+  check:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
   deploy:
+    needs: [check]
+    # 수동 실행을 다른 브랜치에서 하면 그 브랜치가 배포되므로 main 만 받는다
+    if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted]
-    concurrency: deploy-home-server
     steps:
       # actions/checkout을 쓰지 않고 러너가 이미 갖고 있는 ~/apps/life-ledger 클론을 그대로 갱신한다.
       # .env / backend/.env 는 git에 커밋되지 않으므로, fresh checkout을 쓰면 이 파일들이 사라진다.
+      # origin/main 이 아니라 검사를 통과한 이 커밋으로 맞춘다 — 그사이 올라온 검사 전 커밋을 빌드하지 않게
       - name: Pull latest
         run: |
           cd ~/apps/life-ledger
           git fetch origin main
-          git reset --hard origin/main
+          git reset --hard "$GITHUB_SHA"
 
       # 홈서버에 배포하는 레포가 여럿이어도 물리 서버는 하나라, 동시에 push되면 docker build가
       # 서로 CPU를 경합해서 오히려 더 느려질 수 있다. 홈서버 공통 잠금(/tmp/deploy.lock — infra README)으로
