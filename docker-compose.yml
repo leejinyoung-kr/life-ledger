@@ -58,7 +58,25 @@ services:
       retries: 5
       start_period: 20s
 
-  # 홈서버 외부 접속 — 앱 전용 Tailscale 노드 lifeledger 가 Funnel 로 / 는 frontend, /api 는 backend 로 보낸다
+  # 앞단 Nginx — 사이드카 뒤에서 / 는 frontend, /api 는 backend 로 나누고 업로드 크기 · 로그인 횟수 · 응답 시간 · 진짜 IP 를 맡는다 (ADR 0010)
+  # 설정 파일은 바인드 마운트라 git 이 파일을 바꿔도 컨테이너는 옛 파일을 본다 — 배포 워크플로가 바뀌면 다시 만든다
+  nginx:
+    image: nginx:1.30.6-alpine
+    profiles: [homeserver]
+    restart: unless-stopped
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # 홈서버 외부 접속 — 앱 전용 Tailscale 노드 lifeledger 가 Funnel 로 받아 전부 nginx 로 보낸다 (길 · 주소 · 인증서만 맡는다)
   # (같은 origin 이라 NEXT_PUBLIC_* 과 backend 의 FRONTEND_URL·CORS_ORIGINS 가 한 주소다. infra README "외부 접속")
   tailscale:
     image: tailscale/tailscale:stable
@@ -74,7 +92,7 @@ services:
       - tailscale_state:/var/lib/tailscale
       - ./tailscale/serve.json:/config/serve.json:ro
     depends_on:
-      frontend:
+      nginx:
         condition: service_healthy
 
 networks:

@@ -27,8 +27,9 @@
 flowchart LR
   user([PC · 휴대폰 PWA]) -->|HTTPS| ts[Tailscale Funnel 사이드카]
   subgraph homeserver[홈서버 · Docker Compose]
-    ts -->|/| fe[frontend<br/>Next.js]
-    ts -->|/api| be[backend<br/>NestJS + Prisma]
+    ts --> ng[Nginx<br/>업로드 · 로그인 횟수 제한]
+    ng -->|/| fe[frontend<br/>Next.js]
+    ng -->|/api| be[backend<br/>NestJS + Prisma]
     be --> db[(MariaDB<br/>여러 앱 공용)]
   end
   be -->|파일| b2[(Backblaze B2)]
@@ -111,6 +112,7 @@ DB 백업 · 알림 · 시세 갱신 등 예약 작업 8개를 실행마다 `job
 
 - 커밋 399개(2026-10-17 기준) 중 243개에 AI 공동 작성 표시(`Co-Authored-By: Claude`)가 있다. 표시가 없는 커밋을 누가 썼는지는 따로 가르지 않았다.
 - AI 가 만든 코드가 실제로 틀려 나중에 고친 흔적도 커밋에 남아 있다 — 예: refresh 쿠키 `SameSite` (`487811a`), 순자산 이중 계산 (`b543eb8`), 로그아웃한 기기로 가던 푸시 (`ed475ce`, 위 「해결한 문제 5」). 무엇이 왜 틀렸는지는 ADR 과 함께 정리하고 있다.
+- 사이드카 뒤에 Nginx 를 둔 것 (2026-11-02, [ADR 0010](docs/adr/0010-nginx-behind-tailscale-sidecar.md)): Nginx 를 써 보려는 것이 계기(나). 대안 비교 · 설정 · 로컬 시험 · 배포 워크플로는 AI, 이 앱에만 넣기 · 데모 포함 · 범위(로그인 횟수 제한 · gzip)는 대안 중 내가 골랐다. 그 전제로 운영 `TRUST_PROXY` 가 비어 있던 것을 AI 가 실측해 바로잡았다(공개 접속 확인은 내 휴대폰으로).
 
 <!-- 본인 확인: 아래는 기록에 있지만 누가 판단했는지 적혀 있지 않아 표에 넣지 않았다. 기억으로 확인되면 「나」 칸으로 옮긴다.
   - 2026-06-27 마이그레이션 자동 적용을 뺀 판단 (24aecaf, AI 공동 작성 표시 없음) — docs/adr/0004

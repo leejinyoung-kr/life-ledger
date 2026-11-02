@@ -69,6 +69,7 @@ flowchart LR
 
   subgraph home[홈서버 · compose 프로젝트 life-ledger]
     ts[tailscale 사이드카<br/>Funnel 443 · serve.json]
+    ng[nginx 1.30<br/>길 나누기 · 업로드 · 로그인 횟수 제한]
     fe[frontend<br/>Next.js 16 standalone · :3000]
     be[backend<br/>NestJS 11 + Prisma · :8000<br/>예약 작업 · 아웃박스 발송]
     vol[(db_backups 볼륨<br/>매일 04시 덤프)]
@@ -82,8 +83,9 @@ flowchart LR
   ext[Google OAuth · SMTP · 푸시 서비스<br/>공휴일 · 시세 · 환율 API]
 
   browser -->|HTTPS| ts
-  ts -->|"/"| fe
-  ts -->|"/api"| be
+  ts -->|HTTP| ng
+  ng -->|"/"| fe
+  ng -->|"/api"| be
   be -->|Prisma · mariadb:3306| db
   be -->|mariadb-dump| vol
   be -->|업로드 · 삭제 · presigned 발급<br/>S3 API| b2
@@ -92,13 +94,14 @@ flowchart LR
 ```
 
 - 화면(`/`)과 API(`/api`)가 같은 origin 이다. 브라우저가 API 를 직접 부른다 — frontend 서버는 backend 를 부르지 않는다(compose 의 `BACKEND_URL` 은 frontend 코드에서 쓰는 곳이 없다).
-- 컨테이너 포트는 `127.0.0.1` 에만 열린다. 밖에서는 사이드카로만 들어온다.
+- 컨테이너 포트는 `127.0.0.1` 에만 열린다. 밖에서는 사이드카 → nginx 로만 들어온다. 사이드카는 길 · 주소 · 인증서 · Funnel 만, 경로 나누기 · 업로드 한도 · 로그인 횟수 제한 · gzip · 진짜 IP 는 nginx 가 맡는다 ([ADR 0010](adr/0010-nginx-behind-tailscale-sidecar.md), 2026-11-02).
 - 로컬 개발은 사이드카 없이 frontend `:3000` · backend `:8000` 을 따로 띄운다(같은 호스트 · 다른 포트).
 - 데모 인스턴스는 같은 그림을 한 벌 더 띄운 것이다 — 프로젝트 `life-ledger-demo`, 사이드카 `lifeledger-demo`, DB `lifeledger_demo`(같은 MariaDB), 데모 B2 버킷. SMTP · VAPID 는 비운다.
 
 | 연결 | 확인한 곳 |
 | --- | --- |
-| 사이드카 → frontend · backend, Funnel | `docker-compose.yml` `tailscale` · `tailscale/serve.json` |
+| 사이드카 → nginx, Funnel | `docker-compose.yml` `tailscale` · `tailscale/serve.json` |
+| nginx → frontend · backend | `docker-compose.yml` `nginx` · `nginx/default.conf` |
 | 브라우저 → API (같은 origin) | `frontend/lib/api.ts` 의 `NEXT_PUBLIC_API_URL` |
 | backend → MariaDB | `docker-compose.yml` `DATABASE_URL` · 외부 네트워크 `infra` |
 | backend → 덤프 볼륨 | `maintenance/db-backup-cron.service.ts` · 볼륨 `db_backups` |

@@ -5,8 +5,7 @@
   "Web": {
     "${TS_CERT_DOMAIN}:443": {
       "Handlers": {
-        "/": { "Proxy": "http://frontend:3000" },
-        "/api": { "Proxy": "http://backend:8000/api" }
+        "/": { "Proxy": "http://nginx:80" }
       }
     }
   },
