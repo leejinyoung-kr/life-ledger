@@ -11,6 +11,7 @@ LifeLedger 백엔드는 공통 기능을 개인 공통 라이브러리 young-cor
 | core-auth | JWT · Google · 로컬 전략, 전역 가드, 데코레이터 | [backend/src/auth/](../backend/src/auth/) |
 | core-storage | S3 호환(B2) 업로드 · 삭제 · presigned, MIME/매직바이트 검증 | [backend/src/file/](../backend/src/file/) |
 | core-config | 부팅 시 환경 변수 스키마 검증 — 틀린 키를 전부 모아 한 번에 보고 | [backend/src/config/env.ts](../backend/src/config/env.ts) |
+| core-db | Prisma MariaDB 어댑터 감싸기 `withKstDateTime` — DB 에는 KST 벽시계로 쓰고 읽을 때 시점으로 되돌린다 (2026-10-28, [구현 노트](implementation-notes.md)) | [prisma.service.ts](../backend/src/prisma/prisma.service.ts), `prisma/seed.ts` · `prisma/demo-reset.ts` |
 | core-common · core-logging | 전역 예외 필터 · 페이지네이션 · `/_meta`, 요청 ID · 접근 로그 | 컨트롤러 전반 |
 
 아래 코드는 라이브러리에서 발췌해 줄였다(검증 · 로그 일부 생략).

@@ -46,7 +46,7 @@ flowchart LR
 | Frontend | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · TanStack Query · PWA |
 | Backend | NestJS 11 · Prisma 7 · MariaDB 11 |
 | 인증 | Google OAuth · 이메일 인증 코드 (허용 목록) + JWT, 새 기기 로그인 알림 |
-| 인프라 | Docker Compose · GitHub Actions(self-hosted runner) · Tailscale Funnel · Backblaze B2 |
+| 인프라 | Docker Compose · GitHub Actions(self-hosted runner) · Tailscale Funnel · Nginx · Backblaze B2 |
 
 ## 기술 선택 이유
 
@@ -99,7 +99,7 @@ DB 백업 · 알림 · 시세 갱신 등 예약 작업 8개를 실행마다 `job
 
 ## AI가 한 것 / 내가 한 것
 
-이 앱은 AI(Claude)와 대화하며 만들었다. 설계와 구현은 AI 가 제안한 대로 진행했고, **당시에는 코드 리뷰 · 대안 검토 · 검증을 따로 하지 않았다.** 2026-10 부터 결정마다 대안을 사후에 비교하는 [소급 ADR](docs/adr/README.md) 을 쓰며 검토하고 있다.
+이 앱은 AI(Claude)와 대화하며 만들었다. 설계와 구현은 AI 가 제안한 대로 진행했고, **당시에는 코드 리뷰 · 대안 검토 · 검증을 따로 하지 않았다.** 2026-10 부터 결정마다 대안을 사후에 비교하는 [소급 ADR](docs/adr/README.md) 을 쓰며 검토하고 있다. 2026-10-20 [ADR 0009](docs/adr/0009-code-management-values-stored-as-code.md) 부터는 결정할 때 AI 가 대안을 먼저 보여 주고 내가 고른다.
 
 | 영역 | AI (Claude) | 나 |
 | --- | --- | --- |
@@ -112,7 +112,10 @@ DB 백업 · 알림 · 시세 갱신 등 예약 작업 8개를 실행마다 `job
 
 - 커밋 399개(2026-10-17 기준) 중 243개에 AI 공동 작성 표시(`Co-Authored-By: Claude`)가 있다. 표시가 없는 커밋을 누가 썼는지는 따로 가르지 않았다.
 - AI 가 만든 코드가 실제로 틀려 나중에 고친 흔적도 커밋에 남아 있다 — 예: refresh 쿠키 `SameSite` (`487811a`), 순자산 이중 계산 (`b543eb8`), 로그아웃한 기기로 가던 푸시 (`ed475ce`, 위 「해결한 문제 5」). 무엇이 왜 틀렸는지는 ADR 과 함께 정리하고 있다.
+- 코드 관리 값을 이름 대신 코드로 저장 (2026-10-20, [ADR 0009](docs/adr/0009-code-management-values-stored-as-code.md)): 대안 · 추천 · 운영 데이터 확인은 AI, 고른 것은 나(둘 다 AI 추천안).
+- DB 시각을 실제 값 KST 로 바꾼 것 (2026-10-28, infra ADR 0008 · [구현 노트](docs/implementation-notes.md)): HeidiSQL 로 운영 DB 시각이 9시간 이른 것을 내가 발견했다. AI 는 UTC 유지(안 1)를 추천했고, 내가 실제 값 KST(안 3)를 골랐다. 진행 순서 · 감싸기 위치 · 전환 방법 · 전환 시간은 AI 가 대안과 추천을 보여 주고 내가 추천대로 골랐다. 구현은 AI.
 - 사이드카 뒤에 Nginx 를 둔 것 (2026-11-02, [ADR 0010](docs/adr/0010-nginx-behind-tailscale-sidecar.md)): Nginx 를 써 보려는 것이 계기(나). 대안 비교 · 설정 · 로컬 시험 · 배포 워크플로는 AI, 이 앱에만 넣기 · 데모 포함 · 범위(로그인 횟수 제한 · gzip)는 대안 중 내가 골랐다. 그 전제로 운영 `TRUST_PROXY` 가 비어 있던 것을 AI 가 실측해 바로잡았다(공개 접속 확인은 내 휴대폰으로).
+- ADR 「다시 정한다면」 칸 (2026-11-02): 내 요청으로 AI 가 기록을 보고 초안을 썼다(0003 은 내가 쓴 칸). 각 칸에 "AI 초안" 표시가 있고, 내 판단이 아니라 읽고 고칠 초안이다.
 
 <!-- 본인 확인: 아래는 기록에 있지만 누가 판단했는지 적혀 있지 않아 표에 넣지 않았다. 기억으로 확인되면 「나」 칸으로 옮긴다.
   - 2026-06-27 마이그레이션 자동 적용을 뺀 판단 (24aecaf, AI 공동 작성 표시 없음) — docs/adr/0004
@@ -127,6 +130,8 @@ DB 백업 · 알림 · 시세 갱신 등 예약 작업 8개를 실행마다 `job
 
 - [docs/adr/](docs/adr/README.md) — 설계 결정 기록 (소급 · 사후 검토)
 - [docs/postmortems/](docs/postmortems/2026-10-16-homeserver-disk-build-cache.md) — 운영 사고 회고 (홈서버 디스크 84%)
+- [docs/runbooks/](docs/runbooks/) — 운영 절차 (데모 · Nginx · 사이드카 장애 · 재배포 · 되돌리기 · 키 교체)
+- [docs/implementation-notes.md](docs/implementation-notes.md) — 설명할 거리가 있는 개선 (문제 · 원인 · 고친 방법)
 - [docs/index-design.md](docs/index-design.md) · [docs/test-audit.md](docs/test-audit.md) — 인덱스 설계 근거 · 테스트 점검 (사후 검토 초안)
 - [docs/architecture.md](docs/architecture.md) — 모듈 · 예약 작업 · 화면 목록 · C4 다이어그램
 - [docs/core-libraries.md](docs/core-libraries.md) — 공통 라이브러리(비공개) 설계 · 핵심 코드 요약
@@ -158,4 +163,4 @@ pnpm run dev
 | Backend API | <http://localhost:8000/api/v1> |
 | Swagger | <http://localhost:8000/api-docs> |
 
-배포(홈서버)는 `main` push 때 [deploy-home-server.yml](.github/workflows/deploy-home-server.yml) 이 GitHub 검사([ci.yml](.github/workflows/ci.yml) — lint · 타입 · build · test) → 홈서버에서 이미지 빌드 → 환경 변수 검사 → 마이그레이션 → 전체 복호화 점검 → 컨테이너 교체 → 데모 갱신 순서로 한다.
+배포(홈서버)는 `main` push 때 [deploy-home-server.yml](.github/workflows/deploy-home-server.yml) 이 GitHub 검사([ci.yml](.github/workflows/ci.yml) — lint · 타입 · build · test) → 홈서버에서 이미지 빌드 → 환경 변수 검사 → 마이그레이션 → 전체 복호화 점검 → Nginx 설정 검사 → 컨테이너 교체(Nginx · 사이드카 설정이 바뀌었으면 다시 만들기) → backend · Nginx healthy 대기 → 데모 갱신 순서로 한다. 운영 절차는 [docs/runbooks/](docs/runbooks/).

@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | Frontend | Next.js 16.2 (App Router), React 19, TypeScript, Tailwind CSS v4 | 구현 완료 |
 | 상태관리 | TanStack Query (React Query) — lib/query·queryKeys | 전 페이지 전환 완료 |
-| Backend | NestJS 11, TypeScript | 26개 모듈 구현 완료 |
+| Backend | NestJS 11, TypeScript | 29개 모듈 구현 완료 (AppModule 제외, prisma · crypto-audit 포함. `/_meta` 는 코어 MetaModule) |
 | ORM | Prisma | 구현 완료 |
 | DB | MariaDB 11 | 25개 테이블 구현 완료 |
 | Auth | Google OAuth 2.0 + JWT (전역 가드 + 새 기기 감지) | 구현 완료 |
@@ -27,6 +27,7 @@
 | DB (infra 공용 MariaDB) | 13306 |
 | Prisma Studio | 5555 |
 | 데모 인스턴스 (홈서버) | frontend 3010 · backend 8010 |
+| nginx (홈서버 · 데모, 컨테이너 안) | 80 (사이드카가 보내는 곳) · 8081 (healthcheck 전용, 루프백) — 호스트에 열지 않는다 |
 
 ## C4 다이어그램
 
@@ -120,7 +121,7 @@ flowchart LR
 - 로그인 화면은 '데모로 둘러보기' 하나 → `POST /auth/demo`(데모 모드에서만 등록되는 라우트)가 데모 사용자 세션을 준다.
 - 계정 삭제 · 마스터 잠금 변경/해제는 `assertNotDemo` 가 403 으로 막는다. 파일은 `STORAGE_QUOTA_MB` 한도.
 - 매일 KST 04:00 홈서버 crontab 이 `prisma/demo-reset.ts` 로 데이터를 비우고 시드 + 마스터 잠금(`demo1234`)을 다시 건다.
-- 운영 절차: `docs/archive/2026-10-13-public-release-plan.md` "5단계 운영 절차".
+- 운영 절차: [runbooks/demo-operations.md](runbooks/demo-operations.md) (2026-11-02 끝난 공개 준비 계획 "5단계" 에서 옮김).
 
 ## 백엔드 모듈
 
@@ -129,12 +130,14 @@ flowchart LR
 | auth | /auth | 구현 완료 |
 | transaction | /transactions | 구현 완료 |
 | transaction-favorite | /transaction-favorites | 구현 완료 |
+| recurring-schedule | /recurring-schedules (자동이체 설정 — 반복거래 · 반복매수 규칙. 회차는 크론이 이 규칙대로 만든다) | 구현 완료 |
 | saving | /savings | 구현 완료 |
 | investment-account | /investment-accounts | 구현 완료 |
 | investment | /investments | 구현 완료 |
 | subscription | /subscriptions | 구현 완료 |
 | asset | /assets (순자산 요약/추이 — 현금+예적금+투자 집계, 전용 테이블 없음) | 구현 완료 |
 | calendar | /calendar (실제 일정 + 구독결제·예적금만기·투자계좌만기 가상 이벤트) | 구현 완료 |
+| holiday | (컨트롤러 없음 — 공휴일 · 대체공휴일 조회 · 연도별 캐시, calendar · 크론이 쓴다) | 구현 완료 |
 | notification | /notifications (알림 인박스. 알림 생성과 웹푸시 적재를 한 트랜잭션으로 묶는다 — `createWithPush`) | 구현 완료 |
 | security | /security (로그인 세션 + 마스터잠금 Vault. 열람 기록은 `/security/access-logs`) | 구현 완료 |
 | access-log | (전역, /security/access-logs로 노출) | 구현 완료 |
@@ -146,11 +149,12 @@ flowchart LR
 | file | /files (Backblaze B2) | 구현 완료 |
 | export | /export | 구현 완료 |
 | import | /import | 구현 완료 |
-| maintenance | (크론 — 알림·순자산 스냅샷·DB 백업·투자 현재가 갱신·구독 결제일 갱신·공휴일 사전 캐싱·소프트삭제 항목 자동정리) | 구현 완료 |
+| maintenance | (크론 8개 — 알림·반복거래/반복매수 국내·해외(투자 현재가 갱신 포함)·순자산 스냅샷·DB 백업·구독 결제일 갱신·공휴일 사전 캐싱·소프트삭제 항목 자동정리) | 구현 완료 |
 | mail | (SMTP 메일 발송 — 이메일 코드 로그인 등, 미설정 시 no-op) | 구현 완료 |
 | push | /push (웹 푸시 구독/발송 — VAPID + 발송 아웃박스: 커밋된 것만 발송·멱등키·재시도·원본 에러 보존) | 구현 완료 |
 | system-log | /system-logs (백그라운드 작업 실행 로그 — 크론·투자 현재가 갱신 등, 조회 전용) | 구현 완료 |
 | health | /health (헬스체크 — 공개, DB 핑) | 구현 완료 |
+| prisma · crypto-audit | (컨트롤러 없음 — DB 연결(core-db KST 감싸기 · 암호문 쓰기 가드), 부팅 시 암호문 점검 · 재암호화) | 구현 완료 |
 | meta | /_meta (운영 상태 — 빌드 커밋·설치된 코어 패키지 버전 + 예약 작업 마지막 성공·아웃박스 적체·켜진 알림 채널. 경고는 `warn` 한자리에. 로그인 필요) | 구현 완료 |
 
 ## 크론 스케줄러
@@ -167,7 +171,7 @@ flowchart LR
 | 일정 | 작업 이름 · lease | 파일 | 내용 |
 | --- | --- | --- | --- |
 | 매일 00:05 | `subscription-roll-forward` · 5분 | subscription-cron.service.ts | 결제일(`next_payment_date`)이 오늘(KST)보다 지난 구독을 주기(월/연/주)만큼 넘겨 오늘 이후 첫 결제일로 갱신. 월/연 주기는 원래 결제일(`billing_day`)로 맞추고 그 달에 없으면 말일로 — 31일 결제는 2/28 → 3/31 로 되돌아간다(`billing-date.util.ts`). 체험(`trial`)은 종료일이 지나면 유료 전환으로 보고 `active` 로 바꾸고, 일시정지(`paused`)는 건드리지 않는다. 가계부 자동 등록(`auto_ledger`)이 켜진 구독은 같은 트랜잭션에서 지나간 결제일마다 지출 내역(`subscription_id` 연결, 지운 것 포함 같은 날짜는 건너뜀)을 만든다 — 밤늦게 결제되는 구독이 있어 당일이 아니라 다음 날 넣는다. USD 는 그날 환율로 원화 환산(메모에 원래 금액 · 환율), 환율 조회가 실패하면 그 구독은 결제일도 넘기지 않고 실행을 실패로 마감해 다음 날 다시 한다. 09:00 결제 알림보다 먼저 돈다 |
-| 매일 03:00 | `trash-purge` · 10분 | trash-cron.service.ts | soft-delete 후 30일 경과 항목 영구삭제 (거래·예적금·투자·구독·캘린더·계정) + 시스템 로그·작업 실행 기록 90일 경과분 삭제. 휴지통 UI는 없으며 삭제된 항목은 이 크론으로만 정리됨. 테이블 하나가 실패해도 나머지는 계속 지우고 끝에 실패로 마감 |
+| 매일 03:00 | `trash-purge` · 10분 | trash-cron.service.ts | soft-delete 후 30일 경과 항목 영구삭제 (거래·예적금·투자·구독·캘린더·계정) + 시스템 로그·작업 실행 기록·끝난 알림 발송(`outbox_message` sent · failed) 90일 경과분 삭제. 휴지통 UI는 없으며 삭제된 항목은 이 크론으로만 정리됨. 테이블 하나가 실패해도 나머지는 계속 지우고 끝에 실패로 마감 |
 | 매일 04:00 | `db-backup` · 30분 | db-backup-cron.service.ts | `mariadb-dump` → gzip 압축 후 `backups/`에 저장, 30일 경과 백업 자동 삭제. 실패하면 쓰다 만 파일을 지운다. lease 가 끝나면 `mariadb-dump` 도 함께 종료(signal) |
 | 매일 09:00 | `notification-daily` · 10분 | notification-cron.service.ts | 사용자별 알림 생성(예적금·투자계좌 만기 D-30/14/7/1, 구독결제/체험종료 D-7/3/1, 비번회전 90일 경과 후 30일 간격 재알림) + 웹푸시 발송. 매일 반복 알림을 막기 위해 해당 일자에 정확히 일치할 때만 생성. 만기 알림은 설정(`notifMaturity`)으로 토글 가능 |
 | 매일 09:00 | `recurring-domestic` · 30분 | recurring-cron.service.ts (`run`) | 반복거래(국내, `transaction.service.ts`의 `materializeRecurring`)는 매일 실행. 반복매수(국내, `investment.service.ts`의 `materializeRecurringBuys`) + 국내 투자 종목 현재가 갱신(`refreshCurrentValues`)은 실제 증권시장이 열리는 평일(KST 기준, `isWeekdayKST()`)에만 실행하고 주말엔 건너뜀. 전체 사용자를 순회하며, 사용자별 실패는 시스템 로그에 남기고 계속 진행한 뒤 실행은 실패로 마감. 반복거래/반복매수는 서로 독립적으로 처리 건수를 집계해 완료 로그도 따로 남기며, 처리한 항목이 0건이고 실패도 없으면 그 로그는 남기지 않는다. 반복매수는 종목별로 외부 시세조회 API(네이버/야후)를 호출하므로 3종목씩 묶어 묶음 사이 3초 대기(현재가 갱신은 5종목씩 2초 대기) |

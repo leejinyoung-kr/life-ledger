@@ -4,7 +4,7 @@
 
 자산 · 구독 · 계정 · 일정을 한곳에서 관리하는 개인 생활 장부 (2026-10 공개 준비 때 doc-nexus 에서 이름을 바꿨다 — B2 버킷 · 볼륨 이름은 그대로, DB · 사용자는 2026-10-15 `docnexus` → `lifeledger`).
 민감한 자격증명(계정 비밀번호 · 2FA 시크릿)을 AES-256-GCM 암호화로 저장하고, Google OAuth 또는 이메일 인증코드(`ALLOWED_EMAILS` 화이트리스트)로만 접근한다.
-전 엔드포인트는 전역 JWT 가드로 보호되며, 로그인(`@Public()`)만 예외다.
+전 엔드포인트는 전역 JWT 가드로 보호되며, `@Public()` 이 붙은 로그인 · 토큰 갱신 · 로그아웃 · 데모 로그인과 `GET /health` · 루트(`GET /api/v1`)만 예외다.
 
 기능 목록:
 
@@ -30,7 +30,8 @@ life-ledger/
 │       ├── recurring-schedule/ # 자동이체 설정 (반복거래/반복매수 자동 생성 규칙 — 등록 폼과 분리)
 │       ├── transaction-favorite/ # 거래 즐겨찾기 (자주 쓰는 수입/지출 — 오늘 날짜로 불러오기)
 │       ├── saving/        # 예적금
-│       ├── investment/    # 투자
+│       ├── investment-account/ # 투자 계좌 (예수금 원화·달러 — 종목 여러 개가 공유)
+│       ├── investment/    # 투자 종목 (계좌에 속함)
 │       ├── subscription/  # 구독 서비스
 │       ├── asset/         # 순자산 요약/추이 (현금+예적금+투자 집계, 전용 테이블 없음)
 │       ├── notification/  # 알림
@@ -46,15 +47,21 @@ life-ledger/
 │       ├── file/          # 파일 보관함 (Backblaze B2)
 │       ├── export/        # 데이터 내보내기 (계정 JSON·전체 ZIP)
 │       ├── import/        # 데이터 가져오기 (계정 JSON 복원)
-│       ├── maintenance/   # 예약 작업 @Job(core-jobs) (알림·순자산 스냅샷·DB 백업·투자 현재가 갱신·구독 결제일 갱신·공휴일 사전 캐싱·소프트삭제 항목 자동정리) + 실행 기록 저장소(job_run)
+│       ├── maintenance/   # 예약 작업 @Job(core-jobs) 8개 (알림·반복거래/반복매수 국내·해외(투자 현재가 갱신 포함)·구독 결제일 갱신·순자산 스냅샷·소프트삭제 항목 자동정리·DB 백업·공휴일 사전 캐싱) + 실행 기록 저장소(job_run)
 │       ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
 │       ├── push/          # 웹 푸시 구독/발송 (VAPID) + 발송 아웃박스 저장소·채널(outbox_message)
 │       ├── system-log/    # 시스템 로그 (크론·투자 갱신 등 백그라운드 작업 실행 기록, 90일 경과 시 자동 삭제)
 │       ├── meta/          # GET /_meta 수집기 — 예약 작업 마지막 성공·아웃박스 적체·켜진 알림 채널(core-common MetaModule)
-│       ├── common/        # CryptoService(AES-256-GCM)·ClientInfo 등 공용
-│       └── prisma/        # PrismaService / PrismaModule
-├── docs/              # 설계 문서
-└── docker-compose.yml
+│       ├── health/        # GET /health (DB 핑, 토큰 없이)
+│       ├── crypto/        # 암호문 컬럼 목록·문맥(AAD)·키 설정, 부팅 시 재암호화, 배포 전 점검(crypto-check)
+│       ├── config/        # 환경변수 검증(env.ts)·배포 전 점검(check-env)·외부 연결 대기 시간
+│       ├── common/        # 데모 판별(demo.ts)·KST 날짜(kst-date.ts)·vault 유틸 — CryptoService 는 core-security, ClientInfo 는 core-logging
+│       └── prisma/        # PrismaService / PrismaModule (어댑터는 core-db withKstDateTime 으로 감싼다)
+├── nginx/             # 앞단 Nginx 설정 default.conf (홈서버 · 데모, ADR 0010)
+├── tailscale/         # 사이드카 serve.json (전부 nginx:80 으로)
+├── docs/              # 설계 문서 · adr/ · runbooks/ · postmortems/
+├── docker-compose.yml
+└── docker-compose.demo.yml # 데모 인스턴스 덮어쓰기 (ADR 0008)
 ```
 
 ### 데이터 모델 (ERD 요약)
@@ -66,7 +73,8 @@ life-ledger/
 | RecurringSchedule | user_id, kind(transaction/investment), rule(JSON), start_date, active | 구현 완료 |
 | TransactionFavorite | user_id, type(income/expense), title, category, amount, pay_method, sort_order | 구현 완료 |
 | Saving | user_id, type, interest_rate, balance, maturity_date | 구현 완료 |
-| Investment | user_id, type, principal, current_value, purchase_date | 구현 완료 |
+| InvestmentAccount | user_id, name, cash_balance, cash_balance_usd, account_number_enc, start_date, maturity_date (투자 계좌 — 예수금) | 구현 완료 |
+| Investment | user_id, account_id, type, principal, current_value, purchase_date | 구현 완료 |
 | Subscription | user_id, name, amount, cycle, status, next_payment_date, billing_day(원래 결제일) | 구현 완료 |
 | NetWorthSnapshot | user_id, month, total_assets, total_debt(부동산/부채 기능 제거 이후 항상 0), cash_total(현금 스냅샷 캐시) | 구현 완료 |
 | UserSettings | user_id, notif_*, session_expiry, pw_auto_hide, master_lock_*, categories(JSON) | 구현 완료 |
@@ -79,7 +87,7 @@ life-ledger/
 | StorageFolder | user_id, parent_id(무한중첩), name | 구현 완료 |
 | StorageFile | user_id, folder_id, object_key(B2), name, size, mime_type, hash(SHA-256) | 구현 완료 |
 | AccessLog | user_id, action, target_type/id/name, ip, user_agent | 구현 완료 |
-| PushSubscription | user_id, endpoint, p256dh, auth (웹 푸시 구독) | 구현 완료 |
+| PushSubscription | user_id, session_id(로그인 세션 — 그 세션이 지워지면 구독도 CASCADE), endpoint, p256dh, auth (웹 푸시 구독) | 구현 완료 |
 | RefreshToken | user_id, session_id, jti, expires_at, revoked_at (refresh 토큰 화이트리스트, rotation/로그아웃/세션revoke 시 폐기) | 구현 완료 |
 | EmailLoginCode | email, code_hash(SHA-256), expires_at, consumed_at, attempts (이메일 인증코드 로그인, 화이트리스트 대조) | 구현 완료 |
 | SystemLog | user_id(nullable, FK 아님), level(info/warn/error), category, message, metadata(JSON) — 크론·투자갱신 등 백그라운드 작업 로그, 90일 경과 시 자동 삭제 | 구현 완료 |
@@ -147,8 +155,10 @@ pnpm run dev                           # frontend + backend 동시 실행
 pnpm run dev:backend                   # backend만 실행
 pnpm run dev:frontend                  # frontend만 실행
 
-# DB 마이그레이션 (스키마 변경 시)
-cd backend && npx prisma migrate dev   # = prisma migrate dev
+# DB 마이그레이션 (스키마 변경 시) — 파일만 먼저 만들고, migration.sql 에 컬럼 · 테이블 COMMENT 를 손으로 넣은 뒤 적용한다
+# (Prisma 의 /// 주석은 MySQL COMMENT 로 나가지 않는다. 이 순서면 migrate reset 이 필요 없다)
+cd backend && npx prisma migrate dev --create-only --name add_xxx
+cd backend && npx prisma migrate dev
 
 # Prisma Studio (GUI로 데이터 확인)
 cd backend && npx prisma studio        # localhost:5555
@@ -162,7 +172,8 @@ cd backend && npx prisma generate
 `.github/workflows/deploy-home-server.yml`이 GitHub 러너에서 `ci.yml` 검사(lint · 타입 · build · test)를 통과시킨 뒤, 홈서버 러너에서 그 커밋으로
 `docker compose build`(이미지 안에서는 테스트하지 않는다 — infra ADR 0009) → `check-env`(환경변수·키 설정)
 → `prisma migrate deploy`(1회성 컨테이너) → `crypto-check`(암호문 전체 복호화 점검, 읽기만)
-→ `docker compose up -d` → backend healthy 대기 → `crypto-check`(결과 기록) 순서로 자동 실행한다
+→ `nginx -t`(설정 문법) → `docker compose up -d` → (`nginx/` · `tailscale/` 이 바뀌었으면) 그 컨테이너 다시 만들기
+→ backend · nginx healthy 대기 → `crypto-check`(결과 기록) → 데모 갱신 순서로 자동 실행한다
 (2026-08-01 전환 — 원래는 배포와 마이그레이션 시점을 의도적으로 분리했었으나, 수동 적용을
 누락하기 쉬워 자동화로 되돌림). `up -d` 전 점검이 실패하면 기존 컨테이너가 그대로 서비스한다.
 서버 `.env` 만 바꿨을 때(키 교체 등)는 Actions 에서 수동 실행(`workflow_dispatch`)한다.
@@ -185,7 +196,6 @@ docker compose exec backend npx prisma migrate deploy
 | 커맨드 | 동작 |
 | --- | --- |
 | `/push` | 기본 브랜치(`main`)에 커밋 + 푸시 — push 하면 홈서버 배포가 돈다 |
-| `/migrate` | prisma migrate dev 실행 |
 
 ---
 
@@ -237,7 +247,9 @@ docker compose exec backend npx prisma migrate deploy
 - [docs/architecture.md](docs/architecture.md) — 구조·모듈
 - [docs/erd.md](docs/erd.md) — DB 엔티티 정의
 - [docs/api.md](docs/api.md) — API 명세
-- [docs/archive/2026-10-13-public-release-plan.md](docs/archive/2026-10-13-public-release-plan.md) — 공개 준비(포트폴리오) 계획 — 2026-10-15 끝남(이름 전환 · 데모 · DB 이름 · public). 데모 운영 절차는 이 문서 "5단계"
+- [docs/archive/2026-10-13-public-release-plan.md](docs/archive/2026-10-13-public-release-plan.md) — 공개 준비(포트폴리오) 계획 — 2026-10-15 끝남(이름 전환 · 데모 · DB 이름 · public)
+- [docs/runbooks/](docs/runbooks/) — 운영 절차: 데모 운영 · Nginx · 사이드카 장애 · 재배포 · 되돌리기 · 키 교체
+- [docs/adr/](docs/adr/) · [docs/postmortems/](docs/postmortems/) — 설계 결정 · 사고 기록
 - [docs/category-migration.md](docs/category-migration.md) — 카테고리 2계층 구조 + 엑셀→앱 매칭표(실데이터 마이그레이션용)
 - [docs/archive/](docs/archive/) — 끝난 작업의 설계·계획 문서
 - [docs/implementation-notes.md](docs/implementation-notes.md) — 설명할 거리가 있는 개선 (문제 · 원인 · 고친 방법 · 일부러 안 고친 곳)

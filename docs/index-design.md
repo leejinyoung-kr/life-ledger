@@ -265,4 +265,4 @@ WHERE object_key = 'users/1/00000000-0000-0000-0000-000000000000.pdf'
 | `storage_file (object_key)` 추가 | 파일 삭제 때 전체 스캔 제거 | ⑤ 가 `type = ref` 로 바뀌는지 |
 | `transaction` 커버링 인덱스 순서 | `GROUP BY type` 쿼리도 `date` 로 좁히려면 `type` 을 뒤로 보내야 한다 — 그 대신 월별 추이 쿼리가 덜 맞게 된다 | ③ 의 `key_len` 결과를 보고 판단 |
 
-인덱스를 바꿀 때는 루트 `CLAUDE.md` 의 순서(`migrate dev --create-only` → SQL 확인 → 적용)를 따른다.
+인덱스를 바꿀 때는 [CLAUDE.md](../CLAUDE.md) 「명령」의 순서(`migrate dev --create-only` → SQL 확인 → 적용)를 따른다.

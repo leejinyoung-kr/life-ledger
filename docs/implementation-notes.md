@@ -18,12 +18,14 @@
 
 - 사이드카가 무엇을 넘기는지 먼저 찍었다 — 백엔드 컨테이너 네트워크에 붙인 일회용 `alpine` + tcpdump 로 헤더만 걸러서(쿠키 · 토큰은 컨테이너 밖으로 안 나가게). 사이드카는 `X-Forwarded-For: <접속한 tailnet IP>` 를 붙이고, 손님이 지어 보낸 `X-Forwarded-For: 1.2.3.4` 는 **덮어쓴다**
 - 그래서 `TRUST_PROXY=1`(오른쪽 한 홉 = 사이드카만 믿음). `true` 는 맨 왼쪽 값을 믿어 손님이 지어 넣으면 속으니 쓰지 않는다
+- 홈서버 `backend/.env` 와 데모 `backend/.env.demo` 둘 다 `TRUST_PROXY=1` 로 넣고, 수동 배포(`workflow_dispatch`)로 운영 · 데모를 다시 띄웠다 (같은 날)
 - `main.ts` · `.env.example` 주석을 실제 동작대로 고쳤다
 - 확인 (운영, 2026-11-02): 개발 PC 에서 `/api/v1/health` 를 125번 → 120번 200 · 5번 429(전역 분당 120회). 바로 이어 홈서버 호스트(다른 tailnet IP)에서 같은 주소 → 200, 개발 PC 는 여전히 429. 손님마다 따로 센다
+- **같은 날 뒤이어 사이드카와 backend 사이에 Nginx 를 끼웠다** ([ADR 0010](adr/0010-nginx-behind-tailscale-sidecar.md)). 이제 backend 바로 앞은 nginx 다. nginx 가 사이드카의 `X-Forwarded-For` 로 손님 IP 를 찾고(`real_ip`), backend 에는 `X-Forwarded-For: <손님 IP>` 한 값으로 **덮어** 보낸다(`proxy_set_header X-Forwarded-For $remote_addr`). 그래서 값은 그대로 1(오른쪽 한 홉 = nginx 가 넘긴 값). 주석도 이 기준으로 고쳤다. 배포 뒤 backend 가 받은 헤더가 손님 tailnet IP 하나이고, 지어 넣은 값은 빠진 것을 같은 방법으로 확인했다
 
 ### 일부러 안 고친 곳
 
-- 기기 목록 · 접근 로그의 "첫 값 직접 읽기" — 사이드카가 덮어쓰는 동안은 안전하다. 앞단이 덧붙이는 프록시로 바뀌면 다시 본다 (Nginx 를 끼워도 첫 값은 손님이다)
+- 기기 목록 · 접근 로그의 "첫 값 직접 읽기" — 앞단이 한 값으로 덮어쓰는 동안은 안전하다. 처음엔 사이드카가, Nginx 를 끼운 뒤로는 nginx 가 덮어쓴다. 앞단이 덧붙이는 프록시로 바뀌면 다시 본다
 - Funnel(공개 인터넷) 접속도 같다 — tailnet 밖 휴대폰(사파리)으로 데모 health 를 열고 같은 방법으로 찍었더니 `X-Forwarded-For: <휴대폰 공인 IP>` (2026-11-02). 가짜 헤더를 덮어쓰는지는 휴대폰 브라우저로 보낼 수 없어 tailnet 쪽 결과로 갈음한다
 
 ## DB 시각을 KST 벽시계로 옮김 (2026-10-28)

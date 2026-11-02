@@ -36,7 +36,7 @@
 - `backend/src/crypto/` — `cipher-store.ts`(CAS UPDATE) · `crypto-audit.service.ts` · `crypto-bootstrap.service.ts`(부팅 점검 · 재암호화) · `crypto-check.ts`(배포 전 점검)
 - [backend/src/prisma/prisma.service.ts](../../backend/src/prisma/prisma.service.ts) — `encryptedFields` 쓰기 가드
 - [backend/src/config/env.ts](../../backend/src/config/env.ts) — `CRYPTO_KEYS`(`<키ID>:<시크릿>` 목록, 첫 번째가 현재 키), `CREDENTIAL_SECRET`(v1 읽기 전용)
-- 배포 워크플로 — `check-env` → `migrate deploy` → `crypto-check` → `up -d` → healthy 뒤 `crypto-check` 한 번 더
+- 배포 워크플로 — `check-env` → `migrate deploy` → `crypto-check` → `nginx -t` → `up -d` → backend · nginx healthy 뒤 `crypto-check` 한 번 더 (데모 단계는 `crypto-check` 없이 `check-env` → `migrate deploy` → `up -d`)
 - 마스터 잠금 비밀번호는 암호화가 아니라 scrypt 해시 ([architecture.md](../architecture.md) Stack 표)
 
 ## 지금 검토 — 대안 비교 *(AI 초안 · 본인이 읽고 고친다)*

@@ -17,10 +17,18 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /auth/refresh | refresh 쿠키로 새 access 발급 (`@Public`) |
 | POST | /auth/logout | refresh 쿠키 제거 (`@Public`) |
 | GET | /auth/dev-login | 로컬 개발용 원클릭 로그인, 고정 유저(`dev@local`)로 즉시 JWT 발급 (`@Public`, `NODE_ENV=production`에서는 404) |
+| POST | /auth/demo | 데모 로그인 — 데모 사용자 세션 발급, 응답 `{ token }` + refresh 쿠키 (`@Public`, 분당 10회. **데모 인스턴스(`DEMO_MODE`)에서만 등록**되는 라우트라 운영에는 없다, Swagger 에도 안 나온다) |
 
 > 토큰: **Access(15분)** 는 `?token=` 으로 전달 → 프론트 메모리(모듈 변수) → `Authorization: Bearer`.
-> **Refresh(7일)** 는 httpOnly 쿠키(`ll_refresh_token`, 힌트 쿠키 `ll_has_session`)로만 저장 — 접두사는 같은 호스트의 다른 포트 앱과 쿠키가 섞이지 않게. access 만료(401) 시 프론트가 `/auth/refresh` 1회 호출해 갱신·재요청.
-> 전역 JWT 가드 — 로그인 관련(`@Public()`) 외 **모든** 엔드포인트는 access 토큰 필수.
+> **Refresh** 는 httpOnly 쿠키(`ll_refresh_token`, 힌트 쿠키 `ll_has_session`)로만 저장 — 접두사는 같은 호스트의 다른 포트 앱과 쿠키가 섞이지 않게. 수명은 설정 `session_expiry` 를 따른다: `12h` · `1d` · `7d`(기본) · `none`(사실상 무제한, 10년) (`auth.service.ts`). access 만료(401) 시 프론트가 `/auth/refresh` 1회 호출해 갱신·재요청.
+> 전역 JWT 가드 — `@Public()` 이 붙은 곳(위 로그인 · 갱신 · 로그아웃 · 데모, 아래 `GET /health`, 루트 `GET /` → `Hello World!`) 외 **모든** 엔드포인트는 access 토큰 필수.
+
+## 운영 상태
+
+| Method | Endpoint | 설명 |
+| --- | --- | --- |
+| GET | /health | 헬스체크 (`@Public`) — DB 핑(`SELECT 1`). 정상 200 `{ status: 'ok', db: 'up', uptime, timestamp }`, DB 가 끊기면 503 `{ status: 'error', db: 'down', … }`. 컨테이너 healthcheck 가 쓴다 |
+| GET | /_meta | 운영 상태 (로그인 필요, 코어 core-common `MetaModule`) — 빌드 커밋 · 설치된 `@leejinyoung-kr/core-*` 버전 + 구역 `jobs`(예약 작업별 마지막 성공 · 다음 실행) · `outbox`(알림 발송 적체) · `notification`(켜진 알림 채널). 경고는 `warn` 배열 한자리에 모인다 (`backend/src/meta/`) |
 
 ## 가계부 — 수입/지출
 
@@ -33,6 +41,7 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /transactions/import | 엑셀 양식(.xlsx) 업로드 → 행별 검증 후 일괄 추가 (multipart, 필드명 `file`, 최대 5MB) |
 | GET | /transactions/export?from=&to=&type=&category=&q= | 현재 필터 내역을 .xlsx 로 스트리밍 다운로드 |
 | PUT | /transactions/:id | 내역 수정 |
+| DELETE | /transactions/bulk | 선택 일괄 삭제 (본문 `{ ids: number[] }`, soft delete — 자산이동 내역은 대상 잔액도 되돌린다, 한 트랜잭션). 응답 `{ count }`, `ids` 가 비면 400 |
 | DELETE | /transactions/:id | 내역 삭제 (soft delete) |
 
 > 반복거래/반복매수는 이 엔드포인트가 아닌 [자동이체 설정](#자동이체-설정) API에서 별도로 등록/관리한다 — 거래·투자 등록은 항상 순수 데이터 생성만 한다.
@@ -51,6 +60,7 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /savings/summary | 요약 (총 잔액/이번 달 납입/평균 금리/만기 임박) |
 | POST | /savings | 예적금 추가 |
 | PUT | /savings/:id | 예적금 수정 |
+| DELETE | /savings/bulk | 선택 일괄 삭제 (본문 `{ ids: number[] }`, soft delete). 응답 `{ count }`, `ids` 가 비면 400 |
 | DELETE | /savings/:id | 예적금 삭제 (soft delete) |
 
 ## 가계부 — 투자 계좌
@@ -75,8 +85,11 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /investments/exchange-rate | 현재 USD/KRW 환율 (해외투자 USD 표기 토글용) |
 | POST | /investments | 투자 추가 (`accountId` 필수 — 소속 계좌) |
 | PUT | /investments/:id | 투자 수정 |
+| GET | /investments/:id/price | 시세조회 — 등록된 종목코드/티커로 현재가(국내 네이버, 해외 Yahoo + 환율). 응답 `{ price, currency, krwPrice, name, quantity, evaluatedValue }`(평가금액 = 원화 단가 × 보유수량). 종목코드나 보유수량이 없으면 400 |
+| GET | /investments/:id/quote | 시세조회(단가만) — 매수/매도 창의 단가 자동입력용. 응답 `{ price, currency, krwPrice, name }`, 보유수량 없어도 된다. 종목코드가 없으면 400 |
 | POST | /investments/:id/buy | 매수 — 소속 계좌 예수금 → 투자원금·평가금액 전환 |
 | POST | /investments/:id/sell | 매도 — 평가금액 → 소속 계좌 예수금 환입 |
+| DELETE | /investments/bulk | 선택 일괄 삭제 (본문 `{ ids: number[] }`, soft delete). 응답 `{ count }`, `ids` 가 비면 400 |
 | DELETE | /investments/:id | 투자 삭제 (soft delete) |
 
 ## 거래 즐겨찾기
@@ -132,7 +145,8 @@ Base URL: `http://localhost:8000/api/v1`
 | GET | /notifications/unread-count | 미읽음 알림 수 (상단 종 배지) |
 | PUT | /notifications/:id/read | 단건 읽음 처리 |
 | PUT | /notifications/read-all | 전체 읽음 처리 |
-| DELETE | /notifications/bulk | 선택 일괄 삭제 |
+| DELETE | /notifications/bulk | 선택 일괄 삭제 (본문 `{ ids: number[] }`, 영구 삭제). 응답 `{ deleted }` |
+| DELETE | /notifications/:id | 단건 삭제 (영구 삭제). 응답 `{ id }`, 남의 알림 · 없는 id 는 404 |
 | DELETE | /notifications | 전체 삭제 |
 
 > 알림 자동생성 크론(매일 9시): 예적금·투자계좌 만기(D-30/14/7/1)·구독결제/체험종료(D-7/3/1)·비번회전(90일 경과 후 30일 간격 재알림). `notif_maturity` 설정으로 게이팅.
@@ -165,7 +179,13 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /security/vault/unlock | 잠금 해제 — vault 토큰 발급 (throttle 5/분) |
 
 > **마스터 잠금**: 켜지면 reveal/totp/백업코드 열람, 계정 엑셀·데이터 내보내기(`/credentials/export`, `/export/*`), 잠금 재설정, 계정 삭제 시 `x-vault-token` 헤더 필요(없으면 423 + `code:VAULT_LOCKED`). 자동잠금 = 토큰 만료.
-> **Rate-limit**(`@nestjs/throttler`): 전역 120/분, reveal·totp·백업코드 20/분, vault unlock 5/분.
+> **Rate-limit**(`@nestjs/throttler`): 전역 120/분, reveal·totp·백업코드 20/분, vault unlock 5/분, 이메일 코드 요청 5/분 · 검증 10/분, 데모 로그인 10/분, refresh 30/분. 손님은 `req.ip` 로 가른다(홈서버 `TRUST_PROXY=1`).
+> **앞단 Nginx**(홈서버 · 데모, [ADR 0010](adr/0010-nginx-behind-tailscale-sidecar.md)): 백엔드에 닿기 전에 막는 것이 둘 있다. 이때도 본문은 `{ statusCode, message }` JSON 이다.
+>
+> - 로그인 · 인증코드 경로(`/api/v1/auth/email/*` · `/api/v1/auth/demo`) — IP 마다 분당 20회, 한꺼번에 10회까지. 넘으면 429 `요청이 너무 많습니다. 잠시 뒤 다시 시도해 주세요.`
+> - 요청 본문 55MB 초과 — 413 `파일이 너무 큽니다. 50MB 이하로 올려 주세요.`
+>
+> 백엔드가 멈췄을 때의 502 · 504 는 Nginx 기본 HTML 이다(JSON 아님). 로컬 개발(`pnpm run dev`)에는 Nginx 가 없다.
 
 ## 설정
 
@@ -207,6 +227,7 @@ Base URL: `http://localhost:8000/api/v1`
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | GET | /credentials | 계정 목록 (비번 제외 — `has2fa`·`hasBackupCodes`·`passwordChangedAt` 노출) |
+| GET | /credentials/:id | 계정 단건 (목록과 같은 모양 — 비번 제외). 보안 화면 `?focus=<id>` 같은 딥링크용 |
 | GET | /credentials/:id/reveal | 비밀번호·TOTP 원문 복호화 (감사 로그 기록) |
 | GET | /credentials/:id/totp | 현재 6자리 TOTP 코드 + 남은 시간 |
 | GET | /credentials/:id/backup-codes | 2FA 백업코드 조회 |

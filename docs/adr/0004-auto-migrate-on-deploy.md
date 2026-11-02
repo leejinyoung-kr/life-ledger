@@ -28,8 +28,8 @@
 
 ## 지금 코드에 남은 것
 
-- [.github/workflows/deploy-home-server.yml](../../.github/workflows/deploy-home-server.yml) — `docker compose build` → `run --rm --no-deps backend node dist/config/check-env.js` → `run --rm backend npx prisma migrate deploy` → `crypto-check` → `up -d`. backend 를 안 빌드한 배포에서도 매번 돈다 ("변경 없으면 즉시 끝남")
-- 데모 인스턴스도 같은 순서 (워크플로 「Deploy demo」)
+- [.github/workflows/deploy-home-server.yml](../../.github/workflows/deploy-home-server.yml) — `docker compose build` → `run --rm --no-deps backend node dist/config/check-env.js` → `run --rm backend npx prisma migrate deploy` → `crypto-check` → `nginx -t` → `up -d` (데모 단계는 `check-env` → `migrate deploy` → `up -d`). backend 를 안 빌드한 배포에서도 매번 돈다 ("변경 없으면 즉시 끝남")
+- 데모 인스턴스도 마이그레이션은 같은 자리(`up -d` 전)에서 돈다 (워크플로 「Deploy demo」)
 - 마이그레이션 SQL 은 `--create-only` 로 만든 뒤 컬럼 코멘트를 손으로 넣는다 (워크스페이스 공통 규칙)
 - 마이그레이션 파일을 init 하나로 합친 적이 세 번 있다 — `a67d85c`(06-06) · `2d6e9a5`(06-15) · `21c1bbf`(07-13)
 
@@ -59,7 +59,7 @@
 ### 질문과 답
 
 - **마이그레이션 직전에 자동으로 덤프를 뜨는 단계를 넣을까?**
-  넣을 만하다. `deploy-home-server.yml` 에는 `check-env` → `migrate deploy` → `crypto-check` 만 있고 덤프 단계는 없다(운영 · 데모 모두). 지금은 매일 04시 앱 덤프와 PC 의 매일 21시 가져오기(infra ADR 0007)가 있지만 배포 직전 상태는 아니다. DB 가 합쳐 몇 MB 라 덤프 시간이 배포를 늘리지 않는다. 다만 넣을지는 본인 판단이고, 아직 넣지 않았다.
+  넣을 만하다. `deploy-home-server.yml` 에는 운영은 `check-env` → `migrate deploy` → `crypto-check`, 데모는 `check-env` → `migrate deploy` 만 있고 덤프 단계는 둘 다 없다. 지금은 매일 04시 앱 덤프와 PC 의 매일 21시 가져오기(infra ADR 0007)가 있지만 배포 직전 상태는 아니다. DB 가 합쳐 몇 MB 라 덤프 시간이 배포를 늘리지 않는다. 다만 넣을지는 본인 판단이고, 아직 넣지 않았다.
 - **컬럼을 지우는 변경을 무중단으로 하려면 배포를 어떻게 나누나?**
   두 번으로 나눈다. 먼저 코드가 그 컬럼을 쓰지 않게 배포하고, 다음 배포에서 컬럼을 지우는 마이그레이션을 낸다. 한 번에 하면 마이그레이션이 끝나고 새 컨테이너가 뜰 때까지 옛 코드가 새 스키마로 돈다. 사용자 1명이라 몇 분 오류를 감수한다는 것이 ADR 의 판단이고, 2026-10-13 기능 제거 때 이 분리를 썼는지는 기록에서 확인하지 않았다.
 - **마이그레이션 파일을 합치는 것은 언제 괜찮고 언제 위험한가?**

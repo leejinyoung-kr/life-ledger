@@ -32,7 +32,7 @@
 
 ## 지금 코드에 남은 것
 
-- `backend/package.json` — `core-auth` · `core-common` · `core-config` · `core-jobs` · `core-logging` · `core-notification` · `core-security` · `core-storage`
+- `backend/package.json` — `core-auth` · `core-common` · `core-config` · `core-db` · `core-jobs` · `core-logging` · `core-notification` · `core-security` · `core-storage`
 - `docker-compose.yml` 의 빌드 비밀 `npm_read_token`, 배포 워크플로의 `NPM_READ_TOKEN`
 - 앱이 구현하는 쪽(어댑터 · 저장소)만 이 레포에 있다 — [push/outbox.store.ts](../../backend/src/push/outbox.store.ts) · [maintenance/job-run.store.ts](../../backend/src/maintenance/job-run.store.ts) · [crypto/](../../backend/src/crypto/)
 - [docs/core-libraries.md](../core-libraries.md) — 비공개 쪽 설계 · 핵심 코드 발췌

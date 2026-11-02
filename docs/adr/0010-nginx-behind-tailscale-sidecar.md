@@ -1,6 +1,6 @@
 # 0010. 사이드카 뒤에 Nginx 를 둔다 — 사이드카는 길 · 주소 · 인증서만, 경로 나누기 · 제한은 Nginx
 
-- **상태**: 채택 — 2026-11-02 develop 에 반영 (main 배포 때 적용)
+- **상태**: 채택 — 2026-11-02 운영 · 데모 적용 (main 배포 `be53a24`)
 - **결정일**: 2026-11-02
 - **기록일**: 2026-11-02
 - **결정 방식**: 세 단계로 정했다.
@@ -36,14 +36,14 @@
 - [nginx/default.conf](../../nginx/default.conf) — 위 2 ~ 5
 - [docker-compose.yml](../../docker-compose.yml) — `nginx` 서비스(프로필 `homeserver`), `tailscale` 은 `nginx` healthy 를 기다린다
 - [tailscale/serve.json](../../tailscale/serve.json) — `/` → `nginx:80`
-- [.github/workflows/deploy-home-server.yml](../../.github/workflows/deploy-home-server.yml) — 경로 `nginx/**`, `nginx -t`, 바뀌면 다시 만들기, nginx healthy 대기 (운영 · 데모)
+- [.github/workflows/deploy-home-server.yml](../../.github/workflows/deploy-home-server.yml) — 경로 `nginx/**`. 운영 단계는 `nginx -t` → `up -d` → 바뀌면 다시 만들기 → nginx healthy 대기. 데모 단계는 바뀌면 다시 만들기만 한다 — 같은 `nginx/default.conf` 를 쓰니 문법은 운영 단계 검사가 이미 덮고, 데모 사이드카는 `depends_on` 으로 nginx healthy 를 기다린다. 데모 nginx 가 healthy 인지 따로 기다리는 단계는 없다
 - 확인 (2026-11-02, 로컬): 같은 이미지로 Nginx 를 띄우고 받은 헤더를 그대로 돌려주는 가짜 backend · frontend 를 붙여 봤다 — `/api` · `/` 길, `X-Forwarded-For` 를 손님 값 하나로 넘김(`1.1.1.1, 9.9.9.9` 가 오면 마지막 값), `X-Forwarded-Proto` · `Host` 전달, 로그인 경로 15번 연속 → 11번 통과 · 4번 429 JSON · 다른 IP 는 통과, 다른 경로는 15번 다 통과, 60MB 업로드 413 JSON · 50MB 통과, 3KB JSON gzip, backend 컨테이너를 IP 가 바뀌게 다시 만들어도 재시작 없이 따라감, 접속 로그에 쿼리 값 없음
 
 ## 위험 · 남은 것
 
-- **입구가 둘이다** — 사이드카와 Nginx. 접속이 안 될 때 어느 쪽인지 먼저 갈라 봐야 한다: 사이드카 로그(`docker compose logs tailscale`) → Nginx 접속 로그 → 백엔드.
+- **입구가 둘이다** — 사이드카와 Nginx. 접속이 안 될 때 어느 쪽인지 먼저 갈라 봐야 한다: 사이드카 로그(`docker compose logs tailscale`) → Nginx 접속 로그 → 백엔드. 절차는 런북 [nginx-sidecar-down.md](../runbooks/nginx-sidecar-down.md).
 - **화면은 Nginx 가 모아 두지 않는다** (`proxy_buffering off`) — Next.js 가 나눠 보내는 응답을 그대로 흘린다. API 는 기본(모아 두기)이다.
-- **도커 대역 가정** — `set_real_ip_from 172.16.0.0/12` 는 도커 기본 대역이다. 도커가 `192.168.x` 대역을 주면 사이드카를 못 믿어 모든 IP 가 사이드카 것으로 보인다 (지금 운영 172.21 · 데모 172.24, 11-02 확인).
+- **도커 대역 가정** — `set_real_ip_from 172.16.0.0/12` 는 도커 기본 대역이다. 도커가 `192.168.x` 대역을 주면 사이드카를 못 믿어 모든 IP 가 사이드카 것으로 보인다 (운영 · 데모 네트워크 대역은 서로 다르고 둘 다 이 범위 안이다, 11-02 확인).
 - **Nginx 오류 로그에는 쿼리가 남을 수 있다** — 접속 로그만 쿼리를 뺐다. 오류 로그는 요청 줄 전체를 적는다.
 - **Nginx 횟수 기록은 메모리** — 컨테이너를 다시 만들면 처음부터 센다. 백엔드 throttler 도 같다.
 - 백엔드가 멈췄을 때의 502 · 504 는 Nginx 기본 HTML 이다 — 화면에는 "요청 실패 (502)" 로 보인다.

@@ -8,11 +8,11 @@ NestJS 기반 API 서버
 # 의존성 설치 (루트에서)
 pnpm install
 
-# 환경 변수 설정
-cp ../.env.example .env
+# 환경 변수 설정 (backend/ 에서 — 루트 .env.example 은 docker compose 전용이라 다르다)
+cp .env.example .env
 
-# DB 마이그레이션
-pnpm prisma:migrate
+# DB 마이그레이션 (이미 있는 마이그레이션 적용. 새로 만들 때는 레포 CLAUDE.md 「명령」의 --create-only 순서)
+pnpm exec prisma migrate deploy
 
 # 개발 서버 (포트 8000)
 pnpm start:dev
@@ -83,14 +83,19 @@ src/
 ├── file/          # 파일 보관함 (Backblaze B2)
 ├── export/        # 데이터 내보내기 (JSON/ZIP)
 ├── import/        # 데이터 가져오기 (계정 JSON 복원)
-├── maintenance/   # 스케줄 크론 (알림·순자산 스냅샷·투자 현재가 갱신·소프트삭제 항목 자동정리)
+├── maintenance/   # 예약 작업 8개 (@Job — 알림·반복거래/반복매수 국내·해외(현재가 갱신 포함)·구독 결제일·순자산 스냅샷·휴지통·DB 백업·공휴일)
+├── recurring-schedule/ # 자동이체 설정 (반복거래·반복매수 규칙 — 크론이 이 규칙대로 회차를 만든다)
+├── transaction-favorite/ # 거래 즐겨찾기 (자주 쓰는 내역을 오늘 날짜로 불러오기)
+├── holiday/       # 공휴일 (공공데이터포털 특일 정보, 연도별 캐시)
 ├── mail/          # SMTP 메일 발송 (이메일 코드 로그인 등)
 ├── push/          # 웹 푸시 구독/발송 (VAPID)
 ├── system-log/    # 시스템 로그 (크론·투자 갱신 등 백그라운드 작업 실행 기록)
 ├── health/        # 헬스체크
+├── meta/          # GET /_meta 에 붙는 구역 (예약 작업·아웃박스·알림 채널)
+├── config/        # 환경변수 검증(env.ts)·배포 전 점검(check-env)·외부 연결 설정
 ├── crypto/        # 암호화 컬럼 목록·문맥(AAD)·키 설정, 부팅 시 점검·재암호화, 배포 전 점검(crypto-check)
-├── common/        # vault 유틸·ClientInfo 등 공용 (CryptoService 는 @leejinyoung-kr/core-security)
-└── prisma/        # PrismaService / PrismaModule
+├── common/        # 데모 계정 판별·KST 날짜·vault 유틸 (CryptoService 는 core-security, ClientInfo 는 core-logging)
+└── prisma/        # PrismaService / PrismaModule (어댑터는 core-db withKstDateTime 으로 감싼다)
 ```
 
 > 보안 엔드포인트(reveal/totp/복호화)는 `@nestjs/throttler` 로 분당 호출 제한. 마스터 잠금 활성 시 `x-vault-token` 헤더 필요.

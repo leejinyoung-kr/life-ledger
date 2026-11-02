@@ -30,8 +30,9 @@
 - [backend/src/common/demo.ts](../../backend/src/common/demo.ts) — 고정 사용자 `demo@life-ledger.local`, `assertNotDemo`(계정 삭제 · 마스터 잠금 변경/해제 403)
 - `backend/prisma/demo-reset.ts` — `DEMO_MODE` 가 아니면 거부, 전 테이블 비우고 시드 + 마스터 잠금 `demo1234`
 - `env.ts` 의 `STORAGE_QUOTA_MB` — 사용자별 파일 한도(데모 50MB)
-- 배포 워크플로 「Deploy demo」 — 홈서버에 `.env.demo` · `backend/.env.demo` 가 있을 때만, 운영 배포 뒤에
-- 매일 KST 04:00 초기화는 홈서버 **사용자 crontab** — 레포 밖이다 (절차는 계획서 「5단계 운영 절차」)
+- 배포 워크플로 「Deploy demo」 — 홈서버에 `.env.demo` · `backend/.env.demo` 가 있을 때만, 운영 배포 뒤에. `check-env` → `migrate deploy` → `up -d` → (`nginx/` · `tailscale/` 이 바뀌었으면) 다시 만들기
+- 2026-11-02 부터 데모도 운영과 같은 `nginx/default.conf` 로 사이드카 → nginx → frontend · backend 다 ([0010](0010-nginx-behind-tailscale-sidecar.md)). 데모 `backend/.env.demo` 도 `TRUST_PROXY=1`
+- 매일 KST 04:00 초기화는 홈서버 **사용자 crontab** — 레포 밖이다 (절차는 런북 [demo-operations.md](../runbooks/demo-operations.md), 처음엔 계획서 「5단계 운영 절차」에 있었다)
 
 ## 지금 검토 — 대안 비교 *(AI 초안 · 본인이 읽고 고친다)*
 

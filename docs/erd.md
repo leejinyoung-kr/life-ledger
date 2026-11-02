@@ -39,7 +39,7 @@
 User 1 ─── N (Transaction, Saving, InvestmentAccount, Investment, Subscription, NetWorthSnapshot,
               Notification, CalendarEvent,
               LoginSession, Category, Credential,
-              StorageFolder, StorageFile, AccessLog, RefreshToken,
+              StorageFolder, StorageFile, AccessLog, RefreshToken, PushSubscription,
               TransactionFavorite)
 User 1 ─── 1 UserSettings
 User 1 ─── N RecurringSchedule
@@ -48,7 +48,8 @@ Subscription 1 ─── N Transaction(subscription_id, 결제일이 지나 자�
 Investment 1 ─── N RecurringSchedule(investment_id, kind=investment 전용)
 InvestmentAccount 1 ─── N Investment(account_id)
 StorageFolder  1 ─── N StorageFolder(parent_id, 자기참조) · N StorageFile
-LoginSession   1 ─── N RefreshToken(session_id)
+LoginSession   1 ─── N RefreshToken(session_id, 세션을 지우면 NULL)
+LoginSession   1 ─── N PushSubscription(session_id, CASCADE — 세션 행이 지워지면 그 기기 구독도 같이 지워진다. 로그아웃 · 세션 종료 때 그 세션 구독을 지우는 것은 코드, README 「해결한 문제 5」)
 ```
 
 ## 암호화 (보관함)

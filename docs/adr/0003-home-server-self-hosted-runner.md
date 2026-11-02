@@ -35,9 +35,9 @@
 
 ## 지금 코드에 남은 것
 
-- [.github/workflows/deploy-home-server.yml](../../.github/workflows/deploy-home-server.yml) — `main` push · 수동 실행, 앞 잡 `check`(GitHub 러너에서 `ci.yml`, 2026-10-30 — infra ADR 0009) 통과 뒤 `runs-on: [self-hosted]`, 홈서버 클론에서 검사한 커밋으로 `git reset --hard`, `flock /tmp/deploy.lock`, 빌드 → `check-env` → `migrate deploy` → `crypto-check` → `up -d` → healthy 대기 → 데모 → 정리
-- [docker-compose.yml](../../docker-compose.yml) — 포트는 `127.0.0.1` 에만, `tailscale` 서비스(프로필 `homeserver`, 호스트 이름 `lifeledger`)
-- [tailscale/serve.json](../../tailscale/serve.json) — `/` → frontend:3000, `/api` → backend:8000, `AllowFunnel: true`
+- [.github/workflows/deploy-home-server.yml](../../.github/workflows/deploy-home-server.yml) — `main` push · 수동 실행, 앞 잡 `check`(GitHub 러너에서 `ci.yml`, 2026-10-30 — infra ADR 0009) 통과 뒤 `runs-on: [self-hosted]`, 홈서버 클론에서 검사한 커밋으로 `git reset --hard`, `flock /tmp/deploy.lock`, 빌드 → `check-env` → `migrate deploy` → `crypto-check` → `nginx -t` → `up -d` → (설정이 바뀌었으면) nginx · tailscale 다시 만들기 → backend · nginx healthy 대기 → 데모 → 정리
+- [docker-compose.yml](../../docker-compose.yml) — 포트는 `127.0.0.1` 에만, `nginx` · `tailscale` 서비스(프로필 `homeserver`, 호스트 이름 `lifeledger`)
+- [tailscale/serve.json](../../tailscale/serve.json) — `/` → `nginx:80` 하나, `AllowFunnel: true`. `/` 와 `/api` 를 frontend · backend 로 나누는 것은 2026-11-02 부터 [nginx/default.conf](../../nginx/default.conf) 가 한다 ([0010](0010-nginx-behind-tailscale-sidecar.md)). 그 전에는 사이드카가 `/` → frontend:3000, `/api` → backend:8000 으로 바로 보냈다
 - `backend/Dockerfile` · `frontend/Dockerfile` — 홈서버에서 직접 빌드한다(이미지 레지스트리 없음)
 
 ## 지금 검토 — 대안 비교 *(AI 초안 · 본인이 읽고 고친다)*
@@ -54,7 +54,7 @@
   - 화면과 API 가 같은 origin 이라 CORS · 쿠키 설정이 단순하다 ([0001](0001-jwt-access-refresh-rotation.md) 의 `SameSite=Lax` 도 이 덕에 된다).
 - **아쉬운 점 · 위험 (초안)**
   - 단일 장애점이다. 2026-10-16 빌드 캐시가 165G 까지 쌓여 디스크 84% 를 채웠다 (infra README).
-  - DB 덤프(`db_backups` 볼륨)가 같은 장비에 있다. 장비 밖 DB 백업과 장비가 죽었을 때 옮길 곳은 정해 두지 않았다 (2026-10-22 본인 확인). 장비 밖에 있는 것은 업로드 파일(B2)뿐이다.
+  - DB 덤프(`db_backups` 볼륨)가 같은 장비에 있다. ~~장비 밖 DB 백업과 장비가 죽었을 때 옮길 곳은 정해 두지 않았다 (2026-10-22 본인 확인). 장비 밖에 있는 것은 업로드 파일(B2)뿐이다.~~ → **장비 밖 DB 백업은 2026-10-25 부터 있다.** 개발 PC 가 매일 21시 홈서버 앱 DB 전부를 덤프해 가져온다 (infra ADR 0007). 장비가 죽었을 때 옮길 곳은 아직 정해 두지 않았다.
   - 운영 주소도 Funnel 로 인터넷에 열려 있다. 막는 것은 허용 목록 로그인 · rate limit 이다. 안 열면 휴대폰에도 Tailscale 앱이 필요하다.
   - 빌드를 운영 장비에서 하니 배포 중 CPU 를 서비스와 나눠 쓴다 — `flock` 을 넣은 이유이기도 하다.
   - 공개 레포 + self-hosted runner 는 fork PR 승인 설정 하나에 기대고 있다.
