@@ -18,8 +18,9 @@ async function bootstrap() {
   // 유효 설정을 부팅 로그에 남긴다 — 시크릿·URL 비밀번호는 가리고, 꺼진 기능은 (미설정)으로 드러난다
   new Logger('Config').log(`유효 설정:\n${describeEnv(env)}`);
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  // 신뢰 프록시 — 리버스 프록시 뒤에서 x-forwarded-for 의 첫 값을 client IP 로 사용.
-  // throttler 키·새 기기 감지·접근로그 IP 정확도에 필요. 직접 노출 시 TRUST_PROXY 미설정으로 무효.
+  // 신뢰 프록시 — 숫자면 x-forwarded-for 를 오른쪽부터 그 홉 수만큼 믿고 req.ip 를 정한다.
+  // 'true' 는 맨 왼쪽(손님이 지어 넣을 수 있는 값)을 믿으니 쓰지 않는다. 운영은 사이드카 하나 뒤라 1.
+  // req.ip 를 쓰는 곳은 throttler 키 — 미설정이면 모든 접속이 사이드카 IP 한 묶음으로 세어진다.
   const trustProxy = env.TRUST_PROXY;
   if (trustProxy) {
     // 숫자(홉 수) 또는 'true'/CIDR 문자열 허용
