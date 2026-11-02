@@ -19,8 +19,9 @@ async function bootstrap() {
   new Logger('Config').log(`유효 설정:\n${describeEnv(env)}`);
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   // 신뢰 프록시 — 숫자면 x-forwarded-for 를 오른쪽부터 그 홉 수만큼 믿고 req.ip 를 정한다.
-  // 'true' 는 맨 왼쪽(손님이 지어 넣을 수 있는 값)을 믿으니 쓰지 않는다. 운영은 사이드카 하나 뒤라 1.
-  // req.ip 를 쓰는 곳은 throttler 키 — 미설정이면 모든 접속이 사이드카 IP 한 묶음으로 세어진다.
+  // 'true' 는 맨 왼쪽(손님이 지어 넣을 수 있는 값)을 믿으니 쓰지 않는다. 운영은 1 — 바로 앞 nginx 가
+  // x-forwarded-for 를 손님 IP 한 값으로 덮어 보낸다(nginx/default.conf).
+  // req.ip 를 쓰는 곳은 throttler 키 — 미설정이면 모든 접속이 nginx IP 한 묶음으로 세어진다.
   const trustProxy = env.TRUST_PROXY;
   if (trustProxy) {
     // 숫자(홉 수) 또는 'true'/CIDR 문자열 허용
