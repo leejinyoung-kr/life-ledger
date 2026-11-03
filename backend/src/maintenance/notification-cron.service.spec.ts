@@ -112,4 +112,14 @@ describe('NotificationCronService 비밀번호 교체 알림', () => {
 
     expect(sentDescriptions()).toEqual(['비밀번호를 변경한 지 120일이 지났습니다.']);
   });
+
+  it('설정에서 비밀번호 교체 알림을 끄면 보내지 않는다', async () => {
+    prisma.userSettings.findUnique = jest.fn(async () => ({ notif_maturity: false, notif_deadline: false, notif_pw_rotation: false }));
+    creds.push({ name: '네이버', password_changed_at: new Date('2026-07-29T06:00:00Z') });
+
+    await svc().generateDaily();
+
+    expect(prisma.credential.findMany).not.toHaveBeenCalled();
+    expect(notification.createWithPush).not.toHaveBeenCalled();
+  });
 });

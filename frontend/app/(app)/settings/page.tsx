@@ -157,10 +157,11 @@ export default function SettingsPage() {
     notifUpload: '파일 업로드 완료 알림',
     notifMaturity: '만기·결제 임박 알림',
     notifDeadline: '캘린더 일정 알림',
+    notifPwRotation: '비밀번호 교체 알림',
   };
 
   // 알림 토글 — 즉시 저장
-  const handleToggleNotif = (key: 'notifUpload' | 'notifMaturity' | 'notifDeadline') => {
+  const handleToggleNotif = (key: 'notifUpload' | 'notifMaturity' | 'notifDeadline' | 'notifPwRotation') => {
     const next = !s[key];
     const label = NOTIF_LABEL[key];
     patch({ [key]: next }, `${label}${eulreul(label)} ${next ? '켰습니다.' : '껐습니다.'}`);
@@ -213,6 +214,9 @@ export default function SettingsPage() {
             </SettingRow>
             <SettingRow label="캘린더 일정 알림" desc="일정에서 알림을 켠 것을 당일 오전 9시에 알림. 끄면 하나도 보내지 않음">
               <Toggle label="캘린더 일정 알림" on={s.notifDeadline} onToggle={() => handleToggleNotif('notifDeadline')} />
+            </SettingRow>
+            <SettingRow label="비밀번호 교체 알림" desc="계정 보관함 비밀번호를 바꾼 지 90일이 지나면 알림, 이후 30일마다 다시">
+              <Toggle label="비밀번호 교체 알림" on={s.notifPwRotation} onToggle={() => handleToggleNotif('notifPwRotation')} />
             </SettingRow>
             <SettingRow label="파일 업로드 완료 알림" desc="파일 업로드 시 알림 표시">
               <Toggle label="파일 업로드 완료 알림" on={s.notifUpload} onToggle={() => handleToggleNotif('notifUpload')} />

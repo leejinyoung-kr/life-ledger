@@ -29,6 +29,10 @@ export class UpdateSettingsDto {
 
   @IsOptional()
   @IsBoolean()
+  notifPwRotation?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   showHolidays?: boolean;
 
   @IsOptional()

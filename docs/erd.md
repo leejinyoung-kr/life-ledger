@@ -79,7 +79,7 @@ LoginSession   1 ─── N PushSubscription(session_id, CASCADE — 세션 행
 
 ### 설정 — UserSettings (1:1)
 
-- 알림: `notif_upload`·`notif_maturity`·`notif_deadline`(캘린더 일정 알림 전체 켜기 · 끄기 — 끄면 `calendar_event.notify` 를 켠 일정도 보내지 않음, 2026-10-27 다시 씀)
+- 알림: `notif_upload`·`notif_maturity`·`notif_deadline`(캘린더 일정 알림 전체 켜기 · 끄기 — 끄면 `calendar_event.notify` 를 켠 일정도 보내지 않음, 2026-10-27 다시 씀)·`notif_pw_rotation`(계정 보관함 비밀번호 교체 권장 알림, 2026-11-03)
 - 캘린더: `show_holidays`(공휴일·대체공휴일 표시 여부)
 - 보안: `session_expiry`, `pw_auto_hide`, `master_lock_enabled`·`master_lock_hash`(scrypt)·`master_lock_timeout`
 - JSON: `categories`[{emoji,name}]
