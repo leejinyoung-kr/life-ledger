@@ -191,12 +191,6 @@ docker compose exec backend npx prisma migrate deploy
 > `migrate dev`(신규 마이그레이션 생성, dev 전용)와 달리 `migrate deploy`는
 > 이미 존재하는 마이그레이션 파일을 프롬프트 없이 적용만 한다.
 
-### 슬래시 커맨드
-
-| 커맨드 | 동작 |
-| --- | --- |
-| `/push` | 기본 브랜치(`main`)에 커밋 + 푸시 — push 하면 홈서버 배포가 돈다 |
-
 ---
 
 ## 규칙
