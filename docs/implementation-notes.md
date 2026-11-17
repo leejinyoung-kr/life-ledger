@@ -2,6 +2,26 @@
 
 결정(ADR) · 사고(포스트모템)는 아니지만 설명할 거리가 있는 개선을 남긴다 — 문제 · 원인 · 고친 방법 · 일부러 안 고친 곳.
 
+## 이름 변경 — life-ledger → life-moa (2026-11-17)
+
+워크스페이스 이름 규칙(레포는 쉬운 영어 두 단어, 화면은 한글)에 따라 레포 · 화면 · 서버 이름을 모두 바꿨다. doc-nexus → life-ledger(2026-10-15) 때 그대로 두었던 볼륨 · B2 버킷 이름까지 이번에 새 이름으로 맞췄다.
+
+- **바꾼 것:** 레포 `life-moa`, 화면 이름 「생활모아」(제목 · 글자 로고 · 앱 설치 이름 · 푸시 · 메일 · Swagger), JWT `iss`/`aud` `life-moa`, 데모 사용자 `demo@life-moa.local`, 백업 파일 접두사 `lifemoa_`, 내보내기 파일 이름, 서비스워커 캐시 이름. 홈서버 `~/apps/life-moa` · `~/runners/life-moa` · 러너 `homeserver-life-moa`(그전 이름은 `homeserver`), compose `life-moa` · `life-moa-demo`, DB · 사용자 `lifemoa` · `lifemoa_demo`, Tailscale 노드 `lifemoa` · `lifemoa-demo`, 볼륨 `life-moa_db_backups` · `life-moa_tailscale_state`, B2 버킷 `life-moa` · `life-moa-demo`, infra 비밀번호 키 `LIFEMOA_DB_PASSWORD` · `LIFEMOA_DEMO_DB_PASSWORD`
+- **옮긴 방법 (홈서버, 운영 · 데모가 멈춘 시간 약 15분):**
+  1. 러너를 먼저 옮겼다 — 사용자가 `svc.sh stop` · `uninstall` · `mv`, AI 가 GitHub 의 옛 러너를 API 로 지우고 `bin` · `externals` 링크를 다시 걸고 `.runner_migrated` 를 지운 뒤 새 이름으로 등록, 사용자가 `svc.sh install` · `start` (infra README 「홈서버 폴더」)
+  2. 새 클론 `~/apps/life-moa` 에 `.env` 4개를 복사하고, 주소 · DB 이름이 든 키만 새 이름으로 바꿨다(값은 출력하지 않음). B2 키 · 버킷은 사용자가 새 값으로 넣었다
+  3. 옛 backend 둘을 멈추고 덤프 → `~/backups/2026-11-17/lifeledger(_demo)-before-rename.sql`. DB 는 infra `scripts/rename-db.sh` 로 옮겼다 — `RENAME TABLE` 한 문장이라 표가 한꺼번에 옮겨지고, 새 사용자는 옛 사용자의 인증 정보를 그대로 복사한다(비밀번호를 다루지 않는다). 표 26개씩, 인증 정보 같음
+  4. B2 는 버킷 이름을 바꾸는 기능이 없어 새 버킷으로 복사했다. 홈서버에서 `rclone` 컨테이너에 옛 · 새 클론의 `.env` 값을 환경 변수로만 넘겨 `copy` → `check`(크기 · MD5) — 객체 74개(53.3MB) 모두 같고, DB 의 지워지지 않은 파일 키 57개가 새 버킷에 다 있다. DB 는 버킷 이름 없이 키(`users/{id}/{uuid}/{파일}`)만 갖고 있어 고칠 것이 없었다. 데모 버킷은 비어 있어 빈 새 버킷으로 시작했다
+  5. 백업 볼륨은 옛 `doc-nexus_db_backups` 의 31개를 새 볼륨으로 복사했다. 옛 `lifeledger_` 파일은 보관 기간 정리에 넣어 30일 뒤 저절로 지워진다
+  6. 옛 컨테이너를 모두 멈추고 main 에 합쳐 배포. 데모 노드는 `.env.demo` 의 `TS_AUTHKEY` 로 붙었고, 운영 `.env` 에는 키가 없어(처음 붙은 뒤 지움) 데모 키 줄을 잠깐 복사해 붙인 뒤 다시 지웠다
+  7. 사용자 crontab 의 데모 초기화 줄을 새 경로 · 프로젝트 이름 · 로그 태그 `life-moa-demo` 로 바꾸고 한 번 돌려 확인했다(데모 사용자 `demo@life-moa.local`). infra `.env` 는 키 이름만 바꿨다(홈서버 · 로컬)
+- **막혔던 곳:**
+  - `rclone` 이 복사 전에 새 버킷을 만들려다 403 — 버킷 하나에만 권한이 있는 키라 정상이다. 원격마다 `no_check_bucket` 을 켜서 넘겼다
+  - 처음에는 `B2_BUCKET_NAME` 에 키 이름이 들어가 `NoSuchBucket` 이었다. 버킷 전용 키는 버킷 목록도 못 봐서 키로 이름을 알아낼 수 없다 — 사용자가 고쳐 넣었다
+- **외부 설정 (사용자):** Google OAuth 클라이언트에 새 리디렉션 URI · JavaScript 원본 추가, 동의 화면 앱 이름 「생활모아」. 레포 홈페이지 링크는 새 데모 주소로 바꿨다
+- **주소가 바뀌어 생기는 것:** 쿠키 · PWA 설치 · 웹 푸시 구독이 모두 새 origin 에서 다시 시작한다 — 새 주소에서 다시 로그인 · 앱 설치 · 푸시 켜기. 옛 주소의 푸시 구독은 보안 화면에서 옛 세션을 지우면 같이 지워진다(`push_subscription` 은 세션에 CASCADE)
+- **일부러 안 바꾼 곳:** ADR · 포스트모템 · 시안(`docs/design/`) · 끝난 계획(`docs/archive/`) · 마이그레이션 SQL 주석 · README 「AI 가 한 것 / 내가 한 것」의 지난 기록은 그때 이름 그대로 둔다. 데모 `backend/.env.demo` 의 `DATABASE_URL` 은 doc-nexus 때 값이 남아 있지만 compose 가 덮어쓰는 값이라 두었다
+
 ## 횟수 제한이 모든 접속을 한 사람으로 세던 문제 (2026-11-02)
 
 ### 문제
