@@ -508,13 +508,14 @@ model LoginSession {
 
 /// 갱신 토큰 화이트리스트 — refresh 발급 시 jti 기록, rotation/로그아웃/세션revoke 시 폐기
 model RefreshToken {
-  id         Int       @id @default(autoincrement())
-  user_id    Int /// user.id FK
-  session_id Int? /// login_session.id FK
-  jti        String    @unique @db.VarChar(36)
-  expires_at DateTime /// 만료일(KST)
-  revoked_at DateTime? /// 폐기일(KST), null=유효
-  created_at DateTime  @default(now()) /// 발급일(KST)
+  id          Int       @id @default(autoincrement())
+  user_id     Int /// user.id FK
+  session_id  Int? /// login_session.id FK
+  jti         String    @unique @db.VarChar(36)
+  expires_at  DateTime /// 만료일(KST)
+  revoked_at  DateTime? /// 폐기일(KST), null=유효
+  replaced_by String?   @db.VarChar(36) /// 회전으로 받은 새 토큰 jti — 있으면 회전으로 폐기된 것(재사용 허용 · 감지에 쓴다)
+  created_at  DateTime  @default(now()) /// 발급일(KST)
 
   user    User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
   session LoginSession? @relation(fields: [session_id], references: [id], onDelete: SetNull)
@@ -607,6 +608,7 @@ model StorageFile {
 /// 보관함 열람 동작: cred_reveal(계정 비번/2FA) | cred_totp(TOTP 코드) | cred_backup(백업코드)
 /// | backup_codes_generate(백업코드 생성) | vault_unlock(보관함 잠금해제) | vault_disable(보관함 잠금 해제설정)
 /// | session_revoke(세션 강제로그아웃) | data_export(전체 데이터 export)
+/// | refresh_grace(회전 직후 옛 refresh 토큰 허용) | refresh_reuse(허용 시간 지난 옛 refresh 토큰 → 세션 끊음)
 enum AccessAction {
   cred_reveal
   cred_totp
@@ -616,6 +618,8 @@ enum AccessAction {
   vault_disable
   session_revoke
   data_export
+  refresh_grace
+  refresh_reuse
 
   @@map("access_action")
 }

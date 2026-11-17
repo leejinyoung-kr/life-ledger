@@ -20,7 +20,7 @@ Base URL: `http://localhost:8000/api/v1`
 | POST | /auth/demo | 데모 로그인 — 데모 사용자 세션 발급, 응답 `{ token }` + refresh 쿠키 (`@Public`, 분당 10회. **데모 인스턴스(`DEMO_MODE`)에서만 등록**되는 라우트라 운영에는 없다, Swagger 에도 안 나온다) |
 
 > 토큰: **Access(15분)** 는 `?token=` 으로 전달 → 프론트 메모리(모듈 변수) → `Authorization: Bearer`.
-> **Refresh** 는 httpOnly 쿠키(`ll_refresh_token`, 힌트 쿠키 `ll_has_session`)로만 저장 — 접두사는 같은 호스트의 다른 포트 앱과 쿠키가 섞이지 않게. 수명은 설정 `session_expiry` 를 따른다: `12h` · `1d` · `7d`(기본) · `none`(사실상 무제한, 10년) (`auth.service.ts`). access 만료(401) 시 프론트가 `/auth/refresh` 1회 호출해 갱신·재요청.
+> **Refresh** 는 httpOnly 쿠키(`ll_refresh_token`, 힌트 쿠키 `ll_has_session`)로만 저장 — 접두사는 같은 호스트의 다른 포트 앱과 쿠키가 섞이지 않게. 수명은 설정 `session_expiry` 를 따른다: `12h` · `1d` · `7d`(기본) · `none`(사실상 무제한, 10년) (`auth.service.ts`). access 만료(401) 시 프론트가 `/auth/refresh` 1회 호출해 갱신·재요청. refresh 는 부를 때마다 토큰을 바꾼다(회전) — 방금 바뀐 옛 토큰은 15초 안이면 같은 새 토큰으로 이어 주고(탭 동시 갱신 · 응답 유실), 15초가 지나 다시 오면 그 기기 세션을 끊고 401 (2026-11-18, ADR 0001). 둘 다 보안 화면 「최근 열람」에 남는다.
 > 전역 JWT 가드 — `@Public()` 이 붙은 곳(위 로그인 · 갱신 · 로그아웃 · 데모, 아래 `GET /health`, 루트 `GET /` → `Hello World!`) 외 **모든** 엔드포인트는 access 토큰 필수.
 
 ## 운영 상태

@@ -96,7 +96,7 @@ LoginSession   1 ─── N PushSubscription(session_id, CASCADE — 세션 행
 ### 보안 — LoginSession / AccessLog
 
 - `LoginSession` — `device`, `device_type`, `location`, `is_current`, `status`, `revoked_at` (새 기기 로그인 감지 시 기록)
-- `AccessLog` — `action`(cred_reveal/cred_totp/cred_backup/backup_codes_generate/vault_unlock/vault_disable/session_revoke/data_export), `target_type`(credential/security/account), `target_id/name`, `ip`, `user_agent`
+- `AccessLog` — `action`(cred_reveal/cred_totp/cred_backup/backup_codes_generate/vault_unlock/vault_disable/session_revoke/data_export/refresh_grace/refresh_reuse — 마지막 둘은 2026-11-18, 아래 「인증」), `target_type`(credential/security/account), `target_id/name`, `ip`, `user_agent`
 
 ### 카테고리 — Category
 
@@ -109,7 +109,8 @@ LoginSession   1 ─── N PushSubscription(session_id, CASCADE — 세션 행
 ### 인증 — RefreshToken
 
 - access 토큰은 클라이언트 메모리에만 보관(localStorage 미사용), refresh 토큰은 httpOnly 쿠키 + `RefreshToken` 화이트리스트(`jti`)로 관리
-- `/auth/refresh` 호출 시 rotation: 기존 `jti` 폐기(`revoked_at`) + 신규 발급
+- `/auth/refresh` 호출 시 rotation: 기존 `jti` 폐기(`revoked_at`) + 받은 새 토큰 jti 기록(`replaced_by`) + 신규 발급
+- 회전으로 폐기된 옛 토큰(`replaced_by` 있음)이 다시 오면 (2026-11-18, ADR 0001): 폐기 15초 안이면 `replaced_by` 토큰으로 다시 서명해 주고 `AccessLog` `refresh_grace`, 15초가 지났으면 그 세션(`LoginSession` · 그 세션 `RefreshToken` 전부 · 푸시 구독)을 끊고 `refresh_reuse`
 - `/auth/logout`, 세션 단건/전체 차단(`SecurityService.revokeSession/revokeAll`) 시 연결된 `RefreshToken` 도 함께 폐기
 
 ### 시스템 로그 — SystemLog

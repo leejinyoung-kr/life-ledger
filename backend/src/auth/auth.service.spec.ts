@@ -11,7 +11,8 @@ describe('AuthService', () => {
   let jwt: any;
   let notification: any;
   let mail: any;
-  const svc = () => new AuthService(jwt, prisma, notification, mail);
+  let accessLog: any;
+  const svc = () => new AuthService(jwt, prisma, notification, mail, accessLog);
 
   beforeEach(() => {
     jwt = {
@@ -43,6 +44,7 @@ describe('AuthService', () => {
     };
     prisma.refreshToken.updateMany.mockResolvedValue({ count: 1 });
     notification = { createWithPush: jest.fn().mockResolvedValue({ id: 1 }) };
+    accessLog = { log: jest.fn().mockResolvedValue(undefined) };
   });
 
   describe('refresh', () => {
@@ -68,10 +70,13 @@ describe('AuthService', () => {
       await expect(svc().refresh('x')).rejects.toThrow(UnauthorizedException);
     });
 
-    it('jti 가 폐기된 상태면 Unauthorized', async () => {
+    it('로그아웃 · 세션 끊기로 폐기된 토큰(replaced_by 없음)이면 Unauthorized — 세션은 건드리지 않는다', async () => {
       jwt.verify.mockReturnValue({ sub: 1, jti: 'revoked', type: 'refresh' });
-      prisma.refreshToken.findUnique.mockResolvedValue({ id: 1, user_id: 1, session_id: null, revoked_at: new Date() });
+      prisma.refreshToken.findUnique.mockResolvedValue({ id: 1, user_id: 1, session_id: 9, revoked_at: new Date(), replaced_by: null });
+      prisma.user.findUnique.mockResolvedValue({ id: 1 });
       await expect(svc().refresh('x')).rejects.toThrow(UnauthorizedException);
+      expect(prisma.loginSession.updateMany).not.toHaveBeenCalled();
+      expect(accessLog.log).not.toHaveBeenCalled();
     });
 
     it('사용자 없으면 Unauthorized', async () => {
@@ -93,26 +98,109 @@ describe('AuthService', () => {
       expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 1, revoked_at: null },
-          data: expect.objectContaining({ revoked_at: expect.any(Date) }),
+          data: expect.objectContaining({ revoked_at: expect.any(Date), replaced_by: expect.any(String) }),
         }),
       );
       expect(prisma.refreshToken.create).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ user_id: 7, session_id: 9 }) }),
       );
+      // 회전으로 남긴 replaced_by 가 새로 만든 토큰의 jti 다
+      const replacedBy = prisma.refreshToken.updateMany.mock.calls[0][0].data.replaced_by;
+      expect(prisma.refreshToken.create.mock.calls[0][0].data.jti).toBe(replacedBy);
     });
 
-    it('같은 토큰으로 동시에 갱신하면 먼저 폐기한 요청만 통과 — 뒤 요청(조건부 폐기 0행)은 새 토큰 없이 거부', async () => {
+    describe('회전된 옛 토큰 재사용', () => {
+      const user = { id: 7, google_id: 'g', email: 'e', name: 'n', picture: 'p' };
+      const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile Safari';
+      const rotatedAgo = (ms: number) => ({
+        id: 1, user_id: 7, session_id: 9, jti: 'old-jti', revoked_at: new Date(Date.now() - ms), replaced_by: 'new-jti',
+      });
+      const successor = { id: 2, user_id: 7, session_id: 9, jti: 'new-jti', revoked_at: null, expires_at: new Date(Date.now() + 60_000) };
+
+      beforeEach(() => {
+        jwt.verify.mockReturnValue({ sub: 7, jti: 'old-jti', type: 'refresh' });
+        prisma.user.findUnique.mockResolvedValue(user);
+      });
+
+      it('15초 안이면 이어 받은 새 토큰(같은 jti)으로 다시 서명 + 접근 기록, 새 행은 만들지 않는다', async () => {
+        prisma.refreshToken.findUnique.mockImplementation(({ where }: any) =>
+          Promise.resolve(where.jti === 'new-jti' ? successor : rotatedAgo(3_000)));
+
+        const out = await svc().refresh('x', { ip: '1.2.3.4', userAgent: ua });
+
+        expect(out.access).toBe('tok:access:7');
+        expect(jwt.sign).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'refresh', jti: 'new-jti' }),
+          expect.objectContaining({ expiresIn: expect.any(Number) }),
+        );
+        expect(out.refreshTtlMs).toBeGreaterThan(0);
+        expect(out.refreshTtlMs).toBeLessThanOrEqual(60_000);
+        expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+        expect(accessLog.log).toHaveBeenCalledWith(
+          7, 'refresh_grace', expect.objectContaining({ type: 'security', id: 9 }), { ip: '1.2.3.4', userAgent: ua },
+        );
+        expect(prisma.loginSession.updateMany).not.toHaveBeenCalled();
+      });
+
+      it('15초가 지났으면 세션 · 그 세션 refresh 토큰 · 푸시 구독을 끊고 Unauthorized + 접근 기록', async () => {
+        prisma.refreshToken.findUnique.mockResolvedValue(rotatedAgo(16_000));
+
+        await expect(svc().refresh('x', { userAgent: ua })).rejects.toThrow(UnauthorizedException);
+
+        expect(prisma.loginSession.updateMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { id: 9, revoked_at: null } }),
+        );
+        expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { session_id: 9, revoked_at: null } }),
+        );
+        expect(prisma.pushSubscription.deleteMany).toHaveBeenCalledWith({ where: { session_id: 9 } });
+        expect(accessLog.log).toHaveBeenCalledWith(7, 'refresh_reuse', expect.objectContaining({ id: 9 }), { userAgent: ua });
+        expect(jwt.sign).not.toHaveBeenCalled();
+      });
+
+      it('15초 안이어도 새 토큰이 그새 폐기됐으면 Unauthorized — 세션은 끊지 않는다', async () => {
+        prisma.refreshToken.findUnique.mockImplementation(({ where }: any) =>
+          Promise.resolve(where.jti === 'new-jti' ? { ...successor, revoked_at: new Date() } : rotatedAgo(3_000)));
+
+        await expect(svc().refresh('x')).rejects.toThrow(UnauthorizedException);
+
+        expect(prisma.loginSession.updateMany).not.toHaveBeenCalled();
+        expect(accessLog.log).not.toHaveBeenCalled();
+      });
+
+      it('세션 없는 토큰이 15초 뒤 재사용되면 이어 받은 새 토큰만 끊는다', async () => {
+        prisma.refreshToken.findUnique.mockResolvedValue({ ...rotatedAgo(20_000), session_id: null });
+
+        await expect(svc().refresh('x')).rejects.toThrow(UnauthorizedException);
+
+        expect(prisma.loginSession.updateMany).not.toHaveBeenCalled();
+        expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { jti: 'new-jti', revoked_at: null } }),
+        );
+      });
+    });
+
+    it('같은 토큰으로 동시에 갱신하면 먼저 폐기한 요청만 새 행을 만들고, 진 요청은 이긴 요청의 새 토큰으로 이어 받는다', async () => {
       jwt.verify.mockReturnValue({ sub: 7, jti: 'old-jti', type: 'refresh' });
-      // 두 요청 모두 findUnique 시점에는 아직 폐기 전으로 읽었다
-      prisma.refreshToken.findUnique.mockResolvedValue({ id: 1, user_id: 7, session_id: 9, revoked_at: null });
       prisma.user.findUnique.mockResolvedValue({ id: 7, google_id: 'g', email: 'e', name: 'n', picture: 'p' });
       prisma.refreshToken.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
+      // 두 요청 모두 처음엔 폐기 전으로 읽고, 진 요청이 다시 읽을 때는 이긴 요청의 회전 결과가 보인다
+      let oldReads = 0;
+      prisma.refreshToken.findUnique.mockImplementation(({ where }: any) => {
+        if (where.jti === 'old-jti') {
+          oldReads += 1;
+          return Promise.resolve(oldReads <= 2
+            ? { id: 1, user_id: 7, session_id: 9, jti: 'old-jti', revoked_at: null, replaced_by: null }
+            : { id: 1, user_id: 7, session_id: 9, jti: 'old-jti', revoked_at: new Date(), replaced_by: 'winner-jti' });
+        }
+        return Promise.resolve({ id: 2, user_id: 7, session_id: 9, jti: 'winner-jti', revoked_at: null, expires_at: new Date(Date.now() + 60_000) });
+      });
 
       const results = await Promise.allSettled([svc().refresh('x'), svc().refresh('x')]);
 
-      expect(results.map((r) => r.status)).toEqual(['fulfilled', 'rejected']);
-      expect((results[1] as PromiseRejectedResult).reason).toBeInstanceOf(UnauthorizedException);
+      expect(results.map((r) => r.status)).toEqual(['fulfilled', 'fulfilled']);
       expect(prisma.refreshToken.create).toHaveBeenCalledTimes(1);
+      expect(accessLog.log).toHaveBeenCalledWith(7, 'refresh_grace', expect.anything(), undefined);
     });
   });
 

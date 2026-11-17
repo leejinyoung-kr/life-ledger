@@ -88,7 +88,7 @@ life-moa/
 | StorageFile | user_id, folder_id, object_key(B2), name, size, mime_type, hash(SHA-256) | 구현 완료 |
 | AccessLog | user_id, action, target_type/id/name, ip, user_agent | 구현 완료 |
 | PushSubscription | user_id, session_id(로그인 세션 — 그 세션이 지워지면 구독도 CASCADE), endpoint, p256dh, auth (웹 푸시 구독) | 구현 완료 |
-| RefreshToken | user_id, session_id, jti, expires_at, revoked_at (refresh 토큰 화이트리스트, rotation/로그아웃/세션revoke 시 폐기) | 구현 완료 |
+| RefreshToken | user_id, session_id, jti, expires_at, revoked_at, replaced_by (refresh 토큰 화이트리스트, rotation/로그아웃/세션revoke 시 폐기. 회전 직후 옛 토큰은 15초 허용 · 지나면 세션 끊기 — ADR 0001) | 구현 완료 |
 | EmailLoginCode | email, code_hash(SHA-256), expires_at, consumed_at, attempts (이메일 인증코드 로그인, 화이트리스트 대조) | 구현 완료 |
 | SystemLog | user_id(nullable, FK 아님), level(info/warn/error), category, message, metadata(JSON) — 크론·투자갱신 등 백그라운드 작업 로그, 90일 경과 시 자동 삭제 | 구현 완료 |
 | JobRun | job, triggered_by(schedule/manual), status(running/succeeded/failed), started_at, lease_until, finished_at, summary, error, running_key(유니크 — 동시 실행 방지) — 예약 작업 실행 기록(core-jobs), 90일 경과 시 자동 삭제 | 구현 완료 |

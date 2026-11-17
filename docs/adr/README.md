@@ -8,7 +8,7 @@
 
 | 번호 | 제목 | 결정일 | 상태 |
 | --- | --- | --- | --- |
-| [0001](0001-jwt-access-refresh-rotation.md) | 로그인 유지는 서버 세션 대신 JWT — access 15분 + refresh 회전 · 폐기 | 2026-06-01 | 채택 (소급 기록) |
+| [0001](0001-jwt-access-refresh-rotation.md) | 로그인 유지는 서버 세션 대신 JWT — access 15분 + refresh 회전 · 폐기 | 2026-06-01 | 채택 (소급 기록) · 2026-11-18 재사용 허용 15초 · 감지 추가 |
 | [0002](0002-field-encryption-aes-gcm-keyring.md) | 민감 필드는 앱에서 AES-256-GCM 으로 암호화 — 키링 · AAD · 부팅 시 재암호화 | 2026-06-05 | 채택 (소급 기록) |
 | [0003](0003-home-server-self-hosted-runner.md) | 운영은 클라우드 대신 홈서버 — self-hosted runner + 앱 전용 Tailscale 사이드카 | 2026-06-26 | 채택 (소급 기록) |
 | [0004](0004-auto-migrate-on-deploy.md) | DB 마이그레이션은 배포 워크플로가 컨테이너 교체 전에 자동 적용 | 2026-06-26 | 채택 (소급 기록) |

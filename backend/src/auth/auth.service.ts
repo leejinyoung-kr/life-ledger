@@ -6,11 +6,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '@prisma/client';
+import { RefreshToken, User } from '@prisma/client';
 import { env } from '../config/env.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { NotificationService } from '../notification/notification.service.js';
 import { MailService } from '../mail/mail.service.js';
+import { AccessLogService } from '../access-log/access-log.service.js';
 import { JWT_ALGORITHMS, JWT_AUDIENCE, JWT_ISSUER } from './jwt.constants.js';
 import { DEMO_EMAIL, assertNotDemo } from '../common/demo.js';
 
@@ -38,6 +39,12 @@ const SESSION_EXPIRY_MAP: Record<string, { jwt: string; ms: number }> = {
   none: { jwt: '3650d', ms: 3650 * 24 * 60 * 60 * 1000 },
 };
 const DEFAULT_SESSION_EXPIRY = SESSION_EXPIRY_MAP['7d'];
+
+// 회전 직후 옛 refresh 토큰을 받아 주는 시간 — 탭 동시 갱신에서 진 요청 · 응답이 끊겨 옛 쿠키로 다시 온 요청을 살린다.
+// 이 시간이 지나 옛 토큰이 오면 탈취로 보고 그 세션을 통째로 끊는다 (ADR 0001, 2026-11-18)
+const REFRESH_REUSE_GRACE_MS = 15 * 1000;
+
+type IssuedTokens = { access: string; refresh: string; refreshTtlMs: number };
 
 // 이메일 로그인 코드 — 6자리, 5분 만료, 최대 5회 검증 시도
 const EMAIL_CODE_TTL_MS = 5 * 60 * 1000;
@@ -71,6 +78,7 @@ export class AuthService {
     private prisma: PrismaService,
     private notification: NotificationService,
     private mail: MailService,
+    private accessLog: AccessLogService,
   ) {}
 
   // 이메일이 화이트리스트에 있는지 — 목록 밖이면 거부(fail-closed)
@@ -98,8 +106,8 @@ export class AuthService {
   }
 
   // 갱신 토큰 — sub + jti(화이트리스트 식별자), httpOnly 쿠키로만 사용. refresh 전용 시크릿으로 서명
-  // ttl은 SESSION_EXPIRY_MAP의 값(jsonwebtoken이 받는 시간 문자열)만 들어오므로 캐스팅이 안전함
-  private signRefresh(userId: number, jti: string, ttl: string): string {
+  // ttl은 SESSION_EXPIRY_MAP의 값(jsonwebtoken이 받는 시간 문자열) 또는 남은 초(숫자)만 들어오므로 캐스팅이 안전함
+  private signRefresh(userId: number, jti: string, ttl: string | number): string {
     return this.jwtService.sign(
       { sub: userId, jti, type: 'refresh' },
       { secret: this.refreshSecret, expiresIn: ttl as never },
@@ -319,8 +327,8 @@ export class AuthService {
     return created.id;
   }
 
-  // 갱신 토큰 검증 → 화이트리스트 확인 후 rotation(이전 jti 를 조건부로 폐기한 요청만 신규 access/refresh 발급)
-  async refresh(refreshToken: string): Promise<{ access: string; refresh: string; refreshTtlMs: number }> {
+  // 갱신 토큰 검증 → 화이트리스트 확인 후 rotation. 이미 회전된 옛 토큰은 15초 안이면 그 새 토큰으로 잇고, 지났으면 세션을 끊는다
+  async refresh(refreshToken: string, client?: LoginClient): Promise<IssuedTokens> {
     if (!refreshToken) throw new UnauthorizedException('갱신 토큰이 없습니다.');
     let payload: { sub: number; jti?: string; type?: string };
     try {
@@ -331,23 +339,33 @@ export class AuthService {
     if (payload.type !== 'refresh' || !payload.jti) throw new UnauthorizedException('갱신 토큰이 아닙니다.');
 
     const stored = await this.prisma.refreshToken.findUnique({ where: { jti: payload.jti } });
-    if (!stored || stored.revoked_at || stored.user_id !== payload.sub) {
+    if (!stored || stored.user_id !== payload.sub) {
       throw new UnauthorizedException('갱신 토큰이 유효하지 않습니다.');
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user) throw new UnauthorizedException('사용자를 찾을 수 없습니다.');
 
+    if (!stored.revoked_at) {
+      const rotated = await this.rotate(stored, user);
+      if (rotated) return rotated;
+    }
+    // 이미 폐기된 토큰 — 같은 토큰으로 동시에 온 요청에 진 경우도 여기로 온다. 이긴 요청이 남긴 replaced_by 를 보려고 다시 읽는다
+    const latest = await this.prisma.refreshToken.findUnique({ where: { jti: payload.jti } });
+    return this.reuseRotated(latest ?? stored, user, client);
+  }
+
+  // 회전 — 아직 폐기 안 된 행만 폐기하고(CAS) 1행을 바꾼 요청만 새 토큰을 받는다. 진 요청(동시 갱신)은 null
+  private async rotate(stored: RefreshToken, user: User): Promise<IssuedTokens | null> {
     const newJti = randomUUID();
     const { jwt: ttl, ms } = await this.sessionExpiryOf(user.id);
-    // 위 findUnique 와 폐기 사이에 같은 토큰으로 온 다른 요청이 끼어들 수 있다 — 아직 폐기 안 된 행만 폐기하고(CAS),
-    // 1행을 바꾼 요청만 새 토큰을 받는다. 뒤 요청은 앞 요청의 행 잠금을 기다린 뒤 0행이 되어 거부된다
-    await this.prisma.$transaction(async (tx) => {
-      const claimed = await tx.refreshToken.updateMany({
+    // 뒤 요청은 앞 요청의 행 잠금을 기다린 뒤 0행이 된다
+    const claimed = await this.prisma.$transaction(async (tx) => {
+      const res = await tx.refreshToken.updateMany({
         where: { id: stored.id, revoked_at: null },
-        data: { revoked_at: new Date() },
+        data: { revoked_at: new Date(), replaced_by: newJti },
       });
-      if (claimed.count !== 1) throw new UnauthorizedException('갱신 토큰이 유효하지 않습니다.');
+      if (res.count !== 1) return false;
       await tx.refreshToken.create({
         data: {
           user_id: user.id,
@@ -356,9 +374,61 @@ export class AuthService {
           expires_at: new Date(Date.now() + ms),
         },
       });
+      return true;
     });
-
+    if (!claimed) return null;
     return { access: this.signAccess(user), refresh: this.signRefresh(user.id, newJti, ttl), refreshTtlMs: ms };
+  }
+
+  // 폐기된 토큰이 다시 왔을 때 — 회전으로 폐기된 지 15초 안이면 그 새 토큰(같은 jti)으로 다시 서명해 주고 접근 기록을 남긴다.
+  // 15초가 지났으면 탈취로 보고 세션을 끊는다. 로그아웃 · 세션 끊기로 폐기된 토큰(replaced_by 없음)은 401 만
+  private async reuseRotated(stored: RefreshToken, user: User, client?: LoginClient): Promise<IssuedTokens> {
+    const invalid = () => new UnauthorizedException('갱신 토큰이 유효하지 않습니다.');
+    if (!stored.revoked_at || !stored.replaced_by) throw invalid();
+
+    if (Date.now() - stored.revoked_at.getTime() > REFRESH_REUSE_GRACE_MS) {
+      await this.revokeForReuse(stored, client);
+      throw invalid();
+    }
+
+    const next = await this.prisma.refreshToken.findUnique({ where: { jti: stored.replaced_by } });
+    const remainingMs = next ? next.expires_at.getTime() - Date.now() : 0;
+    // 새 토큰이 그새 로그아웃 · 다시 회전됐으면 잇지 않는다 (세션은 끊지 않는다)
+    if (!next || next.revoked_at || remainingMs <= 0) throw invalid();
+
+    await this.accessLog.log(
+      user.id,
+      'refresh_grace',
+      { type: 'security', id: stored.session_id ?? 0, name: parseDevice(client?.userAgent).device },
+      client,
+    );
+    return {
+      access: this.signAccess(user),
+      refresh: this.signRefresh(user.id, next.jti, Math.floor(remainingMs / 1000)),
+      refreshTtlMs: remainingMs,
+    };
+  }
+
+  // 허용 시간이 지난 옛 토큰 재사용 — 그 세션의 refresh 토큰 전부 · 세션 · 푸시 구독을 끊는다(보안 화면의 기기 로그아웃과 같다)
+  private async revokeForReuse(stored: RefreshToken, client?: LoginClient): Promise<void> {
+    this.logger.warn(`폐기된 refresh 토큰 재사용 — 세션 끊음 (user=${stored.user_id}, session=${stored.session_id ?? '-'})`);
+    const now = new Date();
+    if (stored.session_id) {
+      await this.prisma.$transaction([
+        this.prisma.loginSession.updateMany({ where: { id: stored.session_id, revoked_at: null }, data: { revoked_at: now } }),
+        this.prisma.refreshToken.updateMany({ where: { session_id: stored.session_id, revoked_at: null }, data: { revoked_at: now } }),
+        this.prisma.pushSubscription.deleteMany({ where: { session_id: stored.session_id } }),
+      ]);
+    } else if (stored.replaced_by) {
+      // 세션 없는 토큰(세션 행이 지워짐)은 이어 받은 새 토큰만 끊는다
+      await this.prisma.refreshToken.updateMany({ where: { jti: stored.replaced_by, revoked_at: null }, data: { revoked_at: now } });
+    }
+    await this.accessLog.log(
+      stored.user_id,
+      'refresh_reuse',
+      { type: 'security', id: stored.session_id ?? 0, name: parseDevice(client?.userAgent).device },
+      client,
+    );
   }
 
   // 로그아웃 — refresh 토큰의 jti 를 화이트리스트에서 폐기하고 이 기기의 푸시 구독을 지운다 (서명 검증 실패해도 디코드되면 폐기 시도)

@@ -5,6 +5,7 @@
 import type { ComponentType, SVGProps } from 'react';
 import {
   IconMonitor, IconPhone, IconKey, IconShieldCheck, IconDoc, IconUnlock, IconLock, IconLogout, IconDownload,
+  IconRefresh, IconAlertTriangle,
 } from '@/components/icons';
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
@@ -25,7 +26,8 @@ export interface LoginSession {
 // 접근 감사 로그 동작 (백엔드 enum AccessAction 과 같다)
 export type AccessAction =
   | 'cred_reveal' | 'cred_totp' | 'cred_backup' | 'backup_codes_generate'
-  | 'vault_unlock' | 'vault_disable' | 'session_revoke' | 'data_export';
+  | 'vault_unlock' | 'vault_disable' | 'session_revoke' | 'data_export'
+  | 'refresh_grace' | 'refresh_reuse';
 
 export interface AccessLogEntry {
   id: number;
@@ -53,6 +55,9 @@ export const ACCESS_ACTION_META: Record<AccessAction, { label: string; Icon: Ico
   vault_disable: { label: '마스터 잠금 해제', Icon: IconLock },
   session_revoke: { label: '기기 로그아웃', Icon: IconLogout },
   data_export: { label: '데이터 내보내기', Icon: IconDownload },
+  // 로그인 유지 토큰 — 회전 직후 옛 토큰을 15초 안에 받아 줌 / 15초 지나 다시 와서 그 기기를 끊음
+  refresh_grace: { label: '로그인 유지 재시도', Icon: IconRefresh },
+  refresh_reuse: { label: '옛 로그인 토큰 재사용 차단', Icon: IconAlertTriangle },
 };
 
 // 계정이 아닌 동작은 대상 이름에 내부 코드가 들어간다(vault · export:backup · all:3) → 읽을 수 있는 이름으로

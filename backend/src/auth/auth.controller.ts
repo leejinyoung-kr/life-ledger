@@ -156,7 +156,7 @@ export class AuthController {
     return { token: access };
   }
 
-  // 갱신 토큰(쿠키)으로 새 access 발급 — access 만료 시 프론트가 호출
+  // 갱신 토큰(쿠키)으로 새 access 발급 — access 만료 시 프론트가 호출. 접속 정보는 옛 토큰 재사용 기록용
   // 무제한 리프레시 시도 방지 — 분당 30회 제한
   @Public()
   @Throttle({ default: { limit: 30, ttl: 60000 } })
@@ -166,7 +166,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const token = (req.cookies?.[REFRESH_COOKIE] as string | undefined) ?? '';
-    const { access, refresh, refreshTtlMs } = await this.authService.refresh(token);
+    const { access, refresh, refreshTtlMs } = await this.authService.refresh(token, {
+      ip: clientIp(req),
+      userAgent: req.headers['user-agent'],
+    });
     res.cookie(REFRESH_COOKIE, refresh, refreshCookieOptions(refreshTtlMs));
     res.cookie(HAS_SESSION_COOKIE, '1', hasSessionCookieOptions(refreshTtlMs));
     return { token: access };
