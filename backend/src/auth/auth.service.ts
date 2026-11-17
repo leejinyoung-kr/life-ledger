@@ -409,10 +409,13 @@ export class AuthService {
     };
   }
 
-  // 허용 시간이 지난 옛 토큰 재사용 — 그 세션의 refresh 토큰 전부 · 세션 · 푸시 구독을 끊는다(보안 화면의 기기 로그아웃과 같다)
+  // 허용 시간이 지난 옛 토큰 재사용 — 그 세션의 refresh 토큰 전부 · 세션 · 푸시 구독을 끊고(보안 화면의 기기 로그아웃과 같다) 알린다
   private async revokeForReuse(stored: RefreshToken, client?: LoginClient): Promise<void> {
     this.logger.warn(`폐기된 refresh 토큰 재사용 — 세션 끊음 (user=${stored.user_id}, session=${stored.session_id ?? '-'})`);
     const now = new Date();
+    const session = stored.session_id
+      ? await this.prisma.loginSession.findUnique({ where: { id: stored.session_id }, select: { device: true } })
+      : null;
     if (stored.session_id) {
       await this.prisma.$transaction([
         this.prisma.loginSession.updateMany({ where: { id: stored.session_id, revoked_at: null }, data: { revoked_at: now } }),
@@ -429,6 +432,24 @@ export class AuthService {
       { type: 'security', id: stored.session_id ?? 0, name: parseDevice(client?.userAgent).device },
       client,
     );
+
+    // 끊긴 기기의 푸시 구독은 위에서 지웠으니 알림은 다른 기기로 간다. 알림이 실패해도 401 응답은 그대로 둔다
+    const device = session?.device ?? parseDevice(client?.userAgent).device;
+    try {
+      await this.notification.createWithPush(
+        stored.user_id,
+        {
+          group: 'system',
+          tone: 'warning',
+          title: '로그인 기기를 끊었습니다',
+          description: `${device} 에서 이미 바뀐 로그인 토큰이 다시 쓰여 그 기기의 로그인을 끊었습니다. 그 기기에서 연결이 끊겼던 것이면 다시 로그인하면 됩니다. 짐작 가는 일이 없다면 보안 화면에서 다른 기기도 확인하세요.`,
+          source: '보안',
+        },
+        { url: '/security', body: `${device} 의 로그인을 끊었습니다 — 이미 바뀐 로그인 토큰이 다시 쓰였습니다.` },
+      );
+    } catch (e) {
+      this.logger.warn(`재사용 차단 알림 실패: ${(e as Error).message}`);
+    }
   }
 
   // 로그아웃 — refresh 토큰의 jti 를 화이트리스트에서 폐기하고 이 기기의 푸시 구독을 지운다 (서명 검증 실패해도 디코드되면 폐기 시도)

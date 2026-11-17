@@ -34,9 +34,14 @@ function toLogin(): void {
 // 동시 다발 401 에서 refresh 가 중복 호출되지 않도록 진행 중 Promise 를 공유
 let refreshing: Promise<boolean> | null = null;
 
-// refresh 요청 한 번 — 성공 시 메모리 토큰 갱신. 상태 코드를 같이 돌려 401 재시도를 판단하게 한다
+// refresh 요청 한 번 — 성공 시 메모리 토큰 갱신. 상태 코드를 같이 돌려 재시도를 판단하게 한다(네트워크 오류는 0)
 async function refreshOnce(): Promise<{ ok: boolean; status: number }> {
-  const res = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/auth/refresh`, { method: 'POST', credentials: 'include' });
+  } catch {
+    return { ok: false, status: 0 };
+  }
   if (!res.ok) return { ok: false, status: res.status };
   const body = (await res.json().catch(() => null)) as { token?: string } | null;
   if (!body?.token) return { ok: false, status: res.status };
@@ -44,17 +49,18 @@ async function refreshOnce(): Promise<{ ok: boolean; status: number }> {
   return { ok: true, status: res.status };
 }
 
-// refresh 쿠키로 새 access 발급 시도 — 성공 시 메모리 토큰 갱신
-// 탭 여러 개가 같은 쿠키로 동시에 갱신하면 서버는 먼저 온 요청만 통과시킨다(회전 CAS). 진 탭은 그 사이
-// 이긴 탭이 받은 새 쿠키가 브라우저에 들어오므로, 잠깐 뒤 한 번만 다시 시도한다
+// refresh 쿠키로 새 access 발급 시도 — 성공 시 메모리 토큰 갱신. 실패하면 잠깐 뒤 한 번만 다시 시도한다:
+// - 401: 탭 여러 개가 같은 쿠키로 동시에 갱신해 진 탭 — 그 사이 이긴 탭의 새 쿠키가 브라우저에 들어온다
+// - 네트워크 오류 · 5xx: 서버는 회전했는데 응답이 끊겼을 수 있다 — 서버가 회전 직후 15초 동안 옛 쿠키를 받아 준다(ADR 0001)
 function tryRefresh(): Promise<boolean> {
   if (typeof window === 'undefined') return Promise.resolve(false);
   if (!refreshing) {
     refreshing = refreshOnce()
       .then(async (first) => {
         if (first.ok) return true;
-        if (first.status !== 401 || !hasSessionHint()) return false;
-        await new Promise((r) => setTimeout(r, 500));
+        const lostResponse = first.status === 0 || first.status >= 500;
+        if ((first.status !== 401 && !lostResponse) || !hasSessionHint()) return false;
+        await new Promise((r) => setTimeout(r, lostResponse ? 1000 : 500));
         return (await refreshOnce()).ok;
       })
       .catch(() => false)

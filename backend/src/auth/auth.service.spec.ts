@@ -29,6 +29,7 @@ describe('AuthService', () => {
         updateMany: jest.fn(),
         update: jest.fn(),
         create: jest.fn().mockResolvedValue({ id: 1 }),
+        findUnique: jest.fn().mockResolvedValue(null),
       },
       refreshToken: {
         create: jest.fn(),
@@ -156,6 +157,37 @@ describe('AuthService', () => {
         expect(prisma.pushSubscription.deleteMany).toHaveBeenCalledWith({ where: { session_id: 9 } });
         expect(accessLog.log).toHaveBeenCalledWith(7, 'refresh_reuse', expect.objectContaining({ id: 9 }), { userAgent: ua });
         expect(jwt.sign).not.toHaveBeenCalled();
+      });
+
+      it('15초가 지나 세션을 끊으면 끊긴 기기 이름으로 경고 알림 + 푸시(보안 화면으로)', async () => {
+        prisma.refreshToken.findUnique.mockResolvedValue(rotatedAgo(16_000));
+        prisma.loginSession.findUnique.mockResolvedValue({ device: 'iOS · Safari' });
+
+        await expect(svc().refresh('x')).rejects.toThrow(UnauthorizedException);
+
+        expect(notification.createWithPush).toHaveBeenCalledWith(
+          7,
+          expect.objectContaining({ group: 'system', tone: 'warning', description: expect.stringContaining('iOS · Safari') }),
+          expect.objectContaining({ url: '/security' }),
+        );
+      });
+
+      it('알림이 실패해도 세션은 끊기고 응답은 401 그대로', async () => {
+        prisma.refreshToken.findUnique.mockResolvedValue(rotatedAgo(16_000));
+        notification.createWithPush.mockRejectedValue(new Error('db down'));
+
+        await expect(svc().refresh('x')).rejects.toThrow(UnauthorizedException);
+
+        expect(prisma.loginSession.updateMany).toHaveBeenCalled();
+      });
+
+      it('15초 안 허용에서는 알림을 보내지 않는다', async () => {
+        prisma.refreshToken.findUnique.mockImplementation(({ where }: any) =>
+          Promise.resolve(where.jti === 'new-jti' ? successor : rotatedAgo(3_000)));
+
+        await svc().refresh('x');
+
+        expect(notification.createWithPush).not.toHaveBeenCalled();
       });
 
       it('15초 안이어도 새 토큰이 그새 폐기됐으면 Unauthorized — 세션은 끊지 않는다', async () => {
