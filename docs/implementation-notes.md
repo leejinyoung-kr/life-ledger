@@ -21,6 +21,7 @@
 - **외부 설정 (사용자):** Google OAuth 클라이언트에 새 리디렉션 URI · JavaScript 원본 추가, 동의 화면 앱 이름 「생활모아」. 레포 홈페이지 링크는 새 데모 주소로 바꿨다
 - **주소가 바뀌어 생기는 것:** 쿠키 · PWA 설치 · 웹 푸시 구독이 모두 새 origin 에서 다시 시작한다 — 새 주소에서 다시 로그인 · 앱 설치 · 푸시 켜기. 옛 주소의 푸시 구독은 보안 화면에서 옛 세션을 지우면 같이 지워진다(`push_subscription` 은 세션에 CASCADE)
 - **일부러 안 바꾼 곳:** ADR · 포스트모템 · 시안(`docs/design/`) · 끝난 계획(`docs/archive/`) · 마이그레이션 SQL 주석 · README 「AI 가 한 것 / 내가 한 것」의 지난 기록은 그때 이름 그대로 둔다. 데모 `backend/.env.demo` 의 `DATABASE_URL` 은 doc-nexus 때 값이 남아 있지만 compose 가 덮어쓰는 값이라 두었다
+- **정리 끝 (2026-11-17, 사용자 확인 · 지시):** 새 주소에서 로그인 · 데이터 · 파일 확인(사용자) 뒤 옛 컨테이너 8개 · 네트워크 2개 · 이미지 4개(약 4.3GB) · 볼륨 `doc-nexus_db_backups` · `doc-nexus_tailscale_state` · `life-ledger-demo_tailscale_state` · 클론 `~/apps/life-ledger` · 러너 안 옛 작업 폴더(`doc-nexus` · `life-ledger`)를 지웠다. 비어 있던 옛 DB · 사용자 `lifeledger` · `lifeledger_demo` 는 홈서버 · 로컬 모두 지웠다 — 이전 직전 덤프 `~/backups/2026-11-17/lifeledger(_demo)-before-rename.sql` 은 남겼다. 옛 Tailscale 노드 2개 · 옛 B2 버킷 2개와 키 · Google OAuth 의 옛 주소는 사용자가 지웠다
 
 ## 횟수 제한이 모든 접속을 한 사람으로 세던 문제 (2026-11-02)
 
