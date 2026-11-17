@@ -16,7 +16,7 @@
 - 배포는 GitHub 러너의 검사(`ci.yml` — lint · 타입 · build · test)를 통과한 커밋만 홈서버 러너가 그 커밋으로 `reset --hard` 해서 올린다. 실행은 한 번에 하나씩이다(`concurrency`).
 - 배포 전 점검(`check-env` · `migrate deploy` · `crypto-check` · `nginx -t`)이 실패하면 `up -d` 까지 가지 않는다 — **기존 컨테이너가 그대로 서비스한다.** 배포 실패가 곧 서비스 중단은 아니다.
 - 홈서버 배포는 레포 공통 잠금 `/tmp/deploy.lock` 안에서 돈다. 손으로 돌릴 때도 같은 잠금을 쓴다.
-- `.env` · `backend/.env` 값은 화면 · 로그에 출력하지 않는다. 키는 서버 밖(safe-box)에도 둔다.
+- `.env` · `backend/.env` 값은 화면 · 로그에 출력하지 않는다. 키는 서버 밖(secret-box)에도 둔다.
 
 ## 절차
 
