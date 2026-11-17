@@ -1,4 +1,4 @@
-# LifeLedger — Backend
+# 생활모아 — Backend
 
 NestJS 기반 API 서버
 

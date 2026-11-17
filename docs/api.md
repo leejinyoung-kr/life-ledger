@@ -1,4 +1,4 @@
-# LifeLedger — API 명세
+# 생활모아 — API 명세
 
 Base URL: `http://localhost:8000/api/v1`
 

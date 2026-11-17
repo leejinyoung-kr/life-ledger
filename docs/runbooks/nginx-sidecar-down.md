@@ -5,7 +5,7 @@
 
 ## 언제 사용
 
-- 운영(`https://lifeledger.tailba78c1.ts.net`) · 데모(`https://lifeledger-demo.tailba78c1.ts.net`) 주소가 열리지 않는다
+- 운영(`https://lifemoa.tailba78c1.ts.net`) · 데모(`https://lifemoa-demo.tailba78c1.ts.net`) 주소가 열리지 않는다
 - 화면에 "요청 실패 (502)" · "(504)" 가 뜬다
 - 배포가 `nginx -t` 또는 `nginx health` 에서 실패했다
 - 예상하지 못한 413 · 429 가 난다
@@ -13,9 +13,9 @@
 ## 사전 확인
 
 - **입구가 둘이다.** 손님 → Tailscale 사이드카(`tailscale`, 주소 · 인증서 · Funnel) → Nginx(`nginx`, 경로 나누기 · 업로드 한도 · 로그인 횟수 제한) → `frontend` · `backend`. 어느 칸에서 끊겼는지부터 가른다.
-- 데모는 같은 설정 파일로 따로 뜬 컨테이너다. 아래 `docker compose` 를 데모에 쓸 때는 `docker compose -p life-ledger-demo --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml` 로 바꾼다 ([demo-operations.md](demo-operations.md) 의 `DEMO`).
+- 데모는 같은 설정 파일로 따로 뜬 컨테이너다. 아래 `docker compose` 를 데모에 쓸 때는 `docker compose -p life-moa-demo --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml` 로 바꾼다 ([demo-operations.md](demo-operations.md) 의 `DEMO`).
 - 홈서버 `.env` 값은 화면 · 로그에 출력하지 않는다.
-- 명령은 홈서버 `~/apps/life-ledger` 에서 돈다.
+- 명령은 홈서버 `~/apps/life-moa` 에서 돈다.
 
 ## 확인 — 원인 가르기
 
@@ -33,7 +33,7 @@
 ### 로그 보기
 
 ```bash
-# 홈서버 ~/apps/life-ledger
+# 홈서버 ~/apps/life-moa
 docker compose logs --tail 100 nginx       # 접속 로그(쿼리 문자열 없음) + 오류 로그
 docker compose logs --tail 50 tailscale
 docker compose logs --tail 80 backend
@@ -84,7 +84,7 @@ ADR 0010 「대안」 의 "`serve.json` 만 되돌리면 원래대로". 2026-11-
 
 ```bash
 # tailnet 기기에서 — 200, 응답 헤더에 Server: nginx
-curl -sI https://lifeledger.tailba78c1.ts.net/api/v1/health
+curl -sI https://lifemoa.tailba78c1.ts.net/api/v1/health
 
 # 홈서버 — nginx · tailscale · backend · frontend 모두 Up, nginx · backend · frontend 는 healthy
 docker compose ps
@@ -94,7 +94,7 @@ docker compose ps
 
 ## 안 되면
 
-- **사이드카는 떴는데 노드가 tailnet 에 없다** → Tailscale 관리 화면에서 `lifeledger` 노드가 있는지 본다. 노드가 지워졌으면 새 `tag:app` 인증 키가 필요하다 — [redeploy-rollback-keys.md](redeploy-rollback-keys.md) 「Tailscale 인증 키」.
+- **사이드카는 떴는데 노드가 tailnet 에 없다** → Tailscale 관리 화면에서 `lifemoa` 노드가 있는지 본다. 노드가 지워졌으면 새 `tag:app` 인증 키가 필요하다 — [redeploy-rollback-keys.md](redeploy-rollback-keys.md) 「Tailscale 인증 키」.
 - **운영 · 데모 하나만 안 된다** → 둘은 컨테이너가 따로다. 안 되는 쪽 프로젝트로 `ps` · `logs` 를 본다.
 - **홈서버 전체가 꺼졌다 켜졌다** → infra 레포 런북 `docs/runbooks/homeserver-reboot-check.md`.
 

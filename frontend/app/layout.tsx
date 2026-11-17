@@ -16,13 +16,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LifeLedger",
+  title: "생활모아",
   description: "자산 · 구독 · 계정을 한곳에서 관리하는 개인 생활 장부",
   // iOS Safari 홈화면 추가 시 standalone 동작 + 타이틀
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "LifeLedger",
+    title: "생활모아",
   },
 };
 

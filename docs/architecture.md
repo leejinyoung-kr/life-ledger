@@ -1,4 +1,4 @@
-# LifeLedger — Architecture
+# 생활모아 — Architecture
 
 ## Overview
 
@@ -39,7 +39,7 @@
 flowchart LR
   user([사용자 1명<br/>PC 브라우저 · 휴대폰 PWA])
   visitor([데모 방문자])
-  ll[LifeLedger<br/>생활 장부]
+  ll[생활모아]
   google[Google OAuth]
   smtp[SMTP 메일 서버]
   pushsvc[브라우저 푸시 서비스<br/>FCM · Mozilla · Windows · Apple]
@@ -68,7 +68,7 @@ flowchart LR
 flowchart LR
   browser[브라우저 · PWA<br/>서비스 워커]
 
-  subgraph home[홈서버 · compose 프로젝트 life-ledger]
+  subgraph home[홈서버 · compose 프로젝트 life-moa]
     ts[tailscale 사이드카<br/>Funnel 443 · serve.json]
     ng[nginx 1.30<br/>길 나누기 · 업로드 · 로그인 횟수 제한]
     fe[frontend<br/>Next.js 16 standalone · :3000]
@@ -77,7 +77,7 @@ flowchart LR
   end
 
   subgraph infra[compose 프로젝트 infra · 네트워크 infra]
-    db[(MariaDB 11<br/>DB · 사용자 lifeledger)]
+    db[(MariaDB 11<br/>DB · 사용자 lifemoa)]
   end
 
   b2[(Backblaze B2)]
@@ -97,7 +97,7 @@ flowchart LR
 - 화면(`/`)과 API(`/api`)가 같은 origin 이다. 브라우저가 API 를 직접 부른다 — frontend 서버는 backend 를 부르지 않는다(compose 의 `BACKEND_URL` 은 frontend 코드에서 쓰는 곳이 없다).
 - 컨테이너 포트는 `127.0.0.1` 에만 열린다. 밖에서는 사이드카 → nginx 로만 들어온다. 사이드카는 길 · 주소 · 인증서 · Funnel 만, 경로 나누기 · 업로드 한도 · 로그인 횟수 제한 · gzip · 진짜 IP 는 nginx 가 맡는다 ([ADR 0010](adr/0010-nginx-behind-tailscale-sidecar.md), 2026-11-02).
 - 로컬 개발은 사이드카 없이 frontend `:3000` · backend `:8000` 을 따로 띄운다(같은 호스트 · 다른 포트).
-- 데모 인스턴스는 같은 그림을 한 벌 더 띄운 것이다 — 프로젝트 `life-ledger-demo`, 사이드카 `lifeledger-demo`, DB `lifeledger_demo`(같은 MariaDB), 데모 B2 버킷. SMTP · VAPID 는 비운다.
+- 데모 인스턴스는 같은 그림을 한 벌 더 띄운 것이다 — 프로젝트 `life-moa-demo`, 사이드카 `lifemoa-demo`, DB `lifemoa_demo`(같은 MariaDB), 데모 B2 버킷. SMTP · VAPID 는 비운다.
 
 | 연결 | 확인한 곳 |
 | --- | --- |
@@ -116,7 +116,7 @@ flowchart LR
 
 ## 데모 인스턴스
 
-같은 코드를 `DEMO_MODE=true` · `NEXT_PUBLIC_DEMO_MODE=true` 로 따로 띄운다(`docker-compose.demo.yml`, DB `lifeledger_demo`, Tailscale `lifeledger-demo`).
+같은 코드를 `DEMO_MODE=true` · `NEXT_PUBLIC_DEMO_MODE=true` 로 따로 띄운다(`docker-compose.demo.yml`, DB `lifemoa_demo`, Tailscale `lifemoa-demo`).
 
 - 로그인 화면은 '데모로 둘러보기' 하나 → `POST /auth/demo`(데모 모드에서만 등록되는 라우트)가 데모 사용자 세션을 준다.
 - 계정 삭제 · 마스터 잠금 변경/해제는 `assertNotDemo` 가 403 으로 막는다. 파일은 `STORAGE_QUOTA_MB` 한도.

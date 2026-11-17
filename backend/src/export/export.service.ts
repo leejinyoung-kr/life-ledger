@@ -100,7 +100,7 @@ export class ExportService {
       'README.txt',
       Buffer.from(
         [
-          'LifeLedger 데이터 백업',
+          '생활모아 데이터 백업',
           `생성: ${new Date().toISOString()}`,
           '',
           '- data/ : 도메인별 전체 데이터(JSON)',

@@ -63,7 +63,7 @@ async function bootstrap() {
   // Swagger 는 비운영 환경에서만 노출 — 운영에선 전체 API 표면 정보 노출 차단
   if (env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('LifeLedger API')
+      .setTitle('생활모아 API')
       .setVersion('1.0')
       .addBearerAuth()
       .build();

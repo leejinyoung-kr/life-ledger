@@ -237,7 +237,7 @@ export default function SettingsPage() {
               </label>
             </SettingRow>
             <SettingRow stack label="전체 백업" desc="모든 데이터·메모를 ZIP으로 다운로드">
-              <Button variant="ghost" size="sm" onClick={() => exportData('/export/backup', 'life-ledger-백업.zip')}><IconArchive />ZIP 다운로드</Button>
+              <Button variant="ghost" size="sm" onClick={() => exportData('/export/backup', '생활모아-백업.zip')}><IconArchive />ZIP 다운로드</Button>
             </SettingRow>
             <SettingRow stack label="가계부 가져오기" desc="거래 내역 엑셀(.xlsx)은 가계부 페이지에서 업로드합니다.">
               <Button variant="ghost" size="sm" href="/transactions">가계부로 이동</Button>

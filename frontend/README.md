@@ -1,4 +1,4 @@
-# LifeLedger — Frontend
+# 생활모아 — Frontend
 
 Next.js (App Router) 기반 웹 클라이언트
 

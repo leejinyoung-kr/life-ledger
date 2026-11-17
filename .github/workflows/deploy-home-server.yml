@@ -32,12 +32,12 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted]
     steps:
-      # actions/checkout을 쓰지 않고 러너가 이미 갖고 있는 ~/apps/life-ledger 클론을 그대로 갱신한다.
+      # actions/checkout을 쓰지 않고 러너가 이미 갖고 있는 ~/apps/life-moa 클론을 그대로 갱신한다.
       # .env / backend/.env 는 git에 커밋되지 않으므로, fresh checkout을 쓰면 이 파일들이 사라진다.
       # origin/main 이 아니라 검사를 통과한 이 커밋으로 맞춘다 — 그사이 올라온 검사 전 커밋을 빌드하지 않게
       - name: Pull latest
         run: |
-          cd ~/apps/life-ledger
+          cd ~/apps/life-moa
           git fetch origin main
           git reset --hard "$GITHUB_SHA"
 
@@ -46,7 +46,7 @@ jobs:
       # 배포가 한 번에 하나만 돌도록 강제한다.
       - name: Build and deploy
         run: |
-          cd ~/apps/life-ledger
+          cd ~/apps/life-moa
           (
             flock -x 200
             # 실제로 바뀐 경로만 보고 backend/frontend 중 필요한 서비스만 빌드한다.
@@ -121,7 +121,7 @@ jobs:
       # 운영 배포가 끝난 뒤라 여기서 실패해도 운영은 이미 새 버전으로 떠 있다. 데모 프론트는 NEXT_PUBLIC_DEMO_MODE 가 달라 따로 빌드된다
       - name: Deploy demo
         run: |
-          cd ~/apps/life-ledger
+          cd ~/apps/life-moa
           if [ ! -f .env.demo ] || [ ! -f backend/.env.demo ]; then
             echo "데모 env 없음 — 건너뜀"
             exit 0
@@ -129,7 +129,7 @@ jobs:
           (
             flock -x 200
             export GIT_COMMIT="$(git rev-parse --short=12 HEAD)"
-            DEMO="docker compose -p life-ledger-demo --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml"
+            DEMO="docker compose -p life-moa-demo --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml"
             $DEMO build backend frontend
             $DEMO run --rm --no-deps backend node dist/config/check-env.js
             $DEMO run --rm backend npx prisma migrate deploy

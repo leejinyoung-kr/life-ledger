@@ -26,7 +26,7 @@ ENV NEXT_PUBLIC_DEMO_MODE=$NEXT_PUBLIC_DEMO_MODE
 
 # lint · test 는 배포 워크플로의 GitHub 검사 잡(ci.yml)이 먼저 통과시킨다 — 이미지에서는 빌드만 한다 (infra ADR 0009)
 FROM prepare AS build
-RUN --mount=type=cache,id=nextjs-cache-life-ledger,target=/app/frontend/.next/cache \
+RUN --mount=type=cache,id=nextjs-cache-life-moa,target=/app/frontend/.next/cache \
     pnpm --filter frontend run build
 
 FROM base AS runtime

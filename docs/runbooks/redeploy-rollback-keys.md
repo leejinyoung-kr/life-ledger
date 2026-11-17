@@ -39,7 +39,7 @@ GitHub Actions → `Deploy Home Server` → **Run workflow**(브랜치 `main`). 
 
 ```bash
 # 홈서버
-cd ~/apps/life-ledger
+cd ~/apps/life-moa
 git fetch origin main
 git reset --hard <배포할 커밋>          # 검사를 통과한 커밋
 export NPM_READ_TOKEN="<read:packages classic PAT>"
@@ -70,7 +70,7 @@ export GIT_COMMIT="$(git rev-parse --short=12 HEAD)"
 ### 5. JWT 시크릿 · Tailscale 인증 키
 
 - `JWT_SECRET` · `JWT_REFRESH_SECRET` · `JWT_VAULT_SECRET` — 서로 다른 32자 이상 값([CLAUDE.md](../../CLAUDE.md) 「인증 전제」). 바꾸고 수동 실행(위 1). **refresh 시크릿을 바꾸면 모든 기기가 다시 로그인**해야 하고, vault 시크릿을 바꾸면 보관함이 다시 잠긴다. 데모 `backend/.env.demo` 의 값은 운영과 달라야 한다.
-- **Tailscale 인증 키** *(운영에서 해 보지 않음)* — `TS_AUTHKEY` 는 노드가 처음 붙을 때만 쓴다. 그 뒤로는 `tailscale_state` 볼륨(`doc-nexus_tailscale_state`, 데모는 `life-ledger-demo_tailscale_state`)의 노드 정보로 붙는다. 관리 화면에서 노드를 지웠거나 볼륨을 잃었으면 새 `tag:app` 키를 루트 `.env`(데모는 `.env.demo`)의 `TS_AUTHKEY` 에 넣고 `docker compose up -d --no-deps --force-recreate tailscale`. 붙은 뒤에는 키를 지워도 된다.
+- **Tailscale 인증 키** *(운영에서 해 보지 않음)* — `TS_AUTHKEY` 는 노드가 처음 붙을 때만 쓴다. 그 뒤로는 `tailscale_state` 볼륨(`life-moa_tailscale_state`, 데모는 `life-moa-demo_tailscale_state`)의 노드 정보로 붙는다. 관리 화면에서 노드를 지웠거나 볼륨을 잃었으면 새 `tag:app` 키를 루트 `.env`(데모는 `.env.demo`)의 `TS_AUTHKEY` 에 넣고 `docker compose up -d --no-deps --force-recreate tailscale`. 붙은 뒤에는 키를 지워도 된다.
 
 ### 6. DB 복원 *(운영에서 해 보지 않음)*
 
@@ -79,8 +79,8 @@ DB 는 이 레포가 아니라 infra 레포의 공용 MariaDB 다. 절차는 inf
 | 출처 | 어디 | 절차 |
 | --- | --- | --- |
 | 손으로 뜬 덤프 | 홈서버 `~/backups/<날짜>/` | infra `docs/runbooks/db-dump-restore.md` |
-| 개발 PC 가 매일 21시 가져온 덤프 (2026-10-25 ~) | 개발 PC `infra/backups/auto/<날짜>/lifeledger.sql.gz` | infra `docs/runbooks/pull-backups.md` 「복원 확인」 · 「홈서버를 잃었을 때」 |
-| 앱의 매일 04시 덤프 (30일 보관) | 볼륨 `doc-nexus_db_backups`, `lifeledger_<날짜>.sql.gz` | 위 두 출처가 없을 때 두 번째 출처 (infra `db-dump-restore.md` 「참고」) |
+| 개발 PC 가 매일 21시 가져온 덤프 (2026-10-25 ~) | 개발 PC `infra/backups/auto/<날짜>/lifemoa.sql.gz` (2026-11-17 전은 `lifeledger.sql.gz`) | infra `docs/runbooks/pull-backups.md` 「복원 확인」 · 「홈서버를 잃었을 때」 |
+| 앱의 매일 04시 덤프 (30일 보관) | 볼륨 `life-moa_db_backups`, `lifemoa_<날짜>.sql.gz` (2026-11-17 전은 `lifeledger_`) | 위 두 출처가 없을 때 두 번째 출처 (infra `db-dump-restore.md` 「참고」) |
 
 - **2026-10-28 전 덤프는 시각이 UTC 다** — 지금 앱은 KST 벽시계로 쓴다. infra `db-dump-restore.md` 「전환 전 덤프를 복원할 때」.
 - 덤프 속 암호문은 그때 키로 되어 있다. 그 키가 `CRYPTO_KEYS` 에 없으면 부팅이 멈춘다 — 위 4 의 "뺀 키 30일 보관" 이 이것 때문이다. 키를 다시 넣고 부팅하면 지금 키로 재암호화된다.

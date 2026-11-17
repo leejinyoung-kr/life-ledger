@@ -198,7 +198,7 @@ describe('AuthService', () => {
       await svc().login(gUser);
       expect(jwt.sign).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'access' }),
-        { expiresIn: '15m', issuer: 'life-ledger', audience: 'life-ledger' },
+        { expiresIn: '15m', issuer: 'life-moa', audience: 'life-moa' },
       );
       expect(jwt.sign).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'refresh' }),
@@ -240,9 +240,9 @@ describe('AuthService', () => {
       expect(realJwt.verify(refresh, { secret: REFRESH_SECRET }).type).toBe('refresh');
     });
 
-    it('access 토큰은 iss/aud 가 life-ledger 이고, 갱신 토큰으로 쓰면 서명 단계에서 거부된다', async () => {
+    it('access 토큰은 iss/aud 가 life-moa 이고, 갱신 토큰으로 쓰면 서명 단계에서 거부된다', async () => {
       const { access } = await svc().login(gUser);
-      const payload = realJwt.verify(access, { issuer: 'life-ledger', audience: 'life-ledger' });
+      const payload = realJwt.verify(access, { issuer: 'life-moa', audience: 'life-moa' });
       expect(payload.type).toBe('access');
       await expect(svc().refresh(access)).rejects.toThrow(UnauthorizedException);
       expect(prisma.refreshToken.findUnique).not.toHaveBeenCalled();
@@ -252,7 +252,7 @@ describe('AuthService', () => {
       const { refresh } = await svc().login(gUser);
       prisma.refreshToken.findUnique.mockResolvedValue({ id: 1, user_id: 3, session_id: null, revoked_at: null });
       const next = await svc().refresh(refresh);
-      expect(realJwt.verify(next.access, { issuer: 'life-ledger', audience: 'life-ledger' }).sub).toBe(3);
+      expect(realJwt.verify(next.access, { issuer: 'life-moa', audience: 'life-moa' }).sub).toBe(3);
     });
 
     it('refresh 시크릿이 맞아도 HS256 이 아닌 알고리즘이면 거부', async () => {

@@ -1,6 +1,6 @@
 # 공통 라이브러리 (young-core) 요약
 
-LifeLedger 백엔드는 공통 기능을 개인 공통 라이브러리 young-core(`@leejinyoung-kr/core-*`, **비공개 레포**)에서 가져다 쓴다.
+생활모아 백엔드는 공통 기능을 개인 공통 라이브러리 young-core(`@leejinyoung-kr/core-*`, **비공개 레포**)에서 가져다 쓴다.
 여러 개인 프로젝트(Node · Java)가 같이 쓰는 코드라 이 레포에는 쓰는 쪽(어댑터 · 저장소)만 있다. 이 문서는 레포 밖에 있는 쪽의 설계와 핵심 코드를 요약한다.
 
 | 패키지 | 하는 일 | 이 레포에서 쓰는 곳 |
@@ -28,7 +28,7 @@ AAD = "v2:" + 키ID + ":" + context                               → 키 ID 까
 ```
 
 - **키링**: 설정은 키 목록 + 현재 키 ID. 암호화는 항상 현재 키로, 복호화는 암호문 머리의 키 ID 로 키를 고른다 — 그래서 키를 바꿔도 옛 암호문이 읽힌다.
-- **문맥(AAD) 필수**: 빈 문맥은 암 · 복호화 모두 거부한다. LifeLedger 는 `필드:사용자ID`(예: `credential.password_enc:42`)를 넣는다 — [cipherContext](../backend/src/crypto/crypto-fields.ts). 다른 행 · 다른 사용자로 옮긴 암호문은 GCM 인증이 깨져 풀리지 않는다.
+- **문맥(AAD) 필수**: 빈 문맥은 암 · 복호화 모두 거부한다. 생활모아 는 `필드:사용자ID`(예: `credential.password_enc:42`)를 넣는다 — [cipherContext](../backend/src/crypto/crypto-fields.ts). 다른 행 · 다른 사용자로 옮긴 암호문은 GCM 인증이 깨져 풀리지 않는다.
 - **부팅에서 거부**: 키 0개 · ID 형식 오류 · 중복 · 시크릿 32자 미만 · 두 키가 같은 시크릿 · 현재 키가 목록에 없음 → 틀린 항목을 전부 모아 한 번에 보고하고 부팅을 멈춘다(시크릿 값은 메시지에 넣지 않는다).
 - **형식 고정**: 언어 무관 명세와 테스트 벡터(옛 버전이 만든 실제 암호문)로 형식을 고정했다. Java 구현도 같은 벡터를 통과해야 해서 두 언어가 같은 암호문을 읽고 쓴다.
 
@@ -59,7 +59,7 @@ reencrypt(payload: string, context: string): string {
 }
 ```
 
-LifeLedger 쪽에서 이 위에 얹은 것: 부팅 시 전체 점검 · 재암호화(compare-and-swap UPDATE — [cipher-store.ts](../backend/src/crypto/cipher-store.ts), [crypto-audit.service.ts](../backend/src/crypto/crypto-audit.service.ts)), 배포 전 전체 복호화 점검([crypto-check.ts](../backend/src/crypto/crypto-check.ts)).
+생활모아 쪽에서 이 위에 얹은 것: 부팅 시 전체 점검 · 재암호화(compare-and-swap UPDATE — [cipher-store.ts](../backend/src/crypto/cipher-store.ts), [crypto-audit.service.ts](../backend/src/crypto/crypto-audit.service.ts)), 배포 전 전체 복호화 점검([crypto-check.ts](../backend/src/crypto/crypto-check.ts)).
 
 ### 암호문 컬럼 쓰기 가드
 
@@ -75,9 +75,9 @@ prisma.$extends(encryptedFields({ credential: ['password_enc', 'totp_enc', 'back
 
 ## 2. 예약 작업 — core-jobs
 
-`@Job({ name, cron, leaseMs })` 을 붙이면 실행마다 기록을 남기고, 겹침 · 멈춤을 처리한다. 저장소는 앱이 구현한다 — LifeLedger 는 `job_run` 테이블([job-run.store.ts](../backend/src/maintenance/job-run.store.ts)).
+`@Job({ name, cron, leaseMs })` 을 붙이면 실행마다 기록을 남기고, 겹침 · 멈춤을 처리한다. 저장소는 앱이 구현한다 — 생활모아 는 `job_run` 테이블([job-run.store.ts](../backend/src/maintenance/job-run.store.ts)).
 
-- **겹침 방지 두 겹**: 같은 프로세스 안은 메모리의 실행 자리로, 프로세스 사이는 저장소가 막는다(LifeLedger 는 `running_key` 유니크 — 충돌하면 건너뜀).
+- **겹침 방지 두 겹**: 같은 프로세스 안은 메모리의 실행 자리로, 프로세스 사이는 저장소가 막는다(생활모아 는 `running_key` 유니크 — 충돌하면 건너뜀).
 - **lease**: 핸들러와 lease 타이머를 경주시켜 먼저 끝나는 쪽을 따른다. lease 가 먼저 끝나면 실패로 마감하고 핸들러에 중단 신호(`AbortSignal`)를 보낸다 — 멈춘 작업이 다음 실행을 막지 않는다.
 - **죽은 실행 마감**: 배포 · 장애로 프로세스가 죽어 `running` 으로 남은 기록은 다음 실행 때 lease 가 지났으면 실패(`lease_expired`)로 마감한다.
 - **기록 없이는 실행하지 않는다**: 시작 기록에 실패하면 건너뛴다 — 기록 없이 돌면 겹침 방지와 lease 마감이 둘 다 깨진다.
@@ -118,9 +118,9 @@ outbox.flush(); // 커밋 뒤 바로 발송을 시도한다(기다리지 않는�
 ```
 
 - **보장은 at-least-once**: 발송에 성공했지만 기록 전에 프로세스가 죽으면 한 번 더 보낸다. 같은 내용이 두 번 가는 것보다 안 가는 게 나쁜 알림이라 이쪽을 골랐다.
-- **멱등 키**: 시간 창이 아니라 도메인 식별자(`noti:1234`)로 중복 적재를 막는다(LifeLedger 는 유니크 키 충돌이면 이미 적재된 것으로 본다).
+- **멱등 키**: 시간 창이 아니라 도메인 식별자(`noti:1234`)로 중복 적재를 막는다(생활모아 는 유니크 키 충돌이면 이미 적재된 것으로 본다).
 - **선점(claim)**: 발송할 묶음을 선점 시각과 함께 compare-and-swap 으로 잡는다. 발송 중 죽으면 선점 시간이 지난 뒤 다시 대상이 된다 — [outbox.store.ts](../backend/src/push/outbox.store.ts).
-- **재시도**: 지수 백오프(상한 있음), 최대 횟수를 넘거나 영구 오류(`OutboxPermanentError`)면 마감. 마감할 때 마감 사유로 덮어쓰지 않고 **원본 에러를 그대로** 남긴다 — LifeLedger 는 마지막 실패를 시스템 로그(`/logs`)에도 남긴다.
+- **재시도**: 지수 백오프(상한 있음), 최대 횟수를 넘거나 영구 오류(`OutboxPermanentError`)면 마감. 마감할 때 마감 사유로 덮어쓰지 않고 **원본 에러를 그대로** 남긴다 — 생활모아 는 마지막 실패를 시스템 로그(`/logs`)에도 남긴다.
 - 발송은 순차로 한다 — 외부 발송처(SMTP · 푸시 서버)에 한꺼번에 몰리지 않게.
 
 ```ts

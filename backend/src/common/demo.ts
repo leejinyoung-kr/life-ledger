@@ -2,7 +2,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { env } from '../config/env';
 
 // 데모 인스턴스의 고정 사용자 — 방문자 모두가 이 계정 하나를 같이 쓴다(prisma/seed.ts 의 ensureUsers 와 같은 이메일)
-export const DEMO_EMAIL = 'demo@life-ledger.local';
+export const DEMO_EMAIL = 'demo@life-moa.local';
 
 // 데모 마스터 잠금 비밀번호 — 화면의 데모 띠에 보여 주고, 매일 초기화 때 다시 건다(비밀이 아니다)
 export const DEMO_VAULT_PASSWORD = 'demo1234';

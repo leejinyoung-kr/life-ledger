@@ -15,7 +15,7 @@ import 'dotenv/config';
 
 // src/common/demo.ts 와 같은 값 — src/common/demo.ts 는 env 검증까지 끌고 와서 여기서는 import 하지 않는다.
 // 데모 사용자 이메일 · 마스터 잠금 비밀번호(화면의 데모 띠에 보이는 값이라 비밀이 아니다)
-const DEMO_EMAIL = 'demo@life-ledger.local';
+const DEMO_EMAIL = 'demo@life-moa.local';
 const DEMO_VAULT_PASSWORD = 'demo1234';
 
 // 비우지 않는 테이블 — 마이그레이션 이력 · 공휴일 캐시(전 사용자 공용) · 예약 작업 실행 기록(운영 확인용)

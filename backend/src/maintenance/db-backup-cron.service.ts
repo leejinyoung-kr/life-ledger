@@ -10,9 +10,9 @@ import { createGzip } from 'zlib';
 import { env } from '../config/env';
 
 const RETENTION_DAYS = 30;
-// 백업 파일 이름 접두사. 2026-10-15 DB 이름을 바꾸기 전 덤프는 docnexus_ 로 남아 있어 보관 기간 정리에 같이 넣는다
-const BACKUP_PREFIX = 'lifeledger_';
-const PURGE_PREFIXES = [BACKUP_PREFIX, 'docnexus_'];
+// 백업 파일 이름 접두사. 2026-11-17 DB 이름을 바꾸기 전 덤프는 lifeledger_ 로 남아 있어 보관 기간 정리에 같이 넣는다
+const BACKUP_PREFIX = 'lifemoa_';
+const PURGE_PREFIXES = [BACKUP_PREFIX, 'lifeledger_'];
 
 // DATABASE_URL 에서 mariadb-dump 접속 정보 추출
 export function parseDbUrl(databaseUrl: string) {
