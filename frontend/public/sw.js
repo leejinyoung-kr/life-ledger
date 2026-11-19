@@ -2,6 +2,12 @@
 // 보안 주의: 민감 자격증명 앱이므로 API/인증 응답은 절대 캐싱하지 않는다.
 // 정적 앱 셸(GET, 네비게이션·정적 에셋)만 캐싱하고, /api 등은 allowlist 밖이라 항상 네트워크로 보낸다.
 const CACHE = "life-moa-v1";
+// 빌드 파일(/_next/static/) 전용 캐시 — 파일 이름에 내용 해시가 붙어 같은 이름이면 내용도 같다
+const STATIC_CACHE = "life-moa-static-v1";
+// 배포마다 새 이름의 파일이 쌓이므로 이 개수를 넘으면 먼저 넣은 것부터 지운다 (한 번 화면을 다 열면 100개 안팎)
+const STATIC_MAX = 400;
+// dev 서버는 /_next/static/ 도 같은 이름으로 새 코드를 내보내므로 캐시하지 않는다
+const IS_DEV = ["localhost", "127.0.0.1"].includes(self.location.hostname);
 
 // 런타임 캐싱 제외 경로 — 평문 민감데이터가 디스크에 남지 않도록 차단
 const NO_CACHE_PREFIXES = ["/api", "/auth"];
@@ -16,7 +22,9 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+        Promise.all(
+          keys.filter((k) => k !== CACHE && k !== STATIC_CACHE).map((k) => caches.delete(k))
+        )
       )
   );
   self.clients.claim();
@@ -81,9 +89,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // 빌드 파일 — 캐시에 있으면 네트워크 없이 바로 쓴다. Cache-Control: immutable 이 붙어 있어도
+  // iOS 홈 화면 앱은 실행할 때마다 전부 다시 받아서(2026-11-19 Nginx 로그), 느린 회선에선 첫 화면이 10초 넘게 걸렸다
+  if (!IS_DEV && url.origin === self.location.origin && url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(staticCacheFirst(request));
+    return;
+  }
+
   // 동일 출처 + 민감경로·Next.js 번들 아님 + http(s) 만 캐싱 대상
-  // /_next/ 는 dev에서 content hash 없이 같은 URL로 새 코드가 나오므로 SW 캐시 제외.
-  // prod에서는 Next.js가 Cache-Control: immutable 을 붙여 브라우저 HTTP 캐시가 처리한다.
+  // 그 밖의 /_next/ (이미지 최적화 등)는 이름에 해시가 없으므로 캐시하지 않는다
   const cacheable =
     url.origin === self.location.origin &&
     !NO_CACHE_PREFIXES.some((p) => url.pathname.startsWith(p)) &&
@@ -107,3 +121,22 @@ self.addEventListener("fetch", (event) => {
     )
   );
 });
+
+// 빌드 파일을 캐시 우선으로 — 없으면 받아서 넣고, 개수가 넘치면 오래된 것부터 지운다
+async function staticCacheFirst(request) {
+  const cache = await caches.open(STATIC_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  let res;
+  try {
+    res = await fetch(request);
+  } catch {
+    return Response.error();
+  }
+  if (res.ok && res.type === "basic") {
+    await cache.put(request, res.clone());
+    const keys = await cache.keys();
+    await Promise.all(keys.slice(0, Math.max(0, keys.length - STATIC_MAX)).map((k) => cache.delete(k)));
+  }
+  return res;
+}

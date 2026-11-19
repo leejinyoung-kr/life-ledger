@@ -6,7 +6,8 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "생활모아",
     short_name: "생활모아",
     description: "자산 · 구독 · 계정을 한곳에서 관리하는 개인 생활 장부",
-    start_url: "/",
+    // "/" 는 /dashboard 로 넘기는 왕복이 한 번 더 든다 — 느린 회선에선 그 한 번이 2 ~ 6초였다 (2026-11-19 Nginx 로그)
+    start_url: "/dashboard",
     scope: "/",
     display: "standalone",
     background_color: "#FFFFFF",
