@@ -6,7 +6,8 @@
  * @dnd-kit 으로 드래그 순서 변경 → 순서가 바뀐 항목만 PATCH 호출(최소 요청).
  * 드래그 transform 은 dnd-kit inline style.
  */
-import { Fragment, useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { Fragment, useState, type CSSProperties } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useConfirm } from '@/components/ConfirmModal';
 import {
   DndContext,
@@ -36,6 +37,7 @@ import DragScroll from '@/components/DragScroll';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { IconBan, IconDrag, IconEdit, IconPlay, IconPlus, IconRefresh, IconTrash } from '@/components/icons';
 import { api } from '@/lib/api';
+import { useApiQuery } from '@/lib/query';
 import { PageLoading } from '@/components/QueryState';
 
 type Domain =
@@ -73,8 +75,13 @@ const NEW_PARENT = '__new__'; // 추가 폼에서 "새 대분류" 선택값
 
 export default function CodesPage() {
   const [domain, setDomain] = useState<Domain>('transaction');
-  const [items, setItems] = useState<CodeItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  // 종류마다 따로 캐시한다 — 탭을 바꾸면 이전 종류 목록이 남지 않고, 늦게 온 이전 응답이 덮어쓰지도 않는다.
+  // 키는 다른 화면(가계부 · 구독 · 계정)이 읽는 것과 같아서, 여기서 고치면 그 화면들도 새로 읽는다
+  const queryKey = ['categories', domain] as const;
+  const query = useApiQuery<CodeItem[]>(queryKey, `/categories?domain=${domain}`);
+  const items = query.data ?? [];
+  const loading = query.isPending;
+  const qc = useQueryClient();
   const [newCode, setNewCode] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [newParent, setNewParent] = useState(NEW_PARENT); // 가계부: 추가할 항목의 대분류 (NEW_PARENT=새 대분류)
@@ -87,21 +94,15 @@ export default function CodesPage() {
   );
   const { confirm, confirmElement } = useConfirm();
 
-  // 도메인별 항목 조회
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await api.get<CodeItem[]>(`/categories?domain=${domain}`);
-      setItems(data);
-    } catch {
-      notify.loadFailed();
-    } finally {
-      setLoading(false);
-    }
-  }, [domain]);
+  // 지금 종류 목록을 서버에서 다시 읽는다 (읽는 동안은 지금 목록을 그대로 보여 준다)
+  function load() {
+    qc.invalidateQueries({ queryKey });
+  }
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- domain 변경 시 목록 재조회
-  useEffect(() => { load(); }, [load]);
+  // 끌어서 바꾼 순서를 서버 응답 전에 먼저 보여 준다
+  function setItems(next: CodeItem[]) {
+    qc.setQueryData(queryKey, next);
+  }
 
   // 드래그 종료 — 순서 바뀐 항목만 PATCH(최소 요청)
   async function handleDragEnd(event: DragEndEvent) {
