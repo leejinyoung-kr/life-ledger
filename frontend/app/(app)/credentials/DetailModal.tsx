@@ -27,6 +27,8 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
   const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
   const [backupBusy, setBackupBusy] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 지금 열린 계정 id — 백업코드 응답이 늦게 와서 그사이 다른 계정을 열었으면 버리는 데 쓴다
+  const currentId = useRef<number | null>(null);
   // 화면은 마지막 계정으로 그린다 — 닫혀도(cred → null) 흐려지는 동안 이름 · 아이디가 그대로 보이게.
   // 원문 · TOTP 를 받고 지우는 아래 effect 는 실제 cred 를 따른다 (닫는 순간 원문은 지워진다)
   const shown = useLastValue(cred);
@@ -38,9 +40,14 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
     setSecret(null);
     setBackupCodes(null);
     if (hideTimer.current) clearTimeout(hideTimer.current);
+    currentId.current = cred?.id ?? null;
     if (!cred) return;
-    api.get<CredentialSecret>(`/credentials/${cred.id}/reveal`).then(setSecret).catch(() => {});
-    return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
+    // 닫고 바로 다른 계정을 열었을 때 이전 계정의 원문이 늦게 와서 새 계정 칸에 들어가지 않게 한다
+    let active = true;
+    api.get<CredentialSecret>(`/credentials/${cred.id}/reveal`)
+      .then((s) => { if (active) setSecret(s); })
+      .catch(() => {});
+    return () => { active = false; if (hideTimer.current) clearTimeout(hideTimer.current); };
   }, [cred]);
 
   // 2FA 계정이면 현재 TOTP 코드를 받아 1초마다 카운트다운하고, 남은 시간이 끝나는 때에 한 번만 다시 받는다.
@@ -82,8 +89,10 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
   async function handleGenBackup() {
     if (!cred || backupBusy) return;
     setBackupBusy(true);
+    const id = cred.id;
     try {
-      const r = await api.post<{ codes: string[] }>(`/credentials/${cred.id}/backup-codes`, {});
+      const r = await api.post<{ codes: string[] }>(`/credentials/${id}/backup-codes`, {});
+      if (currentId.current !== id) return;
       setBackupCodes(r.codes);
       notify.success('백업코드를 생성했습니다. 안전한 곳에 보관하세요.');
     } catch (e) { notify.error((e as Error).message); }
@@ -94,8 +103,10 @@ export default function DetailModal({ cred, pwAutoHide, onClose, onEdit, onDelet
   async function handleViewBackup() {
     if (!cred || backupBusy) return;
     setBackupBusy(true);
+    const id = cred.id;
     try {
-      const r = await api.get<BackupCodes>(`/credentials/${cred.id}/backup-codes`);
+      const r = await api.get<BackupCodes>(`/credentials/${id}/backup-codes`);
+      if (currentId.current !== id) return;
       setBackupCodes(r.codes);
     } catch (e) { notify.error((e as Error).message); }
     finally { setBackupBusy(false); }

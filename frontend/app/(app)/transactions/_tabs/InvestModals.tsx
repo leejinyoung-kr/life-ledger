@@ -72,13 +72,16 @@ export function TradeModal({ state, accountMap, onClose, onSaved }: { state: Tra
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 폼 초기화
     setQuantity('');
     setPrice('');
-    if (t.symbol) {
-      setPriceLoading(true);
-      api.get<{ price: number; currency: 'KRW' | 'USD'; krwPrice: number }>(`/investments/${t.id}/quote`)
-        .then((r) => setPrice(String(r.currency === 'USD' ? r.price : Math.round(r.krwPrice))))
-        .catch((err) => notify.error((err as Error).message || '시세 조회에 실패했습니다.'))
-        .finally(() => setPriceLoading(false));
-    }
+    setPriceLoading(false);
+    if (!t.symbol) return;
+    // 닫고 바로 다른 종목을 열었을 때 이전 종목 시세가 늦게 와서 새 종목 단가에 들어가지 않게 한다
+    let active = true;
+    setPriceLoading(true);
+    api.get<{ price: number; currency: 'KRW' | 'USD'; krwPrice: number }>(`/investments/${t.id}/quote`)
+      .then((r) => { if (active) setPrice(String(r.currency === 'USD' ? r.price : Math.round(r.krwPrice))); })
+      .catch((err) => { if (active) notify.error((err as Error).message || '시세 조회에 실패했습니다.'); })
+      .finally(() => { if (active) setPriceLoading(false); });
+    return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 모달 열림/대상 변경 시에만 초기화
   }, [state.open, t]);
 
@@ -147,10 +150,13 @@ export function PriceLookupModal({ state, onClose, onSaved }: { state: PriceStat
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 모달 열릴 때 조회 상태 초기화
     setResult(null);
     setLoading(true);
+    // 이전 종목 조회 결과가 늦게 와서 새 종목 창에 뜨면 「반영」이 그 값을 새 종목에 넣는다 — 지금 창의 응답만 받는다
+    let active = true;
     api.get<PriceLookupResult>(`/investments/${t.id}/price`)
-      .then(setResult)
-      .catch((err) => notify.error((err as Error).message || '시세 조회에 실패했습니다.'))
-      .finally(() => setLoading(false));
+      .then((r) => { if (active) setResult(r); })
+      .catch((err) => { if (active) notify.error((err as Error).message || '시세 조회에 실패했습니다.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [state.open, t]);
 
   async function handleApply() {
